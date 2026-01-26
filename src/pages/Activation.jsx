@@ -293,38 +293,34 @@ export default function Activation() {
     }
   };
 
-  // Gantt view calculations
-  const ganttData = useMemo(() => {
-    if (activations.length === 0) return { items: [], minDate: null, maxDate: null, totalDays: 0, todayOffset: 0 };
-
-    const dates = activations.map(a => {
-      const start = a.data_inizio ? parseISO(a.data_inizio) : parseISO(a.data_completamento_target);
-      const end = parseISO(a.data_completamento_target);
-      return { start, end };
+  // Vista per persona
+  const activationsByPerson = useMemo(() => {
+    const grouped = {};
+    
+    // Group assigned activations
+    activations.forEach(act => {
+      if (act.assegnato_a_id && act.assegnato_a_nome) {
+        if (!grouped[act.assegnato_a_id]) {
+          grouped[act.assegnato_a_id] = {
+            nome: act.assegnato_a_nome,
+            activations: []
+          };
+        }
+        grouped[act.assegnato_a_id].activations.push(act);
+      }
     });
-
-    const allDates = dates.flatMap(d => [d.start, d.end]);
-    const minDate = new Date(Math.min(...allDates));
-    const maxDate = new Date(Math.max(...allDates));
-    const totalDays = differenceInDays(maxDate, minDate) + 1;
-    const todayOffset = differenceInDays(new Date(), minDate);
-
-    const items = activations.map(a => {
-      const start = a.data_inizio ? parseISO(a.data_inizio) : parseISO(a.data_completamento_target);
-      const end = parseISO(a.data_completamento_target);
-      const startOffset = differenceInDays(start, minDate);
-      const duration = differenceInDays(end, start) + 1;
-
-      return {
-        ...a,
-        startOffset,
-        duration,
-        progressPercent: Math.min(100, ((differenceInDays(new Date(), start) / duration) * 100))
+    
+    // Add unassigned activations
+    const unassigned = activations.filter(act => !act.assegnato_a_id);
+    if (unassigned.length > 0) {
+      grouped['unassigned'] = {
+        nome: 'Non Assegnate',
+        activations: unassigned
       };
-    });
-
-    return { items, minDate, maxDate, totalDays, todayOffset };
-  }, [activations]);
+    }
+    
+    return grouped;
+  }, [activations, allUsers]);
 
   // Calendar view calculations
   const calendarData = useMemo(() => {
@@ -614,12 +610,12 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
             Lista
           </NeumorphicButton>
           <NeumorphicButton
-            onClick={() => setActiveView('gantt')}
-            variant={activeView === 'gantt' ? 'primary' : 'default'}
+            onClick={() => setActiveView('per_persona')}
+            variant={activeView === 'per_persona' ? 'primary' : 'default'}
             className="flex items-center gap-2"
           >
-            <BarChart3 className="w-4 h-4" />
-            Vista Gantt
+            <User className="w-4 h-4" />
+            Per Persona
           </NeumorphicButton>
           <NeumorphicButton
             onClick={() => setActiveView('calendario')}
@@ -1227,91 +1223,175 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
           </NeumorphicCard>
         )}
 
-        {/* Gantt View */}
-        {activeView === 'gantt' && (
-          <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-4">Vista Gantt</h2>
-            
-            {activations.length === 0 ? (
-              <div className="text-center py-12">
-                <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+        {/* Vista Per Persona */}
+        {activeView === 'per_persona' && (
+          <div className="space-y-4">
+            {Object.keys(activationsByPerson).length === 0 ? (
+              <NeumorphicCard className="p-12 text-center">
+                <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500">Nessuna activation da visualizzare</p>
-              </div>
+              </NeumorphicCard>
             ) : (
-              <div className="overflow-x-auto">
-                <div className="min-w-[800px]">
-                  {/* Timeline header */}
-                  <div className="flex mb-4 pb-2 border-b-2 border-slate-200">
-                    <div className="w-48 flex-shrink-0 pr-4">
-                      <p className="text-sm font-bold text-slate-600">Activation</p>
+              Object.entries(activationsByPerson)
+                .sort(([keyA], [keyB]) => {
+                  // Non assegnate sempre per ultime
+                  if (keyA === 'unassigned') return 1;
+                  if (keyB === 'unassigned') return -1;
+                  return 0;
+                })
+                .map(([personId, data]) => (
+                  <NeumorphicCard key={personId} className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        personId === 'unassigned' ? 'bg-slate-300' : 'bg-gradient-to-br from-blue-500 to-blue-600'
+                      }`}>
+                        <User className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-slate-800">{data.nome}</h2>
+                        <p className="text-sm text-slate-500">
+                          {data.activations.length} activation{data.activations.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 flex items-center justify-between px-4 relative">
-                      <p className="text-xs text-slate-500">
-                        {ganttData.minDate && format(ganttData.minDate, 'dd MMM yyyy', { locale: it })}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {ganttData.maxDate && format(ganttData.maxDate, 'dd MMM yyyy', { locale: it })}
-                      </p>
-                      {/* Today indicator */}
-                      {ganttData.todayOffset >= 0 && ganttData.todayOffset <= ganttData.totalDays && (
-                        <div
-                          className="absolute top-0 bottom-0 w-0.5 bg-red-500"
-                          style={{ left: `${(ganttData.todayOffset / ganttData.totalDays) * 100}%` }}
-                        >
-                          <div className="absolute -top-1 -left-1 w-2 h-2 rounded-full bg-red-500" />
-                          <div className="absolute -top-6 -left-8 text-xs text-red-600 font-bold whitespace-nowrap">
-                            Oggi
+
+                    <div className="space-y-3">
+                      {data.activations.map(activation => {
+                        const subattivitaList = subattivita.filter(s => s.activation_id === activation.id);
+                        const subattivitaComplete = subattivitaList.filter(s => s.completata).length;
+                        
+                        return (
+                          <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
+                                    {getStatoIcon(activation.stato)}
+                                    {activation.stato.replace('_', ' ').toUpperCase()}
+                                  </span>
+                                </div>
+                                {activation.descrizione && (
+                                  <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
+                                )}
+                                <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                                  {activation.data_inizio && (
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      Inizio: {format(parseISO(activation.data_inizio), 'dd MMM yyyy', { locale: it })}
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}
+                                  </div>
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {activation.categorie_ids && activation.categorie_ids.length > 0 && (
+                                    activation.categorie_ids.map(catId => {
+                                      const cat = categories.find(c => c.id === catId);
+                                      if (!cat) return null;
+                                      return (
+                                        <span
+                                          key={catId}
+                                          className="text-xs px-2 py-1 rounded-full text-white font-medium"
+                                          style={{ backgroundColor: cat.colore }}
+                                        >
+                                          {cat.nome}
+                                        </span>
+                                      );
+                                    })
+                                  )}
+                                  {activation.stores_ids && activation.stores_ids.length > 0 ? (
+                                    activation.stores_names?.map((name, idx) => (
+                                      <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                        {name}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                      Tutti i locali
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedActivationForChecklist(activation);
+                                    setShowChecklistModal(true);
+                                  }}
+                                  className="nav-button p-2 rounded-lg hover:bg-green-50"
+                                >
+                                  <CheckSquare className="w-4 h-4 text-green-600" />
+                                </button>
+                                <button
+                                  onClick={() => handleEdit(activation)}
+                                  className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                                >
+                                  <Edit className="w-4 h-4 text-blue-600" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm('Eliminare questa activation?')) {
+                                      deleteMutation.mutate(activation.id);
+                                    }
+                                  }}
+                                  className="nav-button p-2 rounded-lg hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Sottoattività */}
+                            {subattivitaList.length > 0 && (
+                              <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-xs font-medium text-slate-600">Sottoattività:</p>
+                                  <p className="text-xs font-bold text-blue-600">
+                                    {subattivitaComplete} / {subattivitaList.length}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  {subattivitaList
+                                    .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
+                                    .map(item => (
+                                      <div key={item.id} className="flex items-start gap-2 text-xs">
+                                        <span className="mt-1">
+                                          {item.completata ? (
+                                            <CheckSquare className="w-3 h-3 text-green-600" />
+                                          ) : (
+                                            <Square className="w-3 h-3 text-slate-400" />
+                                          )}
+                                        </span>
+                                        <div className="flex-1">
+                                          <p className={item.completata ? 'line-through text-slate-500' : 'text-slate-700'}>
+                                            {item.titolo}
+                                          </p>
+                                          {item.data_target && (
+                                            <p className="text-slate-500">📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                </div>
+                                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-2">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                                    style={{ width: `${(subattivitaComplete / subattivitaList.length) * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })}
                     </div>
-                  </div>
-
-                  {/* Gantt bars */}
-                  <div className="space-y-3">
-                    {ganttData.items.map(item => {
-                      const leftPercent = (item.startOffset / ganttData.totalDays) * 100;
-                      const widthPercent = (item.duration / ganttData.totalDays) * 100;
-                      const categoryColor = item.categorie_ids?.[0] ? categories.find(c => c.id === item.categorie_ids[0])?.colore : null;
-
-                      return (
-                        <div key={item.id} className="flex items-center">
-                          <div className="w-48 flex-shrink-0 pr-4">
-                            <p className="text-sm font-medium text-slate-700 truncate">{item.nome}</p>
-                            <div className="flex gap-1 mt-1">
-                              {item.stores_ids && item.stores_ids.length > 0 ? (
-                                <span className="text-xs text-slate-500">{item.stores_ids.length} locali</span>
-                              ) : (
-                                <span className="text-xs text-purple-600">Tutti</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex-1 relative h-12 neumorphic-pressed rounded-xl">
-                            <div
-                              className={`absolute h-full rounded-xl flex items-center px-3`}
-                              style={{
-                                left: `${leftPercent}%`,
-                                width: `${widthPercent}%`,
-                                backgroundColor: categoryColor || (
-                                  item.stato === 'completata' ? '#4ade80' :
-                                  item.stato === 'annullata' ? '#f87171' :
-                                  '#60a5fa'
-                                )
-                              }}
-                            >
-                              <span className="text-xs font-bold text-white truncate">
-                                {format(parseISO(item.data_completamento_target), 'dd/MM', { locale: it })}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+                  </NeumorphicCard>
+                ))
             )}
-          </NeumorphicCard>
+          </div>
         )}
 
         {/* Calendario View */}
@@ -1396,13 +1476,8 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
 
             <div className={`grid ${calendarView === 'week' ? 'grid-cols-7' : 'grid-cols-7'} gap-2`}>
               {/* Header giorni */}
-              {calendarView === 'week' && ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
-                <div key={day} className="text-center text-sm font-bold text-slate-600 p-2">
-                  {day}
-                </div>
-              ))}
-              {calendarView === 'month' && ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
-                <div key={day} className="text-center text-xs font-bold text-slate-600 p-2">
+              {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
+                <div key={day} className={`text-center font-bold text-slate-600 p-2 ${calendarView === 'week' ? 'text-sm' : 'text-xs'}`}>
                   {day}
                 </div>
               ))}
