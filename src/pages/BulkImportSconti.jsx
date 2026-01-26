@@ -19,7 +19,19 @@ export default function BulkImportSconti() {
   const uploadMutation = useMutation({
     mutationFn: async (file) => {
       setUploadStatus('uploading');
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      let uploadResult;
+      try {
+        uploadResult = await base44.integrations.Core.UploadFile({ file });
+      } catch (error) {
+        throw new Error(`Errore caricamento file: ${error.message}. Verifica che il file sia un CSV valido.`);
+      }
+      
+      if (!uploadResult?.file_url) {
+        throw new Error('Nessun URL file ricevuto dal server');
+      }
+      
+      const { file_url } = uploadResult;
       
       setUploadStatus('processing');
       
@@ -115,6 +127,7 @@ export default function BulkImportSconti() {
     },
     onError: (error) => {
       setUploadStatus('error');
+      setImportResults({ error: error.message });
       console.error('Import error:', error);
     }
   });
@@ -218,21 +231,26 @@ export default function BulkImportSconti() {
                 uploadStatus === 'error' ? 'bg-red-50 border-red-500' :
                 'bg-blue-50 border-blue-500'
               }`}>
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3">
                   {uploadStatus === 'success' ? (
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                   ) : uploadStatus === 'error' ? (
-                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
                   ) : (
-                    <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                    <Loader2 className="w-5 h-5 text-blue-600 animate-spin flex-shrink-0" />
                   )}
-                  <span className={`text-sm font-medium ${
-                    uploadStatus === 'success' ? 'text-green-800' :
-                    uploadStatus === 'error' ? 'text-red-800' :
-                    'text-blue-800'
-                  }`}>
-                    {getStatusMessage()}
-                  </span>
+                  <div>
+                    <p className={`text-sm font-medium ${
+                      uploadStatus === 'success' ? 'text-green-800' :
+                      uploadStatus === 'error' ? 'text-red-800' :
+                      'text-blue-800'
+                    }`}>
+                      {getStatusMessage()}
+                    </p>
+                    {uploadStatus === 'error' && importResults?.error && (
+                      <p className="text-xs text-red-700 mt-1">{importResults.error}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
