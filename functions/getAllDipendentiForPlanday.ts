@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
       body = {};
     }
     
-    const filterData = body?.data || null;
+    const filterData = body?.filter_data || body?.data || null;
 
     // Carica tutti gli Employee attivi usando service role
     const allEmployees = await base44.asServiceRole.entities.Employee.list();
