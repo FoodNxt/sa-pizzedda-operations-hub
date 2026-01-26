@@ -12,7 +12,10 @@ Deno.serve(async (req) => {
 
     // Parse body per parametri opzionali
     const body = await req.json().catch(() => ({}));
-    const { data: filterData } = body;
+    const filterData = body.data;
+
+    console.log('Body ricevuto:', body);
+    console.log('FilterData estratto:', filterData);
 
     // Carica tutti gli Employee attivi usando service role
     const allEmployees = await base44.asServiceRole.entities.Employee.list();
@@ -79,6 +82,9 @@ Deno.serve(async (req) => {
         data: filterData
       });
       console.log('Turni trovati:', turni.length);
+      console.log('Primi 3 turni:', turni.slice(0, 3).map(t => ({ dipendente: t.dipendente_nome, orario: `${t.ora_inizio}-${t.ora_fine}` })));
+    } else {
+      console.log('Nessun filterData fornito, non carico turni');
     }
 
     return Response.json({ dipendenti, turni });
