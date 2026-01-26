@@ -18,6 +18,15 @@ export default function BulkImportSconti() {
     queryFn: () => base44.entities.Store.list(),
   });
 
+  // Debug stores
+  React.useEffect(() => {
+    console.log('Stores caricati:', stores);
+    if (stores.length > 0) {
+      console.log('Primo store:', stores[0]);
+      console.log('Nomi stores:', stores.map(s => s.name));
+    }
+  }, [stores]);
+
   // Debug: log stores
   React.useEffect(() => {
     console.log('Stores loaded:', stores);
@@ -94,13 +103,13 @@ export default function BulkImportSconti() {
       // Match stores
       const scontiWithStores = scontiData.map(sconto => {
         const matchedStore = stores.find(s => 
-          s.store_name?.toLowerCase().trim() === sconto.channel?.toLowerCase().trim()
+          s.name?.toLowerCase().trim() === sconto.channel?.toLowerCase().trim()
         );
-        
+
         return {
           ...sconto,
           store_id: matchedStore?.id || null,
-          store_name: matchedStore?.store_name || null,
+          store_name: matchedStore?.name || null,
           total_discount_price: parseFloat(sconto.total_discount_price) || 0,
           sourceApp_glovo: parseFloat(sconto.sourceApp_glovo) || 0,
           sourceApp_deliveroo: parseFloat(sconto.sourceApp_deliveroo) || 0,
@@ -153,16 +162,16 @@ export default function BulkImportSconti() {
   const importMutation = useMutation({
     mutationFn: async () => {
       setUploadStatus('importing');
-      
+
       // Apply manual mapping
       const finalData = parsedData.map(sconto => {
         const mappedStoreId = storeMapping[sconto.channel];
         const mappedStore = stores.find(s => s.id === mappedStoreId);
-        
+
         return {
           ...sconto,
           store_id: mappedStoreId || null,
-          store_name: mappedStore?.store_name || null
+          store_name: mappedStore?.name || null
         };
       });
       
@@ -397,7 +406,7 @@ export default function BulkImportSconti() {
                 <p className="font-bold">Canali nel CSV:</p>
                 <p className="ml-3">{uniqueChannels.join(', ')}</p>
                 <p className="font-bold mt-2">Store nel database ({stores.length}):</p>
-                <p className="ml-3">{stores.length > 0 ? stores.map(s => s.store_name).join(', ') : 'NESSUNO STORE TROVATO'}</p>
+                <p className="ml-3">{stores.length > 0 ? stores.map(s => s.name).join(', ') : 'NESSUNO STORE TROVATO'}</p>
               </div>
               {stores.length === 0 && (
                 <p className="text-xs text-red-600 mt-2 font-bold">⚠️ ATTENZIONE: Nessuno store trovato nel database! Verifica che esistano store nell'entità Store.</p>
@@ -428,7 +437,7 @@ export default function BulkImportSconti() {
                             <option value="">-- Seleziona store --</option>
                             {stores.map(store => (
                               <option key={store.id} value={store.id}>
-                                {store.store_name}
+                                {store.name}
                               </option>
                             ))}
                           </select>
