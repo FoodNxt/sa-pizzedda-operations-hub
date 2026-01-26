@@ -74,9 +74,11 @@ Deno.serve(async (req) => {
     // Se è richiesta anche la lista turni per una data specifica
     let turni = [];
     if (filterData) {
+      console.log('Filtering turni for data:', filterData);
       turni = await base44.asServiceRole.entities.TurnoPlanday.filter({
         data: filterData
       });
+      console.log('Turni trovati:', turni.length);
     }
 
     return Response.json({ dipendenti, turni });
