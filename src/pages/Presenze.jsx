@@ -61,11 +61,20 @@ export default function Presenze() {
   });
 
   const availableTipiTurno = useMemo(() => {
-    return tipiTurnoConfig
-      .filter(t => t.is_active !== false)
-      .map(t => t.nome)
-      .sort();
-  }, [tipiTurnoConfig]);
+    // Prendi da config se disponibile, altrimenti dai turni
+    if (tipiTurnoConfig.length > 0) {
+      return tipiTurnoConfig
+        .filter(t => t.is_active !== false)
+        .map(t => t.nome)
+        .sort();
+    }
+    // Fallback: raccogli dai turni
+    const tipiSet = new Set();
+    turni.forEach(t => {
+      if (t.tipo_turno) tipiSet.add(t.tipo_turno);
+    });
+    return Array.from(tipiSet).sort();
+  }, [tipiTurnoConfig, turni]);
 
   useEffect(() => {
     if (includedTipiTurno.length === 0 && availableTipiTurno.length > 0) {
