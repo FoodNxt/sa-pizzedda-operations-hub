@@ -502,6 +502,11 @@ const navigationStructure = [
         title: "Zapier Sconti",
         url: createPageUrl("ZapierSconti"),
         icon: Zap,
+      },
+      {
+        title: "Bulk Import Sconti",
+        url: createPageUrl("BulkImportSconti"),
+        icon: Upload,
       }
       ]
       },

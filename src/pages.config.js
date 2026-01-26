@@ -122,6 +122,7 @@ import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSetup from './pages/ZapierSetup';
 import ZapierSconti from './pages/ZapierSconti';
 import Sconti from './pages/Sconti';
+import BulkImportSconti from './pages/BulkImportSconti';
 import __Layout from './Layout.jsx';
 
 
@@ -250,6 +251,7 @@ export const PAGES = {
     "ZapierSetup": ZapierSetup,
     "ZapierSconti": ZapierSconti,
     "Sconti": Sconti,
+    "BulkImportSconti": BulkImportSconti,
 }
 
 export const pagesConfig = {
