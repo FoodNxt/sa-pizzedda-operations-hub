@@ -13,10 +13,15 @@ export default function BulkImportSconti() {
   const [parsedData, setParsedData] = useState(null);
   const [storeMapping, setStoreMapping] = useState({});
 
-  const { data: stores = [] } = useQuery({
+  const { data: stores = [], isLoading: isLoadingStores } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
   });
+
+  // Debug: log stores
+  React.useEffect(() => {
+    console.log('Stores loaded:', stores);
+  }, [stores]);
 
   const parseMutation = useMutation({
     mutationFn: async (file) => {
@@ -349,32 +354,51 @@ export default function BulkImportSconti() {
           <NeumorphicCard className="p-6">
             <h2 className="text-lg font-bold text-slate-800 mb-4">Verifica Matching Store</h2>
             
+            <div className="mb-4 p-4 bg-blue-50 rounded-xl">
+              <p className="text-sm font-medium text-blue-900 mb-3">
+                📊 Trovati {uniqueChannels.length} canali unici nel CSV
+              </p>
+              {stores.length === 0 && (
+                <p className="text-xs text-red-600">⚠️ Nessuno store trovato nel database!</p>
+              )}
+            </div>
+
             {unmatchedChannels.length > 0 && (
               <div className="mb-4 p-4 bg-orange-50 rounded-xl border-l-4 border-orange-500">
                 <p className="text-sm font-medium text-orange-900 mb-3">
-                  {unmatchedChannels.length} canali non trovati - seleziona lo store corrispondente:
+                  {unmatchedChannels.length} canali da mappare - seleziona lo store corrispondente:
                 </p>
                 <div className="space-y-3">
                   {unmatchedChannels.map(channel => (
-                    <div key={channel} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-slate-700">"{channel}"</p>
-                        <p className="text-xs text-slate-500">
-                          {parsedData.filter(s => s.channel === channel).length} righe
-                        </p>
+                    <div key={channel} className="bg-white p-3 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-700">Canale CSV: "{channel}"</p>
+                          <p className="text-xs text-slate-500">
+                            {parsedData.filter(s => s.channel === channel).length} righe nel file
+                          </p>
+                        </div>
+                        <div className="w-64">
+                          <select
+                            value={storeMapping[channel] || ''}
+                            onChange={(e) => updateStoreMapping(channel, e.target.value)}
+                            className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">-- Seleziona store --</option>
+                            {isLoadingStores ? (
+                              <option disabled>Caricamento...</option>
+                            ) : stores.length === 0 ? (
+                              <option disabled>Nessuno store trovato</option>
+                            ) : (
+                              stores.map(store => (
+                                <option key={store.id} value={store.id}>
+                                  {store.store_name}
+                                </option>
+                              ))
+                            )}
+                          </select>
+                        </div>
                       </div>
-                      <select
-                        value={storeMapping[channel] || ''}
-                        onChange={(e) => updateStoreMapping(channel, e.target.value)}
-                        className="neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
-                      >
-                        <option value="">Seleziona store...</option>
-                        {stores.map(store => (
-                          <option key={store.id} value={store.id}>
-                            {store.store_name}
-                          </option>
-                        ))}
-                      </select>
                     </div>
                   ))}
                 </div>
