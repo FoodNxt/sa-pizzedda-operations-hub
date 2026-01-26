@@ -55,7 +55,7 @@ export default function Presenze() {
     refetchInterval: 60000
   });
 
-  const { data: tipiTurnoConfig = [] } = useQuery({
+  const { data: tipiTurnoConfig = [], isLoading: isLoadingTipi } = useQuery({
     queryKey: ['tipi-turno-config'],
     queryFn: () => base44.entities.TipoTurnoConfig.list(),
   });
@@ -409,7 +409,11 @@ export default function Presenze() {
                   Seleziona quali tipi di turno mostrare nella view Presenze
                 </p>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {availableTipiTurno.length > 0 ? (
+                  {isLoadingTipi ? (
+                    <p className="text-sm text-slate-500 text-center py-4">
+                      Caricamento tipi di turno...
+                    </p>
+                  ) : availableTipiTurno.length > 0 ? (
                     availableTipiTurno.map(tipo => (
                       <label key={tipo} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
                         <input
