@@ -359,26 +359,20 @@ export default function Sconti() {
               </NeumorphicCard>
 
               <NeumorphicCard className="p-6">
-                <h2 className="text-lg font-bold text-slate-800 mb-4">Distribuzione per App</h2>
-                {appChartData.length > 0 ? (
+                <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per Canale</h2>
+                {channelChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={appChartData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {appChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => `€${value}`} />
-                    </PieChart>
+                    <BarChart data={channelChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="name" stroke="#64748b" />
+                      <YAxis stroke="#64748b" />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                        formatter={(value) => `€${value}`}
+                      />
+                      <Legend />
+                      <Bar dataKey="valore" fill="#ef4444" name="Sconti (€)" />
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <p className="text-center text-slate-400 py-12">Nessun dato disponibile</p>
@@ -555,19 +549,19 @@ export default function Sconti() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <NeumorphicCard className="p-6 text-center">
                 <BarChart3 className="w-10 h-10 text-blue-600 mx-auto mb-3" />
-                <p className="text-3xl font-bold text-blue-600">€{grossSalesStats.totalGrossSales.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-blue-600">€{grossSalesStats.totalGrossSales.toFixed(0)}</p>
                 <p className="text-sm text-slate-600 mt-1">Gross Sales</p>
               </NeumorphicCard>
 
               <NeumorphicCard className="p-6 text-center">
                 <TrendingDown className="w-10 h-10 text-green-600 mx-auto mb-3" />
-                <p className="text-3xl font-bold text-green-600">€{grossSalesStats.totalRevenue.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-green-600">€{grossSalesStats.totalRevenue.toFixed(0)}</p>
                 <p className="text-sm text-slate-600 mt-1">Net Revenue</p>
               </NeumorphicCard>
 
               <NeumorphicCard className="p-6 text-center">
                 <TrendingDown className="w-10 h-10 text-red-600 mx-auto mb-3" />
-                <p className="text-3xl font-bold text-red-600">€{grossSalesStats.totalDiscount.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-red-600">€{grossSalesStats.totalDiscount.toFixed(0)}</p>
                 <p className="text-sm text-slate-600 mt-1">Sconti Totali</p>
               </NeumorphicCard>
 
@@ -596,6 +590,34 @@ export default function Sconti() {
                     <Bar dataKey="sconto" fill="#ef4444" name="Sconti (€)" />
                   </BarChart>
                 </ResponsiveContainer>
+              ) : (
+                <p className="text-center text-slate-400 py-12">Nessun dato disponibile</p>
+              )}
+            </NeumorphicCard>
+
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per Canale</h2>
+              {grossSalesChartData.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-slate-200">
+                        <th className="text-left p-3 text-sm font-bold text-slate-700">Store</th>
+                        <th className="text-right p-3 text-sm font-bold text-slate-700">Sconti Totali</th>
+                        <th className="text-right p-3 text-sm font-bold text-slate-700">% su Gross Sales</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {grossSalesChartData.map((item, idx) => (
+                        <tr key={item.name} className={`border-b border-slate-100 hover:bg-slate-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                          <td className="p-3 text-sm font-medium text-slate-700">{item.name}</td>
+                          <td className="p-3 text-sm font-bold text-right text-red-600">€{item.sconto.toFixed(2)}</td>
+                          <td className="p-3 text-sm font-bold text-right text-orange-600">{item.percentualeSconto.toFixed(2)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <p className="text-center text-slate-400 py-12">Nessun dato disponibile</p>
               )}
