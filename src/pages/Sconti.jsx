@@ -10,6 +10,7 @@ import { it } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function Sconti() {
+  const [activeView, setActiveView] = useState('sconti');
   const [dateFilter, setDateFilter] = useState('month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -18,6 +19,11 @@ export default function Sconti() {
   const { data: sconti = [], isLoading } = useQuery({
     queryKey: ['sconti'],
     queryFn: () => base44.entities.Sconto.list('-order_date'),
+  });
+
+  const { data: iPraticoData = [], isLoading: isLoadingIPratico } = useQuery({
+    queryKey: ['ipratico'],
+    queryFn: () => base44.entities.iPratico.list('-order_date'),
   });
 
   const filteredSconti = useMemo(() => {
@@ -125,6 +131,105 @@ export default function Sconti() {
     return [...new Set(sconti.map(s => s.store_name || s.channel).filter(Boolean))];
   }, [sconti]);
 
+  const filteredIPratico = useMemo(() => {
+    let filtered = [...iPraticoData];
+    
+    // Filtra per data
+    const now = new Date();
+    if (dateFilter === 'month') {
+      const start = startOfMonth(now);
+      const end = endOfMonth(now);
+      filtered = filtered.filter(i => {
+        const date = parseISO(i.order_date);
+        return date >= start && date <= end;
+      });
+    } else if (dateFilter === 'year') {
+      const start = startOfYear(now);
+      const end = endOfYear(now);
+      filtered = filtered.filter(i => {
+        const date = parseISO(i.order_date);
+        return date >= start && date <= end;
+      });
+    } else if (dateFilter === 'custom' && customStartDate && customEndDate) {
+      const start = parseISO(customStartDate);
+      const end = parseISO(customEndDate);
+      filtered = filtered.filter(i => {
+        const date = parseISO(i.order_date);
+        return date >= start && date <= end;
+      });
+    }
+
+    // Filtra per store
+    if (channelFilter !== 'all') {
+      filtered = filtered.filter(i => (i.store_name || i.channel) === channelFilter);
+    }
+
+    return filtered;
+  }, [iPraticoData, dateFilter, customStartDate, customEndDate, channelFilter]);
+
+  const grossSalesStats = useMemo(() => {
+    // Aggrega revenues da iPratico per store
+    const revenueByStore = {};
+    filteredIPratico.forEach(item => {
+      const storeName = item.store_name || item.channel || 'Sconosciuto';
+      if (!revenueByStore[storeName]) {
+        revenueByStore[storeName] = 0;
+      }
+      revenueByStore[storeName] += item.total_revenue || 0;
+    });
+
+    // Aggrega sconti per store
+    const discountByStore = {};
+    filteredSconti.forEach(s => {
+      const storeName = s.store_name || s.channel || 'Sconosciuto';
+      if (!discountByStore[storeName]) {
+        discountByStore[storeName] = 0;
+      }
+      discountByStore[storeName] += s.total_discount_price || 0;
+    });
+
+    // Calcola gross sales (revenue + sconto) e %
+    const byStore = {};
+    const allStores = [...new Set([...Object.keys(revenueByStore), ...Object.keys(discountByStore)])];
+    
+    allStores.forEach(storeName => {
+      const revenue = revenueByStore[storeName] || 0;
+      const discount = discountByStore[storeName] || 0;
+      const grossSales = revenue + discount;
+      const discountPercent = grossSales > 0 ? (discount / grossSales) * 100 : 0;
+      
+      byStore[storeName] = {
+        revenue,
+        discount,
+        grossSales,
+        discountPercent
+      };
+    });
+
+    const totalRevenue = Object.values(revenueByStore).reduce((sum, v) => sum + v, 0);
+    const totalDiscount = Object.values(discountByStore).reduce((sum, v) => sum + v, 0);
+    const totalGrossSales = totalRevenue + totalDiscount;
+    const avgDiscountPercent = totalGrossSales > 0 ? (totalDiscount / totalGrossSales) * 100 : 0;
+
+    return {
+      byStore,
+      totalRevenue,
+      totalDiscount,
+      totalGrossSales,
+      avgDiscountPercent
+    };
+  }, [filteredIPratico, filteredSconti]);
+
+  const grossSalesChartData = useMemo(() => {
+    return Object.entries(grossSalesStats.byStore).map(([storeName, data]) => ({
+      name: storeName,
+      grossSales: parseFloat(data.grossSales.toFixed(2)),
+      revenue: parseFloat(data.revenue.toFixed(2)),
+      sconto: parseFloat(data.discount.toFixed(2)),
+      percentualeSconto: parseFloat(data.discountPercent.toFixed(2))
+    }));
+  }, [grossSalesStats.byStore]);
+
   return (
     <ProtectedPage pageName="Sconti">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -133,6 +238,32 @@ export default function Sconti() {
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Analisi Sconti</h1>
           <p className="text-slate-500">Monitora gli sconti applicati agli ordini</p>
         </div>
+
+        {/* View Tabs */}
+        <NeumorphicCard className="p-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveView('sconti')}
+              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                activeView === 'sconti' 
+                  ? 'bg-blue-500 text-white shadow-lg' 
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              Sconti
+            </button>
+            <button
+              onClick={() => setActiveView('grossSales')}
+              className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all ${
+                activeView === 'grossSales' 
+                  ? 'bg-blue-500 text-white shadow-lg' 
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              Gross Sales
+            </button>
+          </div>
+        </NeumorphicCard>
 
         {/* Filtri */}
         <NeumorphicCard className="p-6">
