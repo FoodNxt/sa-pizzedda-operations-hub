@@ -20,6 +20,7 @@ import {
   Tag,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Folder,
   X,
   CheckSquare,
