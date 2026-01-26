@@ -393,12 +393,14 @@ export default function BulkImportSconti() {
               <p className="text-sm font-medium text-blue-900 mb-3">
                 📊 Trovati {uniqueChannels.length} canali unici nel CSV
               </p>
-              <div className="text-xs text-blue-800 space-y-1">
-                <p>Canali nel CSV: {uniqueChannels.join(', ')}</p>
-                <p>Store nel database ({stores.length}): {stores.map(s => s.store_name).join(', ')}</p>
+              <div className="text-xs text-blue-800 space-y-1 bg-white p-3 rounded-lg">
+                <p className="font-bold">Canali nel CSV:</p>
+                <p className="ml-3">{uniqueChannels.join(', ')}</p>
+                <p className="font-bold mt-2">Store nel database ({stores.length}):</p>
+                <p className="ml-3">{stores.length > 0 ? stores.map(s => s.store_name).join(', ') : 'NESSUNO STORE TROVATO'}</p>
               </div>
               {stores.length === 0 && (
-                <p className="text-xs text-red-600 mt-2">⚠️ Nessuno store trovato nel database!</p>
+                <p className="text-xs text-red-600 mt-2 font-bold">⚠️ ATTENZIONE: Nessuno store trovato nel database! Verifica che esistano store nell'entità Store.</p>
               )}
             </div>
 
@@ -424,18 +426,15 @@ export default function BulkImportSconti() {
                             className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="">-- Seleziona store --</option>
-                            {isLoadingStores ? (
-                              <option disabled>Caricamento...</option>
-                            ) : stores.length === 0 ? (
-                              <option disabled>Nessuno store trovato</option>
-                            ) : (
-                              stores.map(store => (
-                                <option key={store.id} value={store.id}>
-                                  {store.store_name}
-                                </option>
-                              ))
-                            )}
+                            {stores.map(store => (
+                              <option key={store.id} value={store.id}>
+                                {store.store_name}
+                              </option>
+                            ))}
                           </select>
+                          {stores.length === 0 && (
+                            <p className="text-xs text-red-600 mt-1">Nessuno store nel database</p>
+                          )}
                         </div>
                       </div>
                     </div>
