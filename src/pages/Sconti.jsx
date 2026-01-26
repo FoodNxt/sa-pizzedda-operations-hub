@@ -505,6 +505,163 @@ export default function Sconti() {
             ))}
           </div>
         </NeumorphicCard>
+          </>
+        ) : (
+          <>
+            {/* Filtri Gross Sales */}
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Filter className="w-5 h-5 text-slate-600" />
+                <h2 className="text-lg font-bold text-slate-800">Filtri</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Periodo</label>
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="all">Tutti i dati</option>
+                    <option value="month">Mese Corrente</option>
+                    <option value="year">Anno Corrente</option>
+                    <option value="custom">Personalizzato</option>
+                  </select>
+                </div>
+
+                {dateFilter === 'custom' && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">Data Inizio</label>
+                      <input
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">Data Fine</label>
+                      <input
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Store</label>
+                  <select
+                    value={channelFilter}
+                    onChange={(e) => setChannelFilter(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  >
+                    <option value="all">Tutti gli store</option>
+                    {uniqueChannels.map(channel => (
+                      <option key={channel} value={channel}>{channel}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </NeumorphicCard>
+
+            {/* Gross Sales Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <NeumorphicCard className="p-6 text-center">
+                <BarChart3 className="w-10 h-10 text-blue-600 mx-auto mb-3" />
+                <p className="text-3xl font-bold text-blue-600">€{grossSalesStats.totalGrossSales.toFixed(2)}</p>
+                <p className="text-sm text-slate-600 mt-1">Gross Sales</p>
+              </NeumorphicCard>
+
+              <NeumorphicCard className="p-6 text-center">
+                <TrendingDown className="w-10 h-10 text-green-600 mx-auto mb-3" />
+                <p className="text-3xl font-bold text-green-600">€{grossSalesStats.totalRevenue.toFixed(2)}</p>
+                <p className="text-sm text-slate-600 mt-1">Net Revenue</p>
+              </NeumorphicCard>
+
+              <NeumorphicCard className="p-6 text-center">
+                <TrendingDown className="w-10 h-10 text-red-600 mx-auto mb-3" />
+                <p className="text-3xl font-bold text-red-600">€{grossSalesStats.totalDiscount.toFixed(2)}</p>
+                <p className="text-sm text-slate-600 mt-1">Sconti Totali</p>
+              </NeumorphicCard>
+
+              <NeumorphicCard className="p-6 text-center">
+                <Calendar className="w-10 h-10 text-orange-600 mx-auto mb-3" />
+                <p className="text-3xl font-bold text-orange-600">{grossSalesStats.avgDiscountPercent.toFixed(2)}%</p>
+                <p className="text-sm text-slate-600 mt-1">% Sconto Media</p>
+              </NeumorphicCard>
+            </div>
+
+            {/* Gross Sales Chart */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Gross Sales per Store</h2>
+              {grossSalesChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={grossSalesChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="name" stroke="#64748b" />
+                    <YAxis stroke="#64748b" />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                      formatter={(value) => `€${value}`}
+                    />
+                    <Legend />
+                    <Bar dataKey="grossSales" fill="#3b82f6" name="Gross Sales (€)" />
+                    <Bar dataKey="revenue" fill="#10b981" name="Net Revenue (€)" />
+                    <Bar dataKey="sconto" fill="#ef4444" name="Sconti (€)" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-center text-slate-400 py-12">Nessun dato disponibile</p>
+              )}
+            </NeumorphicCard>
+
+            {/* Tabella Gross Sales */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Dettaglio per Store</h2>
+              
+              {isLoadingIPratico || isLoading ? (
+                <div className="text-center py-12">
+                  <p className="text-slate-400">Caricamento...</p>
+                </div>
+              ) : grossSalesChartData.length === 0 ? (
+                <div className="text-center py-12">
+                  <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-400">Nessun dato disponibile</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-slate-200">
+                        <th className="text-left p-3 text-sm font-bold text-slate-700">Store</th>
+                        <th className="text-right p-3 text-sm font-bold text-slate-700">Gross Sales</th>
+                        <th className="text-right p-3 text-sm font-bold text-slate-700">Net Revenue</th>
+                        <th className="text-right p-3 text-sm font-bold text-slate-700">Sconti</th>
+                        <th className="text-right p-3 text-sm font-bold text-slate-700">% Sconto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {grossSalesChartData.map((item, idx) => (
+                        <tr key={item.name} className={`border-b border-slate-100 hover:bg-slate-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                          <td className="p-3 text-sm font-medium text-slate-700">{item.name}</td>
+                          <td className="p-3 text-sm font-bold text-right text-blue-600">€{item.grossSales.toFixed(2)}</td>
+                          <td className="p-3 text-sm text-right text-green-600">€{item.revenue.toFixed(2)}</td>
+                          <td className="p-3 text-sm text-right text-red-600">€{item.sconto.toFixed(2)}</td>
+                          <td className="p-3 text-sm font-bold text-right text-orange-600">{item.percentualeSconto.toFixed(2)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </NeumorphicCard>
+          </>
+        )}
       </div>
     </ProtectedPage>
   );
