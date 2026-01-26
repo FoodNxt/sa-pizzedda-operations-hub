@@ -1467,15 +1467,17 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                 </div>
                               </div>
                             )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </NeumorphicCard>
-                ))
-            )}
-          </div>
-        )}
+                            </div>
+                            );
+                            })}
+                            </div>
+                            )}
+                            </NeumorphicCard>
+                            );
+                            })
+                            )}
+                            </div>
+                            )}
 
         {/* Calendario View */}
         {activeView === 'calendario' && (
