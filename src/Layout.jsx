@@ -129,6 +129,12 @@ const navigationStructure = [
         icon: TrendingUp,
       },
       {
+        title: "Sconti",
+        page: "Sconti",
+        url: createPageUrl("Sconti"),
+        icon: TrendingUp,
+      },
+      {
         title: "Forms",
         page: "FinancialForms",
         url: createPageUrl("FinancialForms"),
@@ -491,6 +497,11 @@ const navigationStructure = [
         title: "Bulk Import Produttività",
         url: createPageUrl("BulkImportProduttivita"),
         icon: Upload,
+      },
+      {
+        title: "Zapier Sconti",
+        url: createPageUrl("ZapierSconti"),
+        icon: Zap,
       }
       ]
       },
