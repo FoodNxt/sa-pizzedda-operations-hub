@@ -980,7 +980,7 @@ export default function PianoQuarter() {
                 </div>
 
                 <div className="grid grid-cols-7 gap-1 mb-4">
-                  {['Lu', 'Ma', 'Me', 'Gi', 'Ve', 'Sa', 'Do'].map(day => (
+                  {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
                     <div key={day} className="text-center text-xs font-bold text-slate-500 py-2">
                       {day}
                     </div>
