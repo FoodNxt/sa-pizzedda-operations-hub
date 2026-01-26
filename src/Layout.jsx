@@ -1428,14 +1428,12 @@ export default function Layout({ children, currentPageName }) {
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             pt-20 lg:pt-0 bg-white lg:border-r lg:border-slate-200
           `}>
-            <div className="h-full flex flex-col overflow-y-auto">
-              <div className="hidden lg:flex items-center gap-2 px-6 py-6 border-b border-slate-200">
-                <div className="w-10 h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm">
+            <div className="h-full flex flex-col overflow-y-auto bg-white">
+              <div className="hidden lg:flex items-center gap-2 px-6 py-5 border-b border-slate-200">
+                <div className="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
                   SP
                 </div>
-                <div>
-                  <h1 className="text-sm font-bold text-slate-900">Sa Pizzedda</h1>
-                </div>
+                <h1 className="text-sm font-semibold text-slate-900">Sa Pizzedda</h1>
               </div>
 
               <nav className="flex-1 space-y-0 px-3 py-4">
