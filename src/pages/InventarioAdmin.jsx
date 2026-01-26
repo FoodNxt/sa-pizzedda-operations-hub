@@ -25,13 +25,6 @@ export default function InventarioAdmin() {
       icon: Truck,
       url: createPageUrl("ElencoFornitori"),
       gradient: "from-blue-500 to-indigo-600"
-    },
-    {
-      title: "Upload Fatture XML",
-      description: "Importa fornitori e prodotti dalle fatture elettroniche",
-      icon: Upload,
-      url: createPageUrl("UploadFattureXML"),
-      gradient: "from-purple-500 to-pink-600"
     }
   ];
 
@@ -74,7 +67,6 @@ export default function InventarioAdmin() {
           <div className="space-y-2 text-sm text-blue-700">
             <p><strong>• Ricette:</strong> Crea e gestisci le ricette con calcolo automatico del food cost</p>
             <p><strong>• Elenco Fornitori:</strong> Gestisci i dati dei fornitori e i loro contatti</p>
-            <p><strong>• Upload Fatture XML:</strong> Importa automaticamente fornitori e prodotti dalle fatture elettroniche</p>
           </div>
         </NeumorphicCard>
       </div>

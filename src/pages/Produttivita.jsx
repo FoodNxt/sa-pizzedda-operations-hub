@@ -947,49 +947,6 @@ export default function Produttivita() {
           )}
         </NeumorphicCard>
 
-        {/* Daily Slot View */}
-        <NeumorphicCard className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-[#6b6b6b]">Dettaglio Slot - Singolo Giorno</h3>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-            />
-          </div>
-          {dailySlotData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={dailySlotData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="slot" 
-                  angle={timeSlotView === '30min' ? -45 : 0}
-                  textAnchor={timeSlotView === '30min' ? 'end' : 'middle'}
-                  height={timeSlotView === '30min' ? 100 : 50}
-                  interval={timeSlotView === '30min' ? 1 : 0}
-                />
-                <YAxis yAxisId="left" orientation="left" stroke="#8b7355" />
-                <YAxis yAxisId="right" orientation="right" stroke="#f59e0b" />
-                <Tooltip 
-                  formatter={(value, name) => {
-                    if (name === 'Revenue') return `€${value.toFixed(2)}`;
-                    if (name === 'Ore Lavorate') return `${value.toFixed(1)}h`;
-                    if (name === 'Revenue per Ora') return `€${value.toFixed(2)}/ora`;
-                    return value;
-                  }}
-                />
-                <Legend />
-                {showRevenue && <Line yAxisId="left" type="monotone" dataKey="revenue" stroke="#8b7355" strokeWidth={2} name="Revenue" />}
-                {showHours && <Line yAxisId="right" type="monotone" dataKey="hours" stroke="#f59e0b" strokeWidth={2} name="Ore Lavorate" />}
-                {showRevenuePerHour && <Line yAxisId="left" type="monotone" dataKey="revenuePerHour" stroke="#10b981" strokeWidth={2} name="Revenue per Ora" dot={{ fill: '#10b981', r: 3 }} />}
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato per questa data</p>
-          )}
-        </NeumorphicCard>
-
         {/* Store Productivity Comparison - Weekly */}
         <NeumorphicCard className="p-6">
           <div className="mb-4">

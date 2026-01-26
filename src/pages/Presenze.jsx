@@ -3,12 +3,14 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
-import { Users, Clock, CheckCircle, AlertCircle, MapPin, Loader2 } from "lucide-react";
+import { Users, Clock, CheckCircle, AlertCircle, MapPin, Loader2, Settings, X } from "lucide-react";
 import { format, parseISO, isWithinInterval, parse } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function Presenze() {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showSettings, setShowSettings] = useState(false);
+  const [includedTipiTurno, setIncludedTipiTurno] = useState([]);
 
   // Update time every minute
   useEffect(() => {
@@ -28,10 +30,11 @@ export default function Presenze() {
     queryFn: async () => {
       const oggi = new Date().toISOString().split('T')[0];
 
-      // Prendi turni di oggi + turni timbrati ancora aperti (senza uscita)
+      // Prendi turni di oggi (escludendo quelli con uscita timbrata)
       const turniOggi = await base44.entities.TurnoPlanday.filter({
         data: oggi,
-        stato: { $ne: 'annullato' }
+        stato: { $ne: 'annullato' },
+        timbratura_uscita: null
       });
 
       const turniAperti = await base44.entities.TurnoPlanday.filter({
@@ -52,6 +55,25 @@ export default function Presenze() {
     refetchInterval: 60000
   });
 
+  const { data: tipiTurnoConfig = [] } = useQuery({
+    queryKey: ['tipi-turno-config'],
+    queryFn: () => base44.entities.TipoTurnoConfig.list(),
+  });
+
+  const availableTipiTurno = React.useMemo(() => {
+    const tipiSet = new Set();
+    turni.forEach(t => {
+      if (t.tipo_turno) tipiSet.add(t.tipo_turno);
+    });
+    return Array.from(tipiSet).sort();
+  }, [turni]);
+
+  useEffect(() => {
+    if (includedTipiTurno.length === 0 && availableTipiTurno.length > 0) {
+      setIncludedTipiTurno([...availableTipiTurno]);
+    }
+  }, [availableTipiTurno]);
+
   // Determina turni attivi in questo momento
   const getTurniAttiviPerStore = (storeId) => {
     const now = currentTime;
@@ -60,6 +82,7 @@ export default function Presenze() {
     return turni.filter(turno => {
       if (turno.store_id !== storeId) return false;
       if (turno.data !== todayStr) return false;
+      if (includedTipiTurno.length > 0 && !includedTipiTurno.includes(turno.tipo_turno)) return false;
 
       try {
         // Parse ora_inizio e ora_fine
@@ -102,6 +125,7 @@ export default function Presenze() {
       .filter(turno => {
         if (turno.store_id !== storeId) return false;
         if (turno.data !== todayStr) return false;
+        if (includedTipiTurno.length > 0 && !includedTipiTurno.includes(turno.tipo_turno)) return false;
 
         try {
           const [oraInizioH, oraInizioM] = turno.ora_inizio.split(':').map(Number);
@@ -165,11 +189,19 @@ export default function Presenze() {
             </h1>
             <p className="text-slate-500 mt-1">Monitora chi è in turno in questo momento</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-slate-500">Aggiornato alle</p>
-            <p className="text-xl font-bold text-slate-800">
-              {format(currentTime, 'HH:mm', { locale: it })}
-            </p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="neumorphic-flat p-3 rounded-xl hover:bg-slate-100 transition-all"
+            >
+              <Settings className="w-5 h-5 text-slate-600" />
+            </button>
+            <div className="text-right">
+              <p className="text-sm text-slate-500">Aggiornato alle</p>
+              <p className="text-xl font-bold text-slate-800">
+                {format(currentTime, 'HH:mm', { locale: it })}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -341,12 +373,76 @@ export default function Presenze() {
               <p className="font-medium mb-1">ℹ️ Informazioni</p>
               <ul className="text-xs space-y-1">
                 <li>• La pagina mostra i dipendenti il cui orario di turno include l'ora attuale</li>
+                <li>• I dipendenti che hanno timbrato l'uscita vengono automaticamente nascosti</li>
                 <li>• L'indicatore arancione segnala chi non ha ancora timbrato l'entrata</li>
                 <li>• La pagina si aggiorna automaticamente ogni minuto</li>
               </ul>
             </div>
           </div>
         </NeumorphicCard>
+
+        {/* Settings Modal */}
+        {showSettings && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-slate-800">Impostazioni Presenze</h3>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
+
+              <div className="neumorphic-pressed p-4 rounded-xl">
+                <h4 className="font-bold text-slate-800 mb-3">Tipi di Turno da Visualizzare</h4>
+                <p className="text-xs text-slate-500 mb-3">
+                  Seleziona quali tipi di turno mostrare nella view Presenze
+                </p>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {availableTipiTurno.length > 0 ? (
+                    availableTipiTurno.map(tipo => (
+                      <label key={tipo} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={includedTipiTurno.includes(tipo)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setIncludedTipiTurno(prev => [...prev, tipo]);
+                            } else {
+                              setIncludedTipiTurno(prev => prev.filter(t => t !== tipo));
+                            }
+                          }}
+                          className="w-5 h-5 rounded flex-shrink-0"
+                        />
+                        <span className="font-medium text-slate-700 text-sm">{tipo}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500 text-center py-4">
+                      Nessun tipo di turno trovato
+                    </p>
+                  )}
+                </div>
+                {includedTipiTurno.length === 0 && availableTipiTurno.length > 0 && (
+                  <p className="text-xs text-orange-600 mt-2">
+                    ⚠️ Seleziona almeno un tipo di turno
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                >
+                  Applica
+                </button>
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
       </div>
     </ProtectedPage>
   );
