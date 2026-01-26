@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -60,7 +60,7 @@ export default function Presenze() {
     queryFn: () => base44.entities.TipoTurnoConfig.list(),
   });
 
-  const availableTipiTurno = React.useMemo(() => {
+  const availableTipiTurno = useMemo(() => {
     const tipiSet = new Set();
     turni.forEach(t => {
       if (t.tipo_turno) tipiSet.add(t.tipo_turno);
