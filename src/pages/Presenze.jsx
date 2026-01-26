@@ -57,16 +57,19 @@ export default function Presenze() {
 
   const { data: tipiTurnoConfig = [], isLoading: isLoadingTipi } = useQuery({
     queryKey: ['tipi-turno-config'],
-    queryFn: () => base44.entities.TipoTurnoConfig.list(),
+    queryFn: async () => {
+      const data = await base44.entities.TipoTurnoConfig.list();
+      console.log('TipoTurnoConfig loaded:', data);
+      return data;
+    },
   });
 
   const availableTipiTurno = useMemo(() => {
-    // Prendi da config se disponibile, altrimenti dai turni
+    // Prendi da config
     if (tipiTurnoConfig.length > 0) {
-      return tipiTurnoConfig
-        .filter(t => t.is_active !== false)
-        .map(t => t.nome)
-        .sort();
+      const tipi = tipiTurnoConfig.map(t => t.nome).sort();
+      console.log('Available tipi turno:', tipi);
+      return tipi;
     }
     // Fallback: raccogli dai turni
     const tipiSet = new Set();
