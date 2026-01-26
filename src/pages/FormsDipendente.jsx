@@ -64,6 +64,13 @@ export default function FormsDipendente() {
       color: "from-green-500 to-emerald-600"
     },
     {
+      title: "Inventario Cantina",
+      description: "Form inventario cantina",
+      icon: ClipboardList,
+      url: "FormCantina",
+      color: "from-indigo-500 to-blue-600"
+    },
+    {
       title: "Inventario Store Manager",
       description: "Gestione completa inventario",
       icon: ClipboardList,
