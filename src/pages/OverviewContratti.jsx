@@ -1189,7 +1189,9 @@ export default function OverviewContratti() {
                           .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
                           .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
                           .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-')
-                          .replace(/{{data_fine_contratto}}/g, dataFineContratto);
+                          .replace(/{{data_fine_contratto}}/g, dataFineContratto)
+                          .replace(/{{locali}}/g, (user?.assigned_stores || []).join(', ') || 'Tutti i locali')
+                          .replace(/{{ruoli_dipendente}}/g, (currentContract.ruoli_dipendente || user?.ruoli_dipendente || []).join(', ') || '-');
                         
                         setEditableEmailOggetto(oggetto);
                         setEditableEmailCorpo(corpo);
@@ -1498,6 +1500,20 @@ export default function OverviewContratti() {
                               className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
                             >
                               {'{{data_fine_contratto}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{locali}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{locali}}'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => insertVariable('{{ruoli_dipendente}}')}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
+                            >
+                              {'{{ruoli_dipendente}}'}
                             </button>
                           </div>
                         </div>

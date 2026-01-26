@@ -1009,7 +1009,8 @@ function ContrattiSection() {
       '{{data_fine_contratto}}': dataFineContratto,
       '{{ruoli}}': (data.ruoli_dipendente || []).join(', '),
       '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali',
-      '{{data_inizio_primo_contratto}}': dataInizioPrimoContratto
+      '{{data_inizio_primo_contratto}}': dataInizioPrimoContratto,
+      '{{ruoli_dipendente}}': (data.ruoli_dipendente || []).join(', ')
     };
 
     Object.keys(variables).forEach(key => {
@@ -1206,7 +1207,7 @@ function ContrattiSection() {
   const availableVariables = [
     'nome_cognome', 'phone', 'data_nascita', 'citta_nascita', 'codice_fiscale', 'indirizzo_residenza', 'iban',
     'employee_group', 'function_name', 'ore_settimanali', 'data_inizio_contratto', 
-    'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali', 'data_inizio_primo_contratto'
+    'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali', 'data_inizio_primo_contratto', 'ruoli_dipendente'
   ];
 
   const handleLoadDriveFolders = async () => {
