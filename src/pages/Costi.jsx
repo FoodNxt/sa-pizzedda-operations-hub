@@ -268,18 +268,205 @@ export default function Costi() {
 
         {/* Budget Tab */}
         {activeTab === 'budget' && (
-          <NeumorphicCard className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-slate-800">Budget Mensile per Locale</h2>
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-              />
-            </div>
+          <div className="space-y-6">
+            {/* Summary Complessivo */}
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-slate-800">Riepilogo Complessivo</h2>
+                <input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                />
+              </div>
 
-            {stores.map(store => {
+              {(() => {
+                const dataOggi = new Date();
+                const meseSelezionato = moment(selectedMonth);
+                const ultimoGiornoMese = meseSelezionato.daysInMonth();
+                const giornoCorrente = meseSelezionato.isSame(dataOggi, 'month') ? dataOggi.getDate() : ultimoGiornoMese;
+                const proRata = giornoCorrente / ultimoGiornoMese;
+                const numStores = stores.length;
+
+                let totalRicavi = 0;
+                let totalAffitto = 0;
+                let totalUtenze = 0;
+                let totalCOGS = 0;
+                let totalPersonale = 0;
+                let totalSubscriptions = 0;
+                let totalCommissioni = 0;
+                let totalAds = 0;
+
+                stores.forEach(store => {
+                  const storeId = store.id;
+                  const ricaviMese = iPraticoData
+                    .filter(r => r.store_id === storeId && r.order_date?.startsWith(selectedMonth))
+                    .reduce((sum, r) => sum + (r.total_revenue || 0), 0);
+                  
+                  const affitto = affitti.find(a => a.store_id === storeId);
+                  const costoAffitto = (affitto?.affitto_mensile || 0) * proRata;
+                  
+                  const utenzeStore = utenze.filter(u => {
+                    if (u.assegnazione === 'singolo') return u.store_id === storeId;
+                    else if (u.assegnazione === 'multipli') return u.stores_ids?.includes(storeId);
+                    return false;
+                  });
+                  const costoUtenze = utenzeStore.reduce((sum, u) => sum + (u.costo_mensile_stimato || 0), 0) * proRata;
+                  
+                  const costoMateriePrime = ordini
+                    .filter(o => o.store_id === storeId && o.data_completamento?.startsWith(selectedMonth))
+                    .reduce((sum, o) => sum + (o.totale_ordine || 0), 0);
+                  
+                  const turniMese = turni.filter(t => 
+                    t.store_id === storeId && 
+                    t.data?.startsWith(selectedMonth) &&
+                    t.timbratura_entrata &&
+                    t.timbratura_uscita
+                  );
+                  
+                  const costoPersonale = turniMese.reduce((sum, turno) => {
+                    const dipendente = allUsers.find(u => u.id === turno.dipendente_id);
+                    if (!dipendente?.livello) return sum;
+                    const costoLivello = dipendenti.find(d => d.livello === dipendente.livello);
+                    if (!costoLivello) return sum;
+                    const entrata = new Date(turno.timbratura_entrata);
+                    const uscita = new Date(turno.timbratura_uscita);
+                    const oreLavorate = (uscita - entrata) / (1000 * 60 * 60);
+                    return sum + (oreLavorate * costoLivello.costo_orario);
+                  }, 0);
+                  
+                  const costoSubscriptions = subscriptions
+                    .filter(s => s.periodo === 'mensile')
+                    .reduce((sum, s) => {
+                      if (s.assegnazione === 'singolo' && s.store_id === storeId) return sum + (s.costo || 0);
+                      else if (s.assegnazione === 'multipli' && s.stores_ids?.includes(storeId)) return sum + (s.costo || 0);
+                      else if (s.assegnazione === 'tutti') return sum + ((s.costo || 0) / numStores);
+                      return sum;
+                    }, 0) * proRata;
+                  
+                  const costoSubscriptionsAnnuali = subscriptions
+                    .filter(s => s.periodo === 'annuale')
+                    .reduce((sum, s) => {
+                      if (s.assegnazione === 'singolo' && s.store_id === storeId) return sum + ((s.costo || 0) / 12);
+                      else if (s.assegnazione === 'multipli' && s.stores_ids?.includes(storeId)) return sum + ((s.costo || 0) / 12);
+                      else if (s.assegnazione === 'tutti') return sum + ((s.costo || 0) / 12 / numStores);
+                      return sum;
+                    }, 0) * proRata;
+                  
+                  const totaleSubscriptions = costoSubscriptions + costoSubscriptionsAnnuali;
+                  
+                  const datiPagamenti = iPraticoData.filter(r => r.store_id === storeId && r.order_date?.startsWith(selectedMonth));
+                  const costoCommissioni = datiPagamenti.reduce((sum, record) => {
+                    let totCommissioni = 0;
+                    Object.keys(record).forEach(appKey => {
+                      if (appKey.startsWith('sourceApp_') && !appKey.endsWith('_orders')) {
+                        const importo = record[appKey] || 0;
+                        if (importo === 0) return;
+                        const app = appKey.replace('sourceApp_', '');
+                        const appFormatted = app.charAt(0).toUpperCase() + app.slice(1);
+                        const commissioneApplicabile = commissioni.find(c => c.app_delivery === appFormatted);
+                        if (commissioneApplicabile) {
+                          totCommissioni += importo * (commissioneApplicabile.percentuale / 100);
+                        }
+                      }
+                    });
+                    return sum + totCommissioni;
+                  }, 0);
+                  
+                  const costoAds = budgetAds.reduce((sum, b) => {
+                    if (b.assegnazione === 'singolo' && b.store_id === storeId) return sum + (b.budget_mensile || 0);
+                    else if (b.assegnazione === 'tutti') return sum + ((b.budget_mensile || 0) / numStores);
+                    return sum;
+                  }, 0) * proRata;
+
+                  totalRicavi += ricaviMese;
+                  totalAffitto += costoAffitto;
+                  totalUtenze += costoUtenze;
+                  totalCOGS += costoMateriePrime;
+                  totalPersonale += costoPersonale;
+                  totalSubscriptions += totaleSubscriptions;
+                  totalCommissioni += costoCommissioni;
+                  totalAds += costoAds;
+                });
+
+                const totalCosti = totalAffitto + totalUtenze + totalCOGS + totalPersonale + totalSubscriptions + totalCommissioni + totalAds;
+                const totalMargine = totalRicavi - totalCosti;
+                const totalMarginePerc = totalRicavi > 0 ? ((totalMargine / totalRicavi) * 100) : 0;
+
+                return (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="neumorphic-pressed p-4 rounded-xl">
+                        <p className="text-xs text-slate-500 mb-1">Ricavi Totali</p>
+                        <p className="text-2xl font-bold text-green-600">{formatEuro(totalRicavi)}</p>
+                      </div>
+                      <div className="neumorphic-pressed p-4 rounded-xl">
+                        <p className="text-xs text-slate-500 mb-1">Costi Totali</p>
+                        <p className="text-2xl font-bold text-red-600">{formatEuro(totalCosti)}</p>
+                      </div>
+                      <div className={`neumorphic-pressed p-4 rounded-xl ${totalMargine >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                        <p className="text-xs text-slate-500 mb-1">Margine Totale</p>
+                        <p className={`text-2xl font-bold ${totalMargine >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          {formatEuro(totalMargine)} ({totalMarginePerc.toFixed(1)}%)
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                      <div className="neumorphic-flat p-3 rounded-lg">
+                        <p className="text-xs text-slate-500 mb-1">Affitto</p>
+                        <p className="font-bold text-slate-800">{formatEuro(totalAffitto)}</p>
+                        <p className="text-xs text-slate-400">{((totalAffitto / totalCosti) * 100).toFixed(1)}%</p>
+                      </div>
+                      <div className="neumorphic-flat p-3 rounded-lg">
+                        <p className="text-xs text-slate-500 mb-1">Utenze</p>
+                        <p className="font-bold text-slate-800">{formatEuro(totalUtenze)}</p>
+                        <p className="text-xs text-slate-400">{((totalUtenze / totalCosti) * 100).toFixed(1)}%</p>
+                      </div>
+                      <div className="neumorphic-flat p-3 rounded-lg">
+                        <p className="text-xs text-slate-500 mb-1">COGS</p>
+                        <p className="font-bold text-slate-800">{formatEuro(totalCOGS)}</p>
+                        <p className="text-xs text-slate-400">{((totalCOGS / totalCosti) * 100).toFixed(1)}%</p>
+                      </div>
+                      <div className="neumorphic-flat p-3 rounded-lg">
+                        <p className="text-xs text-slate-500 mb-1">Personale</p>
+                        <p className="font-bold text-slate-800">{formatEuro(totalPersonale)}</p>
+                        <p className="text-xs text-slate-400">{((totalPersonale / totalCosti) * 100).toFixed(1)}%</p>
+                      </div>
+                      <div className="neumorphic-flat p-3 rounded-lg">
+                        <p className="text-xs text-slate-500 mb-1">Subscriptions</p>
+                        <p className="font-bold text-slate-800">{formatEuro(totalSubscriptions)}</p>
+                        <p className="text-xs text-slate-400">{((totalSubscriptions / totalCosti) * 100).toFixed(1)}%</p>
+                      </div>
+                      <div className="neumorphic-flat p-3 rounded-lg">
+                        <p className="text-xs text-slate-500 mb-1">Commissioni</p>
+                        <p className="font-bold text-slate-800">{formatEuro(totalCommissioni)}</p>
+                        <p className="text-xs text-slate-400">{((totalCommissioni / totalCosti) * 100).toFixed(1)}%</p>
+                      </div>
+                      <div className="neumorphic-flat p-3 rounded-lg">
+                        <p className="text-xs text-slate-500 mb-1">Ads</p>
+                        <p className="font-bold text-slate-800">{formatEuro(totalAds)}</p>
+                        <p className="text-xs text-slate-400">{((totalAds / totalCosti) * 100).toFixed(1)}%</p>
+                      </div>
+                      <div className="neumorphic-flat p-3 rounded-lg">
+                        <p className="text-xs text-slate-500 mb-1">Num. Locali</p>
+                        <p className="font-bold text-slate-800">{numStores}</p>
+                        <p className="text-xs text-slate-400">Media</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </NeumorphicCard>
+
+            {/* Per Locale */}
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-slate-800">Budget per Locale</h2>
+              </div>
+
+              {stores.map(store => {
               const storeId = store.id;
               const storeName = store.name;
 
