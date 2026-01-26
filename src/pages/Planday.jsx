@@ -1282,6 +1282,16 @@ export default function Planday() {
   };
 
   const getTimbraturaTipo = (turno) => {
+    // VERIFICA SE IL TURNO RICHIEDE TIMBRATURA
+    const tipoTurno = turno.tipo_turno || 'Normale';
+    const tipoConfig = tipoTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
+    const richiedeTimbratura = !tipoConfig || tipoConfig.richiede_timbratura !== false;
+    
+    // Se il turno non richiede timbratura, ignora completamente i controlli
+    if (!richiedeTimbratura) {
+      return { tipo: 'non_richiesto', color: 'text-slate-400', bg: 'bg-slate-50', label: 'Non Richiesto', ritardoReale: 0, ritardoConteggiato: 0 };
+    }
+    
     const now = moment();
     const turnoEnd = moment(`${turno.data} ${turno.ora_fine}`);
     const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
@@ -1533,8 +1543,16 @@ export default function Planday() {
   };
 
   const timbratureStats = useMemo(() => {
-    const turniConTimbratura = filteredTurniTimbrature.filter(t => t.timbratura_entrata);
-    const turniSenzaTimbratura = filteredTurniTimbrature.filter(t => {
+    // Filtra solo turni che richiedono timbratura
+    const turniCheRichiedonoTimbratura = filteredTurniTimbrature.filter(t => {
+      const tipoTurno = t.tipo_turno || 'Normale';
+      const tipoConfig = tipoTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
+      const richiedeTimbratura = !tipoConfig || tipoConfig.richiede_timbratura !== false;
+      return richiedeTimbratura;
+    });
+    
+    const turniConTimbratura = turniCheRichiedonoTimbratura.filter(t => t.timbratura_entrata);
+    const turniSenzaTimbratura = turniCheRichiedonoTimbratura.filter(t => {
       const stato = getTimbraturaTipo(t);
       return stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita';
     });
@@ -1552,13 +1570,13 @@ export default function Planday() {
     }, 0);
 
     return {
-      totale: filteredTurniTimbrature.length,
+      totale: turniCheRichiedonoTimbratura.length,
       conTimbratura: turniConTimbratura.length,
       senzaTimbratura: turniSenzaTimbratura.length,
       inRitardo: turniInRitardo.length,
       totaleMinutiRitardo
     };
-  }, [filteredTurniTimbrature, config]);
+  }, [filteredTurniTimbrature, config, tipoTurnoConfigs]);
 
   return (
     <ProtectedPage pageName="Planday">
