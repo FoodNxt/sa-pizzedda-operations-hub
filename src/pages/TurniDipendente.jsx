@@ -383,9 +383,11 @@ export default function TurniDipendente() {
     queryKey: ['tutti-turni-giorno-scambio', selectedTurnoScambio?.data],
     queryFn: async () => {
       if (!selectedTurnoScambio) return [];
-      return base44.entities.TurnoPlanday.filter({
+      // Usa backend function per ottenere tutti i turni del giorno con service role
+      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {
         data: selectedTurnoScambio.data
       });
+      return response.data.turni || [];
     },
     enabled: !!selectedTurnoScambio,
   });
