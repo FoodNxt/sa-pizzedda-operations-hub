@@ -34,6 +34,9 @@ const COLORI_RUOLO_LIGHT = {
 
 const DEFAULT_TIPI_TURNO = ["Normale", "Straordinario", "Formazione", "Affiancamento", "Apertura", "Chiusura", "Ferie", "Malattia (Certificata)", "Malattia (Non Certificata)", "Permesso"];
 
+// Tipi di turno che per default NON richiedono timbratura
+const TIPI_SENZA_TIMBRATURA_DEFAULT = ["Ferie", "Malattia (Certificata)", "Malattia (Non Certificata)", "Permesso", "Formazione"];
+
 export default function Planday() {
   const [mainView, setMainView] = useState('turni'); // 'turni' or 'timbrature'
   const [selectedStore, setSelectedStore] = useState('');
@@ -1285,7 +1288,12 @@ export default function Planday() {
     // VERIFICA SE IL TURNO RICHIEDE TIMBRATURA
     const tipoTurno = turno.tipo_turno || 'Normale';
     const tipoConfig = tipoTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
-    const richiedeTimbratura = !tipoConfig || tipoConfig.richiede_timbratura !== false;
+    
+    // Se esiste una configurazione esplicita, usa quella
+    // Altrimenti usa i default: certi tipi non richiedono timbratura
+    const richiedeTimbratura = tipoConfig 
+      ? tipoConfig.richiede_timbratura !== false 
+      : !TIPI_SENZA_TIMBRATURA_DEFAULT.includes(tipoTurno);
     
     // Se il turno non richiede timbratura, ignora completamente i controlli
     if (!richiedeTimbratura) {
