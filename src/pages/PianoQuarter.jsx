@@ -430,24 +430,37 @@ export default function PianoQuarter() {
     const endDate = new Date(contoEconomicoDateRange.end);
     const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
-    // Net Sales (revenue after discounts)
-    let revenue = 0;
-    let totalDiscounts = 0;
+    // Net Sales (revenue after discounts) - from iPratico
+    const revenue = iPraticoData
+      .filter(d => {
+        const dDate = new Date(d.order_date);
+        return dDate >= startDate && dDate <= endDate;
+      })
+      .reduce((sum, d) => {
+        if (selectedDeliveryApp === 'Glovo' && (d.sourceApp_glovo || 0) > 0) {
+          return sum + d.sourceApp_glovo;
+        } else if (selectedDeliveryApp === 'Deliveroo' && (d.sourceApp_deliveroo || 0) > 0) {
+          return sum + d.sourceApp_deliveroo;
+        }
+        return sum;
+      }, 0);
 
+    // Discounts - from Sconto entity, matching Sconti page logic
+    const discountData = [];
     iPraticoData
       .filter(d => {
         const dDate = new Date(d.order_date);
         return dDate >= startDate && dDate <= endDate;
       })
       .forEach(d => {
-        if (selectedDeliveryApp === 'Glovo' && d.sourceApp_glovo > 0) {
-          revenue += d.sourceApp_glovo || 0;
-          totalDiscounts += d.total_discount_price || 0;
-        } else if (selectedDeliveryApp === 'Deliveroo' && d.sourceApp_deliveroo > 0) {
-          revenue += d.sourceApp_deliveroo || 0;
-          totalDiscounts += d.total_discount_price || 0;
+        if (selectedDeliveryApp === 'Glovo' && d.sourceApp_glovo) {
+          discountData.push(d);
+        } else if (selectedDeliveryApp === 'Deliveroo' && d.sourceApp_deliveroo) {
+          discountData.push(d);
         }
       });
+
+    const totalDiscounts = discountData.reduce((sum, d) => sum + (d.total_discount_price || 0), 0);
 
     // Gross Sales (revenue + discounts)
     const grossSales = revenue + totalDiscounts;
