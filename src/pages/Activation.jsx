@@ -348,6 +348,8 @@ export default function Activation() {
   const activationsByDay = useMemo(() => {
     const map = {};
     calendarData.days.forEach(day => {
+      if (!day) return; // Skip empty cells
+      
       const dayKey = format(day, 'yyyy-MM-dd');
       let filtered = activations.filter(a => {
         const start = a.data_inizio ? parseISO(a.data_inizio) : parseISO(a.data_completamento_target);
@@ -373,6 +375,8 @@ export default function Activation() {
     if (calendarActivationFilter !== 'all') {
       // Mostra sottoattività solo se filtrata per activation singola
       calendarData.days.forEach(day => {
+        if (!day) return; // Skip empty cells
+        
         const dayKey = format(day, 'yyyy-MM-dd');
         map[dayKey] = subattivita.filter(s => {
           const activation = activations.find(a => a.id === s.activation_id);
