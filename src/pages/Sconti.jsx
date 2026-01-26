@@ -853,7 +853,7 @@ export default function Sconti() {
                       <tr className="border-b-2 border-slate-200">
                         <th className="text-left p-3 text-sm font-bold text-slate-700">Store</th>
                         <th className="text-right p-3 text-sm font-bold text-slate-700">Gross Sales</th>
-                        <th className="text-right p-3 text-sm font-bold text-slate-700">Net Revenue</th>
+                        <th className="text-right p-3 text-sm font-bold text-slate-700">Net Sales</th>
                         <th className="text-right p-3 text-sm font-bold text-slate-700">Sconti</th>
                         <th className="text-right p-3 text-sm font-bold text-slate-700">% Sconto</th>
                       </tr>
