@@ -184,7 +184,7 @@ export default function Precotture() {
       rosseRichieste = datiOggi.cena_rosse || 0;
     }
 
-    const rosseDaFare = Math.max(0, rosseRichieste - parseInt(rossePresenti));
+    const rosseDaFare = rosseRichieste;
 
     return {
       turno,
