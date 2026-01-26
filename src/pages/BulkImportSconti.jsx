@@ -423,7 +423,7 @@ export default function BulkImportSconti() {
                           <select
                             value={storeMapping[channel] || ''}
                             onChange={(e) => updateStoreMapping(channel, e.target.value)}
-                            className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 rounded-lg text-sm text-slate-700 bg-white border-2 border-slate-300 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           >
                             <option value="">-- Seleziona store --</option>
                             {stores.map(store => (
@@ -432,9 +432,9 @@ export default function BulkImportSconti() {
                               </option>
                             ))}
                           </select>
-                          {stores.length === 0 && (
-                            <p className="text-xs text-red-600 mt-1">Nessuno store nel database</p>
-                          )}
+                          <p className="text-xs text-slate-600 mt-1">
+                            {stores.length} store disponibili
+                          </p>
                         </div>
                       </div>
                     </div>

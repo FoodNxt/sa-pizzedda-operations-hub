@@ -10,6 +10,7 @@ import AssistenteDipendente from './pages/AssistenteDipendente';
 import Attrezzature from './pages/Attrezzature';
 import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
 import BulkImportProduttivita from './pages/BulkImportProduttivita';
+import BulkImportSconti from './pages/BulkImportSconti';
 import ChannelComparison from './pages/ChannelComparison';
 import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
 import Compliance from './pages/Compliance';
@@ -99,6 +100,7 @@ import RegolamentoDipendenti from './pages/RegolamentoDipendenti';
 import ResetAdmin from './pages/ResetAdmin';
 import Ricette from './pages/Ricette';
 import Ritardi from './pages/Ritardi';
+import Sconti from './pages/Sconti';
 import Segnalazioni from './pages/Segnalazioni';
 import SpostamentiAdmin from './pages/SpostamentiAdmin';
 import StoreManagerAdmin from './pages/StoreManagerAdmin';
@@ -119,10 +121,8 @@ import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
 import ValutazionePulizie from './pages/ValutazionePulizie';
 import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
-import ZapierSetup from './pages/ZapierSetup';
 import ZapierSconti from './pages/ZapierSconti';
-import Sconti from './pages/Sconti';
-import BulkImportSconti from './pages/BulkImportSconti';
+import ZapierSetup from './pages/ZapierSetup';
 import __Layout from './Layout.jsx';
 
 
@@ -139,6 +139,7 @@ export const PAGES = {
     "Attrezzature": Attrezzature,
     "BulkImportProdottiVenduti": BulkImportProdottiVenduti,
     "BulkImportProduttivita": BulkImportProduttivita,
+    "BulkImportSconti": BulkImportSconti,
     "ChannelComparison": ChannelComparison,
     "CleanupDuplicateShifts": CleanupDuplicateShifts,
     "Compliance": Compliance,
@@ -228,6 +229,7 @@ export const PAGES = {
     "ResetAdmin": ResetAdmin,
     "Ricette": Ricette,
     "Ritardi": Ritardi,
+    "Sconti": Sconti,
     "Segnalazioni": Segnalazioni,
     "SpostamentiAdmin": SpostamentiAdmin,
     "StoreManagerAdmin": StoreManagerAdmin,
@@ -248,10 +250,8 @@ export const PAGES = {
     "ValutazionePulizie": ValutazionePulizie,
     "ZapierProdottiVenduti": ZapierProdottiVenduti,
     "ZapierProduttivita": ZapierProduttivita,
-    "ZapierSetup": ZapierSetup,
     "ZapierSconti": ZapierSconti,
-    "Sconti": Sconti,
-    "BulkImportSconti": BulkImportSconti,
+    "ZapierSetup": ZapierSetup,
 }
 
 export const pagesConfig = {
