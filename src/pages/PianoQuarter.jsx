@@ -450,22 +450,20 @@ export default function PianoQuarter() {
         return sum;
       }, 0);
 
-    // Discounts - from Sconto entity, matching Sconti page logic
-    const discountData = [];
-    iPraticoData
+    // Discounts - from Sconto entity
+    const totalDiscounts = scontiData
       .filter(d => {
         const dDate = new Date(d.order_date);
         return dDate >= startDate && dDate <= endDate;
       })
-      .forEach(d => {
+      .reduce((sum, d) => {
         if (selectedDeliveryApp === 'Glovo' && d.sourceApp_glovo) {
-          discountData.push(d);
+          return sum + (d.total_discount_price || 0);
         } else if (selectedDeliveryApp === 'Deliveroo' && d.sourceApp_deliveroo) {
-          discountData.push(d);
+          return sum + (d.total_discount_price || 0);
         }
-      });
-
-    const totalDiscounts = discountData.reduce((sum, d) => sum + (d.total_discount_price || 0), 0);
+        return sum;
+      }, 0);
 
     // Gross Sales (revenue + discounts)
     const grossSales = revenue + totalDiscounts;
