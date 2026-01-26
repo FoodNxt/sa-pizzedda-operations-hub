@@ -430,28 +430,27 @@ export default function PianoQuarter() {
     const endDate = new Date(contoEconomicoDateRange.end);
     const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
-    // Net Revenue (revenue after discounts)
-    const revenue = iPraticoData
-      .filter(d => {
-        const dDate = new Date(d.order_date);
-        return dDate >= startDate && dDate <= endDate && d.sourceApp_glovo !== undefined;
-      })
-      .reduce((sum, d) => sum + (selectedDeliveryApp === 'Glovo' ? d.sourceApp_glovo || 0 : d.sourceApp_deliveroo || 0), 0);
+    // Net Sales (revenue after discounts)
+    let revenue = 0;
+    let totalDiscounts = 0;
 
-    // Gross Sales (revenue + discounts)
-    const grossSales = revenue + iPraticoData
+    iPraticoData
       .filter(d => {
         const dDate = new Date(d.order_date);
         return dDate >= startDate && dDate <= endDate;
       })
-      .reduce((sum, d) => {
-        if (selectedDeliveryApp === 'Glovo' && d.sourceApp_glovo) {
-          return sum + (d.total_discount_price || 0);
-        } else if (selectedDeliveryApp === 'Deliveroo' && d.sourceApp_deliveroo) {
-          return sum + (d.total_discount_price || 0);
+      .forEach(d => {
+        if (selectedDeliveryApp === 'Glovo' && d.sourceApp_glovo > 0) {
+          revenue += d.sourceApp_glovo || 0;
+          totalDiscounts += d.total_discount_price || 0;
+        } else if (selectedDeliveryApp === 'Deliveroo' && d.sourceApp_deliveroo > 0) {
+          revenue += d.sourceApp_deliveroo || 0;
+          totalDiscounts += d.total_discount_price || 0;
         }
-        return sum;
-      }, 0);
+      });
+
+    // Gross Sales (revenue + discounts)
+    const grossSales = revenue + totalDiscounts;
 
     // Food cost (calculated on gross sales)
     const foodCost = grossSales * (foodCostPercentage / 100);
