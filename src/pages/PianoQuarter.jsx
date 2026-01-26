@@ -494,6 +494,7 @@ export default function PianoQuarter() {
 
     return {
       revenue,
+      grossSales,
       foodCost: -foodCost,
       platformFees: -platformFees,
       adsBudget: -adsBudget,
