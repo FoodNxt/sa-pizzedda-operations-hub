@@ -677,7 +677,7 @@ export default function Sconti() {
               <NeumorphicCard className="p-6 text-center">
                 <TrendingDown className="w-10 h-10 text-green-600 mx-auto mb-3" />
                 <p className="text-3xl font-bold text-green-600">€{grossSalesStats.totalRevenue.toFixed(0)}</p>
-                <p className="text-sm text-slate-600 mt-1">Net Revenue</p>
+                <p className="text-sm text-slate-600 mt-1">Net Sales</p>
               </NeumorphicCard>
 
               <NeumorphicCard className="p-6 text-center">
