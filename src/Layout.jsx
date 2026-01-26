@@ -1424,18 +1424,17 @@ export default function Layout({ children, currentPageName }) {
         {normalizedUserType !== 'dipendente' ? (
           <aside className={`
             fixed lg:static inset-y-0 left-0 z-40
-            w-72 transform transition-transform duration-300 ease-in-out
+            w-64 transform transition-transform duration-300 ease-in-out
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-            pt-20 lg:pt-0
+            pt-20 lg:pt-0 bg-white lg:border-r lg:border-slate-200
           `}>
-            <div className="h-full neumorphic-card m-4 p-6 flex flex-col overflow-y-auto">
-              <div className="hidden lg:flex items-center gap-3 mb-8">
-                <div className="neumorphic-flat p-3 bg-gradient-to-br from-blue-500 to-blue-600">
-                  <Pizza className="w-8 h-8 text-white" />
+            <div className="h-full flex flex-col overflow-y-auto">
+              <div className="hidden lg:flex items-center gap-2 px-6 py-6 border-b border-slate-200">
+                <div className="w-10 h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm">
+                  SP
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">Sa Pizzedda</h1>
-                  <p className="text-xs text-slate-500">Admin Panel</p>
+                  <h1 className="text-sm font-bold text-slate-900">Sa Pizzedda</h1>
                 </div>
               </div>
 
