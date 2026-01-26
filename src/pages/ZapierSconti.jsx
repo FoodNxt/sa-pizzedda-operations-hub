@@ -29,8 +29,8 @@ export default function ZapierSconti() {
             <div>
               <h3 className="font-bold text-blue-900 mb-1">Come Funziona</h3>
               <p className="text-sm text-blue-800">
-                Questa integrazione permette di caricare automaticamente i dati degli sconti dal tuo file CSV tramite Zapier.
-                Zapier leggerà il file, processerà ogni riga e invierà i dati alla tua app.
+                Questa integrazione permette di caricare automaticamente i dati degli sconti dal tuo foglio Google Sheets tramite Zapier.
+                Zapier leggerà ogni nuova riga del foglio, processerà i dati e li invierà alla tua app.
               </p>
             </div>
           </div>
@@ -75,32 +75,14 @@ export default function ZapierSconti() {
               </div>
               <div className="ml-11 space-y-3">
                 <div className="neumorphic-pressed p-4 rounded-xl bg-slate-50">
-                  <p className="font-medium text-slate-800 mb-2">🔹 Trigger App: <span className="text-blue-600">Google Drive</span> (o Dropbox, Google Sheets, ecc.)</p>
-                  <p className="font-medium text-slate-800 mb-2">🔹 Trigger Event: <span className="text-blue-600">New File in Folder</span> (oppure "New or Updated Spreadsheet Row")</p>
-                  <p className="text-sm text-slate-600 mt-2">Collega il tuo account Google Drive/Dropbox e seleziona la cartella dove caricherai i file CSV degli sconti.</p>
+                  <p className="font-medium text-slate-800 mb-2">🔹 Trigger App: <span className="text-blue-600">Google Sheets</span></p>
+                  <p className="font-medium text-slate-800 mb-2">🔹 Trigger Event: <span className="text-blue-600">New or Updated Spreadsheet Row</span></p>
+                  <p className="text-sm text-slate-600 mt-2">Collega il tuo account Google Sheets e seleziona il foglio che contiene i dati degli sconti. Ogni nuova riga aggiunta verrà automaticamente importata.</p>
                 </div>
               </div>
             </div>
 
             {/* Step 4 */}
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold">
-                  4
-                </div>
-                <h2 className="text-xl font-bold text-slate-800">Aggiungi Formatter (Parse CSV)</h2>
-              </div>
-              <div className="ml-11 space-y-3">
-                <p className="text-slate-600 mb-3">Aggiungi un'azione intermedia per processare il CSV:</p>
-                <div className="neumorphic-pressed p-4 rounded-xl bg-slate-50">
-                  <p className="font-medium text-slate-800 mb-2">🔹 Action App: <span className="text-blue-600">Formatter by Zapier</span></p>
-                  <p className="font-medium text-slate-800 mb-2">🔹 Action Event: <span className="text-blue-600">Utilities → Line-item to Text</span> (o Text → Split Text se usi Google Sheets)</p>
-                  <p className="text-sm text-slate-600 mt-2">Questo step converte ogni riga del CSV in campi separati che puoi mappare individualmente.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 5 */}
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold">
@@ -141,7 +123,7 @@ export default function ZapierSconti() {
                       <p>secret: <span className="text-orange-600">[Il tuo ZAPIER_SCONTI_WEBHOOK_SECRET]</span></p>
                       <p>order_date: <span className="text-blue-600">[Mappa la colonna order_date]</span></p>
                       <p>total_discount_price: <span className="text-blue-600">[Mappa la colonna total_discount_price]</span></p>
-                      <p>channel: <span className="text-blue-600">[Mappa la colonna channel]</span></p>
+                      <p>channel: <span className="text-blue-600">[Mappa la colonna channel - nome dello store]</span></p>
                       <p>sourceApp_glovo: <span className="text-blue-600">[Mappa la colonna sourceApp_glovo]</span></p>
                       <p>sourceApp_deliveroo: <span className="text-blue-600">[Mappa la colonna sourceApp_deliveroo]</span></p>
                       <p>sourceApp_justeat: <span className="text-blue-600">[Mappa la colonna sourceApp_justeat]</span></p>
@@ -187,14 +169,14 @@ export default function ZapierSconti() {
               </div>
             </div>
 
-            {/* Formato CSV */}
+            {/* Formato Google Sheets */}
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <AlertCircle className="w-6 h-6 text-orange-600" />
-                <h2 className="text-xl font-bold text-slate-800">Formato CSV Richiesto</h2>
+                <h2 className="text-xl font-bold text-slate-800">Formato Google Sheets Richiesto</h2>
               </div>
               <div className="ml-9">
-                <p className="text-slate-600 mb-3">Il file CSV deve avere le seguenti colonne (nell'ordine che preferisci):</p>
+                <p className="text-slate-600 mb-3">Il foglio Google Sheets deve avere le seguenti colonne (nell'ordine che preferisci):</p>
                 <div className="neumorphic-pressed p-4 rounded-xl bg-slate-50">
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="space-y-1">
@@ -231,26 +213,30 @@ export default function ZapierSconti() {
                   <ul className="text-sm text-yellow-800 list-disc ml-5 mt-2 space-y-1">
                     <li>Il campo <code>order_date</code> deve essere in formato YYYY-MM-DD (es. 2026-01-15)</li>
                     <li>Il campo <code>total_discount_price</code> deve essere un numero (es. 12.50)</li>
+                    <li>Il campo <code>channel</code> indica il nome dello store (es. "Roma Centro", "Milano Duomo")</li>
                     <li>I campi booleani (sourceApp_*, sourceType_*, moneyType_*) devono essere TRUE o FALSE</li>
                   </ul>
                 </div>
               </div>
             </div>
 
-            {/* Esempio CSV */}
+            {/* Esempio Google Sheets */}
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <Check className="w-6 h-6 text-green-600" />
-                <h2 className="text-xl font-bold text-slate-800">Esempio File CSV</h2>
+                <h2 className="text-xl font-bold text-slate-800">Esempio Righe Google Sheets</h2>
               </div>
               <div className="ml-9">
                 <div className="neumorphic-pressed p-4 rounded-xl bg-slate-50 overflow-x-auto">
                   <pre className="text-xs font-mono text-slate-700">
-{`order_date,total_discount_price,channel,sourceApp_glovo,sourceApp_deliveroo,...
-2026-01-15,12.50,glovo,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE
-2026-01-15,8.30,deliveroo,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE,FALSE,FALSE,FALSE,FALSE,TRUE,FALSE,FALSE`}
+{`order_date | total_discount_price | channel     | sourceApp_glovo | sourceApp_deliveroo | ...
+2026-01-15 | 12.50                | Roma Centro | TRUE            | FALSE               | ...
+2026-01-15 | 8.30                 | Milano      | FALSE           | TRUE                | ...`}
                   </pre>
                 </div>
+                <p className="text-sm text-slate-600 mt-3">
+                  Ogni riga del foglio rappresenta un ordine con sconto. La colonna <code>channel</code> deve contenere il nome dello store.
+                </p>
               </div>
             </div>
 
@@ -286,9 +272,10 @@ export default function ZapierSconti() {
             Consigli Utili
           </h3>
           <ul className="space-y-2 text-sm text-green-800">
-            <li>✅ Testa sempre con un file di poche righe prima di caricare file grandi</li>
-            <li>✅ Verifica che i nomi delle colonne nel CSV corrispondano esattamente a quelli richiesti</li>
+            <li>✅ Testa sempre con poche righe prima di caricare dati in massa</li>
+            <li>✅ Verifica che i nomi delle colonne nel foglio Google Sheets corrispondano esattamente a quelli richiesti</li>
             <li>✅ Usa il formato data YYYY-MM-DD per evitare errori</li>
+            <li>✅ Il campo "channel" deve contenere il nome esatto dello store (es. "Roma Centro")</li>
             <li>✅ Per i campi booleani usa TRUE/FALSE (maiuscolo)</li>
             <li>✅ Controlla i dati importati nella pagina Sconti dopo ogni caricamento</li>
           </ul>
