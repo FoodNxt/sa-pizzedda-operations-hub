@@ -324,16 +324,23 @@ export default function Activation() {
 
   // Calendar view calculations
   const calendarData = useMemo(() => {
-    let start, end;
+    let start, end, days;
     if (calendarView === 'week') {
       start = startOfWeek(currentDate, { weekStartsOn: 1 });
       end = endOfWeek(currentDate, { weekStartsOn: 1 });
+      days = eachDayOfInterval({ start, end });
     } else {
       start = startOfMonth(currentDate);
       end = endOfMonth(currentDate);
+      const monthDays = eachDayOfInterval({ start, end });
+      
+      // Add empty cells for days before the month starts (to align with weekStartsOn: 1)
+      const firstDayOfMonth = start.getDay();
+      const emptyCellsCount = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+      const emptyCells = Array(emptyCellsCount).fill(null);
+      
+      days = [...emptyCells, ...monthDays];
     }
-
-    const days = eachDayOfInterval({ start, end });
 
     return { days, start, end };
   }, [currentDate, calendarView]);
@@ -1483,7 +1490,12 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
               ))}
 
               {/* Calendar cells */}
-              {calendarData.days.map(day => {
+              {calendarData.days.map((day, idx) => {
+                if (!day) {
+                  // Empty cell for padding
+                  return <div key={`empty-${idx}`} className="neumorphic-pressed p-2 rounded-xl min-h-24 bg-slate-100" />;
+                }
+                
                 const dayKey = format(day, 'yyyy-MM-dd');
                 const dayActivations = activationsByDay[dayKey] || [];
                 const isToday = isSameDay(day, new Date());
