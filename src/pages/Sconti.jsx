@@ -119,14 +119,17 @@ export default function Sconti() {
       store: 0
     };
     filteredSconti.forEach(s => {
-      if (s.sourceApp_glovo) byApp.glovo += s.total_discount_price || 0;
-      if (s.sourceApp_deliveroo) byApp.deliveroo += s.total_discount_price || 0;
-      if (s.sourceApp_justeat) byApp.justeat += s.total_discount_price || 0;
-      if (s.sourceApp_onlineordering) byApp.onlineordering += s.total_discount_price || 0;
-      if (s.sourceApp_ordertable) byApp.ordertable += s.total_discount_price || 0;
-      if (s.sourceApp_tabesto) byApp.tabesto += s.total_discount_price || 0;
-      if (s.sourceApp_deliverect) byApp.deliverect += s.total_discount_price || 0;
-      if (s.sourceApp_store) byApp.store += s.total_discount_price || 0;
+      const appCount = [s.sourceApp_glovo, s.sourceApp_deliveroo, s.sourceApp_justeat, s.sourceApp_onlineordering, s.sourceApp_ordertable, s.sourceApp_tabesto, s.sourceApp_deliverect, s.sourceApp_store].filter(Boolean).length;
+      const discountPortion = appCount > 0 ? (s.total_discount_price || 0) / appCount : 0;
+      
+      if (s.sourceApp_glovo) byApp.glovo += discountPortion;
+      if (s.sourceApp_deliveroo) byApp.deliveroo += discountPortion;
+      if (s.sourceApp_justeat) byApp.justeat += discountPortion;
+      if (s.sourceApp_onlineordering) byApp.onlineordering += discountPortion;
+      if (s.sourceApp_ordertable) byApp.ordertable += discountPortion;
+      if (s.sourceApp_tabesto) byApp.tabesto += discountPortion;
+      if (s.sourceApp_deliverect) byApp.deliverect += discountPortion;
+      if (s.sourceApp_store) byApp.store += discountPortion;
     });
 
     return {
@@ -596,29 +599,121 @@ export default function Sconti() {
             </NeumorphicCard>
 
             <NeumorphicCard className="p-6">
-              <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per App</h2>
-              {appChartData.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b-2 border-slate-200">
-                        <th className="text-left p-3 text-sm font-bold text-slate-700">App</th>
-                        <th className="text-right p-3 text-sm font-bold text-slate-700">Sconti Totali</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {appChartData.map((item, idx) => (
-                        <tr key={item.name} className={`border-b border-slate-100 hover:bg-slate-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                          <td className="p-3 text-sm font-medium text-slate-700">{item.name}</td>
-                          <td className="p-3 text-sm font-bold text-right text-red-600">€{item.value.toFixed(2)}</td>
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per App / Tipo / Pagamento</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <h3 className="font-bold text-slate-700 mb-3">Per App</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-slate-200">
+                          <th className="text-left p-2 font-bold text-slate-700">App</th>
+                          <th className="text-right p-2 font-bold text-slate-700">Valore (€)</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {appChartData.map((item, idx) => (
+                          <tr key={item.name} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                            <td className="p-2 text-slate-700">{item.name}</td>
+                            <td className="p-2 text-right font-bold text-red-600">€{item.value.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-center text-slate-400 py-12">Nessun dato disponibile</p>
-              )}
+
+                <div>
+                  <h3 className="font-bold text-slate-700 mb-3">Per Tipo</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-slate-200">
+                          <th className="text-left p-2 font-bold text-slate-700">Tipo</th>
+                          <th className="text-right p-2 font-bold text-slate-700">Valore (€)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const typeCount = {
+                            'Delivery': 0, 'Takeaway': 0, 'Takeaway On Site': 0, 'Store': 0
+                          };
+                          const typeValues = {
+                            'Delivery': 0, 'Takeaway': 0, 'Takeaway On Site': 0, 'Store': 0
+                          };
+                          
+                          filteredSconti.forEach(s => {
+                            const types = [];
+                            if (s.sourceType_delivery) types.push('Delivery');
+                            if (s.sourceType_takeaway) types.push('Takeaway');
+                            if (s.sourceType_takeawayOnSite) types.push('Takeaway On Site');
+                            if (s.sourceType_store) types.push('Store');
+                            
+                            const portion = types.length > 0 ? (s.total_discount_price || 0) / types.length : 0;
+                            types.forEach(type => {
+                              typeValues[type] += portion;
+                            });
+                          });
+                          
+                          return Object.entries(typeValues)
+                            .filter(([_, value]) => value > 0)
+                            .map(([type, value], idx) => (
+                              <tr key={type} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                <td className="p-2 text-slate-700">{type}</td>
+                                <td className="p-2 text-right font-bold text-red-600">€{value.toFixed(2)}</td>
+                              </tr>
+                            ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-slate-700 mb-3">Per Pagamento</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-slate-200">
+                          <th className="text-left p-2 font-bold text-slate-700">Metodo</th>
+                          <th className="text-right p-2 font-bold text-slate-700">Valore (€)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const paymentValues = {
+                            'Bancomat': 0, 'Contanti': 0, 'Online': 0, 'Satispay': 0, 'Carta': 0, 'Punti Fidelity': 0
+                          };
+                          
+                          filteredSconti.forEach(s => {
+                            const methods = [];
+                            if (s.moneyType_bancomat) methods.push('Bancomat');
+                            if (s.moneyType_cash) methods.push('Contanti');
+                            if (s.moneyType_online) methods.push('Online');
+                            if (s.moneyType_satispay) methods.push('Satispay');
+                            if (s.moneyType_credit_card) methods.push('Carta');
+                            if (s.moneyType_fidelity_card_points) methods.push('Punti Fidelity');
+                            
+                            const portion = methods.length > 0 ? (s.total_discount_price || 0) / methods.length : 0;
+                            methods.forEach(method => {
+                              paymentValues[method] += portion;
+                            });
+                          });
+                          
+                          return Object.entries(paymentValues)
+                            .filter(([_, value]) => value > 0)
+                            .map(([method, value], idx) => (
+                              <tr key={method} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                                <td className="p-2 text-slate-700">{method}</td>
+                                <td className="p-2 text-right font-bold text-red-600">€{value.toFixed(2)}</td>
+                              </tr>
+                            ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </NeumorphicCard>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
