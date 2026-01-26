@@ -316,13 +316,14 @@ export default function TurniDipendente() {
   });
 
   const { data: allUsersData = [] } = useQuery({
-    queryKey: ['all-users'],
+    queryKey: ['all-users', currentUser?.id],
     queryFn: async () => {
-      // Usa la backend function che ha accesso service role
-      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {});
+      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {
+        exclude_user_id: currentUser?.id
+      });
       return response.data.dipendenti || [];
     },
-    enabled: showScambioModal,
+    enabled: showScambioModal && !!currentUser?.id,
     staleTime: 60000,
   });
 
