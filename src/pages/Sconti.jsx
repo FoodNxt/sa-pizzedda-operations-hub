@@ -359,10 +359,10 @@ export default function Sconti() {
               </NeumorphicCard>
 
               <NeumorphicCard className="p-6">
-                <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per Canale</h2>
-                {channelChartData.length > 0 ? (
+                <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per App</h2>
+                {appChartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={channelChartData}>
+                    <BarChart data={appChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="name" stroke="#64748b" />
                       <YAxis stroke="#64748b" />
@@ -371,7 +371,7 @@ export default function Sconti() {
                         formatter={(value) => `€${value}`}
                       />
                       <Legend />
-                      <Bar dataKey="valore" fill="#ef4444" name="Sconti (€)" />
+                      <Bar dataKey="value" fill="#ef4444" name="Sconti (€)" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -596,23 +596,21 @@ export default function Sconti() {
             </NeumorphicCard>
 
             <NeumorphicCard className="p-6">
-              <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per Canale</h2>
-              {grossSalesChartData.length > 0 ? (
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per App</h2>
+              {appChartData.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b-2 border-slate-200">
-                        <th className="text-left p-3 text-sm font-bold text-slate-700">Store</th>
+                        <th className="text-left p-3 text-sm font-bold text-slate-700">App</th>
                         <th className="text-right p-3 text-sm font-bold text-slate-700">Sconti Totali</th>
-                        <th className="text-right p-3 text-sm font-bold text-slate-700">% su Gross Sales</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {grossSalesChartData.map((item, idx) => (
+                      {appChartData.map((item, idx) => (
                         <tr key={item.name} className={`border-b border-slate-100 hover:bg-slate-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
                           <td className="p-3 text-sm font-medium text-slate-700">{item.name}</td>
-                          <td className="p-3 text-sm font-bold text-right text-red-600">€{item.sconto.toFixed(2)}</td>
-                          <td className="p-3 text-sm font-bold text-right text-orange-600">{item.percentualeSconto.toFixed(2)}%</td>
+                          <td className="p-3 text-sm font-bold text-right text-red-600">€{item.value.toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -622,6 +620,64 @@ export default function Sconti() {
                 <p className="text-center text-slate-400 py-12">Nessun dato disponibile</p>
               )}
             </NeumorphicCard>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <NeumorphicCard className="p-6">
+                <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per Tipo</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-slate-200">
+                        <th className="text-left p-2 font-bold text-slate-700">Tipo</th>
+                        <th className="text-right p-2 font-bold text-slate-700">Valore (€)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries({
+                        'Delivery': filteredSconti.reduce((sum, s) => sum + (s.sourceType_delivery ? s.total_discount_price : 0), 0),
+                        'Takeaway': filteredSconti.reduce((sum, s) => sum + (s.sourceType_takeaway ? s.total_discount_price : 0), 0),
+                        'Takeaway On Site': filteredSconti.reduce((sum, s) => sum + (s.sourceType_takeawayOnSite ? s.total_discount_price : 0), 0),
+                        'Store': filteredSconti.reduce((sum, s) => sum + (s.sourceType_store ? s.total_discount_price : 0), 0)
+                      }).filter(([_, value]) => value > 0).map(([type, value], idx) => (
+                        <tr key={type} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                          <td className="p-2 text-slate-700">{type}</td>
+                          <td className="p-2 text-right font-bold text-red-600">€{value.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </NeumorphicCard>
+
+              <NeumorphicCard className="p-6">
+                <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per Pagamento</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-slate-200">
+                        <th className="text-left p-2 font-bold text-slate-700">Metodo</th>
+                        <th className="text-right p-2 font-bold text-slate-700">Valore (€)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries({
+                        'Bancomat': filteredSconti.reduce((sum, s) => sum + (s.moneyType_bancomat ? s.total_discount_price : 0), 0),
+                        'Contanti': filteredSconti.reduce((sum, s) => sum + (s.moneyType_cash ? s.total_discount_price : 0), 0),
+                        'Online': filteredSconti.reduce((sum, s) => sum + (s.moneyType_online ? s.total_discount_price : 0), 0),
+                        'Satispay': filteredSconti.reduce((sum, s) => sum + (s.moneyType_satispay ? s.total_discount_price : 0), 0),
+                        'Carta': filteredSconti.reduce((sum, s) => sum + (s.moneyType_credit_card ? s.total_discount_price : 0), 0),
+                        'Punti Fidelity': filteredSconti.reduce((sum, s) => sum + (s.moneyType_fidelity_card_points ? s.total_discount_price : 0), 0)
+                      }).filter(([_, value]) => value > 0).map(([method, value], idx) => (
+                        <tr key={method} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                          <td className="p-2 text-slate-700">{method}</td>
+                          <td className="p-2 text-right font-bold text-red-600">€{value.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </NeumorphicCard>
+            </div>
 
             <NeumorphicCard className="p-6">
               <h2 className="text-lg font-bold text-slate-800 mb-4">Dettaglio per Store</h2>
