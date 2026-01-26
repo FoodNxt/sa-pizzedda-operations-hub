@@ -27,7 +27,7 @@ export default function BulkImportSconti() {
     mutationFn: async (file) => {
       setUploadStatus('parsing');
       
-      // Parse CSV con rilevamento automatico del delimitatore
+      // Parse CSV rispettando le virgolette
       const text = await file.text();
       const lines = text.split('\n').map(line => line.trim()).filter(line => line);
       
@@ -35,15 +35,29 @@ export default function BulkImportSconti() {
         throw new Error('Il file CSV è vuoto o non contiene dati');
       }
       
-      // Rileva il delimitatore (virgola o punto e virgola)
-      const firstLine = lines[0];
-      const delimiter = firstLine.includes(';') ? ';' : ',';
+      // Funzione per parsare una riga CSV rispettando le virgolette
+      const parseCSVLine = (line) => {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result;
+      };
       
-      console.log('Delimiter rilevato:', delimiter);
-      console.log('Prima riga:', firstLine);
-      
-      const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
-      
+      const headers = parseCSVLine(lines[0]);
       console.log('Headers trovati:', headers);
       
       // Verifica che le colonne principali esistano
@@ -54,23 +68,24 @@ export default function BulkImportSconti() {
       }
       
       const scontiData = lines.slice(1).map((line, idx) => {
-        const values = line.split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+        const values = parseCSVLine(line);
         const row = {};
         
         headers.forEach((header, index) => {
-          const value = values[index] || '';
+          let value = values[index] || '';
           
           if (header === 'order_date' || header === 'channel') {
             row[header] = value;
           } else {
+            // Converti numeri con formato italiano (virgola decimale) in formato inglese
+            value = value.replace(',', '.');
             row[header] = parseFloat(value) || 0;
           }
         });
         
-        // Debug prima riga
-        if (idx === 0) {
-          console.log('Prima riga parsata:', row);
-          console.log('Channel trovato:', row.channel);
+        // Debug prime 3 righe
+        if (idx < 3) {
+          console.log(`Riga ${idx + 1} parsata:`, row);
         }
         
         return row;
