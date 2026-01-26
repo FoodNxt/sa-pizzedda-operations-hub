@@ -159,12 +159,15 @@ export default function Impasto() {
     const storeImpasti = impasti.filter(i => i.store_id === selectedStore || i.store_name === selectedStore);
 
     let totaleProssimi3Giorni = 0;
+    let giorniConfigurati = 0;
+    
     for (let i = 0; i < 3; i++) {
       const giornoIdx = (oggi + i) % 7;
       const giornoNome = giorni[giornoIdx];
       const data = storeImpasti.find(imp => imp.giorno_settimana === giornoNome);
       
       if (data) {
+        giorniConfigurati++;
         totaleProssimi3Giorni += 
           (data.pranzo_bianche || 0) + (data.pranzo_rosse || 0) +
           (data.pomeriggio_bianche || 0) + (data.pomeriggio_rosse || 0) +
@@ -172,25 +175,29 @@ export default function Impasto() {
       }
     }
 
+    // Se non ci sono giorni configurati, usa una media di sicurezza
+    if (giorniConfigurati === 0) {
+      totaleProssimi3Giorni = 60; // Default safety value
+    }
+
     const pallinePresenti = parseInt(barelleInFrigo) * 6;
     let impastoNecessario = totaleProssimi3Giorni - pallinePresenti;
     
     // Applica limiti min/max dalla configurazione
     const activeConfig = impastiConfig.find(c => c.is_active && !c.store_id);
-    if (activeConfig) {
-      const minImpasto = activeConfig.impasto_minimo || 0;
-      const maxImpasto = activeConfig.impasto_massimo || 9999;
-      
-      if (impastoNecessario < minImpasto) {
-        impastoNecessario = minImpasto;
-      } else if (impastoNecessario > maxImpasto) {
-        impastoNecessario = maxImpasto;
-      }
+    const minImpasto = activeConfig?.impasto_minimo || 20;
+    const maxImpasto = activeConfig?.impasto_massimo || 65;
+    
+    // SEMPRE rispetta il minimo (anche se il calcolo dice meno)
+    if (impastoNecessario < minImpasto) {
+      impastoNecessario = minImpasto;
+    } else if (impastoNecessario > maxImpasto) {
+      impastoNecessario = maxImpasto;
     }
     
     // Calcola ingredienti necessari con arrotondamento
     const ingredientiNecessari = sortedIngredienti.map(ing => {
-      let quantita = ing.quantita_per_pallina * Math.max(0, impastoNecessario);
+      let quantita = ing.quantita_per_pallina * impastoNecessario;
       
       // Applica arrotondamento per eccesso
       if (ing.arrotondamento === 'intero') {
@@ -211,10 +218,10 @@ export default function Impasto() {
       totaleProssimi3Giorni,
       barelleInFrigo: parseInt(barelleInFrigo),
       pallinePresenti,
-      impastoNecessario: Math.max(0, impastoNecessario),
+      impastoNecessario,
       ingredientiNecessari
     };
-  }, [selectedStore, barelleInFrigo, impasti, sortedIngredienti]);
+  }, [selectedStore, barelleInFrigo, impasti, sortedIngredienti, impastiConfig]);
 
   const handleCalcolaImpasto = async () => {
     if (!risultato) return;
