@@ -1062,10 +1062,21 @@ export default function TurniDipendente() {
     console.log('Turno selezionato:', selectedTurnoScambio);
     console.log('Ruolo richiesto:', selectedTurnoScambio.ruolo);
     console.log('Totale utenti:', allUsersData.length);
+    console.log('Current user:', currentUser?.id, currentUser?.nome_cognome);
     
-    // Filtra dipendenti per ruolo utilizzando User entity
+    // Filtra dipendenti per ruolo ed escludi il dipendente corrente
     const dipendentiConRuolo = allUsersData.filter(user => {
-      if (user.id === currentUser?.id) return false;
+      // Escludi il dipendente corrente (controlla sia ID che nome per sicurezza)
+      if (user.id === currentUser?.id) {
+        console.log('Escludo per ID:', user.nome_cognome);
+        return false;
+      }
+      const currentUserName = (currentUser?.nome_cognome || currentUser?.full_name || '').toLowerCase().trim();
+      const userName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
+      if (currentUserName && userName && currentUserName === userName) {
+        console.log('Escludo per nome:', user.nome_cognome);
+        return false;
+      }
       
       const userRoles = user.ruoli_dipendente || [];
       const hasRole = userRoles.includes(selectedTurnoScambio.ruolo);
@@ -1074,40 +1085,29 @@ export default function TurniDipendente() {
     });
     
     console.log('Dipendenti con ruolo corretto:', dipendentiConRuolo.length);
+    console.log('Turni del giorno disponibili:', tuttiTurniGiornoScambio.length);
     
-    return dipendentiConRuolo.map(user => {
-      // Trova turni del dipendente nello stesso giorno
-      const turniDipendente = tuttiTurniGiornoScambio.filter(t => t.dipendente_id === user.id);
-      
-      // Controlla sovrapposizioni orarie
-      const turniSovrapposti = turniDipendente.filter(t => 
-        checkSovrapposizioneOraria(
-          selectedTurnoScambio.ora_inizio, 
-          selectedTurnoScambio.ora_fine,
-          t.ora_inizio, 
-          t.ora_fine
-        )
-      );
-      
-      const haConflitti = turniSovrapposti.length > 0;
-      
-      console.log(`${user.nome_cognome || user.full_name} - Turni in giorno: ${turniDipendente.length}, Sovrapposti: ${turniSovrapposti.length}`);
-      
-      return {
+    // Filtra SOLO dipendenti che NON hanno turni in quel giorno
+    return dipendentiConRuolo
+      .filter(user => {
+        // Trova TUTTI i turni del dipendente nello stesso giorno
+        const turniDipendente = tuttiTurniGiornoScambio.filter(t => t.dipendente_id === user.id);
+        
+        console.log(`${user.nome_cognome || user.full_name} - Turni nel giorno: ${turniDipendente.length}`);
+        
+        // Se ha già turni in quel giorno, NON è disponibile
+        return turniDipendente.length === 0;
+      })
+      .map(user => ({
         id: user.id,
         nome_cognome: user.nome_cognome || user.full_name,
         full_name: user.full_name || user.nome_cognome,
         ruoli_dipendente: user.ruoli_dipendente || [],
-        haConflitti,
-        turniSovrapposti,
-        tuttiTurniGiorno: turniDipendente
-      };
-    })
-    .sort((a, b) => {
-      // Mostra prima quelli senza conflitti
-      if (a.haConflitti !== b.haConflitti) return a.haConflitti ? 1 : -1;
-      return (a.nome_cognome || '').localeCompare(b.nome_cognome || '');
-    });
+        haConflitti: false,
+        turniSovrapposti: [],
+        tuttiTurniGiorno: []
+      }))
+      .sort((a, b) => (a.nome_cognome || '').localeCompare(b.nome_cognome || ''));
   }, [selectedTurnoScambio, allUsersData, tuttiTurniGiornoScambio, currentUser]);
 
   const openScambioModal = (turno) => {
