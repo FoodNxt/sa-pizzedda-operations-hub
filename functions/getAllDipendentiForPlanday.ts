@@ -10,6 +10,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Parse body per parametri opzionali
+    const body = await req.json().catch(() => ({}));
+    const { data: filterData } = body;
+
     // Carica tutti gli Employee attivi usando service role
     const allEmployees = await base44.asServiceRole.entities.Employee.list();
     const activeEmployees = allEmployees.filter(e => e.status === 'active');
@@ -67,7 +71,15 @@ Deno.serve(async (req) => {
     // Filtra solo chi ha almeno un ruolo
     const dipendenti = Array.from(userMap.values()).filter(u => u.ruoli_dipendente.length > 0);
 
-    return Response.json({ dipendenti });
+    // Se è richiesta anche la lista turni per una data specifica
+    let turni = [];
+    if (filterData) {
+      turni = await base44.asServiceRole.entities.TurnoPlanday.filter({
+        data: filterData
+      });
+    }
+
+    return Response.json({ dipendenti, turni });
   } catch (error) {
     console.error('Error in getAllDipendentiForPlanday:', error);
     return Response.json({ error: error.message }, { status: 500 });
