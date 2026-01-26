@@ -1420,6 +1420,8 @@ Sa Pizzedda`,
                             <label className="text-xs text-slate-500">Quantità</label>
                             <input
                               type="number"
+                              min="0"
+                              step="0.1"
                               value={prod.quantita_ordinata}
                               onChange={(e) => {
                                 const newProdotti = [...editingOrder.prodotti];
