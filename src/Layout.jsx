@@ -850,13 +850,22 @@ export default function Layout({ children, currentPageName }) {
     }
   }, [currentUser?.id, pageAccessConfig, isLoadingConfig, isLoadingUser]);
 
+  const [contractCache, setContractCache] = useState({});
+
   const checkIfContractSigned = async (userId) => {
+    const cacheKey = `signed_${userId}`;
+    if (contractCache[cacheKey] !== undefined) {
+      return contractCache[cacheKey];
+    }
+    
     try {
       const contratti = await base44.entities.Contratto.filter({
         user_id: userId,
         status: 'firmato'
       });
-      return contratti.length > 0;
+      const result = contratti.length > 0;
+      setContractCache(prev => ({ ...prev, [cacheKey]: result }));
+      return result;
     } catch (error) {
       console.error('Error checking contract status:', error);
       return false;
@@ -864,11 +873,18 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const checkIfContractReceived = async (userId) => {
+    const cacheKey = `received_${userId}`;
+    if (contractCache[cacheKey] !== undefined) {
+      return contractCache[cacheKey];
+    }
+    
     try {
       const contratti = await base44.entities.Contratto.filter({
         user_id: userId
       });
-      return contratti.length > 0;
+      const result = contratti.length > 0;
+      setContractCache(prev => ({ ...prev, [cacheKey]: result }));
+      return result;
     } catch (error) {
       console.error('Error checking if contract received:', error);
       return false;
