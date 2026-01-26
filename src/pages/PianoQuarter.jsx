@@ -450,17 +450,31 @@ export default function PianoQuarter() {
         return sum;
       }, 0);
 
-    // Discounts - from Sconto entity
+    // Discounts - from Sconto entity (dividing by app count when multiple apps)
     const totalDiscounts = scontiData
       .filter(d => {
         const dDate = new Date(d.order_date);
         return dDate >= startDate && dDate <= endDate;
       })
       .reduce((sum, d) => {
+        // Count which apps have this discount
+        const appsWithDiscount = [
+          d.sourceApp_glovo,
+          d.sourceApp_deliveroo,
+          d.sourceApp_justeat,
+          d.sourceApp_onlineordering,
+          d.sourceApp_ordertable,
+          d.sourceApp_tabesto,
+          d.sourceApp_deliverect,
+          d.sourceApp_store
+        ].filter(Boolean).length;
+
+        const discountPortion = appsWithDiscount > 0 ? (d.total_discount_price || 0) / appsWithDiscount : 0;
+
         if (selectedDeliveryApp === 'Glovo' && d.sourceApp_glovo) {
-          return sum + (d.total_discount_price || 0);
+          return sum + discountPortion;
         } else if (selectedDeliveryApp === 'Deliveroo' && d.sourceApp_deliveroo) {
-          return sum + (d.total_discount_price || 0);
+          return sum + discountPortion;
         }
         return sum;
       }, 0);
