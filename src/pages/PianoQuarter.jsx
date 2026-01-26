@@ -119,6 +119,11 @@ export default function PianoQuarter() {
     queryFn: () => base44.entities.iPratico.list()
   });
 
+  const { data: scontiData = [] } = useQuery({
+    queryKey: ['sconti'],
+    queryFn: () => base44.entities.Sconto.list()
+  });
+
   const { data: promoTargets = [] } = useQuery({
     queryKey: ['promo-targets'],
     queryFn: () => base44.entities.PromoTargetConfig.list('ordine')
