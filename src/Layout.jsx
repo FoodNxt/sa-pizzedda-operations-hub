@@ -1438,7 +1438,7 @@ export default function Layout({ children, currentPageName }) {
                 </div>
               </div>
 
-              <nav className="flex-1 space-y-1">
+              <nav className="flex-1 space-y-0 px-3 py-4">
                 {!isFullyLoaded ? (
                   <div className="flex flex-col items-center justify-center py-8">
                     <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
@@ -1454,13 +1454,16 @@ export default function Layout({ children, currentPageName }) {
                           to={item.url}
                           onClick={() => setSidebarOpen(false)}
                           className={`
-                            flex items-center gap-3 px-4 py-3 rounded-xl
+                            flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm
                             transition-all duration-200
-                            ${isActive ? 'nav-button-active text-white' : 'nav-button text-slate-700'}
+                            ${isActive ? 'nav-button-active font-medium text-blue-600' : 'nav-button text-slate-700 hover:bg-slate-50'}
                           `}
                         >
-                          <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-600'}`} />
-                          <span className="font-medium">{item.title}</span>
+                          <div className="flex items-center gap-3">
+                            <item.icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                            <span>{item.title}</span>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-slate-400" />
                         </Link>
                       );
                     }
@@ -1474,24 +1477,24 @@ export default function Layout({ children, currentPageName }) {
                           <button
                             onClick={() => toggleSection(item.title)}
                             className={`
-                              w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl
-                              transition-all duration-200 mb-1
-                              ${sectionActive ? 'nav-button-active text-white' : 'nav-button text-slate-700'}
+                              w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm
+                              transition-all duration-200
+                              ${sectionActive ? 'nav-button-active font-medium text-blue-600' : 'nav-button text-slate-700 hover:bg-slate-50'}
                             `}
                           >
                             <div className="flex items-center gap-3">
-                              <item.icon className={`w-5 h-5 ${sectionActive ? 'text-white' : 'text-slate-600'}`} />
-                              <span className="font-medium">{item.title}</span>
+                              <item.icon className={`w-4 h-4 ${sectionActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                              <span>{item.title}</span>
                             </div>
                             {isExpanded ? (
-                              <ChevronDown className="w-4 h-4" />
+                              <ChevronDown className="w-4 h-4 text-slate-400" />
                             ) : (
-                              <ChevronRight className="w-4 h-4" />
+                              <ChevronRight className="w-4 h-4 text-slate-400" />
                             )}
                           </button>
 
                           {isExpanded && (
-                            <div className="ml-4 mt-1 mb-2 space-y-1">
+                            <div className="ml-0 mt-1 space-y-0">
                               {item.items.map((subItem) => {
                                 const isActive = isActiveLink(subItem.url);
                                 return (
@@ -1500,17 +1503,15 @@ export default function Layout({ children, currentPageName }) {
                                     to={subItem.url}
                                     onClick={() => setSidebarOpen(false)}
                                     className={`
-                                      flex items-center gap-3 px-4 py-2 rounded-lg
-                                      transition-all duration-200 relative
-                                      ${isActive ? 'neumorphic-pressed bg-blue-50' : 'hover:bg-slate-100'}
+                                      flex items-center gap-3 px-3 py-2 rounded-lg text-xs ml-6
+                                      transition-all duration-200
+                                      ${isActive ? 'bg-blue-50 text-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'}
                                     `}
                                   >
-                                    <subItem.icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
-                                    <span className={`text-sm font-medium ${isActive ? 'text-slate-800' : 'text-slate-600'}`}>
-                                      {subItem.title}
-                                    </span>
+                                    <subItem.icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                                    <span>{subItem.title}</span>
                                     {notifications[subItem.title] && (
-                                      <span className="ml-auto bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                      <span className="ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
                                         {notifications[subItem.title]}
                                       </span>
                                     )}
