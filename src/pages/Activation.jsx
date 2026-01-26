@@ -57,6 +57,8 @@ export default function Activation() {
   const [newSubattivitaData, setNewSubattivitaData] = useState({ titolo: '', data_target: '' });
   const [editingSubattivita, setEditingSubattivita] = useState(null);
   const [editingSubattivitaData, setEditingSubattivitaData] = useState({ titolo: '', data_target: '', assegnato_a_id: '', assegnato_a_nome: '' });
+  const [expandedPersonCards, setExpandedPersonCards] = useState({});
+  const [collapsedCompletedCards, setCollapsedCompletedCards] = useState({});
   const [formData, setFormData] = useState({
     nome: '',
     descrizione: '',
@@ -469,6 +471,30 @@ export default function Activation() {
     });
     setEditingSubattivita(null);
     setEditingSubattivitaData({ titolo: '', data_target: '' });
+  };
+
+  const handleMarkActivationComplete = (activationId) => {
+    updateMutation.mutate({
+      id: activationId,
+      data: {
+        stato: 'completata',
+        data_completamento_effettiva: new Date().toISOString().split('T')[0]
+      }
+    });
+  };
+
+  const togglePersonCard = (personId) => {
+    setExpandedPersonCards(prev => ({
+      ...prev,
+      [personId]: !prev[personId]
+    }));
+  };
+
+  const toggleCompletedCard = (activationId) => {
+    setCollapsedCompletedCards(prev => ({
+      ...prev,
+      [activationId]: !prev[activationId]
+    }));
   };
 
   const handleGetSuggestions = async () => {
@@ -1250,37 +1276,64 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   if (keyB === 'unassigned') return -1;
                   return 0;
                 })
-                .map(([personId, data]) => (
+                .map(([personId, data]) => {
+                  const isExpanded = expandedPersonCards[personId] ?? true;
+                  const completedCount = data.activations.filter(a => a.stato === 'completata').length;
+                  const inProgressCount = data.activations.filter(a => a.stato === 'in_corso' || a.stato === 'annullata').length;
+                  
+                  return (
                   <NeumorphicCard key={personId} className="p-6">
-                    <div className="flex items-center gap-3 mb-4">
+                    <button
+                      onClick={() => togglePersonCard(personId)}
+                      className="w-full flex items-center gap-3 mb-4 hover:opacity-80 transition-opacity"
+                    >
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                         personId === 'unassigned' ? 'bg-slate-300' : 'bg-gradient-to-br from-blue-500 to-blue-600'
                       }`}>
                         <User className="w-5 h-5 text-white" />
                       </div>
-                      <div>
+                      <div className="flex-1 text-left">
                         <h2 className="text-xl font-bold text-slate-800">{data.nome}</h2>
                         <p className="text-sm text-slate-500">
-                          {data.activations.length} activation{data.activations.length !== 1 ? 's' : ''}
+                          {inProgressCount} in corso • {completedCount} completate
                         </p>
                       </div>
-                    </div>
+                      {isExpanded ? (
+                        <ChevronDown className="w-5 h-5 text-slate-500" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-slate-500" />
+                      )}
+                    </button>
 
-                    <div className="space-y-3">
-                      {data.activations.map(activation => {
-                        const subattivitaList = subattivita.filter(s => s.activation_id === activation.id);
-                        const subattivitaComplete = subattivitaList.filter(s => s.completata).length;
+                    {isExpanded && (
+                      <div className="space-y-3">
+                        {data.activations.map(activation => {
+                          const subattivitaList = subattivita.filter(s => s.activation_id === activation.id);
+                          const subattivitaComplete = subattivitaList.filter(s => s.completata).length;
+                          const isCompleted = activation.stato === 'completata';
+                          const isCollapsed = collapsedCompletedCards[activation.id] ?? isCompleted;
                         
                         return (
                           <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1">
+                            <button
+                              onClick={() => isCompleted && toggleCompletedCard(activation.id)}
+                              className="w-full flex items-start justify-between mb-3 hover:opacity-80 transition-opacity"
+                              disabled={!isCompleted}
+                            >
+                              <div className="flex-1 text-left">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                   <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
                                   <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
                                     {getStatoIcon(activation.stato)}
                                     {activation.stato.replace('_', ' ').toUpperCase()}
                                   </span>
+                                  {isCompleted && (
+                                    isCollapsed ? (
+                                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                                    ) : (
+                                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                                    )
+                                  )}
                                 </div>
                                 {activation.descrizione && (
                                   <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
@@ -1326,24 +1379,43 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                   )}
                                 </div>
                               </div>
-                              <div className="flex gap-2">
+                              <div className="flex gap-2 flex-shrink-0">
+                                {activation.stato !== 'completata' && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm('Segnare questa activation come completata?')) {
+                                        handleMarkActivationComplete(activation.id);
+                                      }
+                                    }}
+                                    className="nav-button p-2 rounded-lg hover:bg-green-50"
+                                    title="Segna come completata"
+                                  >
+                                    <CheckCircle className="w-4 h-4 text-green-600" />
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setSelectedActivationForChecklist(activation);
                                     setShowChecklistModal(true);
                                   }}
-                                  className="nav-button p-2 rounded-lg hover:bg-green-50"
+                                  className="nav-button p-2 rounded-lg hover:bg-blue-50"
                                 >
-                                  <CheckSquare className="w-4 h-4 text-green-600" />
+                                  <CheckSquare className="w-4 h-4 text-blue-600" />
                                 </button>
                                 <button
-                                  onClick={() => handleEdit(activation)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEdit(activation);
+                                  }}
                                   className="nav-button p-2 rounded-lg hover:bg-blue-50"
                                 >
                                   <Edit className="w-4 h-4 text-blue-600" />
                                 </button>
                                 <button
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     if (confirm('Eliminare questa activation?')) {
                                       deleteMutation.mutate(activation.id);
                                     }
@@ -1353,10 +1425,10 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                   <Trash2 className="w-4 h-4 text-red-600" />
                                 </button>
                               </div>
-                            </div>
+                            </button>
 
-                            {/* Sottoattività */}
-                            {subattivitaList.length > 0 && (
+                            {/* Sottoattività - show only if card is not collapsed */}
+                            {!isCollapsed && subattivitaList.length > 0 && (
                               <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
                                 <div className="flex items-center justify-between mb-2">
                                   <p className="text-xs font-medium text-slate-600">Sottoattività:</p>
