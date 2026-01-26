@@ -61,12 +61,11 @@ export default function Presenze() {
   });
 
   const availableTipiTurno = useMemo(() => {
-    const tipiSet = new Set();
-    turni.forEach(t => {
-      if (t.tipo_turno) tipiSet.add(t.tipo_turno);
-    });
-    return Array.from(tipiSet).sort();
-  }, [turni]);
+    return tipiTurnoConfig
+      .filter(t => t.is_active !== false)
+      .map(t => t.nome)
+      .sort();
+  }, [tipiTurnoConfig]);
 
   useEffect(() => {
     if (includedTipiTurno.length === 0 && availableTipiTurno.length > 0) {
