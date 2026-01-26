@@ -387,6 +387,8 @@ export default function TurniDipendente() {
       const response = await base44.functions.invoke('getAllDipendentiForPlanday', {
         data: selectedTurnoScambio.data
       });
+      console.log('Turni del giorno ricevuti dalla backend:', response.data.turni?.length || 0);
+      console.log('Turni del giorno:', response.data.turni);
       return response.data.turni || [];
     },
     enabled: !!selectedTurnoScambio,
@@ -1088,16 +1090,20 @@ export default function TurniDipendente() {
     console.log('Turni del giorno disponibili:', tuttiTurniGiornoScambio.length);
     
     // Filtra SOLO dipendenti che NON hanno turni in quel giorno
-    return dipendentiConRuolo
+    const disponibili = dipendentiConRuolo
       .filter(user => {
         // Trova TUTTI i turni del dipendente nello stesso giorno
         const turniDipendente = tuttiTurniGiornoScambio.filter(t => t.dipendente_id === user.id);
         
-        console.log(`${user.nome_cognome || user.full_name} - Turni nel giorno: ${turniDipendente.length}`);
+        console.log(`FILTRO ${user.nome_cognome || user.full_name} (ID: ${user.id}) - Turni nel giorno ${selectedTurnoScambio.data}: ${turniDipendente.length}`, turniDipendente.map(t => ({ id: t.id, orario: `${t.ora_inizio}-${t.ora_fine}`, dipendente: t.dipendente_nome })));
         
         // Se ha già turni in quel giorno, NON è disponibile
         return turniDipendente.length === 0;
       })
+    
+    console.log('Dipendenti FINALI disponibili per scambio:', disponibili.length);
+    
+    return disponibili
       .map(user => ({
         id: user.id,
         nome_cognome: user.nome_cognome || user.full_name,
