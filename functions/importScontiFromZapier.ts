@@ -20,11 +20,29 @@ Deno.serve(async (req) => {
     // Initialize Base44 client with service role (webhook, no user auth)
     const base44 = createClientFromRequest(req);
     
+    // Match channel to store
+    let store_id = null;
+    let store_name = null;
+    
+    if (body.channel) {
+      const stores = await base44.asServiceRole.entities.Store.list();
+      const matchedStore = stores.find(s => 
+        s.store_name?.toLowerCase().trim() === body.channel.toLowerCase().trim()
+      );
+      
+      if (matchedStore) {
+        store_id = matchedStore.id;
+        store_name = matchedStore.store_name;
+      }
+    }
+    
     // Extract sconto data
     const scontoData = {
       order_date: body.order_date,
       total_discount_price: parseFloat(body.total_discount_price) || 0,
       channel: body.channel || '',
+      store_id: store_id,
+      store_name: store_name,
       sourceApp_glovo: parseFloat(body.sourceApp_glovo) || 0,
       sourceApp_deliveroo: parseFloat(body.sourceApp_deliveroo) || 0,
       sourceApp_justeat: parseFloat(body.sourceApp_justeat) || 0,

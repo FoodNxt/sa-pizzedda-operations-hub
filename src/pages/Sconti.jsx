@@ -48,9 +48,9 @@ export default function Sconti() {
       });
     }
 
-    // Filtra per canale
+    // Filtra per store
     if (channelFilter !== 'all') {
-      filtered = filtered.filter(s => s.channel === channelFilter);
+      filtered = filtered.filter(s => (s.store_name || s.channel) === channelFilter);
     }
 
     return filtered;
@@ -60,15 +60,15 @@ export default function Sconti() {
     const totalDiscount = filteredSconti.reduce((sum, s) => sum + (s.total_discount_price || 0), 0);
     const avgDiscount = filteredSconti.length > 0 ? totalDiscount / filteredSconti.length : 0;
     
-    // Sconti per canale
+    // Sconti per store
     const byChannel = {};
     filteredSconti.forEach(s => {
-      const channel = s.channel || 'Sconosciuto';
-      if (!byChannel[channel]) {
-        byChannel[channel] = { count: 0, total: 0 };
+      const storeName = s.store_name || s.channel || 'Sconosciuto';
+      if (!byChannel[storeName]) {
+        byChannel[storeName] = { count: 0, total: 0 };
       }
-      byChannel[channel].count++;
-      byChannel[channel].total += s.total_discount_price || 0;
+      byChannel[storeName].count++;
+      byChannel[storeName].total += s.total_discount_price || 0;
     });
 
     // Sconti per app
@@ -122,7 +122,7 @@ export default function Sconti() {
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
   const uniqueChannels = useMemo(() => {
-    return [...new Set(sconti.map(s => s.channel).filter(Boolean))];
+    return [...new Set(sconti.map(s => s.store_name || s.channel).filter(Boolean))];
   }, [sconti]);
 
   return (
@@ -180,13 +180,13 @@ export default function Sconti() {
             )}
 
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Canale</label>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Store</label>
               <select
                 value={channelFilter}
                 onChange={(e) => setChannelFilter(e.target.value)}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
               >
-                <option value="all">Tutti i canali</option>
+                <option value="all">Tutti gli store</option>
                 {uniqueChannels.map(channel => (
                   <option key={channel} value={channel}>{channel}</option>
                 ))}
@@ -218,9 +218,9 @@ export default function Sconti() {
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Sconti per Canale */}
+          {/* Sconti per Store */}
           <NeumorphicCard className="p-6">
-            <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per Canale</h2>
+            <h2 className="text-lg font-bold text-slate-800 mb-4">Sconti per Store</h2>
             {channelChartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={channelChartData}>
@@ -294,7 +294,7 @@ export default function Sconti() {
                 <thead>
                   <tr className="border-b-2 border-slate-200">
                     <th className="text-left p-3 text-sm font-bold text-slate-700">Data</th>
-                    <th className="text-left p-3 text-sm font-bold text-slate-700">Canale</th>
+                    <th className="text-left p-3 text-sm font-bold text-slate-700">Store</th>
                     <th className="text-right p-3 text-sm font-bold text-slate-700">Sconto</th>
                     <th className="text-left p-3 text-sm font-bold text-slate-700">App</th>
                     <th className="text-left p-3 text-sm font-bold text-slate-700">Tipo</th>
@@ -335,7 +335,12 @@ export default function Sconti() {
                         <td className="p-3 text-sm text-slate-700">
                           {format(parseISO(sconto.order_date), 'dd MMM yyyy', { locale: it })}
                         </td>
-                        <td className="p-3 text-sm text-slate-700">{sconto.channel || '-'}</td>
+                        <td className="p-3 text-sm text-slate-700">
+                          {sconto.store_name || sconto.channel || '-'}
+                          {!sconto.store_id && sconto.channel && (
+                            <span className="ml-2 text-xs text-orange-600">(non trovato)</span>
+                          )}
+                        </td>
                         <td className="p-3 text-sm font-bold text-right text-red-600">
                           €{sconto.total_discount_price.toFixed(2)}
                         </td>
@@ -351,9 +356,9 @@ export default function Sconti() {
           )}
         </NeumorphicCard>
 
-        {/* Channel Details */}
+        {/* Store Details */}
         <NeumorphicCard className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Riepilogo per Canale</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Riepilogo per Store</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(stats.byChannel).map(([channel, data]) => (
               <div key={channel} className="neumorphic-pressed p-4 rounded-xl">
