@@ -1296,41 +1296,38 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       <style>{`
-        .neumorphic-card {
-          background: linear-gradient(145deg, #f0f4f8, #d9e2ec);
-          border-radius: 20px;
-          box-shadow: 8px 8px 20px rgba(136, 165, 191, 0.48), -8px -8px 20px #ffffff;
-        }
+                .neumorphic-card {
+                  background: #ffffff;
+                  border-radius: 12px;
+                  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+                  border: 1px solid #f0f4f8;
+                }
 
-        .neumorphic-pressed {
-          background: linear-gradient(145deg, #d9e2ec, #f0f4f8);
-          border-radius: 16px;
-          box-shadow: inset 4px 4px 10px rgba(136, 165, 191, 0.4), inset -4px -4px 10px #ffffff;
-        }
+                .neumorphic-pressed {
+                  background: #f9fafb;
+                  border-radius: 10px;
+                  border: 1px solid #e5e7eb;
+                }
 
-        .neumorphic-flat {
-          background: linear-gradient(145deg, #f0f4f8, #e1e8ed);
-          border-radius: 12px;
-          box-shadow: 4px 4px 12px rgba(136, 165, 191, 0.4), -4px -4px 12px #ffffff;
-        }
+                .neumorphic-flat {
+                  background: #ffffff;
+                  border-radius: 10px;
+                  border: 1px solid #f0f4f8;
+                }
 
-        .nav-button {
-          background: linear-gradient(145deg, #f0f4f8, #e1e8ed);
-          border-radius: 14px;
-          box-shadow: 4px 4px 10px rgba(136, 165, 191, 0.3), -4px -4px 10px #ffffff;
-          transition: all 0.3s ease;
-        }
+                .nav-button {
+                  background: transparent;
+                  transition: all 0.2s ease;
+                }
 
-        .nav-button:hover {
-          box-shadow: 6px 6px 16px rgba(136, 165, 191, 0.4), -6px -6px 16px #ffffff;
-          transform: translateY(-1px);
-        }
+                .nav-button:hover {
+                  background: #f3f4f6;
+                }
 
-        .nav-button-active {
-          background: linear-gradient(145deg, #3b82f6, #2563eb);
-          box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.1), inset -3px -3px 8px rgba(255, 255, 255, 0.1);
-          color: #1e293b;
-        }
+                .nav-button-active {
+                  background: #eff6ff;
+                  color: #2563eb;
+                }
 
         .bottom-nav-item {
           flex: 1;
