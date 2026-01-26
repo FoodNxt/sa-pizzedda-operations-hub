@@ -10,15 +10,17 @@ export default function BulkImportSconti() {
   const [file, setFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState(null);
   const [importResults, setImportResults] = useState(null);
+  const [parsedData, setParsedData] = useState(null);
+  const [storeMapping, setStoreMapping] = useState({});
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const uploadMutation = useMutation({
+  const parseMutation = useMutation({
     mutationFn: async (file) => {
-      setUploadStatus('uploading');
+      setUploadStatus('parsing');
       
       // Parse CSV manualmente
       const text = await file.text();
@@ -27,8 +29,6 @@ export default function BulkImportSconti() {
       if (lines.length < 2) {
         throw new Error('Il file CSV è vuoto o non contiene dati');
       }
-      
-      setUploadStatus('processing');
       
       const headers = lines[0].split(',').map(h => h.trim());
       
@@ -55,8 +55,6 @@ export default function BulkImportSconti() {
         
         return row;
       });
-      
-      setUploadStatus('matching');
       
       // Match stores
       const scontiWithStores = scontiData.map(sconto => {
@@ -90,19 +88,56 @@ export default function BulkImportSconti() {
         };
       });
       
+      return scontiWithStores;
+    },
+    onSuccess: (data) => {
+      setParsedData(data);
+      setUploadStatus(null);
+      
+      // Initialize mapping
+      const mapping = {};
+      const uniqueChannels = [...new Set(data.map(s => s.channel))];
+      uniqueChannels.forEach(channel => {
+        const matched = data.find(s => s.channel === channel && s.store_id);
+        mapping[channel] = matched?.store_id || '';
+      });
+      setStoreMapping(mapping);
+    },
+    onError: (error) => {
+      setUploadStatus('error');
+      setImportResults({ error: error.message });
+      console.error('Parse error:', error);
+    }
+  });
+
+  const importMutation = useMutation({
+    mutationFn: async () => {
       setUploadStatus('importing');
       
-      await base44.entities.Sconto.bulkCreate(scontiWithStores);
+      // Apply manual mapping
+      const finalData = parsedData.map(sconto => {
+        const mappedStoreId = storeMapping[sconto.channel];
+        const mappedStore = stores.find(s => s.id === mappedStoreId);
+        
+        return {
+          ...sconto,
+          store_id: mappedStoreId || null,
+          store_name: mappedStore?.store_name || null
+        };
+      });
+      
+      await base44.entities.Sconto.bulkCreate(finalData);
       
       return {
-        total: scontiWithStores.length,
-        matched: scontiWithStores.filter(s => s.store_id).length,
-        unmatched: scontiWithStores.filter(s => !s.store_id).length
+        total: finalData.length,
+        matched: finalData.filter(s => s.store_id).length,
+        unmatched: finalData.filter(s => !s.store_id).length
       };
     },
     onSuccess: (results) => {
       setUploadStatus('success');
       setImportResults(results);
+      setParsedData(null);
       setFile(null);
     },
     onError: (error) => {
@@ -118,26 +153,39 @@ export default function BulkImportSconti() {
       setFile(selectedFile);
       setUploadStatus(null);
       setImportResults(null);
+      setParsedData(null);
     }
   };
 
-  const handleUpload = () => {
+  const handleParse = () => {
     if (file) {
-      uploadMutation.mutate(file);
+      parseMutation.mutate(file);
     }
+  };
+
+  const handleImport = () => {
+    importMutation.mutate();
+  };
+
+  const updateStoreMapping = (channel, storeId) => {
+    setStoreMapping(prev => ({
+      ...prev,
+      [channel]: storeId
+    }));
   };
 
   const getStatusMessage = () => {
     switch (uploadStatus) {
-      case 'uploading': return 'Caricamento file...';
-      case 'processing': return 'Elaborazione CSV...';
-      case 'matching': return 'Matching con store...';
+      case 'parsing': return 'Elaborazione CSV...';
       case 'importing': return 'Importazione dati...';
       case 'success': return 'Importazione completata!';
       case 'error': return 'Errore durante importazione';
       default: return null;
     }
   };
+
+  const uniqueChannels = parsedData ? [...new Set(parsedData.map(s => s.channel))] : [];
+  const unmatchedChannels = uniqueChannels.filter(channel => !storeMapping[channel]);
 
   return (
     <ProtectedPage pageName="BulkImportSconti">
@@ -255,39 +303,117 @@ export default function BulkImportSconti() {
               </div>
             )}
 
-            <NeumorphicButton
-              onClick={handleUpload}
-              disabled={!file || uploadMutation.isPending}
-              variant="primary"
-              className="w-full flex items-center justify-center gap-2"
-            >
-              {uploadMutation.isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Importazione in corso...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-5 h-5" />
-                  Importa Sconti
-                </>
-              )}
-            </NeumorphicButton>
+            {!parsedData ? (
+              <NeumorphicButton
+                onClick={handleParse}
+                disabled={!file || parseMutation.isPending}
+                variant="primary"
+                className="w-full flex items-center justify-center gap-2"
+              >
+                {parseMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Elaborazione...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-5 h-5" />
+                    Analizza CSV
+                  </>
+                )}
+              </NeumorphicButton>
+            ) : (
+              <NeumorphicButton
+                onClick={handleImport}
+                disabled={importMutation.isPending}
+                variant="primary"
+                className="w-full flex items-center justify-center gap-2"
+              >
+                {importMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Importazione in corso...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-5 h-5" />
+                    Conferma Importazione
+                  </>
+                )}
+              </NeumorphicButton>
+            )}
           </div>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-l-4 border-orange-500">
-          <h3 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
-            <TrendingDown className="w-5 h-5" />
-            Importante
-          </h3>
-          <ul className="space-y-2 text-sm text-orange-800">
-            <li>✅ Il file CSV deve avere l'header con i nomi esatti delle colonne</li>
-            <li>✅ Il campo "channel" deve corrispondere al nome esatto dello store nella piattaforma</li>
-            <li>✅ Tutti i campi sourceApp_*, sourceType_* e moneyType_* devono essere valori numerici in euro</li>
-            <li>✅ Le righe con store non trovati verranno comunque importate ma senza store_id</li>
-          </ul>
-        </NeumorphicCard>
+        {parsedData && (
+          <NeumorphicCard className="p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-4">Verifica Matching Store</h2>
+            
+            {unmatchedChannels.length > 0 && (
+              <div className="mb-4 p-4 bg-orange-50 rounded-xl border-l-4 border-orange-500">
+                <p className="text-sm font-medium text-orange-900 mb-3">
+                  {unmatchedChannels.length} canali non trovati - seleziona lo store corrispondente:
+                </p>
+                <div className="space-y-3">
+                  {unmatchedChannels.map(channel => (
+                    <div key={channel} className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-slate-700">"{channel}"</p>
+                        <p className="text-xs text-slate-500">
+                          {parsedData.filter(s => s.channel === channel).length} righe
+                        </p>
+                      </div>
+                      <select
+                        value={storeMapping[channel] || ''}
+                        onChange={(e) => updateStoreMapping(channel, e.target.value)}
+                        className="neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
+                      >
+                        <option value="">Seleziona store...</option>
+                        {stores.map(store => (
+                          <option key={store.id} value={store.id}>
+                            {store.store_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="text-center p-3 bg-slate-50 rounded-lg">
+                <p className="text-2xl font-bold text-slate-700">{parsedData.length}</p>
+                <p className="text-xs text-slate-500">Totale Righe</p>
+              </div>
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">
+                  {uniqueChannels.filter(ch => storeMapping[ch]).length}
+                </p>
+                <p className="text-xs text-green-700">Store Mappati</p>
+              </div>
+              <div className="text-center p-3 bg-orange-50 rounded-lg">
+                <p className="text-2xl font-bold text-orange-600">{unmatchedChannels.length}</p>
+                <p className="text-xs text-orange-700">Da Mappare</p>
+              </div>
+            </div>
+          </NeumorphicCard>
+        )}
+
+        {!parsedData && (
+          <NeumorphicCard className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 border-l-4 border-orange-500">
+            <h3 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
+              <TrendingDown className="w-5 h-5" />
+              Importante
+            </h3>
+            <ul className="space-y-2 text-sm text-orange-800">
+              <li>✅ Il file CSV deve avere l'header con i nomi esatti delle colonne</li>
+              <li>✅ Il campo "channel" deve corrispondere al nome dello store</li>
+              <li>✅ Tutti i campi sourceApp_*, sourceType_* e moneyType_* devono essere valori numerici in euro</li>
+              <li>✅ Potrai mappare manualmente gli store prima dell'importazione</li>
+            </ul>
+          </NeumorphicCard>
+        )}
       </div>
     </ProtectedPage>
   );
