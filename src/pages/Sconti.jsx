@@ -265,8 +265,10 @@ export default function Sconti() {
           </div>
         </NeumorphicCard>
 
-        {/* Filtri */}
-        <NeumorphicCard className="p-6">
+        {activeView === 'sconti' ? (
+          <>
+            {/* Filtri */}
+            <NeumorphicCard className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="w-5 h-5 text-slate-600" />
             <h2 className="text-lg font-bold text-slate-800">Filtri</h2>
