@@ -51,6 +51,52 @@ body {
   --spacing-multiplier: 0.6;
 }
 
+/* ========================================
+   FORCE TOTALE BIANCO - MASSIMA PRIORITÀ
+   ======================================== */
+
+/* Elimina TUTTI i background e gradient sui testi */
+.compact-layout *[class*="bg-gradient"],
+.compact-layout *[class*="bg-clip"],
+.compact-layout *.bg-gradient-to-r,
+.compact-layout *.bg-gradient-to-l,
+.compact-layout *.bg-gradient-to-t,
+.compact-layout *.bg-gradient-to-b,
+.compact-layout *.bg-gradient-to-br,
+.compact-layout *.bg-gradient-to-bl,
+.compact-layout *.bg-gradient-to-tr,
+.compact-layout *.bg-gradient-to-tl,
+.compact-layout *.text-transparent {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* Forza BIANCO su TUTTI gli heading e paragrafi top-level */
+.compact-layout > div > div:first-child h1,
+.compact-layout > div > div:first-child h1 *,
+.compact-layout > div > div:first-child h2,
+.compact-layout > div > div:first-child h2 *,
+.compact-layout > div > div:first-child h3,
+.compact-layout > div > div:first-child h3 *,
+.compact-layout > div > div:first-child p,
+.compact-layout > div > div:first-child p *,
+.compact-layout > div:first-child h1,
+.compact-layout > div:first-child h1 *,
+.compact-layout > div:first-child h2,
+.compact-layout > div:first-child h2 *,
+.compact-layout > div:first-child h3,
+.compact-layout > div:first-child h3 *,
+.compact-layout > div:first-child p,
+.compact-layout > div:first-child p * {
+  color: #ffffff !important;
+  background: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
 .compact-layout h1,
 .compact-layout h1 *,
 .compact-layout [class*="text-"] h1 {
