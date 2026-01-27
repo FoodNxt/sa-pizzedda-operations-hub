@@ -489,6 +489,9 @@ export default function PrecottureAdmin() {
 
     const byDay = {};
     Object.entries(dailyData).forEach(([data, totale_unita]) => {
+      // Escludi giorni con 0 pizze vendute
+      if (totale_unita === 0) return;
+      
       const teglie = totale_unita / teglieConfig.unita_per_teglia;
       const dayNameEng = moment(data).format('dddd');
       const dayNameIta = dayMapping[dayNameEng];
