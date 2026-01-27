@@ -213,7 +213,7 @@ export default function PrecottureAdmin() {
   };
 
   const handleAggiornaConMedia = async (giorno) => {
-    const mediaGiorno = mediaUltimi30Giorni[giorno];
+    const mediaGiorno = mediaUltimi60Giorni[giorno];
     if (!mediaGiorno) {
       alert(`Nessun dato disponibile per ${giorno}`);
       return;
