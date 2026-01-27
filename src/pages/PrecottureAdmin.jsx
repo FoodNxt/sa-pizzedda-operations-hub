@@ -639,12 +639,12 @@ export default function PrecottureAdmin() {
             </NeumorphicCard>
 
             <NeumorphicCard className="p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Settings className="w-5 h-5 text-purple-600" />
                   <div>
-                    <h3 className="text-lg font-bold text-slate-800">Aggiornamento Media</h3>
-                    <p className="text-sm text-slate-500">Gestisci l'aggiornamento automatico dei totali giornalieri</p>
+                    <h3 className="text-lg font-bold text-slate-800">Aggiornamento Automatico Media 60gg</h3>
+                    <p className="text-sm text-slate-500">I totali giornalieri si aggiorneranno automaticamente con la media degli ultimi 60 giorni (escludendo giorni con 0 vendite)</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -652,16 +652,30 @@ export default function PrecottureAdmin() {
                     <input
                       type="checkbox"
                       checked={teglieConfig.aggiornamento_automatico}
-                      onChange={(e) => {
-                        const newConfig = { ...teglieConfig, aggiornamento_automatico: e.target.checked };
+                      onChange={async (e) => {
+                        const isEnabled = e.target.checked;
+                        const newConfig = { ...teglieConfig, aggiornamento_automatico: isEnabled };
                         setTeglieConfig(newConfig);
-                        saveConfigTeglieeMutation.mutate(newConfig);
+                        await saveConfigTeglieeMutation.mutateAsync(newConfig);
+                        
+                        // Se attivato, aggiorna tutti i giorni con la media 60gg
+                        if (isEnabled) {
+                          for (const giorno of giorni) {
+                            const mediaGiorno = mediaUltimi60Giorni[giorno];
+                            if (mediaGiorno > 0) {
+                              await handleAggiornaConMedia(giorno);
+                            }
+                          }
+                        }
                       }}
                       className="w-5 h-5 text-blue-600 rounded"
                     />
-                    <span className="text-sm font-medium text-slate-700">Aggiornamento Automatico</span>
+                    <span className="text-sm font-medium text-slate-700">Abilita Aggiornamento Automatico</span>
                   </label>
                 </div>
+              </div>
+              <div className="text-xs text-slate-500 bg-blue-50 p-3 rounded-lg">
+                💡 <strong>Nota:</strong> L'aggiornamento automatico usa la media degli ultimi 60 giorni ed esclude automaticamente i giorni con 0 pizze vendute dal calcolo della media.
               </div>
             </NeumorphicCard>
 
