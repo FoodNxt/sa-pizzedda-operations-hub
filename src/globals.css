@@ -55,16 +55,22 @@ body {
   font-size: 1.5rem !important;
   margin-bottom: 0.5rem !important;
   line-height: 1.2 !important;
+  color: #f1f5f9 !important;
+  font-weight: 700 !important;
 }
 
 .compact-layout h2 {
   font-size: 1.25rem !important;
   margin-bottom: 0.5rem !important;
+  color: #e2e8f0 !important;
+  font-weight: 600 !important;
 }
 
 .compact-layout h3 {
   font-size: 1.1rem !important;
   margin-bottom: 0.25rem !important;
+  color: #cbd5e1 !important;
+  font-weight: 600 !important;
 }
 
 .compact-layout p {

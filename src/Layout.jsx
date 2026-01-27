@@ -1426,9 +1426,9 @@ export default function Layout({ children, currentPageName }) {
             fixed lg:static inset-y-0 left-0 z-40
             w-64 transform transition-transform duration-300 ease-in-out
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-            pt-20 lg:pt-0 bg-white lg:border-r lg:border-slate-200
+            pt-20 lg:pt-0 bg-white
           `}>
-            <div className="h-full flex flex-col overflow-y-auto" style={{ background: '#0f172a', borderRight: '1px solid rgba(148, 163, 184, 0.15)' }}>
+            <div className="h-full flex flex-col overflow-y-auto" style={{ background: '#0f172a' }}>
               <div className="hidden lg:flex items-center gap-2 px-6 py-5 border-b" style={{ borderColor: 'rgba(148, 163, 184, 0.2)' }}>
                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-lg">
                   SP
