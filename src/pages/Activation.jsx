@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -61,7 +60,6 @@ export default function Activation() {
   const [editingSubattivitaData, setEditingSubattivitaData] = useState({ titolo: '', data_target: '', assegnato_a_id: '', assegnato_a_nome: '' });
   const [expandedPersonCards, setExpandedPersonCards] = useState({});
   const [collapsedCompletedCards, setCollapsedCompletedCards] = useState({});
-  const [showCompletedSection, setShowCompletedSection] = useState({});
   const [formData, setFormData] = useState({
     nome: '',
     descrizione: '',
@@ -497,13 +495,6 @@ export default function Activation() {
     setCollapsedCompletedCards(prev => ({
       ...prev,
       [activationId]: !prev[activationId]
-    }));
-  };
-
-  const toggleCompletedSection = (personId) => {
-    setShowCompletedSection(prev => ({
-      ...prev,
-      [personId]: !prev[personId]
     }));
   };
 
@@ -1290,7 +1281,6 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   const isExpanded = expandedPersonCards[personId] ?? true;
                   const completedCount = data.activations.filter(a => a.stato === 'completata').length;
                   const inProgressCount = data.activations.filter(a => a.stato === 'in_corso' || a.stato === 'annullata').length;
-                  const showCompleted = showCompletedSection[personId] ?? false;
                   
                   return (
                   <NeumorphicCard key={personId} className="p-6">
@@ -1317,337 +1307,178 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                     </button>
 
                     {isExpanded && (
-                      <div className="space-y-4">
-                        {/* In Corso */}
-                        {data.activations.filter(a => a.stato !== 'completata').length > 0 && (
-                          <div>
-                            <h3 className="text-sm font-bold text-slate-600 mb-3 flex items-center gap-2">
-                              <Clock className="w-4 h-4" />
-                              In Corso ({data.activations.filter(a => a.stato !== 'completata').length})
-                            </h3>
-                            <div className="space-y-3">
-                              {data.activations.filter(a => a.stato !== 'completata').map(activation => {
-                                const subattivitaList = subattivita.filter(s => s.activation_id === activation.id);
-                                const subattivitaComplete = subattivitaList.filter(s => s.completata).length;
+                      <div className="space-y-3">
+                        {data.activations.map(activation => {
+                          const subattivitaList = subattivita.filter(s => s.activation_id === activation.id);
+                          const subattivitaComplete = subattivitaList.filter(s => s.completata).length;
+                          const isCompleted = activation.stato === 'completata';
+                          const isCollapsed = collapsedCompletedCards[activation.id] ?? isCompleted;
                         
-                                return (
-                                  <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
-                                    <div className="flex items-start justify-between mb-3">
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                          <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
-                                          <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
-                                            {getStatoIcon(activation.stato)}
-                                            {activation.stato.replace('_', ' ').toUpperCase()}
-                                          </span>
-                                        </div>
-                                        {activation.descrizione && (
-                                          <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
-                                        )}
-                                        <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                                          {activation.data_inizio && (
-                                            <div className="flex items-center gap-1">
-                                              <Calendar className="w-3 h-3" />
-                                              Inizio: {format(parseISO(activation.data_inizio), 'dd MMM yyyy', { locale: it })}
-                                            </div>
-                                          )}
-                                          <div className="flex items-center gap-1">
-                                            <Calendar className="w-3 h-3" />
-                                            Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}
-                                          </div>
-                                        </div>
-                                        <div className="mt-2 flex flex-wrap gap-2">
-                                          {activation.categorie_ids && activation.categorie_ids.length > 0 && (
-                                            activation.categorie_ids.map(catId => {
-                                              const cat = categories.find(c => c.id === catId);
-                                              if (!cat) return null;
-                                              return (
-                                                <span
-                                                  key={catId}
-                                                  className="text-xs px-2 py-1 rounded-full text-white font-medium"
-                                                  style={{ backgroundColor: cat.colore }}
-                                                >
-                                                  {cat.nome}
-                                                </span>
-                                              );
-                                            })
-                                          )}
-                                          {activation.stores_ids && activation.stores_ids.length > 0 ? (
-                                            activation.stores_names?.map((name, idx) => (
-                                              <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                                {name}
-                                              </span>
-                                            ))
-                                          ) : (
-                                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                                              Tutti i locali
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex gap-2 flex-shrink-0">
-                                        <button
-                                          onClick={() => {
-                                            if (confirm('Segnare questa activation come completata?')) {
-                                              handleMarkActivationComplete(activation.id);
-                                            }
-                                          }}
-                                          className="nav-button p-2 rounded-lg hover:bg-green-50"
-                                          title="Segna come completata"
-                                        >
-                                          <CheckCircle className="w-4 h-4 text-green-600" />
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            setSelectedActivationForChecklist(activation);
-                                            setShowChecklistModal(true);
-                                          }}
-                                          className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                                        >
-                                          <CheckSquare className="w-4 h-4 text-blue-600" />
-                                        </button>
-                                        <button
-                                          onClick={() => handleEdit(activation)}
-                                          className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                                        >
-                                          <Edit className="w-4 h-4 text-blue-600" />
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            if (confirm('Eliminare questa activation?')) {
-                                              deleteMutation.mutate(activation.id);
-                                            }
-                                          }}
-                                          className="nav-button p-2 rounded-lg hover:bg-red-50"
-                                        >
-                                          <Trash2 className="w-4 h-4 text-red-600" />
-                                        </button>
-                                      </div>
-                                    </div>
-
-                                    {subattivitaList.length > 0 && (
-                                      <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
-                                        <div className="flex items-center justify-between mb-2">
-                                          <p className="text-xs font-medium text-slate-600">Sottoattività:</p>
-                                          <p className="text-xs font-bold text-blue-600">
-                                            {subattivitaComplete} / {subattivitaList.length}
-                                          </p>
-                                        </div>
-                                        <div className="space-y-1">
-                                          {subattivitaList
-                                            .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
-                                            .map(item => (
-                                              <div key={item.id} className="flex items-start gap-2 text-xs">
-                                                <span className="mt-1">
-                                                  {item.completata ? (
-                                                    <CheckSquare className="w-3 h-3 text-green-600" />
-                                                  ) : (
-                                                    <Square className="w-3 h-3 text-slate-400" />
-                                                  )}
-                                                </span>
-                                                <div className="flex-1">
-                                                  <p className={item.completata ? 'line-through text-slate-500' : 'text-slate-700'}>
-                                                    {item.titolo}
-                                                  </p>
-                                                  {item.data_target && (
-                                                    <p className="text-slate-500">📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}</p>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            ))}
-                                        </div>
-                                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-2">
-                                          <div
-                                            className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
-                                            style={{ width: `${(subattivitaComplete / subattivitaList.length) * 100}%` }}
-                                          />
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Completate */}
-                        {data.activations.filter(a => a.stato === 'completata').length > 0 && (
-                          <div>
+                        return (
+                          <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
                             <button
-                              onClick={() => toggleCompletedSection(personId)}
-                              className="w-full flex items-center justify-between text-sm font-bold text-slate-600 mb-3 hover:bg-slate-100 p-2 rounded-lg transition-colors"
+                              onClick={() => isCompleted && toggleCompletedCard(activation.id)}
+                              className="w-full flex items-start justify-between mb-3 hover:opacity-80 transition-opacity"
+                              disabled={!isCompleted}
                             >
-                              <div className="flex items-center gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                                Completate ({data.activations.filter(a => a.stato === 'completata').length})
+                              <div className="flex-1 text-left">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
+                                    {getStatoIcon(activation.stato)}
+                                    {activation.stato.replace('_', ' ').toUpperCase()}
+                                  </span>
+                                  {isCompleted && (
+                                    isCollapsed ? (
+                                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                                    ) : (
+                                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                                    )
+                                  )}
+                                </div>
+                                {activation.descrizione && (
+                                  <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
+                                )}
+                                <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                                  {activation.data_inizio && (
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      Inizio: {format(parseISO(activation.data_inizio), 'dd MMM yyyy', { locale: it })}
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}
+                                  </div>
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {activation.categorie_ids && activation.categorie_ids.length > 0 && (
+                                    activation.categorie_ids.map(catId => {
+                                      const cat = categories.find(c => c.id === catId);
+                                      if (!cat) return null;
+                                      return (
+                                        <span
+                                          key={catId}
+                                          className="text-xs px-2 py-1 rounded-full text-white font-medium"
+                                          style={{ backgroundColor: cat.colore }}
+                                        >
+                                          {cat.nome}
+                                        </span>
+                                      );
+                                    })
+                                  )}
+                                  {activation.stores_ids && activation.stores_ids.length > 0 ? (
+                                    activation.stores_names?.map((name, idx) => (
+                                      <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                        {name}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                      Tutti i locali
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              {showCompleted ? (
-                                <ChevronDown className="w-4 h-4" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4" />
-                              )}
+                              <div className="flex gap-2 flex-shrink-0">
+                                {activation.stato !== 'completata' && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm('Segnare questa activation come completata?')) {
+                                        handleMarkActivationComplete(activation.id);
+                                      }
+                                    }}
+                                    className="nav-button p-2 rounded-lg hover:bg-green-50"
+                                    title="Segna come completata"
+                                  >
+                                    <CheckCircle className="w-4 h-4 text-green-600" />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedActivationForChecklist(activation);
+                                    setShowChecklistModal(true);
+                                  }}
+                                  className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                                >
+                                  <CheckSquare className="w-4 h-4 text-blue-600" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEdit(activation);
+                                  }}
+                                  className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                                >
+                                  <Edit className="w-4 h-4 text-blue-600" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('Eliminare questa activation?')) {
+                                      deleteMutation.mutate(activation.id);
+                                    }
+                                  }}
+                                  className="nav-button p-2 rounded-lg hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </button>
+                              </div>
                             </button>
-                            
-                            {showCompleted && (
-                              <div className="space-y-3">
-                                {data.activations.filter(a => a.stato === 'completata').map(activation => {
-                                  const subattivitaList = subattivita.filter(s => s.activation_id === activation.id);
-                                  const subattivitaComplete = subattivitaList.filter(s => s.completata).length;
-                                  const isCollapsed = collapsedCompletedCards[activation.id] ?? true;
-                        
-                                  return (
-                                    <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl bg-green-50/30">
-                                      <div className="flex items-start justify-between mb-3">
+
+                            {/* Sottoattività - show only if card is not collapsed */}
+                            {!isCollapsed && subattivitaList.length > 0 && (
+                              <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-xs font-medium text-slate-600">Sottoattività:</p>
+                                  <p className="text-xs font-bold text-blue-600">
+                                    {subattivitaComplete} / {subattivitaList.length}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  {subattivitaList
+                                    .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
+                                    .map(item => (
+                                      <div key={item.id} className="flex items-start gap-2 text-xs">
+                                        <span className="mt-1">
+                                          {item.completata ? (
+                                            <CheckSquare className="w-3 h-3 text-green-600" />
+                                          ) : (
+                                            <Square className="w-3 h-3 text-slate-400" />
+                                          )}
+                                        </span>
                                         <div className="flex-1">
-                                          <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                            <button
-                                              onClick={() => toggleCompletedCard(activation.id)}
-                                              className="p-1 rounded hover:bg-slate-200 mr-1"
-                                            >
-                                              {isCollapsed ? (
-                                                <ChevronRight className="w-4 h-4 text-slate-400" />
-                                              ) : (
-                                                <ChevronDown className="w-4 h-4 text-slate-400" />
-                                              )}
-                                            </button>
-                                            <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
-                                              {getStatoIcon(activation.stato)}
-                                              {activation.stato.replace('_', ' ').toUpperCase()}
-                                            </span>
-                                          </div>
-                                          {!isCollapsed && (
-                                            <>
-                                              {activation.descrizione && (
-                                                <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
-                                              )}
-                                              <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                                                {activation.data_inizio && (
-                                                  <div className="flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3" />
-                                                    Inizio: {format(parseISO(activation.data_inizio), 'dd MMM yyyy', { locale: it })}
-                                                  </div>
-                                                )}
-                                                <div className="flex items-center gap-1">
-                                                  <Calendar className="w-3 h-3" />
-                                                  Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}
-                                                </div>
-                                              </div>
-                                              <div className="mt-2 flex flex-wrap gap-2">
-                                                {activation.categorie_ids && activation.categorie_ids.length > 0 && (
-                                                  activation.categorie_ids.map(catId => {
-                                                    const cat = categories.find(c => c.id === catId);
-                                                    if (!cat) return null;
-                                                    return (
-                                                      <span
-                                                        key={catId}
-                                                        className="text-xs px-2 py-1 rounded-full text-white font-medium"
-                                                        style={{ backgroundColor: cat.colore }}
-                                                      >
-                                                        {cat.nome}
-                                                      </span>
-                                                    );
-                                                  })
-                                                )}
-                                                {activation.stores_ids && activation.stores_ids.length > 0 ? (
-                                                  activation.stores_names?.map((name, idx) => (
-                                                    <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                                      {name}
-                                                    </span>
-                                                  ))
-                                                ) : (
-                                                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                                                    Tutti i locali
-                                                  </span>
-                                                )}
-                                              </div>
-                                            </>
+                                          <p className={item.completata ? 'line-through text-slate-500' : 'text-slate-700'}>
+                                            {item.titolo}
+                                          </p>
+                                          {item.data_target && (
+                                            <p className="text-slate-500">📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}</p>
                                           )}
                                         </div>
-                                        <div className="flex gap-2 flex-shrink-0">
-                                          <button
-                                            onClick={() => {
-                                              setSelectedActivationForChecklist(activation);
-                                              setShowChecklistModal(true);
-                                            }}
-                                            className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                                          >
-                                            <CheckSquare className="w-4 h-4 text-blue-600" />
-                                          </button>
-                                          <button
-                                            onClick={() => handleEdit(activation)}
-                                            className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                                          >
-                                            <Edit className="w-4 h-4 text-blue-600" />
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              if (confirm('Eliminare questa activation?')) {
-                                                deleteMutation.mutate(activation.id);
-                                              }
-                                            }}
-                                            className="nav-button p-2 rounded-lg hover:bg-red-50"
-                                          >
-                                            <Trash2 className="w-4 h-4 text-red-600" />
-                                          </button>
-                                        </div>
                                       </div>
-
-                                      {!isCollapsed && subattivitaList.length > 0 && (
-                                        <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
-                                          <div className="flex items-center justify-between mb-2">
-                                            <p className="text-xs font-medium text-slate-600">Sottoattività:</p>
-                                            <p className="text-xs font-bold text-blue-600">
-                                              {subattivitaComplete} / {subattivitaList.length}
-                                            </p>
-                                          </div>
-                                          <div className="space-y-1">
-                                            {subattivitaList
-                                              .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
-                                              .map(item => (
-                                                <div key={item.id} className="flex items-start gap-2 text-xs">
-                                                  <span className="mt-1">
-                                                    {item.completata ? (
-                                                      <CheckSquare className="w-3 h-3 text-green-600" />
-                                                    ) : (
-                                                      <Square className="w-3 h-3 text-slate-400" />
-                                                    )}
-                                                  </span>
-                                                  <div className="flex-1">
-                                                    <p className={item.completata ? 'line-through text-slate-500' : 'text-slate-700'}>
-                                                      {item.titolo}
-                                                    </p>
-                                                    {item.data_target && (
-                                                      <p className="text-slate-500">📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}</p>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              ))}
-                                          </div>
-                                          <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-2">
-                                            <div
-                                              className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
-                                              style={{ width: `${(subattivitaComplete / subattivitaList.length) * 100}%` }}
-                                            />
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
+                                    ))}
+                                </div>
+                                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-2">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                                    style={{ width: `${(subattivitaComplete / subattivitaList.length) * 100}%` }}
+                                  />
+                                </div>
                               </div>
                             )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </NeumorphicCard>
-                  );
-                })
-            )}
-          </div>
-        )}
+                            </div>
+                            );
+                            })}
+                            </div>
+                            )}
+                            </NeumorphicCard>
+                            );
+                            })
+                            )}
+                            </div>
+                            )}
 
         {/* Calendario View */}
         {activeView === 'calendario' && (
