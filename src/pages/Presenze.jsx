@@ -22,7 +22,7 @@ export default function Presenze() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: turni = [] } = useQuery({
@@ -41,15 +41,15 @@ export default function Presenze() {
         timbratura_entrata: { $ne: null },
         timbratura_uscita: null
       });
-      
+
       // Combina ed elimina duplicati
       const allShifts = [...turniOggi];
-      turniAperti.forEach(t => {
-        if (!allShifts.find(s => s.id === t.id)) {
+      turniAperti.forEach((t) => {
+        if (!allShifts.find((s) => s.id === t.id)) {
           allShifts.push(t);
         }
       });
-      
+
       return allShifts;
     },
     refetchInterval: 60000
@@ -61,19 +61,19 @@ export default function Presenze() {
       const data = await base44.entities.TipoTurnoConfig.list();
       console.log('TipoTurnoConfig loaded:', data);
       return data;
-    },
+    }
   });
 
   const availableTipiTurno = useMemo(() => {
     // Prendi da config
     if (tipiTurnoConfig.length > 0) {
-      return tipiTurnoConfig
-        .map(t => t.tipo_turno)
-        .sort();
+      return tipiTurnoConfig.
+      map((t) => t.tipo_turno).
+      sort();
     }
     // Fallback: raccogli dai turni
     const tipiSet = new Set();
-    turni.forEach(t => {
+    turni.forEach((t) => {
       if (t.tipo_turno) tipiSet.add(t.tipo_turno);
     });
     return Array.from(tipiSet).sort();
@@ -90,7 +90,7 @@ export default function Presenze() {
     const now = currentTime;
     const todayStr = format(now, 'yyyy-MM-dd');
 
-    return turni.filter(turno => {
+    return turni.filter((turno) => {
       if (turno.store_id !== storeId) return false;
       if (turno.data !== todayStr) return false;
       if (includedTipiTurno.length > 0 && !includedTipiTurno.includes(turno.tipo_turno)) return false;
@@ -132,47 +132,47 @@ export default function Presenze() {
     const now = currentTime;
     const todayStr = format(now, 'yyyy-MM-dd');
 
-    return turni
-      .filter(turno => {
-        if (turno.store_id !== storeId) return false;
-        if (turno.data !== todayStr) return false;
-        if (includedTipiTurno.length > 0 && !includedTipiTurno.includes(turno.tipo_turno)) return false;
+    return turni.
+    filter((turno) => {
+      if (turno.store_id !== storeId) return false;
+      if (turno.data !== todayStr) return false;
+      if (includedTipiTurno.length > 0 && !includedTipiTurno.includes(turno.tipo_turno)) return false;
 
-        try {
-          const [oraInizioH, oraInizioM] = turno.ora_inizio.split(':').map(Number);
-          const inizioDate = new Date(now);
-          inizioDate.setHours(oraInizioH, oraInizioM, 0, 0);
-
-          return inizioDate > now;
-        } catch (error) {
-          return false;
-        }
-      })
-      .map(turno => {
+      try {
         const [oraInizioH, oraInizioM] = turno.ora_inizio.split(':').map(Number);
         const inizioDate = new Date(now);
         inizioDate.setHours(oraInizioH, oraInizioM, 0, 0);
-        
-        const diffMs = inizioDate - now;
-        const diffHours = diffMs / (1000 * 60 * 60);
-        const diffMinutes = (diffMs / (1000 * 60)) % 60;
 
-        return {
-          ...turno,
-          inizioDate,
-          diffHours: Math.floor(diffHours),
-          diffMinutes: Math.floor(diffMinutes),
-          diffTotal: diffHours
-        };
-      })
-      .sort((a, b) => a.diffTotal - b.diffTotal);
+        return inizioDate > now;
+      } catch (error) {
+        return false;
+      }
+    }).
+    map((turno) => {
+      const [oraInizioH, oraInizioM] = turno.ora_inizio.split(':').map(Number);
+      const inizioDate = new Date(now);
+      inizioDate.setHours(oraInizioH, oraInizioM, 0, 0);
+
+      const diffMs = inizioDate - now;
+      const diffHours = diffMs / (1000 * 60 * 60);
+      const diffMinutes = diffMs / (1000 * 60) % 60;
+
+      return {
+        ...turno,
+        inizioDate,
+        diffHours: Math.floor(diffHours),
+        diffMinutes: Math.floor(diffMinutes),
+        diffTotal: diffHours
+      };
+    }).
+    sort((a, b) => a.diffTotal - b.diffTotal);
   };
 
-  const storeStats = stores.map(store => {
+  const storeStats = stores.map((store) => {
     const turniAttivi = getTurniAttiviPerStore(store.id);
     const turniProssimi = getTurniProssimiPerStore(store.id);
-    const timbrati = turniAttivi.filter(t => t.timbratura_entrata).length;
-    const nonTimbrati = turniAttivi.filter(t => !t.timbratura_entrata).length;
+    const timbrati = turniAttivi.filter((t) => t.timbratura_entrata).length;
+    const nonTimbrati = turniAttivi.filter((t) => !t.timbratura_entrata).length;
 
     return {
       store,
@@ -194,17 +194,17 @@ export default function Presenze() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
-              <Users className="w-10 h-10 text-blue-600" />
-              Presenze in Tempo Reale
+            <h1 className="text-slate-50 text-3xl font-bold flex items-center gap-3">Presenze in Tempo Reale
+
+
             </h1>
-            <p className="text-slate-500 mt-1">Monitora chi è in turno in questo momento</p>
+            <p className="text-slate-50 mt-1">Monitora chi è in turno in questo momento</p>
           </div>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowSettings(true)}
-              className="neumorphic-flat p-3 rounded-xl hover:bg-slate-100 transition-all"
-            >
+              className="neumorphic-flat p-3 rounded-xl hover:bg-slate-100 transition-all">
+
               <Settings className="w-5 h-5 text-slate-600" />
             </button>
             <div className="text-right">
@@ -245,8 +245,8 @@ export default function Presenze() {
 
         {/* Store List */}
         <div className="grid grid-cols-1 gap-4">
-          {storeStats.map(({ store, turniAttivi, turniProssimi, timbrati, nonTimbrati, totale }) => (
-            <NeumorphicCard key={store.id} className="p-6">
+          {storeStats.map(({ store, turniAttivi, turniProssimi, timbrati, nonTimbrati, totale }) =>
+          <NeumorphicCard key={store.id} className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center">
@@ -263,20 +263,20 @@ export default function Presenze() {
                 </div>
               </div>
 
-              {turniAttivi.length === 0 ? (
-                <div className="neumorphic-pressed p-8 rounded-xl text-center">
+              {turniAttivi.length === 0 ?
+            <div className="neumorphic-pressed p-8 rounded-xl text-center">
                   <Clock className="w-12 h-12 text-slate-300 mx-auto mb-2" />
                   <p className="text-slate-500">Nessuno in turno in questo momento</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {turniAttivi.map(turno => (
-                    <div
-                      key={turno.id}
-                      className={`neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${
-                        !turno.timbrata_entrata ? 'border-l-4 border-orange-500' : ''
-                      }`}
-                    >
+                </div> :
+
+            <div className="space-y-2">
+                  {turniAttivi.map((turno) =>
+              <div
+                key={turno.id}
+                className={`neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${
+                !turno.timbrata_entrata ? 'border-l-4 border-orange-500' : ''}`
+                }>
+
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
                           <p className="font-bold text-slate-800">{turno.dipendente_nome}</p>
@@ -289,15 +289,15 @@ export default function Presenze() {
                             <Clock className="w-4 h-4" />
                             <span>{turno.ora_inizio} - {turno.ora_fine}</span>
                           </div>
-                          {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                            <span className="text-xs text-slate-500">({turno.tipo_turno})</span>
-                          )}
+                          {turno.tipo_turno && turno.tipo_turno !== 'Normale' &&
+                    <span className="text-xs text-slate-500">({turno.tipo_turno})</span>
+                    }
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {turno.timbratura_entrata ? (
-                          <div className="flex items-center gap-2 text-green-600">
+                        {turno.timbratura_entrata ?
+                  <div className="flex items-center gap-2 text-green-600">
                             <CheckCircle className="w-5 h-5" />
                             <div className="text-right">
                               <p className="text-xs font-medium">Entrata Timbrata</p>
@@ -305,21 +305,21 @@ export default function Presenze() {
                                 {format(parseISO(turno.timbratura_entrata), 'HH:mm', { locale: it })}
                               </p>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-orange-600">
+                          </div> :
+
+                  <div className="flex items-center gap-2 text-orange-600">
                             <AlertCircle className="w-5 h-5" />
                             <p className="text-xs font-medium">Non Timbrata</p>
                           </div>
-                        )}
+                  }
                       </div>
                     </div>
-                  ))}
-                </div>
               )}
+                </div>
+            }
 
-              {totale > 0 && (
-                <div className="mt-3 flex gap-2 text-xs">
+              {totale > 0 &&
+            <div className="mt-3 flex gap-2 text-xs">
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     <span className="text-slate-600">{timbrati} timbrati</span>
@@ -329,21 +329,21 @@ export default function Presenze() {
                     <span className="text-slate-600">{nonTimbrati} non timbrati</span>
                   </div>
                 </div>
-              )}
+            }
 
               {/* Prossimi Turni */}
-              {turniProssimi.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-slate-200">
+              {turniProssimi.length > 0 &&
+            <div className="mt-4 pt-4 border-t border-slate-200">
                   <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     Prossimi Turni Oggi
                   </h3>
                   <div className="space-y-2">
-                    {turniProssimi.map(turno => (
-                      <div
-                        key={turno.id}
-                        className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between bg-slate-50"
-                      >
+                    {turniProssimi.map((turno) =>
+                <div
+                  key={turno.id}
+                  className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between bg-slate-50">
+
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-medium text-slate-700 text-sm">{turno.dipendente_nome}</p>
@@ -353,9 +353,9 @@ export default function Presenze() {
                           </div>
                           <div className="flex items-center gap-3 text-xs text-slate-600">
                             <span>{turno.ora_inizio} - {turno.ora_fine}</span>
-                            {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                              <span className="text-slate-500">({turno.tipo_turno})</span>
-                            )}
+                            {turno.tipo_turno && turno.tipo_turno !== 'Normale' &&
+                      <span className="text-slate-500">({turno.tipo_turno})</span>
+                      }
                           </div>
                         </div>
                         <div className="text-right">
@@ -368,12 +368,12 @@ export default function Presenze() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                )}
                   </div>
                 </div>
-              )}
+            }
             </NeumorphicCard>
-          ))}
+          )}
         </div>
 
         {/* Info */}
@@ -393,15 +393,15 @@ export default function Presenze() {
         </NeumorphicCard>
 
         {/* Settings Modal */}
-        {showSettings && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showSettings &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-slate-800">Impostazioni Presenze</h3>
                 <button
-                  onClick={() => setShowSettings(false)}
-                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                >
+                onClick={() => setShowSettings(false)}
+                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
+
                   <X className="w-5 h-5 text-slate-600" />
                 </button>
               </div>
@@ -412,53 +412,53 @@ export default function Presenze() {
                   Seleziona quali tipi di turno mostrare nella view Presenze
                 </p>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {isLoadingTipi ? (
-                    <p className="text-sm text-slate-500 text-center py-4">
+                  {isLoadingTipi ?
+                <p className="text-sm text-slate-500 text-center py-4">
                       Caricamento tipi di turno...
-                    </p>
-                  ) : availableTipiTurno.length > 0 ? (
-                    availableTipiTurno.map(tipo => (
-                      <label key={tipo} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                    </p> :
+                availableTipiTurno.length > 0 ?
+                availableTipiTurno.map((tipo) =>
+                <label key={tipo} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
                         <input
-                          type="checkbox"
-                          checked={includedTipiTurno.includes(tipo)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setIncludedTipiTurno(prev => [...prev, tipo]);
-                            } else {
-                              setIncludedTipiTurno(prev => prev.filter(t => t !== tipo));
-                            }
-                          }}
-                          className="w-5 h-5 rounded flex-shrink-0"
-                        />
+                    type="checkbox"
+                    checked={includedTipiTurno.includes(tipo)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setIncludedTipiTurno((prev) => [...prev, tipo]);
+                      } else {
+                        setIncludedTipiTurno((prev) => prev.filter((t) => t !== tipo));
+                      }
+                    }}
+                    className="w-5 h-5 rounded flex-shrink-0" />
+
                         <span className="font-medium text-slate-700 text-sm">{tipo}</span>
                       </label>
-                    ))
-                  ) : (
-                    <p className="text-sm text-slate-500 text-center py-4">
+                ) :
+
+                <p className="text-sm text-slate-500 text-center py-4">
                       Nessun tipo di turno trovato
                     </p>
-                  )}
+                }
                 </div>
-                {includedTipiTurno.length === 0 && availableTipiTurno.length > 0 && (
-                  <p className="text-xs text-orange-600 mt-2">
+                {includedTipiTurno.length === 0 && availableTipiTurno.length > 0 &&
+              <p className="text-xs text-orange-600 mt-2">
                     ⚠️ Seleziona almeno un tipo di turno
                   </p>
-                )}
+              }
               </div>
 
               <div className="mt-6 flex justify-end">
                 <button
-                  onClick={() => setShowSettings(false)}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
-                >
+                onClick={() => setShowSettings(false)}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all">
+
                   Applica
                 </button>
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
