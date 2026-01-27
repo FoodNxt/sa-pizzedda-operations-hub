@@ -296,6 +296,96 @@ export default function ProdottiVenduti() {
   // Recalculate total for category-filtered products
   const categoryFilteredTotal = categoryFilteredProducts.reduce((sum, p) => sum + p.total, 0);
 
+  // Calculate top and worst performers
+  const performers = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Current period
+    const currentStart = new Date(today.getTime() - performersPeriod * 24 * 60 * 60 * 1000);
+    const currentStartStr = currentStart.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Previous period (same length)
+    const previousEnd = new Date(currentStart.getTime() - 24 * 60 * 60 * 1000);
+    const previousStart = new Date(previousEnd.getTime() - performersPeriod * 24 * 60 * 60 * 1000);
+    const previousStartStr = previousStart.toISOString().split('T')[0];
+    const previousEndStr = previousEnd.toISOString().split('T')[0];
+    
+    // Filter for store
+    let dataForStore = prodottiVenduti;
+    if (selectedStore !== 'all') {
+      dataForStore = dataForStore.filter(p => p.store_id === selectedStore);
+    }
+    
+    // Current period totals
+    const currentTotals = {};
+    dataForStore
+      .filter(p => {
+        const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+        return dataStr >= currentStartStr && dataStr <= todayStr;
+      })
+      .forEach(record => {
+        const flavor = record.flavor;
+        if (!flavor) return;
+        if (!currentTotals[flavor]) {
+          currentTotals[flavor] = { name: flavor, total: 0, category: record.category || 'altro' };
+        }
+        currentTotals[flavor].total += record.total_pizzas_sold || 0;
+      });
+    
+    // Previous period totals
+    const previousTotals = {};
+    dataForStore
+      .filter(p => {
+        const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+        return dataStr >= previousStartStr && dataStr <= previousEndStr;
+      })
+      .forEach(record => {
+        const flavor = record.flavor;
+        if (!flavor) return;
+        if (!previousTotals[flavor]) {
+          previousTotals[flavor] = { name: flavor, total: 0 };
+        }
+        previousTotals[flavor].total += record.total_pizzas_sold || 0;
+      });
+    
+    // Calculate deltas
+    const deltas = [];
+    Object.keys(currentTotals).forEach(flavor => {
+      const current = currentTotals[flavor].total;
+      const previous = previousTotals[flavor]?.total || 0;
+      const delta = current - previous;
+      const percentChange = previous > 0 ? ((delta / previous) * 100) : (current > 0 ? 100 : 0);
+      
+      deltas.push({
+        name: flavor,
+        category: currentTotals[flavor].category,
+        current,
+        previous,
+        delta,
+        percentChange
+      });
+    });
+    
+    // Sort by absolute delta (volume change)
+    deltas.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+    
+    // Top performers (positive growth)
+    const topPerformers = deltas
+      .filter(d => d.delta > 0)
+      .sort((a, b) => b.delta - a.delta)
+      .slice(0, 10);
+    
+    // Worst performers (negative growth)
+    const worstPerformers = deltas
+      .filter(d => d.delta < 0)
+      .sort((a, b) => a.delta - b.delta)
+      .slice(0, 10);
+    
+    return { topPerformers, worstPerformers };
+  }, [prodottiVenduti, performersPeriod, selectedStore]);
+
   // Calculate stats
   const totalSales = productTotals.reduce((sum, p) => sum + p.total, 0);
   const activeProducts = productTotals.filter(p => p.total > 0).length;
