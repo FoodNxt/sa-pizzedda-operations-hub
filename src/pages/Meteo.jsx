@@ -1,18 +1,18 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { 
-  Cloud, 
-  CloudRain, 
-  Sun, 
-  Wind, 
-  Droplets, 
+import {
+  Cloud,
+  CloudRain,
+  Sun,
+  Wind,
+  Droplets,
   Thermometer,
   Calendar,
   MapPin,
   TrendingUp,
   Eye,
-  Gauge
-} from 'lucide-react';
+  Gauge } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -71,7 +71,7 @@ export default function Meteo() {
     return <Sun className="w-8 h-8" />;
   };
 
-  const chartData = forecastData?.forecast?.forecastday?.map(day => ({
+  const chartData = forecastData?.forecast?.forecastday?.map((day) => ({
     date: new Date(day.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }),
     max: day.day.maxtemp_c,
     min: day.day.mintemp_c,
@@ -85,11 +85,11 @@ export default function Meteo() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <Cloud className="w-10 h-10 text-blue-500" />
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-            Meteo
+          <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Meteo
+
           </h1>
         </div>
-        <p className="text-slate-500">Dati meteo storici e previsionali per le tue città</p>
+        <p className="text-slate-50">Dati meteo storici e previsionali per le tue città</p>
       </div>
 
       {/* Search Section */}
@@ -106,8 +106,8 @@ export default function Meteo() {
               onChange={(e) => setCity(e.target.value)}
               placeholder="es. Milan, Rome, London"
               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              onKeyDown={(e) => e.key === 'Enter' && fetchWeatherData()}
-            />
+              onKeyDown={(e) => e.key === 'Enter' && fetchWeatherData()} />
+
           </div>
 
           <div>
@@ -121,8 +121,8 @@ export default function Meteo() {
               onChange={(e) => setSelectedDate(e.target.value)}
               max={new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
               min={new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-            />
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
           </div>
 
           <div className="flex items-end">
@@ -130,23 +130,23 @@ export default function Meteo() {
               onClick={fetchWeatherData}
               disabled={loading}
               variant="primary"
-              className="w-full"
-            >
+              className="w-full">
+
               {loading ? 'Caricamento...' : 'Cerca Meteo'}
             </NeumorphicButton>
           </div>
         </div>
 
-        {error && (
-          <div className="mt-4 p-4 rounded-xl bg-red-50 text-red-700">
+        {error &&
+        <div className="mt-4 p-4 rounded-xl bg-red-50 text-red-700">
             {error}
           </div>
-        )}
+        }
       </NeumorphicCard>
 
       {/* Current Weather */}
-      {forecastData && (
-        <NeumorphicCard className="p-6">
+      {forecastData &&
+      <NeumorphicCard className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -194,11 +194,11 @@ export default function Meteo() {
             </p>
           </div>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Historical Data */}
-      {historyData && (
-        <NeumorphicCard className="p-6">
+      {historyData &&
+      <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
             <Calendar className="w-6 h-6 text-purple-500" />
             Dati Storici - {new Date(selectedDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -236,11 +236,11 @@ export default function Meteo() {
             </div>
           </div>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Forecast Chart */}
-      {forecastData && chartData.length > 0 && (
-        <NeumorphicCard className="p-6">
+      {forecastData && chartData.length > 0 &&
+      <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
             <TrendingUp className="w-6 h-6 text-green-500" />
             Previsioni 7 Giorni
@@ -252,13 +252,13 @@ export default function Meteo() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="date" stroke="#64748b" />
                 <YAxis stroke="#64748b" label={{ value: '°C', angle: -90, position: 'insideLeft' }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#f8fafc', 
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px'
-                  }} 
-                />
+                <Tooltip
+                contentStyle={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px'
+                }} />
+
                 <Legend />
                 <Line type="monotone" dataKey="max" stroke="#ef4444" strokeWidth={2} name="Max °C" />
                 <Line type="monotone" dataKey="avg" stroke="#f59e0b" strokeWidth={2} name="Media °C" />
@@ -269,8 +269,8 @@ export default function Meteo() {
 
           {/* Forecast Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-            {forecastData.forecast.forecastday.map((day, index) => (
-              <div key={index} className="neumorphic-pressed p-4 rounded-xl text-center">
+            {forecastData.forecast.forecastday.map((day, index) =>
+          <div key={index} className="neumorphic-pressed p-4 rounded-xl text-center">
                 <p className="text-sm font-bold text-slate-700 mb-2">
                   {new Date(day.date).toLocaleDateString('it-IT', { weekday: 'short' })}
                 </p>
@@ -285,14 +285,14 @@ export default function Meteo() {
                   {day.day.daily_chance_of_rain}%
                 </p>
               </div>
-            ))}
+          )}
           </div>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Info Box */}
-      {!forecastData && !loading && (
-        <NeumorphicCard className="p-12 text-center">
+      {!forecastData && !loading &&
+      <NeumorphicCard className="p-12 text-center">
           <Cloud className="w-16 h-16 text-slate-300 mx-auto mb-4 opacity-50" />
           <h3 className="text-xl font-bold text-slate-800 mb-2">
             Cerca una città
@@ -301,7 +301,7 @@ export default function Meteo() {
             Inserisci il nome di una città e seleziona una data per visualizzare i dati meteo
           </p>
         </NeumorphicCard>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
