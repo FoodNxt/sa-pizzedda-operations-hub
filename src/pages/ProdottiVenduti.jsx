@@ -27,6 +27,7 @@ export default function ProdottiVenduti() {
   const [compareMode, setCompareMode] = useState('custom');
   const [compareStartDate, setCompareStartDate] = useState('');
   const [compareEndDate, setCompareEndDate] = useState('');
+  const [performersPeriod, setPerformersPeriod] = useState(30);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
