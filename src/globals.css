@@ -99,6 +99,30 @@ body {
   opacity: 0.9;
 }
 
+/* FORCE tutti i titoli a essere bianchi - MASSIMA PRIORITÀ */
+h1, h1 *, 
+h2, h2 *,
+h3, h3 * {
+  color: #ffffff !important;
+}
+
+/* FORCE tutti i paragrafi nelle prime sezioni (titoli/sottotitoli) a essere bianchi */
+.compact-layout > div > div:first-child p,
+.compact-layout > div:first-child p {
+  color: #ffffff !important;
+}
+
+/* Override TUTTI i gradient text che oscurano i titoli */
+.bg-gradient-to-r,
+.bg-clip-text,
+.text-transparent {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
 /* Dark SaaS Cards */
 .compact-layout .neumorphic-card,
 .compact-layout [class*="neumorphic"] {
