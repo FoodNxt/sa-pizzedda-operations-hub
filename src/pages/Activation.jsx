@@ -1306,101 +1306,79 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       )}
                     </button>
 
-                    {isExpanded && (
-                      <div className="space-y-3">
-                        {data.activations.map(activation => {
-                          const subattivitaList = subattivita.filter(s => s.activation_id === activation.id);
-                          const subattivitaComplete = subattivitaList.filter(s => s.completata).length;
-                          const isCompleted = activation.stato === 'completata';
-                          const isCollapsed = collapsedCompletedCards[activation.id] ?? isCompleted;
-                        
-                        return (
-                          <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
-                            <button
-                              onClick={() => isCompleted && toggleCompletedCard(activation.id)}
-                              className="w-full flex items-start justify-between mb-3 hover:opacity-80 transition-opacity"
-                              disabled={!isCompleted}
-                            >
-                              <div className="flex-1 text-left">
-                                <div className="flex items-start gap-2 mb-2 flex-wrap">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
-                                      {getStatoIcon(activation.stato)}
-                                      {activation.stato.replace('_', ' ').toUpperCase()}
-                                    </span>
-                                    {isCompleted && (
-                                      isCollapsed ? (
+                          <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  {isCompleted && (
+                                    <button
+                                      onClick={() => toggleCompletedCard(activation.id)}
+                                      className="p-1 rounded hover:bg-slate-200 mr-1"
+                                    >
+                                      {isCollapsed ? (
                                         <ChevronRight className="w-4 h-4 text-slate-400" />
                                       ) : (
                                         <ChevronDown className="w-4 h-4 text-slate-400" />
-                                      )
-                                    )}
-                                  </div>
-                                  {activation.stato !== 'completata' && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (confirm('Segnare questa activation come completata?')) {
-                                          handleMarkActivationComplete(activation.id);
-                                        }
-                                      }}
-                                      className="nav-button p-2 rounded-lg hover:bg-green-50"
-                                      title="Segna come completata"
-                                    >
-                                      <CheckCircle className="w-4 h-4 text-green-600" />
+                                      )}
                                     </button>
                                   )}
+                                  <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
+                                    {getStatoIcon(activation.stato)}
+                                    {activation.stato.replace('_', ' ').toUpperCase()}
+                                  </span>
                                 </div>
-                                {activation.descrizione && (
-                                  <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
-                                )}
-                                <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                                  {activation.data_inizio && (
-                                    <div className="flex items-center gap-1">
-                                      <Calendar className="w-3 h-3" />
-                                      Inizio: {format(parseISO(activation.data_inizio), 'dd MMM yyyy', { locale: it })}
+                                {!isCollapsed && (
+                                  <>
+                                    {activation.descrizione && (
+                                      <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
+                                    )}
+                                    <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                                      {activation.data_inizio && (
+                                        <div className="flex items-center gap-1">
+                                          <Calendar className="w-3 h-3" />
+                                          Inizio: {format(parseISO(activation.data_inizio), 'dd MMM yyyy', { locale: it })}
+                                        </div>
+                                      )}
+                                      <div className="flex items-center gap-1">
+                                        <Calendar className="w-3 h-3" />
+                                        Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}
+                                      </div>
                                     </div>
-                                  )}
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}
-                                  </div>
-                                </div>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  {activation.categorie_ids && activation.categorie_ids.length > 0 && (
-                                    activation.categorie_ids.map(catId => {
-                                      const cat = categories.find(c => c.id === catId);
-                                      if (!cat) return null;
-                                      return (
-                                        <span
-                                          key={catId}
-                                          className="text-xs px-2 py-1 rounded-full text-white font-medium"
-                                          style={{ backgroundColor: cat.colore }}
-                                        >
-                                          {cat.nome}
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      {activation.categorie_ids && activation.categorie_ids.length > 0 && (
+                                        activation.categorie_ids.map(catId => {
+                                          const cat = categories.find(c => c.id === catId);
+                                          if (!cat) return null;
+                                          return (
+                                            <span
+                                              key={catId}
+                                              className="text-xs px-2 py-1 rounded-full text-white font-medium"
+                                              style={{ backgroundColor: cat.colore }}
+                                            >
+                                              {cat.nome}
+                                            </span>
+                                          );
+                                        })
+                                      )}
+                                      {activation.stores_ids && activation.stores_ids.length > 0 ? (
+                                        activation.stores_names?.map((name, idx) => (
+                                          <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                            {name}
+                                          </span>
+                                        ))
+                                      ) : (
+                                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                          Tutti i locali
                                         </span>
-                                      );
-                                    })
-                                  )}
-                                  {activation.stores_ids && activation.stores_ids.length > 0 ? (
-                                    activation.stores_names?.map((name, idx) => (
-                                      <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                        {name}
-                                      </span>
-                                    ))
-                                  ) : (
-                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                                      Tutti i locali
-                                    </span>
-                                  )}
-                                </div>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
                               </div>
                               <div className="flex gap-2 flex-shrink-0">
                                 {activation.stato !== 'completata' && (
                                   <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
+                                    onClick={() => {
                                       if (confirm('Segnare questa activation come completata?')) {
                                         handleMarkActivationComplete(activation.id);
                                       }
@@ -1412,8 +1390,7 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                   </button>
                                 )}
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                                  onClick={() => {
                                     setSelectedActivationForChecklist(activation);
                                     setShowChecklistModal(true);
                                   }}
@@ -1422,17 +1399,13 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                   <CheckSquare className="w-4 h-4 text-blue-600" />
                                 </button>
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEdit(activation);
-                                  }}
+                                  onClick={() => handleEdit(activation)}
                                   className="nav-button p-2 rounded-lg hover:bg-blue-50"
                                 >
                                   <Edit className="w-4 h-4 text-blue-600" />
                                 </button>
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                                  onClick={() => {
                                     if (confirm('Eliminare questa activation?')) {
                                       deleteMutation.mutate(activation.id);
                                     }
@@ -1442,7 +1415,7 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                   <Trash2 className="w-4 h-4 text-red-600" />
                                 </button>
                               </div>
-                            </button>
+                            </div>
 
                             {/* Sottoattività - show only if card is not collapsed */}
                             {!isCollapsed && subattivitaList.length > 0 && (
