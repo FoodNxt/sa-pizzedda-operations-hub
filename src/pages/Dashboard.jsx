@@ -1128,7 +1128,7 @@ export default function Dashboard() {
                         <p className={`text-xs font-bold ${cassa.hasAlert ? 'text-red-600' : 'text-slate-600'}`}>
                           {cassa.differenza > 0 ? '+' : ''}{formatEuro(cassa.differenza)}
                         </p>
-                        <p className="text-[10px] text-slate-400">{moment(cassa.lastDate).format('DD/MM/YYYY')}</p>
+                        <p className="text-[10px] text-slate-400">{cassa.lastDate && moment(cassa.lastDate).isValid() ? moment(cassa.lastDate).format('DD/MM/YYYY') : 'N/A'}</p>
                       </div>
                     </div>
                     {cassa.hasAlert &&
@@ -1222,7 +1222,7 @@ export default function Dashboard() {
                   return (
                     <div key={f.id} className="p-2 rounded-lg bg-blue-50 border border-blue-200">
                       <p className="text-xs font-medium text-slate-700">{user?.nome_cognome || user?.full_name}</p>
-                      <p className="text-[10px] text-blue-600">🏖️ Ferie: {moment(f.data_inizio).format('DD/MM')} - {moment(f.data_fine).format('DD/MM')}</p>
+                      <p className="text-[10px] text-blue-600">🏖️ Ferie: {f.data_inizio && moment(f.data_inizio).isValid() ? moment(f.data_inizio).format('DD/MM') : 'N/A'} - {f.data_fine && moment(f.data_fine).isValid() ? moment(f.data_fine).format('DD/MM') : 'N/A'}</p>
                     </div>);
 
                 })}
@@ -1231,7 +1231,7 @@ export default function Dashboard() {
                   return (
                     <div key={m.id} className="p-2 rounded-lg bg-red-50 border border-red-200">
                       <p className="text-xs font-medium text-slate-700">{user?.nome_cognome || user?.full_name}</p>
-                      <p className="text-[10px] text-red-600">🤒 Malattia: {moment(m.data_inizio).format('DD/MM')} - {moment(m.data_fine).format('DD/MM')}</p>
+                      <p className="text-[10px] text-red-600">🤒 Malattia: {m.data_inizio && moment(m.data_inizio).isValid() ? moment(m.data_inizio).format('DD/MM') : 'N/A'} - {m.data_fine && moment(m.data_fine).isValid() ? moment(m.data_fine).format('DD/MM') : 'N/A'}</p>
                     </div>);
 
                 })}
@@ -1240,7 +1240,7 @@ export default function Dashboard() {
                   return (
                     <div key={t.id} className="p-2 rounded-lg bg-purple-50 border border-purple-200">
                       <p className="text-xs font-medium text-slate-700">{user?.nome_cognome || user?.full_name}</p>
-                      <p className="text-[10px] text-purple-600">📅 Turno libero: {moment(t.data_turno).format('DD/MM/YYYY')}</p>
+                      <p className="text-[10px] text-purple-600">📅 Turno libero: {t.data_turno && moment(t.data_turno).isValid() ? moment(t.data_turno).format('DD/MM/YYYY') : 'N/A'}</p>
                     </div>);
 
                 })}
@@ -1248,7 +1248,7 @@ export default function Dashboard() {
                   return (
                     <div key={t.id} className="p-2 rounded-lg bg-indigo-50 border border-indigo-200">
                       <p className="text-xs font-medium text-slate-700">{t.richiesta_scambio.richiesto_da_nome} ↔ {t.richiesta_scambio.richiesto_a_nome}</p>
-                      <p className="text-[10px] text-indigo-600">🔄 Scambio: {moment(t.data).format('DD/MM/YYYY')}</p>
+                      <p className="text-[10px] text-indigo-600">🔄 Scambio: {t.data && moment(t.data).isValid() ? moment(t.data).format('DD/MM/YYYY') : 'N/A'}</p>
                     </div>);
 
                 })}
@@ -1273,7 +1273,7 @@ export default function Dashboard() {
                 <div key={idx} className="p-2 rounded-lg bg-purple-50 border border-purple-200">
                     <p className="text-xs font-medium text-slate-700">{c.dipendente}</p>
                     <p className="text-[10px] text-purple-600">
-                      Scade il {moment(c.dataScadenza).format('DD/MM/YYYY')} ({c.giorniRimanenti} giorni)
+                      Scade il {c.dataScadenza && moment(c.dataScadenza).isValid() ? moment(c.dataScadenza).format('DD/MM/YYYY') : 'N/A'} ({c.giorniRimanenti} giorni)
                     </p>
                   </div>
                 ) :
@@ -1325,7 +1325,7 @@ export default function Dashboard() {
                     <div key={t.id} className="p-2 rounded-lg bg-red-50 border border-red-200 flex justify-between items-center">
                       <div>
                         <p className="text-xs font-medium text-slate-700">{store?.name || 'N/A'}</p>
-                        <p className="text-[10px] text-slate-600">{moment(t.data).format('DD/MM/YYYY')} • {t.ora_inizio}-{t.ora_fine} • {t.ruolo}</p>
+                        <p className="text-[10px] text-slate-600">{t.data && moment(t.data).isValid() ? moment(t.data).format('DD/MM/YYYY') : 'N/A'} • {t.ora_inizio}-{t.ora_fine} • {t.ruolo}</p>
                       </div>
                       <span className="text-xs text-red-600 font-bold whitespace-nowrap ml-2">NON ASSEGNATO</span>
                     </div>);
