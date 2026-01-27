@@ -371,6 +371,9 @@ export default function PrecottureAdmin() {
 
     const byDay = {};
     dataToUse.forEach(t => {
+      // Escludi giorni con 0 teglie vendute
+      if (parseFloat(t.teglie) === 0) return;
+      
       if (!byDay[t.day_of_week]) {
         byDay[t.day_of_week] = { count: 0, total: 0 };
       }
