@@ -1,0 +1,298 @@
+/* Compact Modern Dashboard Styles - Dark Theme Inspired */
+
+/* Root Variables for Compact Theme */
+:root {
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 0.75rem;
+  --spacing-lg: 1rem;
+  --spacing-xl: 1.5rem;
+  
+  --card-padding: 0.75rem;
+  --header-height: 2.5rem;
+  --chart-height: 180px;
+  
+  --gradient-blue-start: #3b82f6;
+  --gradient-blue-end: #1e40af;
+  --gradient-green-start: #10b981;
+  --gradient-green-end: #059669;
+  --gradient-purple-start: #8b5cf6;
+  --gradient-purple-end: #6d28d9;
+}
+
+/* Global Compact Spacing */
+.compact-layout {
+  --spacing-multiplier: 0.6;
+}
+
+.compact-layout h1 {
+  font-size: 1.5rem !important;
+  margin-bottom: 0.5rem !important;
+  line-height: 1.2 !important;
+}
+
+.compact-layout h2 {
+  font-size: 1.25rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.compact-layout h3 {
+  font-size: 1.1rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.compact-layout p {
+  margin-bottom: 0.5rem !important;
+  line-height: 1.4 !important;
+}
+
+/* Compact Cards */
+.compact-layout .neumorphic-card,
+.compact-layout [class*="neumorphic"] {
+  padding: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+/* Reduce spacing between elements */
+.compact-layout > div,
+.compact-layout .space-y-6 > *,
+.compact-layout .space-y-4 > * {
+  margin-bottom: 0.75rem !important;
+}
+
+.compact-layout .space-y-6 {
+  gap: 0.75rem !important;
+}
+
+.compact-layout .space-y-4 {
+  gap: 0.5rem !important;
+}
+
+.compact-layout .space-y-3 {
+  gap: 0.375rem !important;
+}
+
+/* Compact Grid Gaps */
+.compact-layout .gap-6 {
+  gap: 0.75rem !important;
+}
+
+.compact-layout .gap-4 {
+  gap: 0.5rem !important;
+}
+
+/* Chart Compact Styles */
+.compact-layout .recharts-wrapper {
+  max-height: 180px !important;
+  height: 180px !important;
+}
+
+.compact-layout .recharts-surface {
+  max-height: 180px !important;
+}
+
+/* Force compact chart heights */
+.compact-chart {
+  max-height: 180px !important;
+  height: 180px !important;
+}
+
+.compact-chart .recharts-wrapper {
+  max-height: 180px !important;
+  height: 180px !important;
+}
+
+/* Chart Gradients */
+.recharts-bar-rectangle {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Gradient definitions for charts */
+svg defs {
+  --gradient-blue: linear-gradient(180deg, #3b82f6 0%, #1e40af 100%);
+  --gradient-green: linear-gradient(180deg, #10b981 0%, #059669 100%);
+}
+
+/* Dark Tooltip Styles */
+.recharts-tooltip-wrapper {
+  z-index: 1000 !important;
+}
+
+.recharts-default-tooltip {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(51, 65, 85, 0.6) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.recharts-tooltip-label {
+  color: #f1f5f9 !important;
+  font-weight: 600 !important;
+  margin-bottom: 4px !important;
+  font-size: 0.875rem !important;
+}
+
+.recharts-tooltip-item {
+  color: #e2e8f0 !important;
+  font-size: 0.8125rem !important;
+  padding: 2px 0 !important;
+}
+
+.recharts-tooltip-item-name {
+  margin-right: 8px !important;
+}
+
+.recharts-tooltip-item-value {
+  font-weight: 600 !important;
+  color: #60a5fa !important;
+}
+
+/* Stats Card Compact */
+.compact-stats-card {
+  padding: 0.75rem !important;
+  min-height: auto !important;
+}
+
+.compact-stats-card h3 {
+  font-size: 0.875rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.compact-stats-card .stat-value {
+  font-size: 1.5rem !important;
+  line-height: 1.2 !important;
+  margin: 0.25rem 0 !important;
+}
+
+/* Compact Tables */
+.compact-layout table {
+  font-size: 0.875rem !important;
+}
+
+.compact-layout th,
+.compact-layout td {
+  padding: 0.5rem !important;
+}
+
+.compact-layout thead th {
+  padding: 0.625rem 0.5rem !important;
+}
+
+/* Compact Buttons */
+.compact-layout button {
+  padding: 0.5rem 1rem !important;
+  font-size: 0.875rem !important;
+}
+
+.compact-layout button.text-xs {
+  padding: 0.375rem 0.75rem !important;
+}
+
+/* Compact Forms */
+.compact-layout input,
+.compact-layout select,
+.compact-layout textarea {
+  padding: 0.5rem !important;
+  font-size: 0.875rem !important;
+}
+
+.compact-layout label {
+  margin-bottom: 0.25rem !important;
+  font-size: 0.875rem !important;
+}
+
+/* Compact Page Headers */
+.compact-layout .mb-6:first-child {
+  margin-bottom: 0.75rem !important;
+}
+
+/* Gradient Card Backgrounds */
+.gradient-card-blue {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 64, 175, 0.05) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.gradient-card-green {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.gradient-card-purple {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(109, 40, 217, 0.05) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* Chart Colors with Gradients */
+.recharts-bar path,
+.recharts-bar rect {
+  transition: all 0.3s ease;
+}
+
+.recharts-bar:hover path,
+.recharts-bar:hover rect {
+  filter: brightness(1.1);
+}
+
+/* Compact Modal */
+.compact-layout [role="dialog"] {
+  padding: 1rem !important;
+}
+
+.compact-layout [role="dialog"] h2 {
+  font-size: 1.25rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+/* Responsive Compact Adjustments */
+@media (max-width: 768px) {
+  .compact-layout {
+    --card-padding: 0.625rem;
+    --chart-height: 150px;
+  }
+  
+  .compact-layout h1 {
+    font-size: 1.25rem !important;
+  }
+  
+  .compact-layout .recharts-wrapper {
+    max-height: 150px !important;
+    height: 150px !important;
+  }
+}
+
+/* Print Optimization */
+@media print {
+  .compact-layout {
+    font-size: 0.875rem;
+  }
+  
+  .compact-layout .recharts-wrapper {
+    max-height: 200px !important;
+  }
+}
+
+/* Performance: Reduce animations for compact view */
+.compact-layout * {
+  transition-duration: 0.15s !important;
+}
+
+/* Hide scrollbars for cleaner look */
+.compact-layout::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.compact-layout::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.compact-layout::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 3px;
+}
+
+.compact-layout::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}
