@@ -20,7 +20,7 @@ export default function NeumorphicButton({
 
   const getVariantStyles = () => {
     if (variant === "primary") {
-      return "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-xl";
+      return "bg-gradient-to-r from-blue-500 to-blue-600 text-slate-900 shadow-lg hover:shadow-xl";
     }
     return "bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700";
   };
@@ -29,9 +29,12 @@ export default function NeumorphicButton({
     <button
       type={type}
       onClick={handleClick}
-      disabled={disabled}
-      className={`${getVariantStyles()} ${className} px-4 py-2 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95`}
-    >
+      disabled={disabled} className="bg-slate-50 text-slate-50 px-6 py-3 font-medium opacity-85 rounded-xl nav-button from-blue-500 to-blue-600 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center gap-2">
+
+
+
+
+
 
 
 
