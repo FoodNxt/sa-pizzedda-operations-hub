@@ -99,11 +99,15 @@ body {
   opacity: 0.9;
 }
 
-/* FORCE tutti i titoli a essere bianchi - MASSIMA PRIORITÀ */
-h1, h1 *, 
-h2, h2 *,
-h3, h3 * {
+/* FORCE ASSOLUTA: tutti i titoli DEVONO essere bianchi */
+h1, h1 *, h1 span, h1 div,
+h2, h2 *, h2 span, h2 div,
+h3, h3 *, h3 span, h3 div {
   color: #ffffff !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 /* FORCE tutti i paragrafi nelle prime sezioni (titoli/sottotitoli) a essere bianchi */
@@ -112,15 +116,46 @@ h3, h3 * {
   color: #ffffff !important;
 }
 
-/* Override TUTTI i gradient text che oscurano i titoli */
-.bg-gradient-to-r,
-.bg-clip-text,
+/* Override COMPLETO di TUTTE le classi Tailwind di colore testo */
+.text-slate-50,
+.text-slate-100,
+.text-slate-200,
+.text-slate-300,
+.text-slate-400,
+.text-slate-500,
+.text-slate-600,
+.text-slate-700,
+.text-slate-800,
+.text-slate-900,
+.text-gray-50,
+.text-gray-100,
+.text-gray-200,
+.text-gray-300,
+.text-gray-400,
+.text-gray-500,
+.text-gray-600,
+.text-gray-700,
+.text-gray-800,
+.text-gray-900 {
+  color: #ffffff !important;
+}
+
+/* KILL tutti i gradient che rendono il testo invisibile */
+h1.bg-gradient-to-r,
+h2.bg-gradient-to-r,
+h3.bg-gradient-to-r,
+h1.bg-gradient-to-l,
+h2.bg-gradient-to-l,
+h3.bg-gradient-to-l,
+.bg-gradient-to-r.bg-clip-text,
+.bg-gradient-to-l.bg-clip-text,
 .text-transparent {
   background: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
   -webkit-text-fill-color: #ffffff !important;
   color: #ffffff !important;
+  text-fill-color: #ffffff !important;
 }
 
 /* Dark SaaS Cards */
