@@ -1209,7 +1209,7 @@ export default function Dashboard() {
               <Link to={createPageUrl('Assenze')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <Calendar className="w-4 h-4 text-blue-600" />
                 Richieste in Attesa
-                {richiesteAssenze && richiesteAssenze.ferie?.length + richiesteAssenze.malattie?.length + richiesteAssenze.turniLiberi?.length + richiesteAssenze.scambi?.length > 0 &&
+                {richiesteAssenze && ((richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0) + (richiesteAssenze.scambi?.length || 0)) > 0 &&
                 <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
                    {(richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0) + (richiesteAssenze.scambi?.length || 0)}
                  </span>
