@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
-export default function NeumorphicButton({ 
-  children, 
-  onClick, 
+export default function NeumorphicButton({
+  children,
+  onClick,
   className = "",
   disabled = false,
   variant = "default",
@@ -29,18 +29,18 @@ export default function NeumorphicButton({
     <button
       type={type}
       onClick={handleClick}
-      disabled={disabled}
-      className={`
-        ${pressed ? 'neumorphic-pressed scale-95' : 'nav-button'}
-        ${getVariantStyles()}
-        px-6 py-3 rounded-xl font-medium
-        transition-all duration-200
-        disabled:opacity-50 disabled:cursor-not-allowed
-        active:scale-95
-        ${className}
-      `}
-    >
+      disabled={disabled} className="bg-slate-900 text-slate-50 px-6 py-3 font-medium opacity-85 rounded-xl nav-button from-blue-500 to-blue-600 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center gap-2">
+
+
+
+
+
+
+
+
+
+
       {children}
-    </button>
-  );
+    </button>);
+
 }
