@@ -55,21 +55,23 @@ body {
   font-size: 1.5rem !important;
   margin-bottom: 0.5rem !important;
   line-height: 1.2 !important;
-  color: #f1f5f9 !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .compact-layout h2 {
   font-size: 1.25rem !important;
   margin-bottom: 0.5rem !important;
-  color: #e2e8f0 !important;
+  color: #f8fafc !important;
   font-weight: 600 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .compact-layout h3 {
   font-size: 1.1rem !important;
   margin-bottom: 0.25rem !important;
-  color: #cbd5e1 !important;
+  color: #f1f5f9 !important;
   font-weight: 600 !important;
 }
 
@@ -332,27 +334,34 @@ svg defs {
 .compact-layout h1,
 .compact-layout h2,
 .compact-layout h3 {
-  color: var(--text-primary) !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
+}
+
+.compact-layout h4,
+.compact-layout h5,
+.compact-layout h6 {
+  color: #f1f5f9 !important;
+  font-weight: 600 !important;
 }
 
 .compact-layout p,
 .compact-layout span {
-  color: var(--text-secondary) !important;
+  color: #e2e8f0 !important;
 }
 
 .compact-layout .text-slate-500,
 .compact-layout .text-slate-600 {
-  color: var(--text-muted) !important;
+  color: #cbd5e1 !important;
 }
 
 .compact-layout .text-slate-700,
 .compact-layout .text-slate-800 {
-  color: var(--text-secondary) !important;
+  color: #e2e8f0 !important;
 }
 
 .compact-layout .text-slate-900 {
-  color: var(--text-primary) !important;
+  color: #ffffff !important;
 }
 
 /* Gradient Card Backgrounds with Glow */
