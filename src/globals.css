@@ -152,8 +152,8 @@ p.text-gray-600 {
   border: 1px solid var(--card-border) !important;
   box-shadow: var(--card-shadow) !important;
   border-radius: 12px !important;
-  padding: 0.75rem !important;
-  margin-bottom: 0.75rem !important;
+  padding: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
   transition: all 0.2s ease !important;
 }
 
