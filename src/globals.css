@@ -1,3 +1,4 @@
+css
 /* Modern Dark SaaS Dashboard Theme */
 
 /* Root Variables for Dark SaaS Theme */
@@ -52,52 +53,14 @@ body {
 }
 
 /* ========================================
-   FORCE NUCLEARE: TUTTI I TESTI BIANCHI
+   FORCE NUCLEARE: KILL TUTTI I GRADIENT
    ======================================== */
 
-/* MASSIMA PRIORITÀ: Elimina bg-gradient e text-transparent OVUNQUE */
-.compact-layout h1.bg-gradient-to-r,
-.compact-layout h1.bg-gradient-to-l,
-.compact-layout h1.bg-gradient-to-br,
-.compact-layout h1.bg-clip-text,
-.compact-layout h1.text-transparent,
-.compact-layout h2.bg-gradient-to-r,
-.compact-layout h2.bg-gradient-to-l,
-.compact-layout h2.bg-gradient-to-br,
-.compact-layout h2.bg-clip-text,
-.compact-layout h2.text-transparent,
-.compact-layout h3.bg-gradient-to-r,
-.compact-layout h3.bg-gradient-to-l,
-.compact-layout h3.bg-gradient-to-br,
-.compact-layout h3.bg-clip-text,
-.compact-layout h3.text-transparent,
-.compact-layout p.bg-gradient-to-r,
-.compact-layout p.bg-gradient-to-l,
-.compact-layout p.bg-clip-text,
-.compact-layout p.text-transparent,
-.compact-layout span.bg-gradient-to-r,
-.compact-layout span.bg-gradient-to-l,
-.compact-layout span.bg-clip-text,
-.compact-layout span.text-transparent,
-.compact-layout div.bg-gradient-to-r,
-.compact-layout div.bg-gradient-to-l,
-.compact-layout div.bg-clip-text,
-.compact-layout div.text-transparent,
-h1.bg-gradient-to-r,
-h1.bg-gradient-to-l,
-h1.bg-gradient-to-br,
-h1.bg-clip-text,
-h1.text-transparent,
-h2.bg-gradient-to-r,
-h2.bg-gradient-to-l,
-h2.bg-gradient-to-br,
-h2.bg-clip-text,
-h2.text-transparent,
-h3.bg-gradient-to-r,
-h3.bg-gradient-to-l,
-h3.bg-gradient-to-br,
-h3.bg-clip-text,
-h3.text-transparent {
+/* MASSIMA PRIORITÀ: Elimina bg-gradient OVUNQUE con attribute selector */
+[class*="bg-gradient"][class*="bg-clip"],
+[class*="bg-gradient"][class*="text-transparent"],
+.compact-layout [class*="bg-gradient"][class*="bg-clip"],
+.compact-layout [class*="bg-gradient"][class*="text-transparent"] {
   background: none !important;
   background-image: none !important;
   -webkit-background-clip: unset !important;
@@ -106,36 +69,42 @@ h3.text-transparent {
   color: #ffffff !important;
 }
 
-/* OVERRIDE TOTALE di OGNI CLASSE text-* Tailwind */
-.compact-layout h1[class*="text-"],
-.compact-layout h2[class*="text-"],
-.compact-layout h3[class*="text-"],
-.compact-layout h4[class*="text-"],
-.compact-layout p[class*="text-"],
-.compact-layout span[class*="text-"],
-.compact-layout div[class*="text-"],
-h1[class*="text-"],
-h2[class*="text-"],
-h3[class*="text-"],
-h4[class*="text-"],
-p[class*="text-"] {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-
-/* Force su TUTTI gli heading ovunque nella pagina */
+/* TUTTI gli heading e paragrafi BIANCHI - specificità massima */
 .compact-layout h1,
 .compact-layout h1 *,
+.compact-layout h1 span,
+.compact-layout h1 div,
 .compact-layout h2,
 .compact-layout h2 *,
+.compact-layout h2 span,
+.compact-layout h2 div,
 .compact-layout h3,
 .compact-layout h3 *,
+.compact-layout h3 span,
+.compact-layout h3 div,
 .compact-layout h4,
 .compact-layout h4 *,
+.compact-layout h5,
+.compact-layout h5 *,
+.compact-layout h6,
+.compact-layout h6 *,
 .compact-layout p,
-.compact-layout p * {
+.compact-layout p *,
+.compact-layout p span,
+h1, h1 *, h1 span, h1 div,
+h2, h2 *, h2 span, h2 div,
+h3, h3 *, h3 span, h3 div,
+h4, h4 *,
+p.text-slate-500,
+p.text-slate-600,
+p.text-gray-500,
+p.text-gray-600 {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
 }
 
 .compact-layout h1,
@@ -174,89 +143,6 @@ p[class*="text-"] {
   margin-bottom: 0.5rem !important;
   line-height: 1.4 !important;
   color: #ffffff !important;
-}
-
-/* Sottotitoli specifici - sempre bianchi */
-.compact-layout .mb-1 + p,
-.compact-layout .mb-2 + p,
-.compact-layout h1 + p,
-.compact-layout h2 + p,
-.compact-layout h3 + p {
-  color: #ffffff !important;
-  opacity: 0.9;
-}
-
-/* FORCE ASSOLUTA: tutti i titoli DEVONO essere bianchi */
-h1, h1 *, h1 span, h1 div,
-h2, h2 *, h2 span, h2 div,
-h3, h3 *, h3 span, h3 div {
-  color: #ffffff !important;
-  background: none !important;
-  -webkit-background-clip: unset !important;
-  background-clip: unset !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-
-/* FORCE tutti i paragrafi nelle prime sezioni (titoli/sottotitoli) a essere bianchi */
-.compact-layout > div > div:first-child p,
-.compact-layout > div:first-child p {
-  color: #ffffff !important;
-}
-
-/* ========================================
-   FORCE MASSIMA: TUTTI I TESTI BIANCHI
-   ======================================== */
-
-/* Override TOTALE di TUTTE le varianti Tailwind */
-.compact-layout [class*="text-slate"],
-.compact-layout [class*="text-gray"],
-.compact-layout [class*="text-zinc"],
-.compact-layout [class*="text-neutral"],
-[class*="text-slate"],
-[class*="text-gray"],
-[class*="text-zinc"],
-[class*="text-neutral"],
-.text-transparent {
-  color: #ffffff !important;
-  background: none !important;
-  background-image: none !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-
-/* KILL TOTALE gradient su testo */
-.compact-layout [class*="bg-gradient"],
-.compact-layout [class*="bg-clip-text"],
-[class*="bg-gradient"][class*="bg-clip-text"],
-h1[class*="bg-gradient"],
-h2[class*="bg-gradient"],
-h3[class*="bg-gradient"],
-p[class*="bg-gradient"] {
-  background: none !important;
-  background-image: none !important;
-  -webkit-background-clip: unset !important;
-  background-clip: unset !important;
-  -webkit-text-fill-color: #ffffff !important;
-  color: #ffffff !important;
-}
-
-/* Force specifico su tutti gli elementi testo */
-.compact-layout h1,
-.compact-layout h1 *,
-.compact-layout h2,
-.compact-layout h2 *,
-.compact-layout h3,
-.compact-layout h3 *,
-.compact-layout h4,
-.compact-layout h4 *,
-.compact-layout h5,
-.compact-layout h5 *,
-.compact-layout h6,
-.compact-layout h6 *,
-.compact-layout p,
-.compact-layout p *,
-.compact-layout span:not(.recharts-text):not([class*="badge"]):not([class*="bg-"]) {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
 }
 
 /* Dark SaaS Cards */
@@ -505,6 +391,57 @@ svg defs {
   font-weight: 500 !important;
 }
 
+/* ========================================
+   FORCE NUCLEARE: BIANCHI TUTTI I TITOLI
+   ======================================== */
+
+/* KILL GRADIENT con attribute selectors - massima priorità */
+[class*="bg-gradient"][class*="bg-clip"],
+[class*="bg-gradient"][class*="text-transparent"],
+.bg-gradient-to-r.bg-clip-text,
+.bg-gradient-to-l.bg-clip-text,
+.bg-gradient-to-br.bg-clip-text,
+.text-transparent {
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
+/* OVERRIDE TOTALE heading e paragrafi */
+.compact-layout h1,
+.compact-layout h1 *,
+.compact-layout h2,
+.compact-layout h2 *,
+.compact-layout h3,
+.compact-layout h3 *,
+.compact-layout h4,
+.compact-layout h4 *,
+.compact-layout h5,
+.compact-layout h5 *,
+.compact-layout h6,
+.compact-layout h6 *,
+.compact-layout p,
+.compact-layout p *,
+h1, h1 *, h2, h2 *, h3, h3 *, h4, h4 *, h5, h5 *, h6, h6 * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* KILL colori slate/gray su titoli */
+.compact-layout h1[class*="slate"],
+.compact-layout h2[class*="slate"],
+.compact-layout h3[class*="slate"],
+.compact-layout p[class*="slate"],
+h1[class*="slate"],
+h2[class*="slate"],
+h3[class*="slate"],
+p[class*="slate"] {
+  color: #ffffff !important;
+}
+
 /* Dark SaaS Page Headers */
 .compact-layout .mb-6:first-child {
   margin-bottom: 0.75rem !important;
@@ -518,30 +455,6 @@ svg defs {
 .compact-layout h6 {
   color: #ffffff !important;
   font-weight: 700 !important;
-}
-
-/* Sottotitoli e descrizioni - devono essere bianche */
-.compact-layout > div > div > p,
-.compact-layout > div > p,
-.compact-layout p.text-sm,
-.compact-layout p.text-xs {
-  color: #ffffff !important;
-}
-
-/* Override per tutte le classi text-slate che sono sottotitoli */
-.compact-layout .text-slate-500,
-.compact-layout .text-slate-600,
-.compact-layout .text-slate-700,
-.compact-layout .text-slate-800,
-.compact-layout .text-slate-900 {
-  color: #ffffff !important;
-}
-
-/* Assicura che gli span nei titoli siano bianchi */
-.compact-layout h1 span,
-.compact-layout h2 span,
-.compact-layout h3 span {
-  color: #ffffff !important;
 }
 
 /* Gradient Card Backgrounds with Glow */
