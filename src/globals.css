@@ -56,28 +56,31 @@ body {
   margin-bottom: 0.5rem !important;
   line-height: 1.2 !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  font-weight: 800 !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  letter-spacing: -0.02em;
 }
 
 .compact-layout h2 {
   font-size: 1.25rem !important;
   margin-bottom: 0.5rem !important;
-  color: #f8fafc !important;
-  font-weight: 600 !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 .compact-layout h3 {
   font-size: 1.1rem !important;
   margin-bottom: 0.25rem !important;
-  color: #f1f5f9 !important;
+  color: #ffffff !important;
   font-weight: 600 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .compact-layout p {
   margin-bottom: 0.5rem !important;
   line-height: 1.4 !important;
+  color: #f1f5f9 !important;
 }
 
 /* Dark SaaS Cards */
@@ -347,12 +350,12 @@ svg defs {
 
 .compact-layout p,
 .compact-layout span {
-  color: #e2e8f0 !important;
+  color: #f1f5f9 !important;
 }
 
 .compact-layout .text-slate-500,
 .compact-layout .text-slate-600 {
-  color: #cbd5e1 !important;
+  color: #e2e8f0 !important;
 }
 
 .compact-layout .text-slate-700,
