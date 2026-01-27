@@ -140,7 +140,7 @@ export default function FormsDipendente() {
       title: "Preparazioni",
       description: "Gestione preparazioni",
       icon: ClipboardList,
-      url: "Preparazioni",
+      url: "FormPreparazioni",
       color: "from-violet-500 to-purple-600"
     },
     {
