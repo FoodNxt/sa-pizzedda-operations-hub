@@ -116,46 +116,60 @@ h3, h3 *, h3 span, h3 div {
   color: #ffffff !important;
 }
 
-/* Override COMPLETO di TUTTE le classi Tailwind di colore testo */
-.text-slate-50,
-.text-slate-100,
-.text-slate-200,
-.text-slate-300,
-.text-slate-400,
-.text-slate-500,
-.text-slate-600,
-.text-slate-700,
-.text-slate-800,
-.text-slate-900,
-.text-gray-50,
-.text-gray-100,
-.text-gray-200,
-.text-gray-300,
-.text-gray-400,
-.text-gray-500,
-.text-gray-600,
-.text-gray-700,
-.text-gray-800,
-.text-gray-900 {
+/* ========================================
+   FORCE MASSIMA: TUTTI I TESTI BIANCHI
+   ======================================== */
+
+/* Override TOTALE di TUTTE le varianti Tailwind */
+.compact-layout [class*="text-slate"],
+.compact-layout [class*="text-gray"],
+.compact-layout [class*="text-zinc"],
+.compact-layout [class*="text-neutral"],
+[class*="text-slate"],
+[class*="text-gray"],
+[class*="text-zinc"],
+[class*="text-neutral"],
+.text-transparent {
   color: #ffffff !important;
+  background: none !important;
+  background-image: none !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
-/* KILL tutti i gradient che rendono il testo invisibile */
-h1.bg-gradient-to-r,
-h2.bg-gradient-to-r,
-h3.bg-gradient-to-r,
-h1.bg-gradient-to-l,
-h2.bg-gradient-to-l,
-h3.bg-gradient-to-l,
-.bg-gradient-to-r.bg-clip-text,
-.bg-gradient-to-l.bg-clip-text,
-.text-transparent {
+/* KILL TOTALE gradient su testo */
+.compact-layout [class*="bg-gradient"],
+.compact-layout [class*="bg-clip-text"],
+[class*="bg-gradient"][class*="bg-clip-text"],
+h1[class*="bg-gradient"],
+h2[class*="bg-gradient"],
+h3[class*="bg-gradient"],
+p[class*="bg-gradient"] {
   background: none !important;
+  background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
   -webkit-text-fill-color: #ffffff !important;
   color: #ffffff !important;
-  text-fill-color: #ffffff !important;
+}
+
+/* Force specifico su tutti gli elementi testo */
+.compact-layout h1,
+.compact-layout h1 *,
+.compact-layout h2,
+.compact-layout h2 *,
+.compact-layout h3,
+.compact-layout h3 *,
+.compact-layout h4,
+.compact-layout h4 *,
+.compact-layout h5,
+.compact-layout h5 *,
+.compact-layout h6,
+.compact-layout h6 *,
+.compact-layout p,
+.compact-layout p *,
+.compact-layout span:not(.recharts-text):not([class*="badge"]):not([class*="bg-"]) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 /* Dark SaaS Cards */
