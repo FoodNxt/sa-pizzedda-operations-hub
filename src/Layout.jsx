@@ -1287,7 +1287,7 @@ export default function Layout({ children, currentPageName }) {
   }, [normalizedUserType, dipendenteNav]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
       {showProfileModal && currentUser && (
         <CompleteProfileModal
           user={currentUser}
@@ -1428,8 +1428,8 @@ export default function Layout({ children, currentPageName }) {
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             pt-20 lg:pt-0 bg-white lg:border-r lg:border-slate-200
           `}>
-            <div className="h-full flex flex-col overflow-y-auto bg-white">
-              <div className="hidden lg:flex items-center gap-2 px-6 py-5 border-b border-slate-200">
+            <div className="h-full flex flex-col overflow-y-auto" style={{ background: '#1e293b' }}>
+              <div className="hidden lg:flex items-center gap-2 px-6 py-5 border-b" style={{ borderColor: 'rgba(148, 163, 184, 0.1)' }}>
                 <div className="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
                   SP
                 </div>

@@ -1,6 +1,6 @@
-/* Compact Modern Dashboard Styles - Dark Theme Inspired */
+/* Modern Dark SaaS Dashboard Theme */
 
-/* Root Variables for Compact Theme */
+/* Root Variables for Dark SaaS Theme */
 :root {
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -12,12 +12,38 @@
   --header-height: 2.5rem;
   --chart-height: 180px;
   
+  /* Dark Theme Colors */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  
+  --card-bg: #1e293b;
+  --card-border: rgba(148, 163, 184, 0.1);
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  
   --gradient-blue-start: #3b82f6;
   --gradient-blue-end: #1e40af;
   --gradient-green-start: #10b981;
   --gradient-green-end: #059669;
   --gradient-purple-start: #8b5cf6;
   --gradient-purple-end: #6d28d9;
+  --gradient-cyan-start: #06b6d4;
+  --gradient-cyan-end: #0891b2;
+  
+  --glow-blue: rgba(59, 130, 246, 0.3);
+  --glow-green: rgba(16, 185, 129, 0.3);
+  --glow-purple: rgba(139, 92, 246, 0.3);
+}
+
+/* Dark Background Base */
+body {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: var(--text-primary);
+  min-height: 100vh;
 }
 
 /* Global Compact Spacing */
@@ -46,11 +72,21 @@
   line-height: 1.4 !important;
 }
 
-/* Compact Cards */
+/* Dark SaaS Cards */
 .compact-layout .neumorphic-card,
 .compact-layout [class*="neumorphic"] {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow) !important;
+  border-radius: 12px !important;
   padding: 0.75rem !important;
   margin-bottom: 0.75rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.compact-layout .neumorphic-card:hover {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  box-shadow: 0 8px 12px -1px rgba(0, 0, 0, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Reduce spacing between elements */
@@ -149,79 +185,187 @@ svg defs {
   color: #60a5fa !important;
 }
 
-/* Stats Card Compact */
+/* Stats Card Compact - High Contrast KPIs */
 .compact-stats-card {
   padding: 0.75rem !important;
   min-height: auto !important;
+  background: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.compact-stats-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gradient-blue-start), var(--gradient-cyan-start));
+  opacity: 0.6;
 }
 
 .compact-stats-card h3 {
   font-size: 0.875rem !important;
   margin-bottom: 0.25rem !important;
+  color: var(--text-muted) !important;
+  font-weight: 500 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .compact-stats-card .stat-value {
-  font-size: 1.5rem !important;
+  font-size: 1.75rem !important;
   line-height: 1.2 !important;
   margin: 0.25rem 0 !important;
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
 }
 
-/* Compact Tables */
+/* Dark SaaS Tables */
 .compact-layout table {
   font-size: 0.875rem !important;
+  background: var(--card-bg) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
 }
 
 .compact-layout th,
 .compact-layout td {
   padding: 0.5rem !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--card-border) !important;
 }
 
 .compact-layout thead th {
   padding: 0.625rem 0.5rem !important;
+  background: rgba(15, 23, 42, 0.5) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em;
 }
 
-/* Compact Buttons */
+.compact-layout tbody tr {
+  border-bottom: 1px solid var(--card-border) !important;
+}
+
+.compact-layout tbody tr:hover {
+  background: rgba(59, 130, 246, 0.05) !important;
+}
+
+/* Dark SaaS Buttons */
 .compact-layout button {
   padding: 0.5rem 1rem !important;
   font-size: 0.875rem !important;
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.compact-layout button:hover:not(:disabled) {
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2) !important;
 }
 
 .compact-layout button.text-xs {
   padding: 0.375rem 0.75rem !important;
 }
 
-/* Compact Forms */
+.compact-layout button[class*="bg-blue"],
+.compact-layout button[class*="bg-gradient"] {
+  background: linear-gradient(135deg, var(--gradient-blue-start), var(--gradient-blue-end)) !important;
+  border: none !important;
+  box-shadow: 0 0 20px var(--glow-blue) !important;
+  color: white !important;
+}
+
+/* Dark SaaS Forms */
 .compact-layout input,
 .compact-layout select,
 .compact-layout textarea {
   padding: 0.5rem !important;
   font-size: 0.875rem !important;
+  background: rgba(15, 23, 42, 0.5) !important;
+  border: 1px solid var(--card-border) !important;
+  color: var(--text-primary) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.compact-layout input:focus,
+.compact-layout select:focus,
+.compact-layout textarea:focus {
+  outline: none !important;
+  border-color: var(--gradient-blue-start) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 0 12px var(--glow-blue) !important;
+}
+
+.compact-layout input::placeholder,
+.compact-layout textarea::placeholder {
+  color: var(--text-muted) !important;
 }
 
 .compact-layout label {
   margin-bottom: 0.25rem !important;
   font-size: 0.875rem !important;
+  color: var(--text-secondary) !important;
+  font-weight: 500 !important;
 }
 
-/* Compact Page Headers */
+/* Dark SaaS Page Headers */
 .compact-layout .mb-6:first-child {
   margin-bottom: 0.75rem !important;
 }
 
-/* Gradient Card Backgrounds */
+.compact-layout h1,
+.compact-layout h2,
+.compact-layout h3 {
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+}
+
+.compact-layout p,
+.compact-layout span {
+  color: var(--text-secondary) !important;
+}
+
+.compact-layout .text-slate-500,
+.compact-layout .text-slate-600 {
+  color: var(--text-muted) !important;
+}
+
+.compact-layout .text-slate-700,
+.compact-layout .text-slate-800 {
+  color: var(--text-secondary) !important;
+}
+
+.compact-layout .text-slate-900 {
+  color: var(--text-primary) !important;
+}
+
+/* Gradient Card Backgrounds with Glow */
 .gradient-card-blue {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 64, 175, 0.05) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(30, 64, 175, 0.1) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 20px var(--glow-blue), var(--card-shadow);
 }
 
 .gradient-card-green {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 20px var(--glow-green), var(--card-shadow);
 }
 
 .gradient-card-purple {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(109, 40, 217, 0.05) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(109, 40, 217, 0.1) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 20px var(--glow-purple), var(--card-shadow);
 }
 
 /* Chart Colors with Gradients */
