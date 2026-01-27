@@ -692,7 +692,7 @@ export default function PrecottureAdmin() {
                       const mediaGiorno30 = parseFloat(mediaUltimi30Giorni[giorno]) || 0;
                       const mediaGiorno60 = parseFloat(mediaUltimi60Giorni[giorno]) || 0;
                       const mediaGiorno90 = parseFloat(mediaUltimi90Giorni[giorno]) || 0;
-                      const mediaGiorno = mediaGiorno30;
+                      const mediaGiorno = mediaGiorno60;
                       
                       let totaleGiorno;
                       if (isEditing) {
