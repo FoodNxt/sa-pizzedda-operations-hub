@@ -19,8 +19,8 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
-  TrendingDown
-} from 'lucide-react';
+  TrendingDown } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { parseISO, isWithinInterval, isValid, format as formatDate } from 'date-fns';
@@ -50,7 +50,7 @@ export default function Employees() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   // CHANGED: Fetch users with dipendente role instead of Employee entity
@@ -58,83 +58,83 @@ export default function Employees() {
     queryKey: ['dipendenti-users'],
     queryFn: async () => {
       const allUsers = await base44.entities.User.list();
-      return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
-    },
+      return allUsers.filter((u) => u.user_type === 'dipendente' || u.user_type === 'user');
+    }
   });
 
   const { data: shifts = [] } = useQuery({
     queryKey: ['planday-shifts'],
-    queryFn: () => base44.entities.TurnoPlanday.list(),
+    queryFn: () => base44.entities.TurnoPlanday.list()
   });
 
   const { data: reviews = [] } = useQuery({
     queryKey: ['reviews'],
-    queryFn: () => base44.entities.Review.list(),
+    queryFn: () => base44.entities.Review.list()
   });
 
   const { data: allWrongOrderMatches = [] } = useQuery({
     queryKey: ['all-wrong-order-matches'],
-    queryFn: () => base44.entities.WrongOrderMatch.list(),
+    queryFn: () => base44.entities.WrongOrderMatch.list()
   });
 
   const { data: wrongOrders = [] } = useQuery({
     queryKey: ['wrong-orders'],
     queryFn: async () => {
       const orders = await base44.entities.WrongOrder.list('-order_date');
-      return orders.filter(o => o.store_matched);
-    },
+      return orders.filter((o) => o.store_matched);
+    }
   });
 
   const { data: metricWeights = [] } = useQuery({
     queryKey: ['metric-weights'],
-    queryFn: () => base44.entities.MetricWeight.list(),
+    queryFn: () => base44.entities.MetricWeight.list()
   });
 
   const { data: p2pResponses = [] } = useQuery({
     queryKey: ['p2p-responses'],
-    queryFn: () => base44.entities.P2PFeedbackResponse.list('-submitted_date'),
+    queryFn: () => base44.entities.P2PFeedbackResponse.list('-submitted_date')
   });
 
   const { data: cleaningInspections = [] } = useQuery({
     queryKey: ['cleaning-inspections'],
-    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date')
   });
 
   const { data: attrezzature = [] } = useQuery({
     queryKey: ['attrezzature'],
-    queryFn: () => base44.entities.Attrezzatura.list(),
+    queryFn: () => base44.entities.Attrezzatura.list()
   });
 
   const { data: domande = [] } = useQuery({
     queryKey: ['domande-pulizia'],
-    queryFn: () => base44.entities.DomandaPulizia.list(),
+    queryFn: () => base44.entities.DomandaPulizia.list()
   });
 
   const { data: richiesteAssenze = [] } = useQuery({
     queryKey: ['richieste-assenze'],
     queryFn: async () => {
       const ferie = await base44.entities.RichiestaFerie.list();
-      return ferie.filter(f => f.stato === 'approvata').map(f => ({
+      return ferie.filter((f) => f.stato === 'approvata').map((f) => ({
         ...f,
         tipo: 'assenza_non_giustificata'
       }));
-    },
+    }
   });
 
   const { data: malattie = [] } = useQuery({
     queryKey: ['richieste-malattia'],
-    queryFn: () => base44.entities.RichiestaMalattia.list(),
+    queryFn: () => base44.entities.RichiestaMalattia.list()
   });
 
   const { data: templates = [] } = useQuery({
     queryKey: ['lettera-templates'],
-    queryFn: () => base44.entities.LetteraRichiamoTemplate.list(),
+    queryFn: () => base44.entities.LetteraRichiamoTemplate.list()
   });
 
-  const currentOrderIds = useMemo(() => new Set(wrongOrders.map(o => o.id)), [wrongOrders]);
+  const currentOrderIds = useMemo(() => new Set(wrongOrders.map((o) => o.id)), [wrongOrders]);
   const wrongOrderMatches = useMemo(() =>
-    allWrongOrderMatches.filter(m => currentOrderIds.has(m.wrong_order_id))
-  , [allWrongOrderMatches, currentOrderIds]);
+  allWrongOrderMatches.filter((m) => currentOrderIds.has(m.wrong_order_id)),
+  [allWrongOrderMatches, currentOrderIds]);
 
   const safeParseDate = (dateString) => {
     if (!dateString) return null;
@@ -194,16 +194,16 @@ export default function Employees() {
   const deduplicateShifts = (shiftsArray) => {
     const uniqueShiftsMap = new Map();
 
-    shiftsArray.forEach(shift => {
+    shiftsArray.forEach((shift) => {
       const shiftDate = safeParseDate(shift.data);
       const normalizedDate = shiftDate ? shiftDate.toISOString().split('T')[0] : 'no-date';
 
-      const normalizedStart = shift.ora_inizio
-        ? shift.ora_inizio
-        : 'no-start';
-      const normalizedEnd = shift.ora_fine
-        ? shift.ora_fine
-        : 'no-end';
+      const normalizedStart = shift.ora_inizio ?
+      shift.ora_inizio :
+      'no-start';
+      const normalizedEnd = shift.ora_fine ?
+      shift.ora_fine :
+      'no-end';
 
       const key = `${shift.dipendente_nome}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
 
@@ -212,7 +212,7 @@ export default function Employees() {
       } else {
         const existing = uniqueShiftsMap.get(key);
         if (shift.created_date && existing.created_date &&
-            new Date(shift.created_date) < new Date(existing.created_date)) {
+        new Date(shift.created_date) < new Date(existing.created_date)) {
           uniqueShiftsMap.set(key, shift);
         }
       }
@@ -225,11 +225,11 @@ export default function Employees() {
   const employeeMetrics = useMemo(() => {
     let filteredReviews = reviews;
     if (startDate || endDate) {
-      filteredReviews = reviews.filter(review => {
+      filteredReviews = reviews.filter((review) => {
         if (!review.review_date) return false;
         const reviewDate = safeParseDate(review.review_date);
         if (!reviewDate) return false;
-          
+
         const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
         const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
@@ -244,17 +244,17 @@ export default function Employees() {
       });
     }
 
-    return users.map(user => {
+    return users.map((user) => {
       const employeeName = user.nome_cognome || user.full_name || user.email;
 
-      let employeeShifts = shifts.filter(s => {
+      let employeeShifts = shifts.filter((s) => {
         if (s.dipendente_nome !== employeeName) return false;
 
         // Exclude future shifts
         if (!s.data) return false;
         const shiftDate = safeParseDate(s.data);
         if (!shiftDate) return false;
-        
+
         const today = new Date();
         today.setHours(23, 59, 59, 999);
         if (shiftDate > today) return false;
@@ -276,14 +276,14 @@ export default function Employees() {
 
       employeeShifts = deduplicateShifts(employeeShifts);
 
-      const employeeWrongOrders = wrongOrderMatches.filter(m => {
+      const employeeWrongOrders = wrongOrderMatches.filter((m) => {
         if (m.matched_employee_name !== employeeName) return false;
-        
+
         if (startDate || endDate) {
           if (!m.order_date) return false;
           const orderDate = safeParseDate(m.order_date);
           if (!orderDate) return false;
-            
+
           const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
           const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
@@ -299,14 +299,14 @@ export default function Employees() {
       });
 
       const wrongOrdersCount = employeeWrongOrders.length;
-      const wrongOrderRate = employeeShifts.length > 0
-        ? (wrongOrdersCount / employeeShifts.length) * 100
-        : 0;
+      const wrongOrderRate = employeeShifts.length > 0 ?
+      wrongOrdersCount / employeeShifts.length * 100 :
+      0;
 
       // Calcola ritardi - RICALCOLO MANUALE
       let totalLateMinutes = 0;
       let numeroRitardi = 0;
-      employeeShifts.forEach(shift => {
+      employeeShifts.forEach((shift) => {
         if (!shift.timbratura_entrata || !shift.ora_inizio) return;
         try {
           const clockInTime = new Date(shift.timbratura_entrata);
@@ -319,14 +319,14 @@ export default function Employees() {
           totalLateMinutes += ritardoReale;
           if (ritardoReale > 0) numeroRitardi++;
         } catch (e) {
+
+
           // Skip in caso di errore
-        }
-      });
-      const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
-      const percentualeRitardi = employeeShifts.length > 0 ? (numeroRitardi / employeeShifts.length) * 100 : 0;
+        }});const avgLateMinutes = employeeShifts.length > 0 ? totalLateMinutes / employeeShifts.length : 0;
+      const percentualeRitardi = employeeShifts.length > 0 ? numeroRitardi / employeeShifts.length * 100 : 0;
 
       // Calcola assenze non giustificate (ore)
-      const assenzeNonGiustificate = employeeShifts.filter(s => {
+      const assenzeNonGiustificate = employeeShifts.filter((s) => {
         // Turni passati senza timbratura E senza richiesta ferie approvata E senza malattia
         if (s.timbratura_entrata) return false;
         const shiftDate = safeParseDate(s.data);
@@ -335,22 +335,22 @@ export default function Employees() {
         if (shiftDate > today) return false;
 
         // Check se ha richiesta ferie approvata per questo giorno
-        const hasFerie = richiesteAssenze.some(f => {
+        const hasFerie = richiesteAssenze.some((f) => {
           const start = safeParseDate(f.data_inizio);
           const end = safeParseDate(f.data_fine);
-          return f.dipendente_nome === employeeName && 
-                 start && end && 
-                 shiftDate >= start && shiftDate <= end;
+          return f.dipendente_nome === employeeName &&
+          start && end &&
+          shiftDate >= start && shiftDate <= end;
         });
 
         // Check se ha malattia certificata per questo giorno
-        const hasMalattia = malattie.some(m => {
+        const hasMalattia = malattie.some((m) => {
           const start = safeParseDate(m.data_inizio);
           const end = m.data_fine ? safeParseDate(m.data_fine) : start;
-          return m.dipendente_nome === employeeName && 
-                 m.stato === 'certificata' &&
-                 start && end && 
-                 shiftDate >= start && shiftDate <= end;
+          return m.dipendente_nome === employeeName &&
+          m.stato === 'certificata' &&
+          start && end &&
+          shiftDate >= start && shiftDate <= end;
         });
 
         return !hasFerie && !hasMalattia;
@@ -361,7 +361,7 @@ export default function Employees() {
         try {
           const [startH, startM] = s.ora_inizio.split(':').map(Number);
           const [endH, endM] = s.ora_fine.split(':').map(Number);
-          const hours = (endH + endM / 60) - (startH + startM / 60);
+          const hours = endH + endM / 60 - (startH + startM / 60);
           return sum + hours;
         } catch (e) {
           return sum;
@@ -369,55 +369,55 @@ export default function Employees() {
       }, 0);
 
       // Calcola ore malattia
-      const oreMalattia = malattie
-        .filter(m => {
-          if (m.dipendente_nome !== employeeName) return false;
-          if (m.stato !== 'certificata') return false;
-          
-          if (startDate || endDate) {
-            const start = safeParseDate(m.data_inizio);
-            if (!start) return false;
-            const filterStart = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
-            const filterEnd = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
-            
-            if (filterStart && start < filterStart) return false;
-            if (filterEnd && start > filterEnd) return false;
+      const oreMalattia = malattie.
+      filter((m) => {
+        if (m.dipendente_nome !== employeeName) return false;
+        if (m.stato !== 'certificata') return false;
+
+        if (startDate || endDate) {
+          const start = safeParseDate(m.data_inizio);
+          if (!start) return false;
+          const filterStart = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+          const filterEnd = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+
+          if (filterStart && start < filterStart) return false;
+          if (filterEnd && start > filterEnd) return false;
+        }
+        return true;
+      }).
+      reduce((sum, m) => {
+        if (!m.turni_coinvolti || m.turni_coinvolti.length === 0) return sum;
+        const turniMalattia = employeeShifts.filter((s) => m.turni_coinvolti.includes(s.id));
+        const oreTurni = turniMalattia.reduce((total, s) => {
+          if (!s.ora_inizio || !s.ora_fine) return total;
+          try {
+            const [startH, startM] = s.ora_inizio.split(':').map(Number);
+            const [endH, endM] = s.ora_fine.split(':').map(Number);
+            const hours = endH + endM / 60 - (startH + startM / 60);
+            return total + hours;
+          } catch (e) {
+            return total;
           }
-          return true;
-        })
-        .reduce((sum, m) => {
-          if (!m.turni_coinvolti || m.turni_coinvolti.length === 0) return sum;
-          const turniMalattia = employeeShifts.filter(s => m.turni_coinvolti.includes(s.id));
-          const oreTurni = turniMalattia.reduce((total, s) => {
-            if (!s.ora_inizio || !s.ora_fine) return total;
-            try {
-              const [startH, startM] = s.ora_inizio.split(':').map(Number);
-              const [endH, endM] = s.ora_fine.split(':').map(Number);
-              const hours = (endH + endM / 60) - (startH + startM / 60);
-              return total + hours;
-            } catch (e) {
-              return total;
-            }
-          }, 0);
-          return sum + oreTurni;
         }, 0);
-      
+        return sum + oreTurni;
+      }, 0);
+
       // Timbrature mancanti - SOLO turni passati SENZA timbratura
-      const numeroTimbratureMancate = employeeShifts.filter(s => {
+      const numeroTimbratureMancate = employeeShifts.filter((s) => {
         // NON deve avere timbratura di entrata
         if (s.timbratura_entrata) return false;
-        
+
         // Deve essere passato (data + orario)
         const shiftDate = safeParseDate(s.data);
         if (!shiftDate) return false;
-        
+
         const now = new Date();
         const todayDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const shiftDateOnly = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
-        
+
         // Se il turno è in una data futura -> non è mancato
         if (shiftDateOnly > todayDateOnly) return false;
-        
+
         // Se il turno è oggi, controlla se l'orario di inizio è passato
         if (shiftDateOnly.getTime() === todayDateOnly.getTime()) {
           if (!s.ora_inizio) return false;
@@ -431,32 +431,32 @@ export default function Employees() {
             return false;
           }
         }
-        
+
         // Turno passato senza timbratura
         return true;
       }).length;
 
-      const mentions = filteredReviews.filter(r => r.employee_mentioned === user.id);
-      const positiveMentions = mentions.filter(r => r.rating >= 4).length;
-      const negativeMentions = mentions.filter(r => r.rating < 3).length;
+      const mentions = filteredReviews.filter((r) => r.employee_mentioned === user.id);
+      const positiveMentions = mentions.filter((r) => r.rating >= 4).length;
+      const negativeMentions = mentions.filter((r) => r.rating < 3).length;
 
-      const assignedReviews = filteredReviews.filter(r => {
+      const assignedReviews = filteredReviews.filter((r) => {
         if (!r.employee_assigned_name) return false;
-        const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+        const assignedNames = r.employee_assigned_name.split(',').map((n) => n.trim().toLowerCase());
         return assignedNames.includes(employeeName.toLowerCase());
       });
 
-      const googleReviews = assignedReviews.filter(r => r.source === 'google');
-      const avgGoogleRating = googleReviews.length > 0
-        ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
-        : 0;
+      const googleReviews = assignedReviews.filter((r) => r.source === 'google');
+      const avgGoogleRating = googleReviews.length > 0 ?
+      googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length :
+      0;
 
       const getWeight = (metricName, ruolo = null) => {
         let weight;
         if (ruolo) {
-          weight = metricWeights.find(w => w.metric_name === metricName && w.ruolo === ruolo && w.is_active);
+          weight = metricWeights.find((w) => w.metric_name === metricName && w.ruolo === ruolo && w.is_active);
         } else {
-          weight = metricWeights.find(w => w.metric_name === metricName && w.is_active);
+          weight = metricWeights.find((w) => w.metric_name === metricName && w.is_active);
         }
         return weight ? weight.weight : 1;
       };
@@ -470,16 +470,16 @@ export default function Employees() {
 
       // Calculate base score starting from 100
       let performanceScore = 100;
-      
+
       // Deduct points for negative metrics (these ALWAYS reduce score)
       // For wrong orders, ritardi, timbrature - use weights based on role at time of event
       let deductionOrdini = 0;
       let deductionRitardi = 0;
       let deductionTimbrature = 0;
-      
+
       // Ordini sbagliati - use weight based on role during shift
-      employeeWrongOrders.forEach(order => {
-        const shiftData = employeeShifts.find(s => {
+      employeeWrongOrders.forEach((order) => {
+        const shiftData = employeeShifts.find((s) => {
           if (!s.data) return false;
           const shiftDate = safeParseDate(s.data);
           if (!shiftDate) return false;
@@ -496,9 +496,9 @@ export default function Employees() {
         }
         deductionOrdini += weight;
       });
-      
+
       // Ritardi - use weight based on role during shift
-      employeeShifts.forEach(shift => {
+      employeeShifts.forEach((shift) => {
         if (!shift.timbratura_entrata || !shift.ora_inizio) return;
         try {
           const clockInTime = new Date(shift.timbratura_entrata);
@@ -515,12 +515,12 @@ export default function Employees() {
             deductionRitardi += weight;
           }
         } catch (e) {
+
+
           // Skip
-        }
-      });
-      
+        }});
       // Timbrature mancanti - use weight based on role during shift
-      const missingClockIns = employeeShifts.filter(s => {
+      const missingClockIns = employeeShifts.filter((s) => {
         if (s.timbratura_entrata) return false;
         const shiftDate = safeParseDate(s.data);
         if (!shiftDate) return false;
@@ -528,45 +528,45 @@ export default function Employees() {
         if (shiftDate > today) return false;
         return true;
       });
-      
-      missingClockIns.forEach(shift => {
+
+      missingClockIns.forEach((shift) => {
         let weight = getWeight('timbrature_mancanti', shift.ruolo);
         if (weight === 1 && shift.ruolo) {
           weight = getWeight('timbrature_mancanti', null) || 1;
         }
         deductionTimbrature += weight;
       });
-      
+
       performanceScore -= deductionOrdini;
       performanceScore -= deductionRitardi;
       performanceScore -= deductionTimbrature;
-      
+
       // Reduce score if average review rating is below 5 (scale: 5=0 penalty, 4=-5, 3=-10, 2=-15, 1=-20)
       if (googleReviews.length > 0 && avgGoogleRating < 5) {
         const reviewPenalty = (5 - avgGoogleRating) * w_punteggio_recensioni;
         performanceScore -= reviewPenalty;
       }
-      
+
       // Bonus per ogni recensione ottenuta
       if (googleReviews.length > 0 && w_bonus_recensione > 0) {
         const reviewBonus = googleReviews.length * w_bonus_recensione;
         performanceScore += reviewBonus;
       }
-      
+
       // Malus se sotto il numero minimo di recensioni
       if (w_min_recensioni > 0 && googleReviews.length < w_min_recensioni && w_malus_recensioni > 0) {
         const recensioniMancanti = w_min_recensioni - googleReviews.length;
         const malusTotale = recensioniMancanti * w_malus_recensioni;
         performanceScore -= malusTotale;
       }
-      
+
       // Pulizie: calcola % come in PulizieMatch (puliti/totali controlli)
       let puliti = 0;
       let sporchi = 0;
-      
-      cleaningInspections.forEach(inspection => {
+
+      cleaningInspections.forEach((inspection) => {
         if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
-        
+
         // Filter by date if needed
         if (startDate || endDate) {
           if (!inspection.inspection_date) return;
@@ -574,22 +574,22 @@ export default function Employees() {
           if (!inspDate) return;
           const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
           const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
-          if (start && end && !isWithinInterval(inspDate, { start, end })) return;
-          else if (start && inspDate < start) return;
-          else if (end && inspDate > end) return;
+          if (start && end && !isWithinInterval(inspDate, { start, end })) return;else
+          if (start && inspDate < start) return;else
+          if (end && inspDate > end) return;
         }
-        
+
         const dataCompilazione = new Date(inspection.inspection_date);
         const inspectionStoreId = inspection.store_id;
-        
-        inspection.domande_risposte.forEach(domanda => {
+
+        inspection.domande_risposte.forEach((domanda) => {
           // Trova l'attrezzatura - per scelta multipla cerca nella domanda originale
           let nomeAttrezzatura = domanda.attrezzatura;
-          
+
           if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
-            const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+            const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
             nomeAttrezzatura = originalQuestion?.attrezzatura;
-            
+
             if (!nomeAttrezzatura) {
               const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
               for (const attr of attrezzature) {
@@ -601,15 +601,15 @@ export default function Employees() {
               }
             }
           }
-          
+
           if (!nomeAttrezzatura) return;
-          
-          const attrezzatura = attrezzature.find(a => a.nome === nomeAttrezzatura);
+
+          const attrezzatura = attrezzature.find((a) => a.nome === nomeAttrezzatura);
           if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
-          
+
           // Determina lo stato in base al tipo di domanda
           let statoPulizia = null;
-          
+
           if (domanda.tipo_controllo === 'foto') {
             const normalizeAttrezzatura = (name) => {
               const map = {
@@ -629,24 +629,24 @@ export default function Employees() {
             const correctedField = `${normalizedName}_corrected_status`;
             statoPulizia = inspection[correctedField] || inspection[statusField];
           } else if (domanda.tipo_controllo === 'scelta_multipla') {
-            const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+            const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
             const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
             statoPulizia = isCorrect ? 'pulito' : 'sporco';
           }
-          
+
           if (!statoPulizia) return;
-          
+
           // Process each responsible role
-          attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
-            const candidateShifts = employeeShifts.filter(t => {
+          attrezzatura.ruoli_responsabili.forEach((ruoloResponsabile) => {
+            const candidateShifts = employeeShifts.filter((t) => {
               if (t.store_id !== inspectionStoreId) return false;
               if (t.ruolo !== ruoloResponsabile) return false;
               if (!t.dipendente_nome) return false;
               if (!t.data || !t.ora_fine) return false;
 
-              const shiftEndTime = t.timbratura_uscita 
-                ? new Date(t.timbratura_uscita)
-                : new Date(t.data + 'T' + t.ora_fine);
+              const shiftEndTime = t.timbratura_uscita ?
+              new Date(t.timbratura_uscita) :
+              new Date(t.data + 'T' + t.ora_fine);
 
               return shiftEndTime <= dataCompilazione;
             });
@@ -658,12 +658,12 @@ export default function Employees() {
             })[0];
 
             if (!lastShift) return;
-            
+
             // Verifica che questo dipendente sia il responsabile
             if (lastShift.dipendente_nome !== employeeName) return;
 
             const isPulito = statoPulizia === 'pulito';
-            
+
             if (isPulito) {
               puliti++;
             } else {
@@ -672,25 +672,25 @@ export default function Employees() {
           });
         });
       });
-      
+
       // Calcola percentuale pulito come in PulizieMatch
       const totalControlli = puliti + sporchi;
       if (totalControlli > 0) {
-        const percentualePulito = (puliti / totalControlli) * 100;
+        const percentualePulito = puliti / totalControlli * 100;
         if (percentualePulito < 80) {
           const cleaningPenalty = (80 - percentualePulito) * w_pulizie * 0.1;
           performanceScore -= cleaningPenalty;
         }
       }
-      
+
       // Ensure score stays between 0 and 100
       // Score of 100 is ONLY possible if: 0 wrong orders, 0 delays, 0 missing clockins, and avg review = 5
       performanceScore = Math.max(0, Math.min(100, performanceScore));
 
       const performanceLevel = performanceScore >= 80 ? 'excellent' :
-                              performanceScore >= 60 ? 'good' :
-                              performanceScore >= 40 ? 'needs_improvement' :
-                              'poor';
+      performanceScore >= 60 ? 'good' :
+      performanceScore >= 40 ? 'needs_improvement' :
+      'poor';
 
       return {
         ...user,
@@ -727,24 +727,24 @@ export default function Employees() {
     let filtered = employeeMetrics;
 
     if (selectedStore !== 'all') {
-      filtered = filtered.filter(e => {
+      filtered = filtered.filter((e) => {
         if (!e.assigned_stores || e.assigned_stores.length === 0) return true;
-        return e.assigned_stores.some(storeName => {
-          const store = stores.find(s => s.name === storeName);
+        return e.assigned_stores.some((storeName) => {
+          const store = stores.find((s) => s.name === storeName);
           return store && store.id === selectedStore;
         });
       });
     }
 
     if (selectedPosition !== 'all') {
-      filtered = filtered.filter(e => {
+      filtered = filtered.filter((e) => {
         return e.ruoli_dipendente && e.ruoli_dipendente.includes(selectedPosition);
       });
     }
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(e => {
+      filtered = filtered.filter((e) => {
         const name = (e.full_name || '').toLowerCase();
         const email = (e.email || '').toLowerCase();
         return name.includes(query) || email.includes(query);
@@ -794,21 +794,21 @@ export default function Employees() {
 
   const getPerformanceColor = (level) => {
     switch (level) {
-      case 'excellent': return 'text-green-600';
-      case 'good': return 'text-blue-600';
-      case 'needs_improvement': return 'text-yellow-600';
-      case 'poor': return 'text-red-600';
-      default: return 'text-slate-700';
+      case 'excellent':return 'text-green-600';
+      case 'good':return 'text-blue-600';
+      case 'needs_improvement':return 'text-yellow-600';
+      case 'poor':return 'text-red-600';
+      default:return 'text-slate-700';
     }
   };
 
   const getPerformanceLabel = (level) => {
     switch (level) {
-      case 'excellent': return 'Excellent';
-      case 'good': return 'Good';
-      case 'needs_improvement': return 'Needs Improvement';
-      case 'poor': return 'Poor';
-      default: return 'N/A';
+      case 'excellent':return 'Excellent';
+      case 'good':return 'Good';
+      case 'needs_improvement':return 'Needs Improvement';
+      case 'poor':return 'Poor';
+      default:return 'N/A';
     }
   };
 
@@ -822,49 +822,49 @@ export default function Employees() {
   };
 
   const getAllLateShifts = (employeeName) => {
-    const lateShifts = shifts
-      .filter(s => {
-        if (s.dipendente_nome !== employeeName || !s.data) return false;
-        if (!s.timbratura_entrata || !s.ora_inizio) return false;
-        
-        // Ricalcola ritardo manualmente
-        let hasDelay = false;
-        try {
-          const clockInTime = new Date(s.timbratura_entrata);
-          const [oraInizioHH, oraInizioMM] = s.ora_inizio.split(':').map(Number);
-          const scheduledStart = new Date(clockInTime);
-          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
-          const delayMs = clockInTime - scheduledStart;
-          const delayMinutes = Math.floor(delayMs / 60000);
-          hasDelay = delayMinutes > 0;
-        } catch (e) {
-          return false;
-        }
-        
-        if (!hasDelay) return false;
-        
-        if (startDate || endDate) {
-          const shiftDate = safeParseDate(s.data);
-          if (!shiftDate) return false;
-          const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
-          const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+    const lateShifts = shifts.
+    filter((s) => {
+      if (s.dipendente_nome !== employeeName || !s.data) return false;
+      if (!s.timbratura_entrata || !s.ora_inizio) return false;
 
-          if (start && end) {
-            return isWithinInterval(shiftDate, { start, end });
-          } else if (start) {
-            return shiftDate >= start;
-          } else if (end) {
-            return shiftDate <= end;
-          }
+      // Ricalcola ritardo manualmente
+      let hasDelay = false;
+      try {
+        const clockInTime = new Date(s.timbratura_entrata);
+        const [oraInizioHH, oraInizioMM] = s.ora_inizio.split(':').map(Number);
+        const scheduledStart = new Date(clockInTime);
+        scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+        const delayMs = clockInTime - scheduledStart;
+        const delayMinutes = Math.floor(delayMs / 60000);
+        hasDelay = delayMinutes > 0;
+      } catch (e) {
+        return false;
+      }
+
+      if (!hasDelay) return false;
+
+      if (startDate || endDate) {
+        const shiftDate = safeParseDate(s.data);
+        if (!shiftDate) return false;
+        const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+        const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+
+        if (start && end) {
+          return isWithinInterval(shiftDate, { start, end });
+        } else if (start) {
+          return shiftDate >= start;
+        } else if (end) {
+          return shiftDate <= end;
         }
-        return true;
-      })
-      .sort((a, b) => {
-        const dateA = safeParseDate(a.data);
-        const dateB = safeParseDate(b.data);
-        if (!dateA || !dateB) return 0;
-        return dateB.getTime() - dateA.getTime();
-      });
+      }
+      return true;
+    }).
+    sort((a, b) => {
+      const dateA = safeParseDate(a.data);
+      const dateB = safeParseDate(b.data);
+      if (!dateA || !dateB) return 0;
+      return dateB.getTime() - dateA.getTime();
+    });
 
     return deduplicateShifts(lateShifts);
   };
@@ -874,58 +874,58 @@ export default function Employees() {
   };
 
   const getAllMissingClockIns = (employeeName) => {
-    const missingClockIns = shifts
-      .filter(s => {
-        if (s.dipendente_nome !== employeeName || !s.data) return false;
-        
-        // NON deve avere timbratura di entrata
-        if (s.timbratura_entrata) return false;
-        
-        // Deve essere passato (data + orario)
-        const shiftDate = safeParseDate(s.data);
-        if (!shiftDate) return false;
-        
-        const now = new Date();
-        const todayDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const shiftDateOnly = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
-        
-        // Se il turno è in una data futura -> non è mancato
-        if (shiftDateOnly > todayDateOnly) return false;
-        
-        // Se il turno è oggi, controlla se l'orario di inizio è passato
-        if (shiftDateOnly.getTime() === todayDateOnly.getTime()) {
-          if (!s.ora_inizio) return false;
-          try {
-            const [hh, mm] = s.ora_inizio.split(':').map(Number);
-            const shiftStartTime = new Date(now);
-            shiftStartTime.setHours(hh, mm, 0, 0);
-            // Se l'orario di inizio non è ancora arrivato -> non è mancato
-            if (shiftStartTime > now) return false;
-          } catch (e) {
-            return false;
-          }
-        }
-        
-        if (startDate || endDate) {
-          const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
-          const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+    const missingClockIns = shifts.
+    filter((s) => {
+      if (s.dipendente_nome !== employeeName || !s.data) return false;
 
-          if (start && end) {
-            return isWithinInterval(shiftDate, { start, end });
-          } else if (start) {
-            return shiftDate >= start;
-          } else if (end) {
-            return shiftDate <= end;
-          }
+      // NON deve avere timbratura di entrata
+      if (s.timbratura_entrata) return false;
+
+      // Deve essere passato (data + orario)
+      const shiftDate = safeParseDate(s.data);
+      if (!shiftDate) return false;
+
+      const now = new Date();
+      const todayDateOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const shiftDateOnly = new Date(shiftDate.getFullYear(), shiftDate.getMonth(), shiftDate.getDate());
+
+      // Se il turno è in una data futura -> non è mancato
+      if (shiftDateOnly > todayDateOnly) return false;
+
+      // Se il turno è oggi, controlla se l'orario di inizio è passato
+      if (shiftDateOnly.getTime() === todayDateOnly.getTime()) {
+        if (!s.ora_inizio) return false;
+        try {
+          const [hh, mm] = s.ora_inizio.split(':').map(Number);
+          const shiftStartTime = new Date(now);
+          shiftStartTime.setHours(hh, mm, 0, 0);
+          // Se l'orario di inizio non è ancora arrivato -> non è mancato
+          if (shiftStartTime > now) return false;
+        } catch (e) {
+          return false;
         }
-        return true;
-      })
-      .sort((a, b) => {
-        const dateA = safeParseDate(a.data);
-        const dateB = safeParseDate(b.data);
-        if (!dateA || !dateB) return 0;
-        return dateB.getTime() - dateA.getTime();
-      });
+      }
+
+      if (startDate || endDate) {
+        const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+        const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+
+        if (start && end) {
+          return isWithinInterval(shiftDate, { start, end });
+        } else if (start) {
+          return shiftDate >= start;
+        } else if (end) {
+          return shiftDate <= end;
+        }
+      }
+      return true;
+    }).
+    sort((a, b) => {
+      const dateA = safeParseDate(a.data);
+      const dateB = safeParseDate(b.data);
+      if (!dateA || !dateB) return 0;
+      return dateB.getTime() - dateA.getTime();
+    });
 
     return deduplicateShifts(missingClockIns);
   };
@@ -935,35 +935,35 @@ export default function Employees() {
   };
 
   const getAllGoogleReviews = (employeeName) => {
-    return reviews
-      .filter(r => {
-        if (!r.employee_assigned_name || r.source !== 'google' || !r.review_date) return false;
-        
-        const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
-        if (!assignedNames.includes(employeeName.toLowerCase())) return false;
-        
-        if (startDate || endDate) {
-          const reviewDate = safeParseDate(r.review_date);
-          if (!reviewDate) return false;
-          const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
-          const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+    return reviews.
+    filter((r) => {
+      if (!r.employee_assigned_name || r.source !== 'google' || !r.review_date) return false;
 
-          if (start && end) {
-            return isWithinInterval(reviewDate, { start, end });
-          } else if (start) {
-            return reviewDate >= start;
-          } else if (end) {
-            return reviewDate <= end;
-          }
+      const assignedNames = r.employee_assigned_name.split(',').map((n) => n.trim().toLowerCase());
+      if (!assignedNames.includes(employeeName.toLowerCase())) return false;
+
+      if (startDate || endDate) {
+        const reviewDate = safeParseDate(r.review_date);
+        if (!reviewDate) return false;
+        const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+        const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+
+        if (start && end) {
+          return isWithinInterval(reviewDate, { start, end });
+        } else if (start) {
+          return reviewDate >= start;
+        } else if (end) {
+          return reviewDate <= end;
         }
-        return true;
-      })
-      .sort((a, b) => {
-        const dateA = safeParseDate(a.review_date);
-        const dateB = safeParseDate(b.review_date);
-        if (!dateA || !dateB) return 0;
-        return dateB.getTime() - dateA.getTime();
-      });
+      }
+      return true;
+    }).
+    sort((a, b) => {
+      const dateA = safeParseDate(a.review_date);
+      const dateB = safeParseDate(b.review_date);
+      if (!dateA || !dateB) return 0;
+      return dateB.getTime() - dateA.getTime();
+    });
   };
 
   const getLatestGoogleReviews = (employeeName) => {
@@ -971,14 +971,14 @@ export default function Employees() {
   };
 
   const getAllWrongOrders = (employeeName) => {
-    const employeeMatches = wrongOrderMatches.filter(m => {
+    const employeeMatches = wrongOrderMatches.filter((m) => {
       if (m.matched_employee_name !== employeeName) return false;
-      
+
       if (startDate || endDate) {
         if (!m.order_date) return false;
         const orderDate = safeParseDate(m.order_date);
         if (!orderDate) return false;
-        
+
         const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
         const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
@@ -998,8 +998,8 @@ export default function Employees() {
       return dateB.getTime() - dateA.getTime();
     });
 
-    return employeeMatches.map(match => {
-      const orderDetails = wrongOrders.find(o => o.id === match.wrong_order_id);
+    return employeeMatches.map((match) => {
+      const orderDetails = wrongOrders.find((o) => o.id === match.wrong_order_id);
       return {
         ...match,
         orderDetails
@@ -1012,28 +1012,28 @@ export default function Employees() {
   };
 
   const getP2PFeedbackForEmployee = (employeeName) => {
-    return p2pResponses
-      .filter(r => r.reviewed_name === employeeName)
-      .sort((a, b) => {
-        const dateA = new Date(a.submitted_date || 0);
-        const dateB = new Date(b.submitted_date || 0);
-        return dateB.getTime() - dateA.getTime();
-      });
+    return p2pResponses.
+    filter((r) => r.reviewed_name === employeeName).
+    sort((a, b) => {
+      const dateA = new Date(a.submitted_date || 0);
+      const dateB = new Date(b.submitted_date || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
   };
 
   const getCleaningScoreForEmployee = (employeeName) => {
-    const user = users.find(u => 
-      (u.nome_cognome || u.full_name || u.email) === employeeName
+    const user = users.find((u) =>
+    (u.nome_cognome || u.full_name || u.email) === employeeName
     );
-    
+
     if (!user) return { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
-    
+
     let puliti = 0;
     let sporchi = 0;
-    
-    cleaningInspections.forEach(inspection => {
+
+    cleaningInspections.forEach((inspection) => {
       if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
-      
+
       // Filter by date if needed
       if (startDate || endDate) {
         if (!inspection.inspection_date) return;
@@ -1041,22 +1041,22 @@ export default function Employees() {
         if (!inspDate) return;
         const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
         const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
-        if (start && end && !isWithinInterval(inspDate, { start, end })) return;
-        else if (start && inspDate < start) return;
-        else if (end && inspDate > end) return;
+        if (start && end && !isWithinInterval(inspDate, { start, end })) return;else
+        if (start && inspDate < start) return;else
+        if (end && inspDate > end) return;
       }
-      
+
       const dataCompilazione = new Date(inspection.inspection_date);
       const inspectionStoreId = inspection.store_id;
-      
-      inspection.domande_risposte.forEach(domanda => {
+
+      inspection.domande_risposte.forEach((domanda) => {
         // Trova l'attrezzatura - per scelta multipla cerca nella domanda originale
         let nomeAttrezzatura = domanda.attrezzatura;
-        
+
         if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
-          const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+          const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
           nomeAttrezzatura = originalQuestion?.attrezzatura;
-          
+
           if (!nomeAttrezzatura) {
             const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
             for (const attr of attrezzature) {
@@ -1068,15 +1068,15 @@ export default function Employees() {
             }
           }
         }
-        
+
         if (!nomeAttrezzatura) return;
-        
-        const attrezzatura = attrezzature.find(a => a.nome === nomeAttrezzatura);
+
+        const attrezzatura = attrezzature.find((a) => a.nome === nomeAttrezzatura);
         if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
-        
+
         // Determina lo stato in base al tipo di domanda
         let statoPulizia = null;
-        
+
         if (domanda.tipo_controllo === 'foto') {
           const normalizeAttrezzatura = (name) => {
             const map = {
@@ -1096,24 +1096,24 @@ export default function Employees() {
           const correctedField = `${normalizedName}_corrected_status`;
           statoPulizia = inspection[correctedField] || inspection[statusField];
         } else if (domanda.tipo_controllo === 'scelta_multipla') {
-          const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+          const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
           const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
           statoPulizia = isCorrect ? 'pulito' : 'sporco';
         }
-        
+
         if (!statoPulizia) return;
-        
+
         // Process each responsible role
-        attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
-          const candidateShifts = shifts.filter(t => {
+        attrezzatura.ruoli_responsabili.forEach((ruoloResponsabile) => {
+          const candidateShifts = shifts.filter((t) => {
             if (t.store_id !== inspectionStoreId) return false;
             if (t.ruolo !== ruoloResponsabile) return false;
             if (!t.dipendente_nome) return false;
             if (!t.data || !t.ora_fine) return false;
 
-            const shiftEndTime = t.timbratura_uscita 
-              ? new Date(t.timbratura_uscita)
-              : new Date(t.data + 'T' + t.ora_fine);
+            const shiftEndTime = t.timbratura_uscita ?
+            new Date(t.timbratura_uscita) :
+            new Date(t.data + 'T' + t.ora_fine);
 
             return shiftEndTime <= dataCompilazione;
           });
@@ -1125,12 +1125,12 @@ export default function Employees() {
           })[0];
 
           if (!lastShift) return;
-          
+
           // Verifica che questo dipendente sia il responsabile
           if (lastShift.dipendente_nome !== employeeName) return;
 
           const isPulito = statoPulizia === 'pulito';
-          
+
           if (isPulito) {
             puliti++;
           } else {
@@ -1141,27 +1141,27 @@ export default function Employees() {
     });
 
     const totalControlli = puliti + sporchi;
-    
+
     if (totalControlli === 0) return { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
 
-    const percentualePulito = (puliti / totalControlli) * 100;
+    const percentualePulito = puliti / totalControlli * 100;
     return { percentualePulito, count: totalControlli, puliti, sporchi };
   };
 
   const getConfidenceBadgeColor = (confidence) => {
-    switch(confidence) {
-      case 'high': return 'bg-green-100 text-green-700';
-      case 'medium': return 'bg-yellow-100 text-yellow-700';
-      case 'low': return 'bg-orange-100 text-orange-700';
-      case 'manual': return 'bg-blue-100 text-blue-700';
-      default: return 'bg-gray-100 text-gray-700';
+    switch (confidence) {
+      case 'high':return 'bg-green-100 text-green-700';
+      case 'medium':return 'bg-yellow-100 text-yellow-700';
+      case 'low':return 'bg-orange-100 text-orange-700';
+      case 'manual':return 'bg-blue-100 text-blue-700';
+      default:return 'bg-gray-100 text-gray-700';
     }
   };
 
   const handleDateRangePreset = (preset) => {
     setDateRangePreset(preset);
     const now = new Date();
-    
+
     if (preset === 'current_month') {
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -1187,7 +1187,7 @@ export default function Employees() {
     if (!confirm('Vuoi ricalcolare i ritardi per tutti i turni? Questo potrebbe richiedere alcuni secondi.')) {
       return;
     }
-    
+
     setRecalculating(true);
     try {
       const response = await base44.functions.invoke('calculateShiftDelay', {});
@@ -1202,13 +1202,13 @@ export default function Employees() {
 
   const inviaLetteraMutation = useMutation({
     mutationFn: async ({ userId, templateId }) => {
-      const template = templates.find(t => t.id === templateId);
-      const user = users.find(u => u.id === userId);
-      
+      const template = templates.find((t) => t.id === templateId);
+      const user = users.find((u) => u.id === userId);
+
       let contenuto = template.contenuto;
       contenuto = contenuto.replace(/{{nome_dipendente}}/g, user.nome_cognome || user.full_name || user.email);
       contenuto = contenuto.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
-      
+
       return base44.entities.LetteraRichiamo.create({
         user_id: user.id,
         user_email: user.email,
@@ -1224,68 +1224,68 @@ export default function Employees() {
       alert('Lettera di richiamo inviata con successo!');
       setShowLetteraForm(false);
       setSelectedEmployeeForLettera(null);
-    },
+    }
   });
 
   // Cluster calculations
   const getClusters = (metric) => {
-    const sorted = [...employeeMetrics]
-      .filter(e => {
-        // Apply store and position filters
-        let passFilter = true;
-        
-        if (selectedStore !== 'all') {
-          if (!e.assigned_stores || e.assigned_stores.length === 0) passFilter = true;
-          else {
-            const hasStore = e.assigned_stores.some(storeName => {
-              const store = stores.find(s => s.name === storeName);
-              return store && store.id === selectedStore;
-            });
-            passFilter = hasStore;
-          }
+    const sorted = [...employeeMetrics].
+    filter((e) => {
+      // Apply store and position filters
+      let passFilter = true;
+
+      if (selectedStore !== 'all') {
+        if (!e.assigned_stores || e.assigned_stores.length === 0) passFilter = true;else
+        {
+          const hasStore = e.assigned_stores.some((storeName) => {
+            const store = stores.find((s) => s.name === storeName);
+            return store && store.id === selectedStore;
+          });
+          passFilter = hasStore;
         }
-        
-        if (selectedPosition !== 'all') {
-          passFilter = passFilter && e.ruoli_dipendente && e.ruoli_dipendente.includes(selectedPosition);
-        }
-        
-        return passFilter;
-      })
-      .sort((a, b) => {
-        const valA = metric === 'googleRating' ? a.avgGoogleRating :
-                     metric === 'googleReviews' ? a.googleReviewCount :
-                     metric === 'wrongOrders' ? a.wrongOrders :
-                     metric === 'ritardi' ? a.totalLateMinutes :
-                     metric === 'timbrature' ? a.numeroTimbratureMancate :
-                     metric === 'assenze' ? a.oreAssenzeNonGiustificate :
-                     metric === 'malattia' ? a.oreMalattia : 0;
-        const valB = metric === 'googleRating' ? b.avgGoogleRating :
-                     metric === 'googleReviews' ? b.googleReviewCount :
-                     metric === 'wrongOrders' ? b.wrongOrders :
-                     metric === 'ritardi' ? b.totalLateMinutes :
-                     metric === 'timbrature' ? b.numeroTimbratureMancate :
-                     metric === 'assenze' ? b.oreAssenzeNonGiustificate :
-                     metric === 'malattia' ? b.oreMalattia : 0;
-        
-        // For rating and reviews, higher is better
-        if (metric === 'googleRating' || metric === 'googleReviews') {
-          return valB - valA;
-        }
-        // For others, lower is better
-        return valA - valB;
-      });
+      }
+
+      if (selectedPosition !== 'all') {
+        passFilter = passFilter && e.ruoli_dipendente && e.ruoli_dipendente.includes(selectedPosition);
+      }
+
+      return passFilter;
+    }).
+    sort((a, b) => {
+      const valA = metric === 'googleRating' ? a.avgGoogleRating :
+      metric === 'googleReviews' ? a.googleReviewCount :
+      metric === 'wrongOrders' ? a.wrongOrders :
+      metric === 'ritardi' ? a.totalLateMinutes :
+      metric === 'timbrature' ? a.numeroTimbratureMancate :
+      metric === 'assenze' ? a.oreAssenzeNonGiustificate :
+      metric === 'malattia' ? a.oreMalattia : 0;
+      const valB = metric === 'googleRating' ? b.avgGoogleRating :
+      metric === 'googleReviews' ? b.googleReviewCount :
+      metric === 'wrongOrders' ? b.wrongOrders :
+      metric === 'ritardi' ? b.totalLateMinutes :
+      metric === 'timbrature' ? b.numeroTimbratureMancate :
+      metric === 'assenze' ? b.oreAssenzeNonGiustificate :
+      metric === 'malattia' ? b.oreMalattia : 0;
+
+      // For rating and reviews, higher is better
+      if (metric === 'googleRating' || metric === 'googleReviews') {
+        return valB - valA;
+      }
+      // For others, lower is better
+      return valA - valB;
+    });
 
     const best = sorted.slice(0, 5);
-    
+
     // For googleRating worst, exclude employees with no reviews
     let worst;
     if (metric === 'googleRating') {
-      const withReviews = sorted.filter(e => e.googleReviewCount > 0);
+      const withReviews = sorted.filter((e) => e.googleReviewCount > 0);
       worst = withReviews.slice(-5).reverse();
     } else {
       worst = sorted.slice(-5).reverse();
     }
-    
+
     return { best, worst };
   };
 
@@ -1294,24 +1294,24 @@ export default function Employees() {
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
         <div className="mb-4 lg:mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-              Performance Dipendenti
+            <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Performance Dipendenti
+
             </h1>
-            <p className="text-sm text-slate-500">Ranking dipendenti</p>
+            <p className="text-slate-50 text-sm">Ranking dipendenti</p>
           </div>
           <div className="flex gap-2">
             <NeumorphicButton
               onClick={handleRecalculateDelays}
               disabled={recalculating}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <RefreshCw className={`w-4 h-4 ${recalculating ? 'animate-spin' : ''}`} />
               <span className="hidden md:inline">{recalculating ? 'Ricalcolo...' : 'Ricalcola Ritardi'}</span>
             </NeumorphicButton>
             <NeumorphicButton
               onClick={() => setShowWeightsModal(true)}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Settings className="w-5 h-5" />
               <span className="hidden md:inline">Pesi</span>
             </NeumorphicButton>
@@ -1320,29 +1320,29 @@ export default function Employees() {
 
         <div className="flex flex-wrap gap-2">
            <input
-             type="text"
-             placeholder="Cerca dipendente..."
-             value={searchQuery}
-             onChange={(e) => setSearchQuery(e.target.value)}
-             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm flex-1 min-w-[150px]"
-           />
+            type="text"
+            placeholder="Cerca dipendente..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm flex-1 min-w-[150px]" />
+
 
            <select
-             value={selectedStore}
-             onChange={(e) => setSelectedStore(e.target.value)}
-             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-           >
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.target.value)}
+            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm">
+
              <option value="all">Tutti i Locali</option>
-             {stores.map(store => (
-               <option key={store.id} value={store.id}>{store.name}</option>
-             ))}
+             {stores.map((store) =>
+            <option key={store.id} value={store.id}>{store.name}</option>
+            )}
            </select>
 
            <select
-             value={selectedPosition}
-             onChange={(e) => setSelectedPosition(e.target.value)}
-             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-           >
+            value={selectedPosition}
+            onChange={(e) => setSelectedPosition(e.target.value)}
+            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm">
+
              <option value="all">Tutti i Ruoli</option>
              <option value="Pizzaiolo">Pizzaiolo</option>
              <option value="Cassiere">Cassiere</option>
@@ -1352,8 +1352,8 @@ export default function Employees() {
           <select
             value={dateRangePreset}
             onChange={(e) => handleDateRangePreset(e.target.value)}
-            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-          >
+            className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm">
+
             <option value="all">Tutto il periodo</option>
             <option value="current_month">Mese in corso</option>
             <option value="last_month">Mese scorso</option>
@@ -1361,38 +1361,38 @@ export default function Employees() {
             <option value="custom">Personalizzato</option>
           </select>
 
-          {dateRangePreset === 'custom' && (
-            <>
+          {dateRangePreset === 'custom' &&
+          <>
               <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-                placeholder="Data inizio"
-              />
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+              placeholder="Data inizio" />
+
 
               <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-                placeholder="Data fine"
-              />
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+              placeholder="Data fine" />
+
             </>
-          )}
+          }
 
-          {(startDate || endDate) && (
-            <button
-              onClick={() => {
-                setStartDate('');
-                setEndDate('');
-                setDateRangePreset('all');
-              }}
-              className="neumorphic-flat px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-700"
-            >
+          {(startDate || endDate) &&
+          <button
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+              setDateRangePreset('all');
+            }}
+            className="neumorphic-flat px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-slate-700">
+
               <X className="w-4 h-4" />
             </button>
-          )}
+          }
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
@@ -1412,7 +1412,7 @@ export default function Employees() {
                 <Award className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
               <h3 className="text-xl lg:text-2xl font-bold text-green-600 mb-1">
-                {filteredEmployees.filter(e => e.performanceLevel === 'excellent').length}
+                {filteredEmployees.filter((e) => e.performanceLevel === 'excellent').length}
               </h3>
               <p className="text-xs text-slate-500">Top</p>
             </div>
@@ -1424,7 +1424,7 @@ export default function Employees() {
                 <TrendingUp className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
               <h3 className="text-xl lg:text-2xl font-bold text-blue-600 mb-1">
-                {filteredEmployees.filter(e => e.performanceLevel === 'good').length}
+                {filteredEmployees.filter((e) => e.performanceLevel === 'good').length}
               </h3>
               <p className="text-xs text-slate-500">Good</p>
             </div>
@@ -1436,7 +1436,7 @@ export default function Employees() {
                 <AlertCircle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
               <h3 className="text-xl lg:text-2xl font-bold text-red-600 mb-1">
-                {filteredEmployees.filter(e => e.performanceLevel === 'poor' || e.performanceLevel === 'needs_improvement').length}
+                {filteredEmployees.filter((e) => e.performanceLevel === 'poor' || e.performanceLevel === 'needs_improvement').length}
               </h3>
               <p className="text-xs text-slate-500">Attenzione</p>
             </div>
@@ -1444,22 +1444,22 @@ export default function Employees() {
         </div>
 
         {/* Gaussian Distribution Chart */}
-        {filteredEmployees.length > 2 && (
-          <NeumorphicCard className="p-4 lg:p-6">
+        {filteredEmployees.length > 2 &&
+        <NeumorphicCard className="p-4 lg:p-6">
             <div className="flex items-center gap-3 mb-4">
               <BarChart3 className="w-5 h-5 text-blue-600" />
               <h3 className="font-bold text-slate-800">Distribuzione Performance</h3>
             </div>
             <GaussianChart employees={filteredEmployees} />
           </NeumorphicCard>
-        )}
+        }
 
         {/* Best/Worst Clusters */}
         <NeumorphicCard className="p-4 lg:p-6">
           <button
             onClick={() => setShowClusters(!showClusters)}
-            className="w-full flex items-center justify-between mb-4"
-          >
+            className="w-full flex items-center justify-between mb-4">
+
             <div className="flex items-center gap-3">
               <TrendingUp className="w-5 h-5 text-blue-600" />
               <h3 className="font-bold text-slate-800">Classifica per Categoria</h3>
@@ -1467,116 +1467,116 @@ export default function Employees() {
             {showClusters ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
           </button>
 
-          {showClusters && (
-            <div className="space-y-6">
+          {showClusters &&
+          <div className="space-y-6">
               {/* Google Reviews Count */}
               <ClusterSection
-                title="Numero Recensioni Google Maps"
-                metric="googleReviews"
-                getClusters={getClusters}
-                formatValue={(e) => e.googleReviewCount}
-                expandedCluster={expandedCluster}
-                setExpandedCluster={setExpandedCluster}
-                onSendLettera={(emp) => {
-                  setSelectedEmployeeForLettera(emp);
-                  setShowLetteraForm(true);
-                }}
-              />
+              title="Numero Recensioni Google Maps"
+              metric="googleReviews"
+              getClusters={getClusters}
+              formatValue={(e) => e.googleReviewCount}
+              expandedCluster={expandedCluster}
+              setExpandedCluster={setExpandedCluster}
+              onSendLettera={(emp) => {
+                setSelectedEmployeeForLettera(emp);
+                setShowLetteraForm(true);
+              }} />
+
 
               {/* Google Rating Average */}
               <ClusterSection
-                title="Punteggio Medio Recensioni Google Maps"
-                metric="googleRating"
-                getClusters={getClusters}
-                formatValue={(e) => e.googleReviewCount > 0 ? e.avgGoogleRating.toFixed(1) : '-'}
-                expandedCluster={expandedCluster}
-                setExpandedCluster={setExpandedCluster}
-                onSendLettera={(emp) => {
-                  setSelectedEmployeeForLettera(emp);
-                  setShowLetteraForm(true);
-                }}
-              />
+              title="Punteggio Medio Recensioni Google Maps"
+              metric="googleRating"
+              getClusters={getClusters}
+              formatValue={(e) => e.googleReviewCount > 0 ? e.avgGoogleRating.toFixed(1) : '-'}
+              expandedCluster={expandedCluster}
+              setExpandedCluster={setExpandedCluster}
+              onSendLettera={(emp) => {
+                setSelectedEmployeeForLettera(emp);
+                setShowLetteraForm(true);
+              }} />
+
 
               {/* Wrong Orders */}
               <ClusterSection
-                title="Ordini Sbagliati"
-                metric="wrongOrders"
-                getClusters={getClusters}
-                formatValue={(e) => e.wrongOrders}
-                expandedCluster={expandedCluster}
-                setExpandedCluster={setExpandedCluster}
-                onSendLettera={(emp) => {
-                  setSelectedEmployeeForLettera(emp);
-                  setShowLetteraForm(true);
-                }}
-              />
+              title="Ordini Sbagliati"
+              metric="wrongOrders"
+              getClusters={getClusters}
+              formatValue={(e) => e.wrongOrders}
+              expandedCluster={expandedCluster}
+              setExpandedCluster={setExpandedCluster}
+              onSendLettera={(emp) => {
+                setSelectedEmployeeForLettera(emp);
+                setShowLetteraForm(true);
+              }} />
+
 
               {/* Ritardi */}
               <ClusterSection
-                title="Ritardi (minuti totali)"
-                metric="ritardi"
-                getClusters={getClusters}
-                formatValue={(e) => `${e.totalLateMinutes.toFixed(0)} min`}
-                expandedCluster={expandedCluster}
-                setExpandedCluster={setExpandedCluster}
-                onSendLettera={(emp) => {
-                  setSelectedEmployeeForLettera(emp);
-                  setShowLetteraForm(true);
-                }}
-              />
+              title="Ritardi (minuti totali)"
+              metric="ritardi"
+              getClusters={getClusters}
+              formatValue={(e) => `${e.totalLateMinutes.toFixed(0)} min`}
+              expandedCluster={expandedCluster}
+              setExpandedCluster={setExpandedCluster}
+              onSendLettera={(emp) => {
+                setSelectedEmployeeForLettera(emp);
+                setShowLetteraForm(true);
+              }} />
+
 
               {/* Timbrature Mancanti */}
               <ClusterSection
-                title="Timbrature Mancanti"
-                metric="timbrature"
-                getClusters={getClusters}
-                formatValue={(e) => e.numeroTimbratureMancate}
-                expandedCluster={expandedCluster}
-                setExpandedCluster={setExpandedCluster}
-                onSendLettera={(emp) => {
-                  setSelectedEmployeeForLettera(emp);
-                  setShowLetteraForm(true);
-                }}
-              />
+              title="Timbrature Mancanti"
+              metric="timbrature"
+              getClusters={getClusters}
+              formatValue={(e) => e.numeroTimbratureMancate}
+              expandedCluster={expandedCluster}
+              setExpandedCluster={setExpandedCluster}
+              onSendLettera={(emp) => {
+                setSelectedEmployeeForLettera(emp);
+                setShowLetteraForm(true);
+              }} />
+
 
               {/* Assenze Non Giustificate */}
               <ClusterSection
-                title="Assenze Non Giustificate (ore)"
-                metric="assenze"
-                getClusters={getClusters}
-                formatValue={(e) => `${e.oreAssenzeNonGiustificate.toFixed(1)}h`}
-                expandedCluster={expandedCluster}
-                setExpandedCluster={setExpandedCluster}
-                onSendLettera={(emp) => {
-                  setSelectedEmployeeForLettera(emp);
-                  setShowLetteraForm(true);
-                }}
-              />
+              title="Assenze Non Giustificate (ore)"
+              metric="assenze"
+              getClusters={getClusters}
+              formatValue={(e) => `${e.oreAssenzeNonGiustificate.toFixed(1)}h`}
+              expandedCluster={expandedCluster}
+              setExpandedCluster={setExpandedCluster}
+              onSendLettera={(emp) => {
+                setSelectedEmployeeForLettera(emp);
+                setShowLetteraForm(true);
+              }} />
+
 
               {/* Malattia */}
               <ClusterSection
-                title="Malattia (ore)"
-                metric="malattia"
-                getClusters={getClusters}
-                formatValue={(e) => `${e.oreMalattia.toFixed(1)}h`}
-                expandedCluster={expandedCluster}
-                setExpandedCluster={setExpandedCluster}
-                onSendLettera={(emp) => {
-                  setSelectedEmployeeForLettera(emp);
-                  setShowLetteraForm(true);
-                }}
-              />
+              title="Malattia (ore)"
+              metric="malattia"
+              getClusters={getClusters}
+              formatValue={(e) => `${e.oreMalattia.toFixed(1)}h`}
+              expandedCluster={expandedCluster}
+              setExpandedCluster={setExpandedCluster}
+              onSendLettera={(emp) => {
+                setSelectedEmployeeForLettera(emp);
+                setShowLetteraForm(true);
+              }} />
+
             </div>
-          )}
+          }
         </NeumorphicCard>
 
         <div className="grid grid-cols-1 gap-3">
-          {filteredEmployees.length > 0 ? (
-            filteredEmployees.map((employee, index) => (
-              <NeumorphicCard 
-                key={employee.id}
-                className="p-4 hover:shadow-xl transition-all"
-              >
+          {filteredEmployees.length > 0 ?
+          filteredEmployees.map((employee, index) =>
+          <NeumorphicCard
+            key={employee.id}
+            className="p-4 hover:shadow-xl transition-all">
+
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md flex-shrink-0">
@@ -1589,15 +1589,15 @@ export default function Employees() {
                         {employee.full_name}
                       </p>
                       <p className="text-xs text-slate-500 truncate">{employee.email}</p>
-                      {employee.ruoli_dipendente && employee.ruoli_dipendente.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {employee.ruoli_dipendente.map((role, idx) => (
-                            <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                      {employee.ruoli_dipendente && employee.ruoli_dipendente.length > 0 &&
+                  <div className="flex flex-wrap gap-1 mt-1">
+                          {employee.ruoli_dipendente.map((role, idx) =>
+                    <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
                               {role}
                             </span>
-                          ))}
+                    )}
                         </div>
-                      )}
+                  }
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
@@ -1636,76 +1636,76 @@ export default function Employees() {
 
                   <div className="neumorphic-pressed p-2 rounded-lg text-center">
                     <Star className="w-4 h-4 mx-auto mb-1 text-yellow-500 fill-yellow-500" />
-                    {employee.googleReviewCount > 0 ? (
-                      <>
+                    {employee.googleReviewCount > 0 ?
+                <>
                         <p className="text-sm font-bold text-slate-700">{employee.avgGoogleRating.toFixed(1)}</p>
                         <p className="text-xs text-slate-500">({employee.googleReviewCount})</p>
-                      </>
-                    ) : (
-                      <>
+                      </> :
+
+                <>
                         <p className="text-sm font-bold text-slate-400">-</p>
                         <p className="text-xs text-slate-500">(0)</p>
                       </>
-                    )}
+                }
                   </div>
 
                   <div className="neumorphic-pressed p-2 rounded-lg text-center">
                     <Sparkles className="w-4 h-4 mx-auto mb-1 text-cyan-600" />
                     {(() => {
-                      const cleaningData = getCleaningScoreForEmployee(employee.full_name);
-                      return cleaningData.count > 0 ? (
-                        <>
+                  const cleaningData = getCleaningScoreForEmployee(employee.full_name);
+                  return cleaningData.count > 0 ?
+                  <>
                           <p className={`text-sm font-bold ${
-                            cleaningData.percentualePulito >= 80 ? 'text-green-600' : 'text-red-600'
-                          }`}>
+                    cleaningData.percentualePulito >= 80 ? 'text-green-600' : 'text-red-600'}`
+                    }>
                             {cleaningData.percentualePulito.toFixed(0)}%
                           </p>
                           <p className="text-xs text-slate-500">({cleaningData.count})</p>
-                        </>
-                      ) : (
-                        <>
+                        </> :
+
+                  <>
                           <p className="text-sm font-bold text-slate-400">-</p>
                           <p className="text-xs text-slate-500">(0)</p>
-                        </>
-                      );
-                    })()}
+                        </>;
+
+                })()}
                   </div>
                 </div>
                 
                 <NeumorphicButton
-                  onClick={() => setSelectedEmployee(employee)}
-                  variant="primary"
-                  className="w-full flex items-center justify-center gap-2 text-sm"
-                >
+              onClick={() => setSelectedEmployee(employee)}
+              variant="primary"
+              className="w-full flex items-center justify-center gap-2 text-sm">
+
                   <Eye className="w-4 h-4" />
                   Mostra Dettagli
                 </NeumorphicButton>
               </NeumorphicCard>
-            ))
-          ) : (
-            <NeumorphicCard className="p-8 text-center">
+          ) :
+
+          <NeumorphicCard className="p-8 text-center">
               <p className="text-slate-500">Nessun dipendente trovato</p>
             </NeumorphicCard>
-          )}
+          }
         </div>
 
-        {selectedEmployee && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
+        {selectedEmployee &&
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
             <NeumorphicCard className="w-full lg:max-w-2xl max-h-[85vh] lg:max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
               <div className="flex items-start justify-between mb-4 lg:mb-6 sticky top-0 bg-gradient-to-br from-slate-50 to-slate-100 pb-4 -mt-4 pt-4 -mx-4 px-4 z-10">
                 <div className="min-w-0 flex-1">
                   <h2 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1 truncate">{selectedEmployee.full_name}</h2>
-                  {selectedEmployee.ruoli_dipendente && selectedEmployee.ruoli_dipendente.length > 0 && (
-                    <p className="text-sm text-slate-500 truncate">{selectedEmployee.ruoli_dipendente.join(', ')}</p>
-                  )}
+                  {selectedEmployee.ruoli_dipendente && selectedEmployee.ruoli_dipendente.length > 0 &&
+                <p className="text-sm text-slate-500 truncate">{selectedEmployee.ruoli_dipendente.join(', ')}</p>
+                }
                 </div>
                 <button
-                  onClick={() => {
-                    setSelectedEmployee(null);
-                    setExpandedView(null);
-                  }}
-                  className="nav-button px-3 py-2 rounded-lg text-slate-700 flex-shrink-0 ml-3"
-                >
+                onClick={() => {
+                  setSelectedEmployee(null);
+                  setExpandedView(null);
+                }}
+                className="nav-button px-3 py-2 rounded-lg text-slate-700 flex-shrink-0 ml-3">
+
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1723,8 +1723,8 @@ export default function Employees() {
 
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
                   <p className="text-xs text-slate-500 mb-2">Google</p>
-                  {selectedEmployee.googleReviewCount > 0 ? (
-                    <>
+                  {selectedEmployee.googleReviewCount > 0 ?
+                <>
                       <div className="flex items-center justify-center gap-2">
                         <Star className="w-5 h-5 lg:w-6 lg:h-6 text-yellow-500 fill-yellow-500" />
                         <p className="text-2xl lg:text-3xl font-bold text-slate-800">
@@ -1732,10 +1732,10 @@ export default function Employees() {
                         </p>
                       </div>
                       <p className="text-xs mt-1 text-slate-500">{selectedEmployee.googleReviewCount} reviews</p>
-                    </>
-                  ) : (
-                    <p className="text-xl text-slate-400">N/A</p>
-                  )}
+                    </> :
+
+                <p className="text-xl text-slate-400">N/A</p>
+                }
                 </div>
               </div>
 
@@ -1744,34 +1744,34 @@ export default function Employees() {
                 <div className="text-xs text-blue-800 space-y-1">
                   <p><strong>Base:</strong> 100 punti</p>
                   <p className="text-slate-600"><strong>ℹ️ Nota:</strong> Pesi per Ordini, Ritardi e Timbrature sono calcolati in base al ruolo specifico durante il turno</p>
-                  {selectedEmployee.weights.w_punteggio_recensioni > 0 && selectedEmployee.googleReviewCount > 0 && selectedEmployee.avgGoogleRating < 5 && (
-                    <p className="text-red-600"><strong>- Media Recensioni &lt; 5:</strong> (5 - {selectedEmployee.avgGoogleRating.toFixed(1)}) × {selectedEmployee.weights.w_punteggio_recensioni} = -{((5 - selectedEmployee.avgGoogleRating) * selectedEmployee.weights.w_punteggio_recensioni).toFixed(1)}</p>
-                  )}
-                  {selectedEmployee.weights.w_bonus_recensione > 0 && selectedEmployee.googleReviewCount > 0 && (
-                    <p className="text-green-600"><strong>+ Bonus Recensioni:</strong> {selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_bonus_recensione} = +{(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_bonus_recensione).toFixed(1)}</p>
-                  )}
-                  {selectedEmployee.weights.w_min_recensioni > 0 && selectedEmployee.googleReviewCount < selectedEmployee.weights.w_min_recensioni && selectedEmployee.weights.w_malus_recensioni > 0 && (
-                    <p className="text-red-600"><strong>- Sotto Minimo Recensioni:</strong> ({selectedEmployee.weights.w_min_recensioni} - {selectedEmployee.googleReviewCount}) × {selectedEmployee.weights.w_malus_recensioni} = -{((selectedEmployee.weights.w_min_recensioni - selectedEmployee.googleReviewCount) * selectedEmployee.weights.w_malus_recensioni).toFixed(1)}</p>
-                  )}
+                  {selectedEmployee.weights.w_punteggio_recensioni > 0 && selectedEmployee.googleReviewCount > 0 && selectedEmployee.avgGoogleRating < 5 &&
+                <p className="text-red-600"><strong>- Media Recensioni &lt; 5:</strong> (5 - {selectedEmployee.avgGoogleRating.toFixed(1)}) × {selectedEmployee.weights.w_punteggio_recensioni} = -{((5 - selectedEmployee.avgGoogleRating) * selectedEmployee.weights.w_punteggio_recensioni).toFixed(1)}</p>
+                }
+                  {selectedEmployee.weights.w_bonus_recensione > 0 && selectedEmployee.googleReviewCount > 0 &&
+                <p className="text-green-600"><strong>+ Bonus Recensioni:</strong> {selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_bonus_recensione} = +{(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_bonus_recensione).toFixed(1)}</p>
+                }
+                  {selectedEmployee.weights.w_min_recensioni > 0 && selectedEmployee.googleReviewCount < selectedEmployee.weights.w_min_recensioni && selectedEmployee.weights.w_malus_recensioni > 0 &&
+                <p className="text-red-600"><strong>- Sotto Minimo Recensioni:</strong> ({selectedEmployee.weights.w_min_recensioni} - {selectedEmployee.googleReviewCount}) × {selectedEmployee.weights.w_malus_recensioni} = -{((selectedEmployee.weights.w_min_recensioni - selectedEmployee.googleReviewCount) * selectedEmployee.weights.w_malus_recensioni).toFixed(1)}</p>
+                }
                   {selectedEmployee.weights.w_pulizie > 0 && (() => {
-                    const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
-                    if (cleaningData.count > 0) {
-                      if (cleaningData.percentualePulito < 80) {
-                        const penalty = (80 - cleaningData.percentualePulito) * selectedEmployee.weights.w_pulizie * 0.1;
-                        return (
-                          <p className="text-red-600"><strong>- Pulizie &lt; 80%:</strong> (80 - {cleaningData.percentualePulito.toFixed(1)}) × {selectedEmployee.weights.w_pulizie} × 0.1 = -{penalty.toFixed(1)}</p>
-                        );
-                      } else {
-                        return (
-                          <p className="text-green-600"><strong>✓ Pulizie OK:</strong> {cleaningData.percentualePulito.toFixed(1)}% ≥ 80% (peso {selectedEmployee.weights.w_pulizie}, nessuna penalità)</p>
-                        );
-                      }
+                  const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
+                  if (cleaningData.count > 0) {
+                    if (cleaningData.percentualePulito < 80) {
+                      const penalty = (80 - cleaningData.percentualePulito) * selectedEmployee.weights.w_pulizie * 0.1;
+                      return (
+                        <p className="text-red-600"><strong>- Pulizie &lt; 80%:</strong> (80 - {cleaningData.percentualePulito.toFixed(1)}) × {selectedEmployee.weights.w_pulizie} × 0.1 = -{penalty.toFixed(1)}</p>);
+
                     } else {
                       return (
-                        <p className="text-slate-500"><strong>Pulizie:</strong> Nessun controllo (peso {selectedEmployee.weights.w_pulizie})</p>
-                      );
+                        <p className="text-green-600"><strong>✓ Pulizie OK:</strong> {cleaningData.percentualePulito.toFixed(1)}% ≥ 80% (peso {selectedEmployee.weights.w_pulizie}, nessuna penalità)</p>);
+
                     }
-                  })()}
+                  } else {
+                    return (
+                      <p className="text-slate-500"><strong>Pulizie:</strong> Nessun controllo (peso {selectedEmployee.weights.w_pulizie})</p>);
+
+                  }
+                })()}
                   <p className="font-bold mt-2 pt-2 border-t border-blue-200"><strong>Punteggio Finale:</strong> {selectedEmployee.performanceScore}</p>
                 </div>
               </div>
@@ -1831,38 +1831,38 @@ export default function Employees() {
                         {expandedView === 'wrongOrders' ? 'Tutti gli' : 'Ultimi 3'} Ordini Sbagliati
                       </h3>
                     </div>
-                    {getAllWrongOrders(selectedEmployee.full_name).length > 3 && (
-                      <button
-                        onClick={() => setExpandedView(expandedView === 'wrongOrders' ? null : 'wrongOrders')}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                      >
+                    {getAllWrongOrders(selectedEmployee.full_name).length > 3 &&
+                  <button
+                    onClick={() => setExpandedView(expandedView === 'wrongOrders' ? null : 'wrongOrders')}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+
                         {expandedView === 'wrongOrders' ? 'Mostra meno' : `Vedi tutti (${getAllWrongOrders(selectedEmployee.full_name).length})`}
                       </button>
-                    )}
+                  }
                   </div>
                   {(() => {
-                    const wrongOrdersList = expandedView === 'wrongOrders' 
-                      ? getAllWrongOrders(selectedEmployee.full_name) 
-                      : getLatestWrongOrders(selectedEmployee.full_name);
-                    return wrongOrdersList.length > 0 ? (
-                      <div className="space-y-2">
-                        {wrongOrdersList.map((match, index) => (
-                          <div key={`${match.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-red-200">
+                  const wrongOrdersList = expandedView === 'wrongOrders' ?
+                  getAllWrongOrders(selectedEmployee.full_name) :
+                  getLatestWrongOrders(selectedEmployee.full_name);
+                  return wrongOrdersList.length > 0 ?
+                  <div className="space-y-2">
+                        {wrongOrdersList.map((match, index) =>
+                    <div key={`${match.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-red-200">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                  match.platform === 'glovo' 
-                                    ? 'bg-orange-100 text-orange-700' 
-                                    : 'bg-teal-100 text-teal-700'
-                                }`}>
+                          match.platform === 'glovo' ?
+                          'bg-orange-100 text-orange-700' :
+                          'bg-teal-100 text-teal-700'}`
+                          }>
                                   {match.platform}
                                 </span>
                                 <span className="font-mono text-sm text-slate-800">#{match.order_id}</span>
                               </div>
                               <span className={`px-2 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
                                 {match.match_confidence === 'high' ? 'Alta' :
-                                 match.match_confidence === 'medium' ? 'Media' :
-                                 match.match_confidence === 'low' ? 'Bassa' : 'Manuale'}
+                          match.match_confidence === 'medium' ? 'Media' :
+                          match.match_confidence === 'low' ? 'Bassa' : 'Manuale'}
                               </span>
                             </div>
                             <div className="text-xs text-slate-500 space-y-1">
@@ -1872,31 +1872,31 @@ export default function Employees() {
                               <div>
                                 <strong>Negozio:</strong> {match.store_name || 'N/A'}
                               </div>
-                              {match.orderDetails && (
-                                <>
+                              {match.orderDetails &&
+                        <>
                                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-red-200">
                                     <span className="font-medium text-slate-800">Rimborso:</span>
                                     <span className="text-sm font-bold text-red-600">
                                       €{match.orderDetails.refund_value?.toFixed(2) || '0.00'}
                                     </span>
                                   </div>
-                                  {match.orderDetails.complaint_reason && (
-                                    <div>
+                                  {match.orderDetails.complaint_reason &&
+                          <div>
                                       <strong>Motivo:</strong> {match.orderDetails.complaint_reason}
                                     </div>
-                                  )}
+                          }
                                 </>
-                              )}
+                        }
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500 text-center py-2">
+                    )}
+                      </div> :
+
+                  <p className="text-sm text-slate-500 text-center py-2">
                         Nessun ordine sbagliato abbinato 🎉
-                      </p>
-                    );
-                  })()}
+                      </p>;
+
+                })()}
                 </div>
 
                 <div className="neumorphic-flat p-4 rounded-xl">
@@ -1907,36 +1907,36 @@ export default function Employees() {
                         {expandedView === 'lateShifts' ? 'Tutti i' : 'Ultimi 3'} Turni in Ritardo
                       </h3>
                     </div>
-                    {getAllLateShifts(selectedEmployee.full_name).length > 3 && (
-                      <button
-                        onClick={() => setExpandedView(expandedView === 'lateShifts' ? null : 'lateShifts')}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                      >
+                    {getAllLateShifts(selectedEmployee.full_name).length > 3 &&
+                  <button
+                    onClick={() => setExpandedView(expandedView === 'lateShifts' ? null : 'lateShifts')}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+
                         {expandedView === 'lateShifts' ? 'Mostra meno' : `Vedi tutti (${getAllLateShifts(selectedEmployee.full_name).length})`}
                       </button>
-                    )}
+                  }
                   </div>
                   {(() => {
-                    const lateShifts = expandedView === 'lateShifts'
-                      ? getAllLateShifts(selectedEmployee.full_name)
-                      : getLatestLateShifts(selectedEmployee.full_name);
-                    return lateShifts.length > 0 ? (
-                      <div className="space-y-2">
+                  const lateShifts = expandedView === 'lateShifts' ?
+                  getAllLateShifts(selectedEmployee.full_name) :
+                  getLatestLateShifts(selectedEmployee.full_name);
+                  return lateShifts.length > 0 ?
+                  <div className="space-y-2">
                         {lateShifts.map((shift, index) => {
-                          let ritardoReale = 0;
-                          if (shift.timbratura_entrata && shift.ora_inizio) {
-                            try {
-                              const clockInTime = new Date(shift.timbratura_entrata);
-                              const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
-                              const scheduledStart = new Date(clockInTime);
-                              scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
-                              const delayMs = clockInTime - scheduledStart;
-                              const delayMinutes = Math.floor(delayMs / 60000);
-                              ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
-                            } catch (e) {}
-                          }
-                          return (
-                            <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
+                      let ritardoReale = 0;
+                      if (shift.timbratura_entrata && shift.ora_inizio) {
+                        try {
+                          const clockInTime = new Date(shift.timbratura_entrata);
+                          const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+                          const scheduledStart = new Date(clockInTime);
+                          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+                          const delayMs = clockInTime - scheduledStart;
+                          const delayMinutes = Math.floor(delayMs / 60000);
+                          ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+                        } catch (e) {}
+                      }
+                      return (
+                        <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg">
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-sm font-medium text-slate-800">
                                   {safeFormatDateLocale(shift.data)} - {shift.store_nome || 'N/A'}
@@ -1950,16 +1950,16 @@ export default function Employees() {
                                 {' → '}
                                 <strong>Effettivo:</strong> {shift.timbratura_entrata ? safeFormatTime(shift.timbratura_entrata) : 'N/A'}
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500 text-center py-2">
+                            </div>);
+
+                    })}
+                      </div> :
+
+                  <p className="text-sm text-slate-500 text-center py-2">
                         Nessun ritardo registrato 🎉
-                      </p>
-                    );
-                  })()}
+                      </p>;
+
+                })()}
                 </div>
 
                 <div className="neumorphic-flat p-4 rounded-xl">
@@ -1970,23 +1970,23 @@ export default function Employees() {
                         {expandedView === 'missingClockIns' ? 'Tutti i' : 'Ultimi 3'} Turni con Timbratura Mancata
                       </h3>
                     </div>
-                    {getAllMissingClockIns(selectedEmployee.full_name).length > 3 && (
-                      <button
-                        onClick={() => setExpandedView(expandedView === 'missingClockIns' ? null : 'missingClockIns')}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                      >
+                    {getAllMissingClockIns(selectedEmployee.full_name).length > 3 &&
+                  <button
+                    onClick={() => setExpandedView(expandedView === 'missingClockIns' ? null : 'missingClockIns')}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+
                         {expandedView === 'missingClockIns' ? 'Mostra meno' : `Vedi tutti (${getAllMissingClockIns(selectedEmployee.full_name).length})`}
                       </button>
-                    )}
+                  }
                   </div>
                   {(() => {
-                    const missingClockIns = expandedView === 'missingClockIns'
-                      ? getAllMissingClockIns(selectedEmployee.full_name)
-                      : getLatestMissingClockIns(selectedEmployee.full_name);
-                    return missingClockIns.length > 0 ? (
-                      <div className="space-y-2">
-                        {missingClockIns.map((shift, index) => (
-                          <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-orange-200">
+                  const missingClockIns = expandedView === 'missingClockIns' ?
+                  getAllMissingClockIns(selectedEmployee.full_name) :
+                  getLatestMissingClockIns(selectedEmployee.full_name);
+                  return missingClockIns.length > 0 ?
+                  <div className="space-y-2">
+                        {missingClockIns.map((shift, index) =>
+                    <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-3 rounded-lg border-2 border-orange-200">
                            <div className="flex items-center justify-between mb-1">
                              <span className="text-sm font-medium text-slate-800">
                                {safeFormatDateLocale(shift.data)} - {shift.store_nome || 'N/A'}
@@ -2001,14 +2001,14 @@ export default function Employees() {
                              {shift.ora_fine}
                            </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500 text-center py-2">
+                    )}
+                      </div> :
+
+                  <p className="text-sm text-slate-500 text-center py-2">
                         Nessuna timbratura mancata 🎉
-                      </p>
-                    );
-                  })()}
+                      </p>;
+
+                })()}
                 </div>
 
                 <div className="neumorphic-flat p-4 rounded-xl">
@@ -2019,55 +2019,55 @@ export default function Employees() {
                         {expandedView === 'googleReviews' ? 'Tutte le' : 'Ultime 3'} Recensioni Google Maps
                       </h3>
                     </div>
-                    {getAllGoogleReviews(selectedEmployee.full_name).length > 3 && (
-                      <button
-                        onClick={() => setExpandedView(expandedView === 'googleReviews' ? null : 'googleReviews')}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                      >
+                    {getAllGoogleReviews(selectedEmployee.full_name).length > 3 &&
+                  <button
+                    onClick={() => setExpandedView(expandedView === 'googleReviews' ? null : 'googleReviews')}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+
                         {expandedView === 'googleReviews' ? 'Mostra meno' : `Vedi tutte (${getAllGoogleReviews(selectedEmployee.full_name).length})`}
                       </button>
-                    )}
+                  }
                   </div>
                   {(() => {
-                    const googleReviews = expandedView === 'googleReviews'
-                      ? getAllGoogleReviews(selectedEmployee.full_name)
-                      : getLatestGoogleReviews(selectedEmployee.full_name);
-                    return googleReviews.length > 0 ? (
-                      <div className="space-y-2">
-                        {googleReviews.map((review) => (
-                          <div key={review.id} className="neumorphic-pressed p-3 rounded-lg">
+                  const googleReviews = expandedView === 'googleReviews' ?
+                  getAllGoogleReviews(selectedEmployee.full_name) :
+                  getLatestGoogleReviews(selectedEmployee.full_name);
+                  return googleReviews.length > 0 ?
+                  <div className="space-y-2">
+                        {googleReviews.map((review) =>
+                    <div key={review.id} className="neumorphic-pressed p-3 rounded-lg">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-slate-800">
                                 {review.customer_name || 'Anonimo'}
                               </span>
                               <div className="flex items-center gap-1">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`w-3 h-3 ${
-                                      i < review.rating
-                                        ? 'text-yellow-500 fill-yellow-500'
-                                        : 'text-gray-300'
-                                    }`}
-                                  />
-                                ))}
+                                {[...Array(5)].map((_, i) =>
+                          <Star
+                            key={i}
+                            className={`w-3 h-3 ${
+                            i < review.rating ?
+                            'text-yellow-500 fill-yellow-500' :
+                            'text-gray-300'}`
+                            } />
+
+                          )}
                               </div>
                             </div>
-                            {review.comment && (
-                              <p className="text-xs text-slate-800 mb-1">{review.comment}</p>
-                            )}
+                            {review.comment &&
+                      <p className="text-xs text-slate-800 mb-1">{review.comment}</p>
+                      }
                             <p className="text-xs text-slate-500">
                               {safeFormatDateLocale(review.review_date)}
                             </p>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500 text-center py-2">
+                    )}
+                      </div> :
+
+                  <p className="text-sm text-slate-500 text-center py-2">
                         Nessuna recensione Google Maps ricevuta
-                      </p>
-                    );
-                  })()}
+                      </p>;
+
+                })()}
                 </div>
 
                 <div className="neumorphic-flat p-4 rounded-xl">
@@ -2076,24 +2076,24 @@ export default function Employees() {
                     <h3 className="font-bold text-slate-800">Controlli Pulizia</h3>
                   </div>
                   {(() => {
-                    const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
-                    return cleaningData.count > 0 ? (
-                      <div className="neumorphic-pressed p-4 rounded-xl">
+                  const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
+                  return cleaningData.count > 0 ?
+                  <div className="neumorphic-pressed p-4 rounded-xl">
                         <div className="text-center mb-3">
                           <p className="text-sm text-slate-500 mb-2">Percentuale Pulito</p>
                           <div className="flex items-center justify-center gap-3">
                             <p className={`text-3xl font-bold ${
-                              cleaningData.percentualePulito >= 80 ? 'text-green-600' :
-                              cleaningData.percentualePulito >= 60 ? 'text-blue-600' :
-                              cleaningData.percentualePulito >= 40 ? 'text-yellow-600' : 'text-red-600'
-                            }`}>
+                        cleaningData.percentualePulito >= 80 ? 'text-green-600' :
+                        cleaningData.percentualePulito >= 60 ? 'text-blue-600' :
+                        cleaningData.percentualePulito >= 40 ? 'text-yellow-600' : 'text-red-600'}`
+                        }>
                               {cleaningData.percentualePulito.toFixed(1)}%
                             </p>
                             <Sparkles className={`w-6 h-6 ${
-                              cleaningData.percentualePulito >= 80 ? 'text-green-600' :
-                              cleaningData.percentualePulito >= 60 ? 'text-blue-600' :
-                              cleaningData.percentualePulito >= 40 ? 'text-yellow-600' : 'text-red-600'
-                            }`} />
+                        cleaningData.percentualePulito >= 80 ? 'text-green-600' :
+                        cleaningData.percentualePulito >= 60 ? 'text-blue-600' :
+                        cleaningData.percentualePulito >= 40 ? 'text-yellow-600' : 'text-red-600'}`
+                        } />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-center">
@@ -2107,13 +2107,13 @@ export default function Employees() {
                           </div>
                         </div>
                         <p className="text-xs text-slate-500 mt-2 text-center">{cleaningData.count} controlli totali</p>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500 text-center py-2">
+                      </div> :
+
+                  <p className="text-sm text-slate-500 text-center py-2">
                         Nessun controllo pulizia assegnato
-                      </p>
-                    );
-                  })()}
+                      </p>;
+
+                })()}
                 </div>
 
                 <div className="neumorphic-flat p-4 rounded-xl">
@@ -2122,62 +2122,62 @@ export default function Employees() {
                     <h3 className="font-bold text-slate-800">Valutazione P2P</h3>
                   </div>
                   {(() => {
-                    const p2pFeedbacks = getP2PFeedbackForEmployee(selectedEmployee.full_name);
-                    return p2pFeedbacks.length > 0 ? (
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {p2pFeedbacks.map((feedback) => (
-                          <div key={feedback.id} className="neumorphic-pressed p-3 rounded-lg">
+                  const p2pFeedbacks = getP2PFeedbackForEmployee(selectedEmployee.full_name);
+                  return p2pFeedbacks.length > 0 ?
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {p2pFeedbacks.map((feedback) =>
+                    <div key={feedback.id} className="neumorphic-pressed p-3 rounded-lg">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-slate-800">
                                 Da: {feedback.reviewer_name}
                               </span>
                               <span className="text-xs text-slate-500">
                                 {(() => {
-                                  try {
-                                    return new Date(feedback.submitted_date).toLocaleDateString('it-IT');
-                                  } catch (e) {
-                                    return 'N/A';
-                                  }
-                                })()}
+                            try {
+                              return new Date(feedback.submitted_date).toLocaleDateString('it-IT');
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })()}
                               </span>
                             </div>
                             <div className="space-y-1">
-                              {feedback.responses?.map((resp, idx) => (
-                                <div key={idx} className="text-xs">
+                              {feedback.responses?.map((resp, idx) =>
+                        <div key={idx} className="text-xs">
                                   <span className="text-slate-600">{resp.question_text}:</span>
                                   <span className="text-slate-800 font-medium ml-1">{resp.answer}</span>
                                 </div>
-                              ))}
+                        )}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500 text-center py-2">
+                    )}
+                      </div> :
+
+                  <p className="text-sm text-slate-500 text-center py-2">
                         Nessuna valutazione P2P ricevuta
-                      </p>
-                    );
-                  })()}
+                      </p>;
+
+                })()}
                 </div>
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
-        {showWeightsModal && (
-          <MetricWeightsModal
-            weights={metricWeights}
-            onClose={() => setShowWeightsModal(false)}
-          />
-        )}
+        {showWeightsModal &&
+        <MetricWeightsModal
+          weights={metricWeights}
+          onClose={() => setShowWeightsModal(false)} />
+
+        }
 
         {/* Lettera Form Modal */}
-        {showLetteraForm && selectedEmployeeForLettera && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showLetteraForm && selectedEmployeeForLettera &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-slate-800">Invia Lettera di Richiamo</h2>
-                <button onClick={() => { setShowLetteraForm(false); setSelectedEmployeeForLettera(null); }} className="nav-button p-2 rounded-lg">
+                <button onClick={() => {setShowLetteraForm(false);setSelectedEmployeeForLettera(null);}} className="nav-button p-2 rounded-lg">
                   <X className="w-5 h-5 text-slate-600" />
                 </button>
               </div>
@@ -2192,56 +2192,56 @@ export default function Employees() {
                   Seleziona Template
                 </label>
                 <select
-                  value={selectedEmployeeForLettera.selectedTemplate || ''}
-                  onChange={(e) => setSelectedEmployeeForLettera({ ...selectedEmployeeForLettera, selectedTemplate: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  required
-                >
+                value={selectedEmployeeForLettera.selectedTemplate || ''}
+                onChange={(e) => setSelectedEmployeeForLettera({ ...selectedEmployeeForLettera, selectedTemplate: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                required>
+
                   <option value="">Seleziona template...</option>
-                  {templates.filter(t => t.tipo_lettera === 'lettera_richiamo' && t.attivo).map(t => (
-                    <option key={t.id} value={t.id}>{t.nome_template}</option>
-                  ))}
+                  {templates.filter((t) => t.tipo_lettera === 'lettera_richiamo' && t.attivo).map((t) =>
+                <option key={t.id} value={t.id}>{t.nome_template}</option>
+                )}
                 </select>
               </div>
 
               <div className="flex gap-3">
                 <NeumorphicButton
-                  type="button"
-                  onClick={() => { setShowLetteraForm(false); setSelectedEmployeeForLettera(null); }}
-                  className="flex-1"
-                >
+                type="button"
+                onClick={() => {setShowLetteraForm(false);setSelectedEmployeeForLettera(null);}}
+                className="flex-1">
+
                   Annulla
                 </NeumorphicButton>
                 <NeumorphicButton
-                  onClick={() => {
-                    if (!selectedEmployeeForLettera.selectedTemplate) {
-                      alert('Seleziona un template');
-                      return;
-                    }
-                    inviaLetteraMutation.mutate({
-                      userId: selectedEmployeeForLettera.id,
-                      templateId: selectedEmployeeForLettera.selectedTemplate
-                    });
-                  }}
-                  variant="primary"
-                  className="flex-1"
-                  disabled={inviaLetteraMutation.isPending}
-                >
+                onClick={() => {
+                  if (!selectedEmployeeForLettera.selectedTemplate) {
+                    alert('Seleziona un template');
+                    return;
+                  }
+                  inviaLetteraMutation.mutate({
+                    userId: selectedEmployeeForLettera.id,
+                    templateId: selectedEmployeeForLettera.selectedTemplate
+                  });
+                }}
+                variant="primary"
+                className="flex-1"
+                disabled={inviaLetteraMutation.isPending}>
+
                   <FileText className="w-5 h-5 mr-2" />
                   Invia
                 </NeumorphicButton>
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
 
 function GaussianChart({ employees }) {
   // Calculate mean and standard deviation
-  const scores = employees.map(e => e.performanceScore);
+  const scores = employees.map((e) => e.performanceScore);
   const mean = scores.reduce((sum, s) => sum + s, 0) / scores.length;
   const variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / scores.length;
   const stdDev = Math.sqrt(variance) || 1;
@@ -2249,20 +2249,20 @@ function GaussianChart({ employees }) {
   // Generate gaussian curve data
   const gaussianData = [];
   for (let x = 0; x <= 100; x += 1) {
-    const y = (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / stdDev, 2));
+    const y = 1 / (stdDev * Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * Math.pow((x - mean) / stdDev, 2));
     gaussianData.push({ score: x, density: y });
   }
 
   // Normalize density for visualization
-  const maxDensity = Math.max(...gaussianData.map(d => d.density));
-  gaussianData.forEach(d => d.density = (d.density / maxDensity) * 100);
+  const maxDensity = Math.max(...gaussianData.map((d) => d.density));
+  gaussianData.forEach((d) => d.density = d.density / maxDensity * 100);
 
   // Get employee positions on the curve
-  const employeePositions = employees.map(e => {
-    const density = (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((e.performanceScore - mean) / stdDev, 2));
+  const employeePositions = employees.map((e) => {
+    const density = 1 / (stdDev * Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * Math.pow((e.performanceScore - mean) / stdDev, 2));
     return {
       ...e,
-      normalizedDensity: (density / maxDensity) * 100
+      normalizedDensity: density / maxDensity * 100
     };
   });
 
@@ -2279,58 +2279,58 @@ function GaussianChart({ employees }) {
         <AreaChart data={gaussianData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
           <defs>
             <linearGradient id="gaussianGradient" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#dc2626" stopOpacity={0.8}/>
-              <stop offset="40%" stopColor="#ca8a04" stopOpacity={0.8}/>
-              <stop offset="60%" stopColor="#2563eb" stopOpacity={0.8}/>
-              <stop offset="100%" stopColor="#16a34a" stopOpacity={0.8}/>
+              <stop offset="0%" stopColor="#dc2626" stopOpacity={0.8} />
+              <stop offset="40%" stopColor="#ca8a04" stopOpacity={0.8} />
+              <stop offset="60%" stopColor="#2563eb" stopOpacity={0.8} />
+              <stop offset="100%" stopColor="#16a34a" stopOpacity={0.8} />
             </linearGradient>
           </defs>
-          <XAxis 
-            dataKey="score" 
-            type="number" 
-            domain={[0, 100]} 
+          <XAxis
+            dataKey="score"
+            type="number"
+            domain={[0, 100]}
             tickFormatter={(v) => v}
             tick={{ fontSize: 10, fill: '#64748b' }}
-            axisLine={{ stroke: '#cbd5e1' }}
-          />
+            axisLine={{ stroke: '#cbd5e1' }} />
+
           <YAxis hide domain={[0, 110]} />
-          <Tooltip 
+          <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 const score = payload[0].payload.score;
-                const empsAtScore = employees.filter(e => Math.round(e.performanceScore) === Math.round(score));
+                const empsAtScore = employees.filter((e) => Math.round(e.performanceScore) === Math.round(score));
                 if (empsAtScore.length > 0) {
                   return (
                     <div className="bg-white p-2 rounded-lg shadow-lg border text-xs">
-                      {empsAtScore.map(emp => (
-                        <div key={emp.id}>{emp.full_name}: {emp.performanceScore}</div>
-                      ))}
-                    </div>
-                  );
+                      {empsAtScore.map((emp) =>
+                      <div key={emp.id}>{emp.full_name}: {emp.performanceScore}</div>
+                      )}
+                    </div>);
+
                 }
               }
               return null;
-            }}
-          />
-          <Area 
-            type="monotone" 
-            dataKey="density" 
-            stroke="#3b82f6" 
+            }} />
+
+          <Area
+            type="monotone"
+            dataKey="density"
+            stroke="#3b82f6"
             strokeWidth={2}
-            fill="url(#gaussianGradient)" 
-          />
+            fill="url(#gaussianGradient)" />
+
           <ReferenceLine x={mean} stroke="#1e293b" strokeDasharray="5 5" strokeWidth={2} />
-          {employeePositions.map((emp, idx) => (
-            <ReferenceDot
-              key={emp.id}
-              x={emp.performanceScore}
-              y={emp.normalizedDensity}
-              r={6}
-              fill={getPerformanceColor(emp.performanceScore)}
-              stroke="#fff"
-              strokeWidth={2}
-            />
-          ))}
+          {employeePositions.map((emp, idx) =>
+          <ReferenceDot
+            key={emp.id}
+            x={emp.performanceScore}
+            y={emp.normalizedDensity}
+            r={6}
+            fill={getPerformanceColor(emp.performanceScore)}
+            stroke="#fff"
+            strokeWidth={2} />
+
+          )}
         </AreaChart>
       </ResponsiveContainer>
       
@@ -2359,8 +2359,8 @@ function GaussianChart({ employees }) {
         <div><strong>Media:</strong> {mean.toFixed(1)}</div>
         <div><strong>Dev. Std:</strong> {stdDev.toFixed(1)}</div>
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 function MetricWeightsModal({ weights, onClose }) {
@@ -2368,37 +2368,37 @@ function MetricWeightsModal({ weights, onClose }) {
   const [activeRole, setActiveRole] = useState('Pizzaiolo');
   const [localWeights, setLocalWeights] = useState({
     Pizzaiolo: {
-      ordini_sbagliati: weights.find(w => w.metric_name === 'ordini_sbagliati' && w.ruolo === 'Pizzaiolo')?.weight || 2,
-      ritardi: weights.find(w => w.metric_name === 'ritardi' && w.ruolo === 'Pizzaiolo')?.weight || 0.3,
-      timbrature_mancanti: weights.find(w => w.metric_name === 'timbrature_mancanti' && w.ruolo === 'Pizzaiolo')?.weight || 1,
-      straordinari: weights.find(w => w.metric_name === 'straordinari' && w.ruolo === 'Pizzaiolo')?.weight || 0.5,
-      bonus_per_recensione: weights.find(w => w.metric_name === 'bonus_per_recensione' && w.ruolo === 'Pizzaiolo')?.weight || 0.5,
-      min_recensioni: weights.find(w => w.metric_name === 'min_recensioni' && w.ruolo === 'Pizzaiolo')?.weight || 5,
-      malus_sotto_minimo_recensioni: weights.find(w => w.metric_name === 'malus_sotto_minimo_recensioni' && w.ruolo === 'Pizzaiolo')?.weight || 2,
-      punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni' && w.ruolo === 'Pizzaiolo')?.weight || 2,
-      pulizie: weights.find(w => w.metric_name === 'pulizie' && w.ruolo === 'Pizzaiolo')?.weight || 1
+      ordini_sbagliati: weights.find((w) => w.metric_name === 'ordini_sbagliati' && w.ruolo === 'Pizzaiolo')?.weight || 2,
+      ritardi: weights.find((w) => w.metric_name === 'ritardi' && w.ruolo === 'Pizzaiolo')?.weight || 0.3,
+      timbrature_mancanti: weights.find((w) => w.metric_name === 'timbrature_mancanti' && w.ruolo === 'Pizzaiolo')?.weight || 1,
+      straordinari: weights.find((w) => w.metric_name === 'straordinari' && w.ruolo === 'Pizzaiolo')?.weight || 0.5,
+      bonus_per_recensione: weights.find((w) => w.metric_name === 'bonus_per_recensione' && w.ruolo === 'Pizzaiolo')?.weight || 0.5,
+      min_recensioni: weights.find((w) => w.metric_name === 'min_recensioni' && w.ruolo === 'Pizzaiolo')?.weight || 5,
+      malus_sotto_minimo_recensioni: weights.find((w) => w.metric_name === 'malus_sotto_minimo_recensioni' && w.ruolo === 'Pizzaiolo')?.weight || 2,
+      punteggio_recensioni: weights.find((w) => w.metric_name === 'punteggio_recensioni' && w.ruolo === 'Pizzaiolo')?.weight || 2,
+      pulizie: weights.find((w) => w.metric_name === 'pulizie' && w.ruolo === 'Pizzaiolo')?.weight || 1
     },
     Cassiere: {
-      ordini_sbagliati: weights.find(w => w.metric_name === 'ordini_sbagliati' && w.ruolo === 'Cassiere')?.weight || 2,
-      ritardi: weights.find(w => w.metric_name === 'ritardi' && w.ruolo === 'Cassiere')?.weight || 0.3,
-      timbrature_mancanti: weights.find(w => w.metric_name === 'timbrature_mancanti' && w.ruolo === 'Cassiere')?.weight || 1,
-      straordinari: weights.find(w => w.metric_name === 'straordinari' && w.ruolo === 'Cassiere')?.weight || 0.5,
-      bonus_per_recensione: weights.find(w => w.metric_name === 'bonus_per_recensione' && w.ruolo === 'Cassiere')?.weight || 0.5,
-      min_recensioni: weights.find(w => w.metric_name === 'min_recensioni' && w.ruolo === 'Cassiere')?.weight || 5,
-      malus_sotto_minimo_recensioni: weights.find(w => w.metric_name === 'malus_sotto_minimo_recensioni' && w.ruolo === 'Cassiere')?.weight || 2,
-      punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni' && w.ruolo === 'Cassiere')?.weight || 2,
-      pulizie: weights.find(w => w.metric_name === 'pulizie' && w.ruolo === 'Cassiere')?.weight || 1
+      ordini_sbagliati: weights.find((w) => w.metric_name === 'ordini_sbagliati' && w.ruolo === 'Cassiere')?.weight || 2,
+      ritardi: weights.find((w) => w.metric_name === 'ritardi' && w.ruolo === 'Cassiere')?.weight || 0.3,
+      timbrature_mancanti: weights.find((w) => w.metric_name === 'timbrature_mancanti' && w.ruolo === 'Cassiere')?.weight || 1,
+      straordinari: weights.find((w) => w.metric_name === 'straordinari' && w.ruolo === 'Cassiere')?.weight || 0.5,
+      bonus_per_recensione: weights.find((w) => w.metric_name === 'bonus_per_recensione' && w.ruolo === 'Cassiere')?.weight || 0.5,
+      min_recensioni: weights.find((w) => w.metric_name === 'min_recensioni' && w.ruolo === 'Cassiere')?.weight || 5,
+      malus_sotto_minimo_recensioni: weights.find((w) => w.metric_name === 'malus_sotto_minimo_recensioni' && w.ruolo === 'Cassiere')?.weight || 2,
+      punteggio_recensioni: weights.find((w) => w.metric_name === 'punteggio_recensioni' && w.ruolo === 'Cassiere')?.weight || 2,
+      pulizie: weights.find((w) => w.metric_name === 'pulizie' && w.ruolo === 'Cassiere')?.weight || 1
     },
     'Store Manager': {
-      ordini_sbagliati: weights.find(w => w.metric_name === 'ordini_sbagliati' && w.ruolo === 'Store Manager')?.weight || 2,
-      ritardi: weights.find(w => w.metric_name === 'ritardi' && w.ruolo === 'Store Manager')?.weight || 0.3,
-      timbrature_mancanti: weights.find(w => w.metric_name === 'timbrature_mancanti' && w.ruolo === 'Store Manager')?.weight || 1,
-      straordinari: weights.find(w => w.metric_name === 'straordinari' && w.ruolo === 'Store Manager')?.weight || 0.5,
-      bonus_per_recensione: weights.find(w => w.metric_name === 'bonus_per_recensione' && w.ruolo === 'Store Manager')?.weight || 0.5,
-      min_recensioni: weights.find(w => w.metric_name === 'min_recensioni' && w.ruolo === 'Store Manager')?.weight || 5,
-      malus_sotto_minimo_recensioni: weights.find(w => w.metric_name === 'malus_sotto_minimo_recensioni' && w.ruolo === 'Store Manager')?.weight || 2,
-      punteggio_recensioni: weights.find(w => w.metric_name === 'punteggio_recensioni' && w.ruolo === 'Store Manager')?.weight || 2,
-      pulizie: weights.find(w => w.metric_name === 'pulizie' && w.ruolo === 'Store Manager')?.weight || 1
+      ordini_sbagliati: weights.find((w) => w.metric_name === 'ordini_sbagliati' && w.ruolo === 'Store Manager')?.weight || 2,
+      ritardi: weights.find((w) => w.metric_name === 'ritardi' && w.ruolo === 'Store Manager')?.weight || 0.3,
+      timbrature_mancanti: weights.find((w) => w.metric_name === 'timbrature_mancanti' && w.ruolo === 'Store Manager')?.weight || 1,
+      straordinari: weights.find((w) => w.metric_name === 'straordinari' && w.ruolo === 'Store Manager')?.weight || 0.5,
+      bonus_per_recensione: weights.find((w) => w.metric_name === 'bonus_per_recensione' && w.ruolo === 'Store Manager')?.weight || 0.5,
+      min_recensioni: weights.find((w) => w.metric_name === 'min_recensioni' && w.ruolo === 'Store Manager')?.weight || 5,
+      malus_sotto_minimo_recensioni: weights.find((w) => w.metric_name === 'malus_sotto_minimo_recensioni' && w.ruolo === 'Store Manager')?.weight || 2,
+      punteggio_recensioni: weights.find((w) => w.metric_name === 'punteggio_recensioni' && w.ruolo === 'Store Manager')?.weight || 2,
+      pulizie: weights.find((w) => w.metric_name === 'pulizie' && w.ruolo === 'Store Manager')?.weight || 1
     }
   });
 
@@ -2406,7 +2406,7 @@ function MetricWeightsModal({ weights, onClose }) {
     mutationFn: async (weightsData) => {
       for (const [role, metrics] of Object.entries(weightsData)) {
         for (const [metricName, weight] of Object.entries(metrics)) {
-          const existing = weights.find(w => w.metric_name === metricName && w.ruolo === role);
+          const existing = weights.find((w) => w.metric_name === metricName && w.ruolo === role);
           if (existing) {
             await base44.entities.MetricWeight.update(existing.id, { weight, is_active: true });
           } else {
@@ -2446,46 +2446,46 @@ function MetricWeightsModal({ weights, onClose }) {
         </div>
 
         <div className="flex gap-2 mb-6 border-b border-slate-200 pb-4">
-          {ruoli.map(role => (
-            <button
-              key={role}
-              onClick={() => setActiveRole(role)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                activeRole === role
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                  : 'nav-button text-slate-700'
-              }`}
-            >
+          {ruoli.map((role) =>
+          <button
+            key={role}
+            onClick={() => setActiveRole(role)}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            activeRole === role ?
+            'bg-gradient-to-r from-blue-500 to-blue-600 text-white' :
+            'nav-button text-slate-700'}`
+            }>
+
               {role}
             </button>
-          ))}
+          )}
         </div>
 
         <div className="space-y-4 mb-6">
-          {Object.entries(localWeights[activeRole]).map(([key, value]) => (
-            <div key={key}>
+          {Object.entries(localWeights[activeRole]).map(([key, value]) =>
+          <div key={key}>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
                 {metricLabels[key]}
               </label>
               <input
-                type="number"
-                step="0.1"
-                value={value}
-                onChange={(e) => setLocalWeights({
-                  ...localWeights,
-                  [activeRole]: { ...localWeights[activeRole], [key]: parseFloat(e.target.value) || 0 }
-                })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              />
+              type="number"
+              step="0.1"
+              value={value}
+              onChange={(e) => setLocalWeights({
+                ...localWeights,
+                [activeRole]: { ...localWeights[activeRole], [key]: parseFloat(e.target.value) || 0 }
+              })}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
             </div>
-          ))}
+          )}
         </div>
 
         <NeumorphicButton
           onClick={() => saveMutation.mutate(localWeights)}
           variant="primary"
-          className="w-full flex items-center justify-center gap-2"
-        >
+          className="w-full flex items-center justify-center gap-2">
+
           <Save className="w-5 h-5" />
           Salva Configurazione
         </NeumorphicButton>
@@ -2497,8 +2497,8 @@ function MetricWeightsModal({ weights, onClose }) {
           </p>
         </div>
       </NeumorphicCard>
-    </div>
-  );
+    </div>);
+
 }
 
 function ClusterSection({ title, metric, getClusters, formatValue, expandedCluster, setExpandedCluster, onSendLettera }) {
@@ -2511,22 +2511,22 @@ function ClusterSection({ title, metric, getClusters, formatValue, expandedClust
     <div className="neumorphic-pressed p-4 rounded-xl">
       <button
         onClick={() => setExpandedCluster(isExpanded ? null : metric)}
-        className="w-full flex items-center justify-between mb-3"
-      >
+        className="w-full flex items-center justify-between mb-3">
+
         <h4 className="font-bold text-slate-800 text-sm">{title}</h4>
         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
 
-      {isExpanded && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {isExpanded &&
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Best */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-green-600" />
               <h5 className="font-bold text-green-600 text-xs">Top 5</h5>
             </div>
-            {best.map((emp, idx) => (
-              <div key={emp.id} className="neumorphic-flat p-3 rounded-lg">
+            {best.map((emp, idx) =>
+          <div key={emp.id} className="neumorphic-flat p-3 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
@@ -2539,7 +2539,7 @@ function ClusterSection({ title, metric, getClusters, formatValue, expandedClust
                   </span>
                 </div>
               </div>
-            ))}
+          )}
           </div>
 
           {/* Worst */}
@@ -2548,8 +2548,8 @@ function ClusterSection({ title, metric, getClusters, formatValue, expandedClust
               <TrendingDown className="w-4 h-4 text-red-600" />
               <h5 className="font-bold text-red-600 text-xs">Bottom 5</h5>
             </div>
-            {worst.map((emp, idx) => (
-              <div key={emp.id} className="neumorphic-flat p-3 rounded-lg">
+            {worst.map((emp, idx) =>
+          <div key={emp.id} className="neumorphic-flat p-3 rounded-lg">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center flex-shrink-0">
@@ -2562,19 +2562,19 @@ function ClusterSection({ title, metric, getClusters, formatValue, expandedClust
                       {formatValue(emp)}
                     </span>
                     <button
-                      onClick={() => onSendLettera(emp)}
-                      className="p-1.5 rounded-lg hover:bg-orange-50 transition-colors"
-                      title="Invia lettera di richiamo"
-                    >
+                  onClick={() => onSendLettera(emp)}
+                  className="p-1.5 rounded-lg hover:bg-orange-50 transition-colors"
+                  title="Invia lettera di richiamo">
+
                       <FileText className="w-4 h-4 text-orange-600" />
                     </button>
                   </div>
                 </div>
               </div>
-            ))}
+          )}
           </div>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
