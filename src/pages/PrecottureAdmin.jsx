@@ -845,11 +845,11 @@ export default function PrecottureAdmin() {
                                 >
                                   <Edit className="w-4 h-4 text-blue-600" />
                                 </button>
-                                {mediaGiorno > 0 && (
+                                {mediaGiorno60 > 0 && (
                                   <button
                                     onClick={() => handleAggiornaConMedia(giorno)}
                                     className="nav-button p-2 rounded-lg hover:bg-purple-50"
-                                    title="Aggiorna con media 30gg"
+                                    title="Aggiorna con media 60gg"
                                   >
                                     <TrendingUp className="w-4 h-4 text-purple-600" />
                                   </button>
