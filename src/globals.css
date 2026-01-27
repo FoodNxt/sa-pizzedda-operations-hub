@@ -52,21 +52,52 @@ body {
 }
 
 /* ========================================
-   FORCE TOTALE BIANCO - MASSIMA PRIORITÀ
+   FORCE NUCLEARE: TUTTI I TESTI BIANCHI
    ======================================== */
 
-/* Elimina TUTTI i background e gradient sui testi */
-.compact-layout *[class*="bg-gradient"],
-.compact-layout *[class*="bg-clip"],
-.compact-layout *.bg-gradient-to-r,
-.compact-layout *.bg-gradient-to-l,
-.compact-layout *.bg-gradient-to-t,
-.compact-layout *.bg-gradient-to-b,
-.compact-layout *.bg-gradient-to-br,
-.compact-layout *.bg-gradient-to-bl,
-.compact-layout *.bg-gradient-to-tr,
-.compact-layout *.bg-gradient-to-tl,
-.compact-layout *.text-transparent {
+/* MASSIMA PRIORITÀ: Elimina bg-gradient e text-transparent OVUNQUE */
+.compact-layout h1.bg-gradient-to-r,
+.compact-layout h1.bg-gradient-to-l,
+.compact-layout h1.bg-gradient-to-br,
+.compact-layout h1.bg-clip-text,
+.compact-layout h1.text-transparent,
+.compact-layout h2.bg-gradient-to-r,
+.compact-layout h2.bg-gradient-to-l,
+.compact-layout h2.bg-gradient-to-br,
+.compact-layout h2.bg-clip-text,
+.compact-layout h2.text-transparent,
+.compact-layout h3.bg-gradient-to-r,
+.compact-layout h3.bg-gradient-to-l,
+.compact-layout h3.bg-gradient-to-br,
+.compact-layout h3.bg-clip-text,
+.compact-layout h3.text-transparent,
+.compact-layout p.bg-gradient-to-r,
+.compact-layout p.bg-gradient-to-l,
+.compact-layout p.bg-clip-text,
+.compact-layout p.text-transparent,
+.compact-layout span.bg-gradient-to-r,
+.compact-layout span.bg-gradient-to-l,
+.compact-layout span.bg-clip-text,
+.compact-layout span.text-transparent,
+.compact-layout div.bg-gradient-to-r,
+.compact-layout div.bg-gradient-to-l,
+.compact-layout div.bg-clip-text,
+.compact-layout div.text-transparent,
+h1.bg-gradient-to-r,
+h1.bg-gradient-to-l,
+h1.bg-gradient-to-br,
+h1.bg-clip-text,
+h1.text-transparent,
+h2.bg-gradient-to-r,
+h2.bg-gradient-to-l,
+h2.bg-gradient-to-br,
+h2.bg-clip-text,
+h2.text-transparent,
+h3.bg-gradient-to-r,
+h3.bg-gradient-to-l,
+h3.bg-gradient-to-br,
+h3.bg-clip-text,
+h3.text-transparent {
   background: none !important;
   background-image: none !important;
   -webkit-background-clip: unset !important;
@@ -75,25 +106,35 @@ body {
   color: #ffffff !important;
 }
 
-/* Forza BIANCO su TUTTI gli heading e paragrafi top-level */
-.compact-layout > div > div:first-child h1,
-.compact-layout > div > div:first-child h1 *,
-.compact-layout > div > div:first-child h2,
-.compact-layout > div > div:first-child h2 *,
-.compact-layout > div > div:first-child h3,
-.compact-layout > div > div:first-child h3 *,
-.compact-layout > div > div:first-child p,
-.compact-layout > div > div:first-child p *,
-.compact-layout > div:first-child h1,
-.compact-layout > div:first-child h1 *,
-.compact-layout > div:first-child h2,
-.compact-layout > div:first-child h2 *,
-.compact-layout > div:first-child h3,
-.compact-layout > div:first-child h3 *,
-.compact-layout > div:first-child p,
-.compact-layout > div:first-child p * {
+/* OVERRIDE TOTALE di OGNI CLASSE text-* Tailwind */
+.compact-layout h1[class*="text-"],
+.compact-layout h2[class*="text-"],
+.compact-layout h3[class*="text-"],
+.compact-layout h4[class*="text-"],
+.compact-layout p[class*="text-"],
+.compact-layout span[class*="text-"],
+.compact-layout div[class*="text-"],
+h1[class*="text-"],
+h2[class*="text-"],
+h3[class*="text-"],
+h4[class*="text-"],
+p[class*="text-"] {
   color: #ffffff !important;
-  background: none !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* Force su TUTTI gli heading ovunque nella pagina */
+.compact-layout h1,
+.compact-layout h1 *,
+.compact-layout h2,
+.compact-layout h2 *,
+.compact-layout h3,
+.compact-layout h3 *,
+.compact-layout h4,
+.compact-layout h4 *,
+.compact-layout p,
+.compact-layout p * {
+  color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
 }
 
