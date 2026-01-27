@@ -1316,25 +1316,26 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                         
                         return (
                           <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
-                            <button
-                              onClick={() => isCompleted && toggleCompletedCard(activation.id)}
-                              className="w-full flex items-start justify-between mb-3 hover:opacity-80 transition-opacity"
-                              disabled={!isCompleted}
-                            >
-                              <div className="flex-1 text-left">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  {isCompleted && (
+                                    <button
+                                      onClick={() => toggleCompletedCard(activation.id)}
+                                      className="p-1 rounded hover:bg-slate-200"
+                                    >
+                                      {isCollapsed ? (
+                                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                                      ) : (
+                                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                                      )}
+                                    </button>
+                                  )}
                                   <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
                                   <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
                                     {getStatoIcon(activation.stato)}
                                     {activation.stato.replace('_', ' ').toUpperCase()}
                                   </span>
-                                  {isCompleted && (
-                                    isCollapsed ? (
-                                      <ChevronRight className="w-4 h-4 text-slate-400" />
-                                    ) : (
-                                      <ChevronDown className="w-4 h-4 text-slate-400" />
-                                    )
-                                  )}
                                 </div>
                                 {activation.descrizione && (
                                   <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
@@ -1396,8 +1397,7 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                   </button>
                                 )}
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                                  onClick={() => {
                                     setSelectedActivationForChecklist(activation);
                                     setShowChecklistModal(true);
                                   }}
@@ -1406,17 +1406,13 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                   <CheckSquare className="w-4 h-4 text-blue-600" />
                                 </button>
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEdit(activation);
-                                  }}
+                                  onClick={() => handleEdit(activation)}
                                   className="nav-button p-2 rounded-lg hover:bg-blue-50"
                                 >
                                   <Edit className="w-4 h-4 text-blue-600" />
                                 </button>
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                                  onClick={() => {
                                     if (confirm('Eliminare questa activation?')) {
                                       deleteMutation.mutate(activation.id);
                                     }
@@ -1426,7 +1422,7 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                   <Trash2 className="w-4 h-4 text-red-600" />
                                 </button>
                               </div>
-                            </button>
+                            </div>
 
                             {/* Sottoattività - show only if card is not collapsed */}
                             {!isCollapsed && subattivitaList.length > 0 && (

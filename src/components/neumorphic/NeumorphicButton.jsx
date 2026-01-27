@@ -29,12 +29,9 @@ export default function NeumorphicButton({
     <button
       type={type}
       onClick={handleClick}
-      disabled={disabled} className="bg-gray-400 text-slate-50 px-6 py-3 font-medium opacity-100 rounded-xl nav-button from-blue-500 to-blue-600 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center gap-2">
-
-
-
-
-
+      disabled={disabled}
+      className={`${getVariantStyles()} ${className} px-4 py-2 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95`}
+    >
 
 
 
