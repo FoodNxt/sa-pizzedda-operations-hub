@@ -1428,12 +1428,12 @@ export default function Layout({ children, currentPageName }) {
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             pt-20 lg:pt-0 bg-white lg:border-r lg:border-slate-200
           `}>
-            <div className="h-full flex flex-col overflow-y-auto" style={{ background: '#1e293b' }}>
-              <div className="hidden lg:flex items-center gap-2 px-6 py-5 border-b" style={{ borderColor: 'rgba(148, 163, 184, 0.1)' }}>
-                <div className="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+            <div className="h-full flex flex-col overflow-y-auto" style={{ background: '#0f172a', borderRight: '1px solid rgba(148, 163, 184, 0.15)' }}>
+              <div className="hidden lg:flex items-center gap-2 px-6 py-5 border-b" style={{ borderColor: 'rgba(148, 163, 184, 0.2)' }}>
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-lg">
                   SP
                 </div>
-                <h1 className="text-sm font-semibold text-slate-900">Sa Pizzedda</h1>
+                <h1 className="text-sm font-semibold text-slate-100">Sa Pizzedda</h1>
               </div>
 
               <nav className="flex-1 space-y-0 px-3 py-4">
@@ -1454,11 +1454,11 @@ export default function Layout({ children, currentPageName }) {
                           className={`
                             flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm
                             transition-all duration-200
-                            ${isActive ? 'nav-button-active font-medium text-blue-600' : 'nav-button text-slate-700 hover:bg-slate-50'}
+                            ${isActive ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 font-medium text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-100'}
                           `}
                         >
                           <div className="flex items-center gap-3">
-                            <item.icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                            <item.icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-400'}`} />
                             <span>{item.title}</span>
                           </div>
                           <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -1477,11 +1477,11 @@ export default function Layout({ children, currentPageName }) {
                             className={`
                               w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm
                               transition-all duration-200
-                              ${sectionActive ? 'nav-button-active font-medium text-blue-600' : 'nav-button text-slate-700 hover:bg-slate-50'}
+                              ${sectionActive ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 font-medium text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-100'}
                             `}
                           >
                             <div className="flex items-center gap-3">
-                              <item.icon className={`w-4 h-4 ${sectionActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                              <item.icon className={`w-4 h-4 ${sectionActive ? 'text-blue-400' : 'text-slate-400'}`} />
                               <span>{item.title}</span>
                             </div>
                             {isExpanded ? (
@@ -1503,10 +1503,10 @@ export default function Layout({ children, currentPageName }) {
                                     className={`
                                       flex items-center gap-3 px-3 py-2 rounded-lg text-xs ml-6
                                       transition-all duration-200
-                                      ${isActive ? 'bg-blue-50 text-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'}
+                                      ${isActive ? 'bg-blue-500/10 text-blue-400 font-medium border-l-2 border-blue-500' : 'text-slate-400 hover:bg-slate-800/30 hover:text-slate-200'}
                                     `}
                                   >
-                                    <subItem.icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
+                                    <subItem.icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-500'}`} />
                                     <span>{subItem.title}</span>
                                     {notifications[subItem.title] && (
                                       <span className="ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
