@@ -106,7 +106,7 @@ export default function Dashboard() {
     queryFn: () => base44.entities.RichiestaMalattia.list()
   });
 
-  const { data: richiesteAssenze = { ferie: [], malattie: [], turniLiberi: [], scambi: [] } } = useQuery({
+  const { data: richiesteAssenzeRaw } = useQuery({
     queryKey: ['richieste-assenze'],
     queryFn: async () => {
       const [ferie, malattie, turniLiberi, scambi] = await Promise.all([
@@ -127,6 +127,10 @@ export default function Dashboard() {
       return { ferie, malattie: malattieInAttesa, turniLiberi, scambi: scambiInAttesa };
     }
   });
+
+  const richiesteAssenze = richiesteAssenzeRaw && typeof richiesteAssenzeRaw === 'object' && !Array.isArray(richiesteAssenzeRaw)
+    ? richiesteAssenzeRaw
+    : { ferie: [], malattie: [], turniLiberi: [], scambi: [] };
 
   const { data: contratti = [] } = useQuery({
     queryKey: ['contratti'],
