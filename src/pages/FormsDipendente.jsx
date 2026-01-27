@@ -229,8 +229,24 @@ export default function FormsDipendente() {
 
   // Filter forms based on config
   let filteredForms = forms.filter(form => {
-    // Check if in formsPages config
-    if (!formsPages.includes(form.url)) return false;
+    // Check if in formsPages config - OR check if in any role pages (fallback)
+    const inFormsPages = formsPages.includes(form.url);
+    
+    // Fallback: check if user has access through role pages
+    let hasAccessThroughRole = false;
+    if (!inFormsPages && pageAccessConfig && userRoles.length > 0) {
+      const contractStarted = user?.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
+      if (contractStarted) {
+        const allRolePages = [
+          ...(userRoles.includes('Pizzaiolo') ? normalizePageConfig(pageAccessConfig.pizzaiolo_pages || []) : []),
+          ...(userRoles.includes('Cassiere') ? normalizePageConfig(pageAccessConfig.cassiere_pages || []) : []),
+          ...(userRoles.includes('Store Manager') ? normalizePageConfig(pageAccessConfig.store_manager_pages || []) : [])
+        ];
+        hasAccessThroughRole = allRolePages.some(p => p.page === form.url);
+      }
+    }
+    
+    if (!inFormsPages && !hasAccessThroughRole) return false;
     
     // Check if requires Store Manager role
     if (form.requiresStoreManager && !userRoles.includes('Store Manager')) return false;
