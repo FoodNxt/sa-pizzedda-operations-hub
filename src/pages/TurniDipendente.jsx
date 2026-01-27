@@ -6,13 +6,13 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import DisponibilitaCalendar from "../components/disponibilita/DisponibilitaCalendar";
 import DisponibilitaRicorrenti from "../components/disponibilita/DisponibilitaRicorrenti";
-import { 
-  Calendar, Clock, MapPin, CheckCircle, AlertCircle, 
+import {
+  Calendar, Clock, MapPin, CheckCircle, AlertCircle,
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
   RefreshCw, X, AlertTriangle, Users, Store as StoreIcon, Navigation, Timer, ClipboardList,
   Palmtree, Thermometer, Upload, FileText, ExternalLink, GraduationCap, Check, Square, CheckSquare, ArrowRightLeft,
-  Coffee, ChefHat, Pizza, CalendarClock, Euro
-} from "lucide-react";
+  Coffee, ChefHat, Pizza, CalendarClock, Euro } from
+"lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import moment from "moment";
@@ -100,20 +100,20 @@ export default function TurniDipendente() {
 
   const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => base44.auth.me()
   });
 
   const { data: storesData = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.filter({ status: 'active' }),
-    staleTime: 300000,
+    staleTime: 300000
   });
 
 
 
   const { data: accessoStoreData = [] } = useQuery({
     queryKey: ['accesso-store'],
-    queryFn: () => base44.entities.AccessoStore.list(),
+    queryFn: () => base44.entities.AccessoStore.list()
   });
 
   const { data: config = null } = useQuery({
@@ -122,7 +122,7 @@ export default function TurniDipendente() {
       const configs = await base44.entities.TimbraturaConfig.list();
       return configs[0] || { distanza_massima_metri: 100, tolleranza_ritardo_minuti: 5, abilita_timbratura_gps: true };
     },
-    staleTime: 300000,
+    staleTime: 300000
   });
 
   // Richieste ferie e malattia del dipendente
@@ -130,14 +130,14 @@ export default function TurniDipendente() {
     queryKey: ['mie-ferie', currentUser?.id],
     queryFn: () => base44.entities.RichiestaFerie.filter({ dipendente_id: currentUser.id }),
     enabled: activeView === 'ferie' && !!currentUser?.id,
-    staleTime: 30000,
+    staleTime: 30000
   });
 
   const { data: mieMalattie = [] } = useQuery({
     queryKey: ['mie-malattie', currentUser?.id],
     queryFn: () => base44.entities.RichiestaMalattia.filter({ dipendente_id: currentUser.id }),
     enabled: activeView === 'malattia' && !!currentUser?.id,
-    staleTime: 30000,
+    staleTime: 30000
   });
 
   // Turni liberi disponibili per il ruolo del dipendente
@@ -151,17 +151,17 @@ export default function TurniDipendente() {
         dipendente_id: ''
       });
       const ruoli = currentUser?.ruoli_dipendente || [];
-      return allTurni.filter(t => ruoli.includes(t.ruolo));
+      return allTurni.filter((t) => ruoli.includes(t.ruolo));
     },
     enabled: activeView === 'liberi' && !!currentUser?.ruoli_dipendente?.length,
-    staleTime: 30000,
+    staleTime: 30000
   });
 
   // Richieste turni liberi del dipendente
   const { data: mieRichiesteTurni = [] } = useQuery({
     queryKey: ['mie-richieste-turni', currentUser?.id],
     queryFn: () => base44.entities.RichiestaTurnoLibero.filter({ dipendente_id: currentUser.id }),
-    enabled: !!currentUser?.id,
+    enabled: !!currentUser?.id
   });
 
   // Scambi turno richiesti a me (turni dove io sono "richiesto_a")
@@ -173,14 +173,14 @@ export default function TurniDipendente() {
       const allTurni = await base44.entities.TurnoPlanday.filter({
         data: { $gte: oggi, $lte: maxData }
       });
-      return allTurni.filter(t => 
-        t.richiesta_scambio?.richiesto_a === currentUser.id && 
-        ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato) &&
-        t.id === t.richiesta_scambio?.suo_turno_id
+      return allTurni.filter((t) =>
+      t.richiesta_scambio?.richiesto_a === currentUser.id &&
+      ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato) &&
+      t.id === t.richiesta_scambio?.suo_turno_id
       );
     },
     enabled: activeView === 'scambi' && !!currentUser?.id,
-    staleTime: 15000,
+    staleTime: 15000
   });
 
   // Scambi turno richiesti da me (i miei turni con richiesta_scambio dove io sono richiesto_da)
@@ -193,19 +193,19 @@ export default function TurniDipendente() {
       const allTurni = await base44.entities.TurnoPlanday.filter({
         data: { $gte: oggi, $lte: maxData }
       });
-      return allTurni.filter(t => 
-        t.richiesta_scambio?.richiesto_da === currentUser.id
+      return allTurni.filter((t) =>
+      t.richiesta_scambio?.richiesto_da === currentUser.id
       );
     },
     enabled: activeView === 'scambi' && !!currentUser?.id,
-    staleTime: 15000,
+    staleTime: 15000
   });
 
   const scambiDaMePending = useMemo(() => {
     // Mostra solo il turno del richiedente (mio_turno_id) per evitare duplicati
-    const uniqueSwaps = scambiDaMe.filter(t => 
-      ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato) &&
-      t.id === t.richiesta_scambio?.mio_turno_id
+    const uniqueSwaps = scambiDaMe.filter((t) =>
+    ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato) &&
+    t.id === t.richiesta_scambio?.mio_turno_id
     );
     return uniqueSwaps;
   }, [scambiDaMe]);
@@ -213,26 +213,26 @@ export default function TurniDipendente() {
   const { data: formTrackerConfigs = [] } = useQuery({
     queryKey: ['form-tracker-configs'],
     queryFn: () => base44.entities.FormTrackerConfig.filter({ is_active: true }),
-    staleTime: 60000,
+    staleTime: 60000
   });
 
   const { data: struttureTurno = [] } = useQuery({
     queryKey: ['strutture-turno'],
     queryFn: () => base44.entities.StrutturaTurno.filter({ is_active: { $ne: false } }),
-    staleTime: 60000,
+    staleTime: 60000
   });
 
   const { data: corsi = [] } = useQuery({
     queryKey: ['corsi'],
     queryFn: () => base44.entities.Corso.list(),
-    staleTime: 300000,
+    staleTime: 300000
   });
 
   const { data: attivitaCompletate = [], refetch: refetchAttivitaCompletate } = useQuery({
     queryKey: ['attivita-completate', currentUser?.id],
     queryFn: async () => {
       const ultimiTreGiorni = moment().subtract(3, 'days').format('YYYY-MM-DD');
-      const result = await base44.entities.AttivitaCompletata.filter({ 
+      const result = await base44.entities.AttivitaCompletata.filter({
         dipendente_id: currentUser.id,
         turno_data: { $gte: ultimiTreGiorni }
       });
@@ -240,22 +240,22 @@ export default function TurniDipendente() {
       return result;
     },
     enabled: !!currentUser?.id,
-    staleTime: 0,
+    staleTime: 0
   });
 
   const { data: tipoTurnoConfigs = [] } = useQuery({
     queryKey: ['tipo-turno-configs'],
     queryFn: () => base44.entities.TipoTurnoConfig.list(),
-    staleTime: 300000,
+    staleTime: 300000
   });
 
   const { data: pauseConfig = null } = useQuery({
     queryKey: ['pause-config'],
     queryFn: async () => {
       const configs = await base44.entities.PauseConfig.list();
-      return configs.find(c => c.attivo) || null;
+      return configs.find((c) => c.attivo) || null;
     },
-    staleTime: 300000,
+    staleTime: 300000
   });
 
   const { data: allFormData = {} } = useQuery({
@@ -263,16 +263,16 @@ export default function TurniDipendente() {
     queryFn: async () => {
       const ultimiTreGiorni = moment().subtract(3, 'days').format('YYYY-MM-DD');
       const [inventario, cantina, cassa, teglie, prep, impasti, calcoliImpasto, cleaningInspections, gestioneImpasti] = await Promise.all([
-        base44.entities.RilevazioneInventario.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
-        base44.entities.RilevazioneInventarioCantina.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
-        base44.entities.ConteggioCassa.filter({ data_conteggio: { $gte: ultimiTreGiorni } }),
-        base44.entities.TeglieButtate.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
-        base44.entities.Preparazioni.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
-        base44.entities.CalcoloImpastoLog.filter({ data_calcolo: { $gte: ultimiTreGiorni } }),
-        base44.entities.CalcoloImpastoLog.filter({ data_calcolo: { $gte: ultimiTreGiorni } }),
-        base44.entities.CleaningInspection.filter({ inspection_date: { $gte: ultimiTreGiorni } }),
-        base44.entities.GestioneImpasti.filter({ data_creazione: { $gte: ultimiTreGiorni } })
-      ]);
+      base44.entities.RilevazioneInventario.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
+      base44.entities.RilevazioneInventarioCantina.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
+      base44.entities.ConteggioCassa.filter({ data_conteggio: { $gte: ultimiTreGiorni } }),
+      base44.entities.TeglieButtate.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
+      base44.entities.Preparazioni.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
+      base44.entities.CalcoloImpastoLog.filter({ data_calcolo: { $gte: ultimiTreGiorni } }),
+      base44.entities.CalcoloImpastoLog.filter({ data_calcolo: { $gte: ultimiTreGiorni } }),
+      base44.entities.CleaningInspection.filter({ inspection_date: { $gte: ultimiTreGiorni } }),
+      base44.entities.GestioneImpasti.filter({ data_creazione: { $gte: ultimiTreGiorni } })]
+      );
       return {
         FormInventario: inventario,
         FormCantina: cantina,
@@ -282,37 +282,37 @@ export default function TurniDipendente() {
         Impasto: impasti,
         CalcoliImpasto: calcoliImpasto,
         GestioneImpasti: gestioneImpasti,
-        ControlloPuliziaCassiere: cleaningInspections.filter(i => i.inspector_role === 'Cassiere'),
-        ControlloPuliziaPizzaiolo: cleaningInspections.filter(i => i.inspector_role === 'Pizzaiolo'),
-        ControlloPuliziaStoreManager: cleaningInspections.filter(i => i.inspector_role === 'Store Manager')
+        ControlloPuliziaCassiere: cleaningInspections.filter((i) => i.inspector_role === 'Cassiere'),
+        ControlloPuliziaPizzaiolo: cleaningInspections.filter((i) => i.inspector_role === 'Pizzaiolo'),
+        ControlloPuliziaStoreManager: cleaningInspections.filter((i) => i.inspector_role === 'Store Manager')
       };
     },
-    staleTime: 30000,
+    staleTime: 30000
   });
 
   const { data: ricettaImpasto = [] } = useQuery({
     queryKey: ['ricetta-impasto'],
     queryFn: () => base44.entities.RicettaImpasto.filter({ attivo: { $ne: false } }),
-    staleTime: 300000,
+    staleTime: 300000
   });
 
   const { data: mieDisponibilita = [] } = useQuery({
     queryKey: ['disponibilita', currentUser?.id],
     queryFn: () => base44.entities.Disponibilita.filter({ dipendente_id: currentUser.id }),
     enabled: activeView === 'disponibilita' && !!currentUser?.id,
-    staleTime: 30000,
+    staleTime: 30000
   });
 
   const { data: disponibilitaConfigs = [] } = useQuery({
     queryKey: ['disponibilita-config'],
     queryFn: () => base44.entities.DisponibilitaConfig.filter({ is_active: true }),
-    staleTime: 300000,
+    staleTime: 300000
   });
 
   const { data: straordinariDipendenti = [] } = useQuery({
     queryKey: ['straordinari-dipendenti'],
     queryFn: () => base44.entities.StraordinarioDipendente.list(),
-    staleTime: 300000,
+    staleTime: 300000
   });
 
   const { data: allUsersData = [] } = useQuery({
@@ -324,7 +324,7 @@ export default function TurniDipendente() {
       return response.data.dipendenti || [];
     },
     enabled: showScambioModal && !!currentUser?.id,
-    staleTime: 60000,
+    staleTime: 60000
   });
 
   // Turni del dipendente corrente
@@ -334,14 +334,14 @@ export default function TurniDipendente() {
       if (!currentUser?.id) return [];
       const startDate = weekStart.format('YYYY-MM-DD');
       const endDate = weekStart.clone().add(6, 'days').format('YYYY-MM-DD');
-      
+
       return base44.entities.TurnoPlanday.filter({
         dipendente_id: currentUser.id,
         data: { $gte: startDate, $lte: endDate }
       });
     },
     enabled: !!currentUser?.id,
-    staleTime: 10000,
+    staleTime: 10000
   });
 
   // Turni futuri per scambio (solo prossimi 30 giorni)
@@ -356,7 +356,7 @@ export default function TurniDipendente() {
       });
     },
     enabled: !!currentUser?.id,
-    staleTime: 15000,
+    staleTime: 15000
   });
 
   // Turni futuri del collega selezionato per scambio (filtrati per non passati)
@@ -371,12 +371,12 @@ export default function TurniDipendente() {
       });
       // Filtra turni con ora di inizio non ancora passata
       const now = moment();
-      return allTurni.filter(t => {
+      return allTurni.filter((t) => {
         const turnoStart = moment(`${t.data} ${t.ora_inizio}`);
         return turnoStart.isAfter(now);
       });
     },
-    enabled: !!selectedCollegaScambio?.id,
+    enabled: !!selectedCollegaScambio?.id
   });
 
   // Tutti i turni del giorno del turno selezionato (per vedere sovrapposizioni orarie)
@@ -389,7 +389,7 @@ export default function TurniDipendente() {
       });
       return response.data.turni || [];
     },
-    enabled: !!selectedTurnoScambio,
+    enabled: !!selectedTurnoScambio
   });
 
 
@@ -407,14 +407,14 @@ export default function TurniDipendente() {
     onSuccess: async (_, variables) => {
       // Invalida e aspetta il refetch dei dati
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] }),
-        queryClient.invalidateQueries({ queryKey: ['turni-futuri'] })
-      ]);
-      
+      queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] }),
+      queryClient.invalidateQueries({ queryKey: ['turni-futuri'] })]
+      );
+
       // Aspetta che i dati siano ricaricati
       await queryClient.refetchQueries({ queryKey: ['turni-dipendente'] });
       await queryClient.refetchQueries({ queryKey: ['turni-futuri'] });
-      
+
       setTimbraturaMessage({
         type: 'success',
         text: variables.tipo === 'entrata' ? 'Entrata timbrata con successo!' : 'Uscita timbrata con successo!'
@@ -472,13 +472,13 @@ export default function TurniDipendente() {
   const cancellaScambioMutation = useMutation({
     mutationFn: async ({ mioTurnoId, suoTurnoId }) => {
       await Promise.all([
-        base44.entities.TurnoPlanday.update(mioTurnoId, {
-          richiesta_scambio: null
-        }),
-        base44.entities.TurnoPlanday.update(suoTurnoId, {
-          richiesta_scambio: null
-        })
-      ]);
+      base44.entities.TurnoPlanday.update(mioTurnoId, {
+        richiesta_scambio: null
+      }),
+      base44.entities.TurnoPlanday.update(suoTurnoId, {
+        richiesta_scambio: null
+      })]
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
@@ -493,9 +493,9 @@ export default function TurniDipendente() {
   const richiestaFerieMutation = useMutation({
     mutationFn: async (data) => {
       // Trova turni nel range date (solo turni del dipendente corrente)
-      const turniCoinvolti = turniFuturi.filter(t => {
+      const turniCoinvolti = turniFuturi.filter((t) => {
         return t.dipendente_id === currentUser.id && t.data >= data.data_inizio && t.data <= data.data_fine;
-      }).map(t => t.id);
+      }).map((t) => t.id);
 
       return base44.entities.RichiestaFerie.create({
         dipendente_id: currentUser.id,
@@ -519,11 +519,11 @@ export default function TurniDipendente() {
   const richiestaMalattiaMutation = useMutation({
     mutationFn: async (data) => {
       // Trova turni nel range date (solo turni del dipendente corrente)
-      const turniCoinvolti = turniFuturi.filter(t => 
-        t.dipendente_id === currentUser.id &&
-        t.data >= data.data_inizio && 
-        t.data <= data.data_fine
-      ).map(t => t.id);
+      const turniCoinvolti = turniFuturi.filter((t) =>
+      t.dipendente_id === currentUser.id &&
+      t.data >= data.data_inizio &&
+      t.data <= data.data_fine
+      ).map((t) => t.id);
 
       // Aggiorna turni come Malattia (Non Certificata)
       for (const turnoId of turniCoinvolti) {
@@ -559,7 +559,7 @@ export default function TurniDipendente() {
     setUploadingCertificato(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setMalattiaForm(prev => ({ ...prev, certificato_url: file_url }));
+      setMalattiaForm((prev) => ({ ...prev, certificato_url: file_url }));
     } catch (error) {
       console.error('Error uploading:', error);
     }
@@ -629,9 +629,9 @@ export default function TurniDipendente() {
 
   const iniziaPausaMutation = useMutation({
     mutationFn: async (turno) => {
-      const colleghi = colleghiProssimoTurno.filter(c => 
-        c.dipendente_id !== currentUser?.id && 
-        c.stato === 'in_corso'
+      const colleghi = colleghiProssimoTurno.filter((c) =>
+      c.dipendente_id !== currentUser?.id &&
+      c.stato === 'in_corso'
       );
       return base44.entities.Pausa.create({
         turno_id: turno.id,
@@ -659,7 +659,7 @@ export default function TurniDipendente() {
       const inizio = new Date(pausa.inizio_pausa);
       const fine = new Date(finepausa);
       const durataMinuti = Math.floor((fine - inizio) / 60000);
-      
+
       return base44.entities.Pausa.update(pausa.id, {
         fine_pausa: finepausa,
         durata_effettiva_minuti: durataMinuti,
@@ -677,9 +677,9 @@ export default function TurniDipendente() {
   // Rispondi a scambio turno
   const rispondiScambioMutation = useMutation({
     mutationFn: async ({ suoTurnoId, accetta }) => {
-      const suoTurno = scambiPerMe.find(t => t.id === suoTurnoId);
+      const suoTurno = scambiPerMe.find((t) => t.id === suoTurnoId);
       if (!suoTurno) throw new Error('Turno non trovato');
-      
+
       const mioTurnoId = suoTurno.richiesta_scambio.mio_turno_id;
 
       const mioTurno = await base44.entities.TurnoPlanday.filter({ id: mioTurnoId });
@@ -697,13 +697,13 @@ export default function TurniDipendente() {
         };
 
         await Promise.all([
-          base44.entities.TurnoPlanday.update(turno1.id, {
-            richiesta_scambio: updatedRichiesta
-          }),
-          base44.entities.TurnoPlanday.update(turno2.id, {
-            richiesta_scambio: updatedRichiesta
-          })
-        ]);
+        base44.entities.TurnoPlanday.update(turno1.id, {
+          richiesta_scambio: updatedRichiesta
+        }),
+        base44.entities.TurnoPlanday.update(turno2.id, {
+          richiesta_scambio: updatedRichiesta
+        })]
+        );
       } else {
         // Se rifiutato
         const updatedRichiesta = {
@@ -713,13 +713,13 @@ export default function TurniDipendente() {
         };
 
         await Promise.all([
-          base44.entities.TurnoPlanday.update(turno1.id, {
-            richiesta_scambio: updatedRichiesta
-          }),
-          base44.entities.TurnoPlanday.update(turno2.id, {
-            richiesta_scambio: updatedRichiesta
-          })
-        ]);
+        base44.entities.TurnoPlanday.update(turno1.id, {
+          richiesta_scambio: updatedRichiesta
+        }),
+        base44.entities.TurnoPlanday.update(turno2.id, {
+          richiesta_scambio: updatedRichiesta
+        })]
+        );
       }
     },
     onSuccess: (_, variables) => {
@@ -727,8 +727,8 @@ export default function TurniDipendente() {
       queryClient.invalidateQueries({ queryKey: ['scambi-da-me'] });
       queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
       queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
-      setTimbraturaMessage({ 
-        type: 'success', 
+      setTimbraturaMessage({
+        type: 'success',
         text: variables.accetta ? 'Scambio accettato! In attesa approvazione manager.' : 'Scambio rifiutato.'
       });
       setTimeout(() => setTimbraturaMessage(null), 3000);
@@ -738,7 +738,7 @@ export default function TurniDipendente() {
   // Richiedi turno libero
   const richiediTurnoLiberoMutation = useMutation({
     mutationFn: async (turno) => {
-      const storeName = storesData.find(s => s.id === turno.store_id)?.name || '';
+      const storeName = storesData.find((s) => s.id === turno.store_id)?.name || '';
       return base44.entities.RichiestaTurnoLibero.create({
         turno_id: turno.id,
         dipendente_id: currentUser.id,
@@ -760,28 +760,28 @@ export default function TurniDipendente() {
     }
   });
 
-  const getStoreName = (storeId) => storesData.find(s => s.id === storeId)?.name || '';
+  const getStoreName = (storeId) => storesData.find((s) => s.id === storeId)?.name || '';
 
   const getStatoColor = (stato) => {
     switch (stato) {
-      case 'in_attesa': return 'bg-yellow-100 text-yellow-800';
-      case 'approvata': case 'certificata': return 'bg-green-100 text-green-800';
-      case 'rifiutata': return 'bg-red-100 text-red-800';
-      case 'non_certificata': return 'bg-orange-100 text-orange-800';
-      case 'in_attesa_verifica': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-slate-100 text-slate-800';
+      case 'in_attesa':return 'bg-yellow-100 text-yellow-800';
+      case 'approvata':case 'certificata':return 'bg-green-100 text-green-800';
+      case 'rifiutata':return 'bg-red-100 text-red-800';
+      case 'non_certificata':return 'bg-orange-100 text-orange-800';
+      case 'in_attesa_verifica':return 'bg-blue-100 text-blue-800';
+      default:return 'bg-slate-100 text-slate-800';
     }
   };
 
   const getStatoLabel = (stato) => {
     switch (stato) {
-      case 'in_attesa': return 'In Attesa';
-      case 'approvata': return 'Approvata';
-      case 'rifiutata': return 'Rifiutata';
-      case 'non_certificata': return 'Non Certificata';
-      case 'in_attesa_verifica': return 'In Verifica';
-      case 'certificata': return 'Certificata';
-      default: return stato;
+      case 'in_attesa':return 'In Attesa';
+      case 'approvata':return 'Approvata';
+      case 'rifiutata':return 'Rifiutata';
+      case 'non_certificata':return 'Non Certificata';
+      case 'in_attesa_verifica':return 'In Verifica';
+      case 'certificata':return 'Certificata';
+      default:return stato;
     }
   };
 
@@ -792,8 +792,8 @@ export default function TurniDipendente() {
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
     const Δλ = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
@@ -812,13 +812,13 @@ export default function TurniDipendente() {
   };
 
   const handleTimbra = async (turno, tipo) => {
-    const store = storesData.find(s => s.id === turno.store_id);
-    
+    const store = storesData.find((s) => s.id === turno.store_id);
+
     // Verifica se GPS è richiesto per questo ruolo
-    const richiedeGPS = config?.abilita_timbratura_gps && 
-                        (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(turno.ruolo)) &&
-                        store?.latitude && store?.longitude;
-    
+    const richiedeGPS = config?.abilita_timbratura_gps && (
+    config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(turno.ruolo)) &&
+    store?.latitude && store?.longitude;
+
     if (richiedeGPS) {
       setLoadingGPS(true);
       setGpsError(null);
@@ -869,7 +869,7 @@ export default function TurniDipendente() {
 
   const turniByDay = useMemo(() => {
     const grouped = {};
-    turni.forEach(turno => {
+    turni.forEach((turno) => {
       if (!grouped[turno.data]) grouped[turno.data] = [];
       grouped[turno.data].push(turno);
     });
@@ -878,7 +878,7 @@ export default function TurniDipendente() {
 
   const turnoOggi = useMemo(() => {
     const oggi = moment().format('YYYY-MM-DD');
-    return turni.filter(t => t.data === oggi);
+    return turni.filter((t) => t.data === oggi);
   }, [turni]);
 
   // Prossimo turno (oggi o futuro)
@@ -886,52 +886,52 @@ export default function TurniDipendente() {
     const now = moment();
     const allTurni = [...turni, ...turniFuturi];
     const oreMancataUscita = config?.ore_mancata_uscita || 2;
-    
+
     // Prima controlla se c'è un turno finito che attende timbratura uscita
-    const turnoAttendeUscita = allTurni.find(t => {
+    const turnoAttendeUscita = allTurni.find((t) => {
       if (t.dipendente_id !== currentUser?.id) return false;
       if (t.stato === 'completato') return false;
       if (!t.timbratura_entrata) return false;
       if (t.timbratura_uscita) return false;
-      
+
       let turnoEnd = moment(`${t.data} ${t.ora_fine}`);
       const [endHour] = t.ora_fine.split(':').map(Number);
       if (endHour >= 0 && endHour < 6) {
         turnoEnd = turnoEnd.add(1, 'day');
       }
-      
+
       // Il turno è finito ma non sono passate più di X ore
       const oreDallaFine = now.diff(turnoEnd, 'hours', true);
       return turnoEnd.isBefore(now) && oreDallaFine < oreMancataUscita;
     });
-    
+
     if (turnoAttendeUscita) return turnoAttendeUscita;
-    
-    const futuri = allTurni
-      .filter(t => {
-        // Filtra SOLO turni assegnati al dipendente corrente
-        if (t.dipendente_id !== currentUser?.id) return false;
-        
-        // Escludi turni completati
-        if (t.stato === 'completato') return false;
-        
-        const turnoStart = moment(`${t.data} ${t.ora_inizio}`);
-        let turnoEnd = moment(`${t.data} ${t.ora_fine}`);
-        
-        // Se il turno finisce tra 00:00 e 06:00, è il giorno dopo
-        const [endHour] = t.ora_fine.split(':').map(Number);
-        if (endHour >= 0 && endHour < 6) {
-          turnoEnd = turnoEnd.add(1, 'day');
-        }
-        
-        // Includi turni non ancora iniziati o in corso
-        return turnoEnd.isAfter(now);
-      })
-      .sort((a, b) => {
-        const aStart = moment(`${a.data} ${a.ora_inizio}`);
-        const bStart = moment(`${b.data} ${b.ora_inizio}`);
-        return aStart.diff(bStart);
-      });
+
+    const futuri = allTurni.
+    filter((t) => {
+      // Filtra SOLO turni assegnati al dipendente corrente
+      if (t.dipendente_id !== currentUser?.id) return false;
+
+      // Escludi turni completati
+      if (t.stato === 'completato') return false;
+
+      const turnoStart = moment(`${t.data} ${t.ora_inizio}`);
+      let turnoEnd = moment(`${t.data} ${t.ora_fine}`);
+
+      // Se il turno finisce tra 00:00 e 06:00, è il giorno dopo
+      const [endHour] = t.ora_fine.split(':').map(Number);
+      if (endHour >= 0 && endHour < 6) {
+        turnoEnd = turnoEnd.add(1, 'day');
+      }
+
+      // Includi turni non ancora iniziati o in corso
+      return turnoEnd.isAfter(now);
+    }).
+    sort((a, b) => {
+      const aStart = moment(`${a.data} ${a.ora_inizio}`);
+      const bStart = moment(`${b.data} ${b.ora_inizio}`);
+      return aStart.diff(bStart);
+    });
     return futuri[0] || null;
   }, [turni, turniFuturi, now, currentUser, config]);
 
@@ -941,7 +941,7 @@ export default function TurniDipendente() {
       turno_id: prossimoTurno.id,
       stato: 'in_corso'
     }),
-    enabled: !!prossimoTurno?.id,
+    enabled: !!prossimoTurno?.id
   });
 
   // Colleghi che lavorano nello stesso turno del prossimo turno
@@ -954,30 +954,30 @@ export default function TurniDipendente() {
         store_id: prossimoTurno.store_id
       });
     },
-    enabled: !!prossimoTurno,
+    enabled: !!prossimoTurno
   });
 
   // Calcola se utente è nel raggio del prossimo turno
   const prossimoTurnoStatus = useMemo(() => {
     if (!prossimoTurno) return { canTimbra: false, reason: 'Nessun turno' };
-    
+
     const turnoStart = moment(`${prossimoTurno.data} ${prossimoTurno.ora_inizio}`);
     const turnoEnd = moment(`${prossimoTurno.data} ${prossimoTurno.ora_fine}`);
     const minutesToStart = turnoStart.diff(now, 'minutes');
     const minutesToEnd = turnoEnd.diff(now, 'minutes');
-    const store = storesData.find(s => s.id === prossimoTurno.store_id);
-    
+    const store = storesData.find((s) => s.id === prossimoTurno.store_id);
+
     // Già timbrato entrata? Mostra timer e controllo uscita
     if (prossimoTurno.timbratura_entrata && !prossimoTurno.timbratura_uscita) {
       const entrata = moment(prossimoTurno.timbratura_entrata);
       const durataLavorata = moment.duration(now.diff(entrata));
       const canUscita = now.isSameOrAfter(turnoEnd);
-      
+
       // Verifica se GPS è richiesto per questo ruolo
-      const richiedeGPS = config?.abilita_timbratura_gps && 
-                          (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) &&
-                          store?.latitude && store?.longitude;
-      
+      const richiedeGPS = config?.abilita_timbratura_gps && (
+      config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) &&
+      store?.latitude && store?.longitude;
+
       // Controllo GPS anche per uscita
       let gpsOk = true;
       let gpsReason = null;
@@ -994,10 +994,10 @@ export default function TurniDipendente() {
           }
         }
       }
-      
-      return { 
-        canTimbra: canUscita && gpsOk, 
-        tipo: 'uscita', 
+
+      return {
+        canTimbra: canUscita && gpsOk,
+        tipo: 'uscita',
         reason: !canUscita ? `Mancano ${minutesToEnd}min alla fine del turno` : gpsReason,
         inCorso: true,
         durataLavorata,
@@ -1008,19 +1008,19 @@ export default function TurniDipendente() {
     if (prossimoTurno.timbratura_uscita) {
       return { canTimbra: false, reason: 'Turno completato' };
     }
-    
+
     // Controllo tempo per entrata
     if (minutesToStart > 60) {
       const hours = Math.floor(minutesToStart / 60);
       const mins = minutesToStart % 60;
       return { canTimbra: false, reason: `Mancano ${hours}h ${mins}min al turno` };
     }
-    
+
     // Verifica se GPS è richiesto per questo ruolo
-    const richiedeGPS = config?.abilita_timbratura_gps && 
-                        (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) &&
-                        store?.latitude && store?.longitude;
-    
+    const richiedeGPS = config?.abilita_timbratura_gps && (
+    config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) &&
+    store?.latitude && store?.longitude;
+
     // Controllo GPS
     if (richiedeGPS) {
       if (!userPosition) {
@@ -1032,7 +1032,7 @@ export default function TurniDipendente() {
         return { canTimbra: false, reason: `Sei a ${Math.round(distance)}m dal locale (max ${maxDistance}m)` };
       }
     }
-    
+
     return { canTimbra: true, tipo: 'entrata', reason: null };
   }, [prossimoTurno, storesData, config, userPosition, now]);
 
@@ -1042,55 +1042,55 @@ export default function TurniDipendente() {
     const t1End = turno1Fine.replace(':', '');
     const t2Start = turno2Inizio.replace(':', '');
     const t2End = turno2Fine.replace(':', '');
-    
+
     // Gestione turni che finiscono dopo mezzanotte
     const t1FinishesNextDay = parseInt(t1End) < parseInt(t1Start);
     const t2FinishesNextDay = parseInt(t2End) < parseInt(t2Start);
-    
+
     if (!t1FinishesNextDay && !t2FinishesNextDay) {
       return !(parseInt(t1End) <= parseInt(t2Start) || parseInt(t2End) <= parseInt(t1Start));
     }
-    
+
     return true; // Se uno finisce dopo mezzanotte, consideriamo sovrapposizione per sicurezza
   };
 
   // Colleghi disponibili per scambio
   const colleghiPerScambio = useMemo(() => {
     if (!selectedTurnoScambio || !allUsersData.length) return [];
-    
+
     // Filtra dipendenti per ruolo ed escludi il dipendente corrente
-    const dipendentiConRuolo = allUsersData.filter(user => {
+    const dipendentiConRuolo = allUsersData.filter((user) => {
       if (user.id === currentUser?.id) return false;
       const userRoles = user.ruoli_dipendente || [];
       return userRoles.includes(selectedTurnoScambio.ruolo);
     });
-    
+
     // Filtra dipendenti che NON hanno turni lo stesso giorno
-    const disponibili = dipendentiConRuolo.filter(user => {
-      const turniDipendente = tuttiTurniGiornoScambio.filter(t => t.dipendente_id === user.id);
+    const disponibili = dipendentiConRuolo.filter((user) => {
+      const turniDipendente = tuttiTurniGiornoScambio.filter((t) => t.dipendente_id === user.id);
       return turniDipendente.length === 0;
     });
-    
-    return disponibili
-      .map(user => ({
-        id: user.id,
-        nome_cognome: user.nome_cognome || user.full_name,
-        full_name: user.full_name || user.nome_cognome,
-        ruoli_dipendente: user.ruoli_dipendente || [],
-        haConflitti: false,
-        turniSovrapposti: [],
-        tuttiTurniGiorno: []
-      }))
-      .sort((a, b) => (a.nome_cognome || '').localeCompare(b.nome_cognome || ''));
+
+    return disponibili.
+    map((user) => ({
+      id: user.id,
+      nome_cognome: user.nome_cognome || user.full_name,
+      full_name: user.full_name || user.nome_cognome,
+      ruoli_dipendente: user.ruoli_dipendente || [],
+      haConflitti: false,
+      turniSovrapposti: [],
+      tuttiTurniGiorno: []
+    })).
+    sort((a, b) => (a.nome_cognome || '').localeCompare(b.nome_cognome || ''));
   }, [selectedTurnoScambio, allUsersData, tuttiTurniGiornoScambio, currentUser]);
 
   const openScambioModal = (turno) => {
     // Controlla se il turno è già iniziato
     const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
     if (turnoStart.isSameOrBefore(moment())) {
-      setTimbraturaMessage({ 
-        type: 'error', 
-        text: 'Non puoi richiedere uno scambio per un turno già iniziato' 
+      setTimbraturaMessage({
+        type: 'error',
+        text: 'Non puoi richiedere uno scambio per un turno già iniziato'
       });
       setTimeout(() => setTimbraturaMessage(null), 3000);
       return;
@@ -1110,94 +1110,94 @@ export default function TurniDipendente() {
 
   const getFormDovutiPerTurno = (turno) => {
     if (!turno) return [];
-    
+
     const tipoTurno = turno.tipo_turno || 'Normale';
-    const tipoConfig = tipoTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
+    const tipoConfig = tipoTurnoConfigs.find((tc) => tc.tipo_turno === tipoTurno);
     if (tipoConfig && tipoConfig.richiede_form === false) return [];
-    
+
     const turnoRuolo = turno.ruolo;
     const turnoStoreId = turno.store_id;
     const turnoSequence = turno.turno_sequence || getTurnoSequenceFromMomento(turno);
     const turnoDayOfWeek = new Date(turno.data).getDay();
     const storeName = getStoreName(turnoStoreId);
-    
-    const activeConfigs = formTrackerConfigs.filter(c => c.is_active);
+
+    const activeConfigs = formTrackerConfigs.filter((c) => c.is_active);
     const formDovuti = [];
-    
-    activeConfigs.forEach(config => {
+
+    activeConfigs.forEach((config) => {
       const configRoles = config.assigned_roles || [];
       if (configRoles.length > 0 && !configRoles.includes(turnoRuolo)) return;
-      
+
       const configStores = config.assigned_stores || [];
       if (configStores.length > 0 && !configStores.includes(turnoStoreId)) return;
-      
+
       const daysOfWeek = config.days_of_week || [];
       if (daysOfWeek.length > 0 && !daysOfWeek.includes(turnoDayOfWeek)) return;
-      
+
       const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
       if (!configSequences.includes(turnoSequence)) return;
-      
+
       // METODO PRINCIPALE: Controlla AttivitaCompletata tramite form_page e turno_id
       // CRITICAL: NON basta controllare solo turno_id e form_page, perché potrebbero esserci più attività dello stesso tipo
       const completatoInAttivita = false; // Non usato più, usa il check nelle attività
-      
+
       formDovuti.push({ nome: config.form_name, page: config.form_page, completato: completatoInAttivita });
     });
-    
+
     return formDovuti;
   };
 
   const getAttivitaTurno = (turno) => {
     if (!turno.ruolo || !turno.store_id) return [];
-    
+
     const [h] = turno.ora_inizio.split(':').map(Number);
     const momento = h < 14 ? 'Mattina' : 'Sera';
     const dayOfWeek = new Date(turno.data).getDay();
     const tipoTurno = turno.tipo_turno || 'Normale';
-    const activeDispConfig = disponibilitaConfigs.find(c => c.is_active);
+    const activeDispConfig = disponibilitaConfigs.find((c) => c.is_active);
     const attivitaPagamentoAbilitata = activeDispConfig?.attivita_pagamento_abilitata !== false;
     const retribuzioneOraria = activeDispConfig?.retribuzione_oraria_straordinari || 10;
-    
+
     // Verifica config per tipo turno
-    const tipoConfig = tipoTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
+    const tipoConfig = tipoTurnoConfigs.find((tc) => tc.tipo_turno === tipoTurno);
     if (tipoConfig && tipoConfig.mostra_attivita === false) return [];
-    
+
     // Orari del turno per filtro
     const turnoInizio = turno.ora_inizio;
     const turnoFine = turno.ora_fine;
-    
-    const schemasApplicabili = struttureTurno.filter(st => {
+
+    const schemasApplicabili = struttureTurno.filter((st) => {
       // Check ruolo (singolo) - MUST match exactly
       if (st.ruolo !== turno.ruolo) return false;
-      
+
       // Check stores
       const stStores = st.assigned_stores || [];
       if (stStores.length > 0 && !stStores.includes(turno.store_id)) return false;
-      
+
       // Check giorno (singolo numero) - MUST match exactly
       if (st.giorno_settimana !== dayOfWeek) return false;
-      
+
       // Filtro per tipo turno
       const stTipiTurno = st.tipi_turno || [];
       if (stTipiTurno.length > 0 && !stTipiTurno.includes(tipoTurno)) return false;
-      
+
       // Check if schema is active
       if (st.is_active === false) return false;
-      
+
       return true;
     });
-    
+
     // Se non ci sono schemi applicabili, return empty
     if (schemasApplicabili.length === 0) return [];
-    
+
     // Estrai attività con info complete, ordinate per ora - evita duplicati per NOME attività
     const attivitaMap = new Map();
     const attivitaInizio = [];
     const attivitaFine = [];
-    
-    schemasApplicabili.forEach(st => {
+
+    schemasApplicabili.forEach((st) => {
       if (st.slots && Array.isArray(st.slots) && st.slots.length > 0) {
-        st.slots.forEach(slot => {
+        st.slots.forEach((slot) => {
           if (slot.attivita) {
             // Slot necessario in ogni turno - va sempre mostrato
             if (slot.necessario_in_ogni_turno) {
@@ -1211,7 +1211,7 @@ export default function TurniDipendente() {
                 necessario_in_ogni_turno: true,
                 posizione_turno: slot.posizione_turno
               };
-              
+
               if (slot.posizione_turno === 'inizio') {
                 attivitaInizio.push(attivita);
               } else {
@@ -1219,10 +1219,10 @@ export default function TurniDipendente() {
               }
               return;
             }
-            
+
             // Verifica che lo slot sia dentro l'orario del turno (solo per slot normali)
             const slotInizio = slot.ora_inizio || '00:00';
-            
+
             // Lo slot è valido se inizia durante il turno
             if (slotInizio >= turnoInizio && slotInizio < turnoFine) {
               // Usa solo il nome dell'attività come chiave per evitare duplicati
@@ -1242,42 +1242,42 @@ export default function TurniDipendente() {
         });
       }
     });
-    
+
     // Ordina slot normali per ora
     const attivitaNormali = Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
-    
+
     // Aggiungi attività "Pagamento straordinari" se cassiere e ci sono straordinari in corso o completati durante il turno
     if (attivitaPagamentoAbilitata && turno.ruolo === 'Cassiere' && turno.timbratura_entrata && !turno.timbratura_uscita) {
       const turnoInizio = moment(`${turno.data} ${turno.ora_inizio}`);
       const turnoFine = moment(`${turno.data} ${turno.ora_fine}`);
-      
+
       // Trova tutti i turni straordinari in corso o completati nello stesso giorno e store
-      const straordinariIniziatiBefore = colleghiProssimoTurno.filter(t => {
+      const straordinariIniziatiBefore = colleghiProssimoTurno.filter((t) => {
         if (t.tipo_turno !== 'Straordinario') return false;
         if (!t.timbratura_entrata) return false; // Solo se già iniziato
-        
+
         const straordInizio = moment(t.timbratura_entrata);
-        
+
         // Non ancora pagato
-        const giaPagato = attivitaCompletate.some(ac => 
-          ac.attivita_nome === 'Pagamento straordinari' && 
-          ac.turno_straordinario_id === t.id
+        const giaPagato = attivitaCompletate.some((ac) =>
+        ac.attivita_nome === 'Pagamento straordinari' &&
+        ac.turno_straordinario_id === t.id
         );
-        
+
         // Mostra straordinari iniziati in qualsiasi momento dello stesso giorno nello stesso store
         return !giaPagato;
       });
 
-      straordinariIniziatiBefore.forEach(straord => {
+      straordinariIniziatiBefore.forEach((straord) => {
         const straordInizio = moment(straord.timbratura_entrata);
         const straordFine = straord.timbratura_uscita ? moment(straord.timbratura_uscita) : moment(`${straord.data} ${straord.ora_fine}`);
         const ore = straordFine.diff(straordInizio, 'hours', true);
-        
+
         // Cerca il costo orario specifico del dipendente in StraordinarioDipendente
-        const costoSpecifico = straordinariDipendenti?.find(s => s.dipendente_id === straord.dipendente_id)?.costo_orario_straordinario;
+        const costoSpecifico = straordinariDipendenti?.find((s) => s.dipendente_id === straord.dipendente_id)?.costo_orario_straordinario;
         const costoOrario = costoSpecifico || retribuzioneOraria;
         const importo = Math.ceil(ore * costoOrario);
-        
+
         attivitaNormali.push({
           nome: `Pagamento straordinari - ${straord.dipendente_nome}`,
           ora_inizio: straordInizio.format('HH:mm'),
@@ -1289,27 +1289,27 @@ export default function TurniDipendente() {
         });
       });
     }
-    
+
     // Combina: inizio + normali + fine
     return [...attivitaInizio, ...attivitaNormali, ...attivitaFine];
   };
-  
+
   const isAttivitaCompletata = (turnoId, attivitaNome, oraAttivita = null) => {
-    return attivitaCompletate.some(ac => {
+    return attivitaCompletate.some((ac) => {
       if (ac.turno_id !== turnoId || ac.attivita_nome !== attivitaNome) return false;
-      
+
       // Se l'attività ha un orario specifico, verifica anche quello (per distinguere attività duplicate)
       if (oraAttivita && ac.ora_attivita) {
         return ac.ora_attivita === oraAttivita;
       }
-      
+
       // Se non c'è ora_attivita specifica, considera completata
       return !oraAttivita || !ac.ora_attivita;
     });
   };
-  
+
   const getCorsoNome = (corsoId) => {
-    return corsi.find(c => c.id === corsoId)?.nome_corso || '';
+    return corsi.find((c) => c.id === corsoId)?.nome_corso || '';
   };
 
   useEffect(() => {
@@ -1328,27 +1328,27 @@ export default function TurniDipendente() {
 
   const verificaCondizioniPausa = async (turno) => {
     if (!pauseConfig || !turno.timbratura_entrata) return { canPause: false, reason: 'Configurazione non disponibile' };
-    
+
     const durataMinimaTurnoMs = pauseConfig.durata_minima_turno_minuti * 60000;
     const turnoStart = new Date(`${turno.data} ${turno.ora_inizio}`);
     const turnoEnd = new Date(`${turno.data} ${turno.ora_fine}`);
     const durataTurnoMs = turnoEnd - turnoStart;
-    
+
     if (durataTurnoMs < durataMinimaTurnoMs) {
       return { canPause: false, reason: `Turno troppo breve (min ${pauseConfig.durata_minima_turno_minuti}min)` };
     }
-    
+
     if (pauseConfig.slot_orari && pauseConfig.slot_orari.length > 0) {
       const nowTime = now.format('HH:mm');
-      const inSlot = pauseConfig.slot_orari.some(slot => 
-        nowTime >= slot.orario_inizio && nowTime <= slot.orario_fine
+      const inSlot = pauseConfig.slot_orari.some((slot) =>
+      nowTime >= slot.orario_inizio && nowTime <= slot.orario_fine
       );
       if (!inSlot) {
-        const slots = pauseConfig.slot_orari.map(s => `${s.orario_inizio}-${s.orario_fine}`).join(', ');
+        const slots = pauseConfig.slot_orari.map((s) => `${s.orario_inizio}-${s.orario_fine}`).join(', ');
         return { canPause: false, reason: `Pause consentite: ${slots}` };
       }
     }
-    
+
     // Verifica numero pause già fatte
     const pauseFatteTurno = await base44.entities.Pausa.filter({
       turno_id: turno.id,
@@ -1356,20 +1356,20 @@ export default function TurniDipendente() {
     });
     const numeroPauseFatte = pauseFatteTurno.length;
     const maxPause = pauseConfig.numero_pause_per_turno || 1;
-    
+
     if (numeroPauseFatte >= maxPause) {
       return { canPause: false, reason: `Hai già fatto ${numeroPauseFatte} pausa${numeroPauseFatte > 1 ? 'e' : ''} (max ${maxPause})` };
     }
-    
-    const colleghiInCorso = colleghiProssimoTurno.filter(c => 
-      c.dipendente_id !== currentUser?.id && 
-      c.stato === 'in_corso'
+
+    const colleghiInCorso = colleghiProssimoTurno.filter((c) =>
+    c.dipendente_id !== currentUser?.id &&
+    c.stato === 'in_corso'
     );
-    
+
     if (colleghiInCorso.length < pauseConfig.numero_minimo_colleghi) {
       return { canPause: false, reason: `Servono almeno ${pauseConfig.numero_minimo_colleghi} colleghi presenti` };
     }
-    
+
     return { canPause: true, reason: null };
   };
 
@@ -1382,8 +1382,8 @@ export default function TurniDipendente() {
             <p className="text-slate-500">Caricamento...</p>
           </div>
         </div>
-      </ProtectedPage>
-    );
+      </ProtectedPage>);
+
   }
 
   return (
@@ -1392,73 +1392,73 @@ export default function TurniDipendente() {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-              I Miei Turni
+            <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">I Miei Turni
+
             </h1>
-            <p className="text-slate-500 mt-1">Timbra e gestisci i tuoi turni</p>
+            <p className="text-slate-50 mt-1">Timbra e gestisci i tuoi turni</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <NeumorphicButton 
+            <NeumorphicButton
               onClick={() => setActiveView('prossimo')}
               variant={activeView === 'prossimo' ? 'primary' : 'default'}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Timer className="w-4 h-4" />
               Prossimo
             </NeumorphicButton>
-            <NeumorphicButton 
+            <NeumorphicButton
               onClick={() => setActiveView('tutti')}
               variant={activeView === 'tutti' ? 'primary' : 'default'}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Calendar className="w-4 h-4" />
               Tutti
             </NeumorphicButton>
-            <NeumorphicButton 
+            <NeumorphicButton
               onClick={() => setActiveView('liberi')}
               variant={activeView === 'liberi' ? 'primary' : 'default'}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Users className="w-4 h-4" />
               Liberi
-              {turniLiberi.length > 0 && (
-                <span className="bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">{turniLiberi.length}</span>
-              )}
+              {turniLiberi.length > 0 &&
+              <span className="bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full">{turniLiberi.length}</span>
+              }
             </NeumorphicButton>
-            <NeumorphicButton 
+            <NeumorphicButton
               onClick={() => setActiveView('ferie')}
               variant={activeView === 'ferie' ? 'primary' : 'default'}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Palmtree className="w-4 h-4" />
               Ferie
             </NeumorphicButton>
-            <NeumorphicButton 
+            <NeumorphicButton
               onClick={() => setActiveView('malattia')}
               variant={activeView === 'malattia' ? 'primary' : 'default'}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Thermometer className="w-4 h-4" />
               Malattia
             </NeumorphicButton>
-            <NeumorphicButton 
+            <NeumorphicButton
               onClick={() => setActiveView('scambi')}
               variant={activeView === 'scambi' ? 'primary' : 'default'}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <ArrowRightLeft className="w-4 h-4" />
               Scambi
-              {(scambiPerMe.length > 0 || scambiDaMePending.length > 0) && (
-                <span className="bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+              {(scambiPerMe.length > 0 || scambiDaMePending.length > 0) &&
+              <span className="bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full">
                   {scambiPerMe.length + scambiDaMePending.length}
                 </span>
-              )}
+              }
             </NeumorphicButton>
-            <NeumorphicButton 
+            <NeumorphicButton
               onClick={() => setActiveView('disponibilita')}
               variant={activeView === 'disponibilita' ? 'primary' : 'default'}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <CalendarClock className="w-4 h-4" />
               Disponibilità
             </NeumorphicButton>
@@ -1466,35 +1466,35 @@ export default function TurniDipendente() {
         </div>
 
         {/* Messaggio */}
-        {timbraturaMessage && (
-          <div className={`p-4 rounded-xl flex items-center gap-3 ${
-            timbraturaMessage.type === 'success' ? 'bg-green-100 border border-green-300' : 'bg-red-100 border border-red-300'
-          }`}>
-            {timbraturaMessage.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-green-600" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-red-600" />
-            )}
+        {timbraturaMessage &&
+        <div className={`p-4 rounded-xl flex items-center gap-3 ${
+        timbraturaMessage.type === 'success' ? 'bg-green-100 border border-green-300' : 'bg-red-100 border border-red-300'}`
+        }>
+            {timbraturaMessage.type === 'success' ?
+          <CheckCircle className="w-5 h-5 text-green-600" /> :
+
+          <AlertCircle className="w-5 h-5 text-red-600" />
+          }
             <span className={timbraturaMessage.type === 'success' ? 'text-green-800' : 'text-red-800'}>
               {timbraturaMessage.text}
             </span>
           </div>
-        )}
+        }
 
         {/* Errore GPS */}
-        {gpsError && (
-          <NeumorphicCard className="p-4 bg-red-50 border border-red-200">
+        {gpsError &&
+        <NeumorphicCard className="p-4 bg-red-50 border border-red-200">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-600" />
               <span className="text-red-800">{gpsError}</span>
             </div>
           </NeumorphicCard>
-        )}
+        }
 
         {/* Richiesta permesso GPS */}
-        {gpsPermissionStatus === 'prompt' && config?.abilita_timbratura_gps && 
-         prossimoTurno && (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) && (
-          <NeumorphicCard className="p-4 bg-yellow-50 border border-yellow-200">
+        {gpsPermissionStatus === 'prompt' && config?.abilita_timbratura_gps &&
+        prossimoTurno && (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) &&
+        <NeumorphicCard className="p-4 bg-yellow-50 border border-yellow-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Navigation className="w-5 h-5 text-yellow-600" />
@@ -1505,21 +1505,21 @@ export default function TurniDipendente() {
               </NeumorphicButton>
             </div>
           </NeumorphicCard>
-        )}
+        }
 
-        {gpsPermissionStatus === 'denied' && config?.abilita_timbratura_gps && 
-         prossimoTurno && (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) && (
-          <NeumorphicCard className="p-4 bg-red-50 border border-red-200">
+        {gpsPermissionStatus === 'denied' && config?.abilita_timbratura_gps &&
+        prossimoTurno && (config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) &&
+        <NeumorphicCard className="p-4 bg-red-50 border border-red-200">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-600" />
               <span className="text-red-800">Accesso GPS negato. Abilita la geolocalizzazione nelle impostazioni del browser per poter timbrare.</span>
             </div>
           </NeumorphicCard>
-        )}
+        }
 
         {/* VISTA: PROSSIMO TURNO */}
-        {activeView === 'prossimo' && prossimoTurno && (
-          <NeumorphicCard className={`p-6 border ${prossimoTurnoStatus.inCorso ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' : 'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200'}`}>
+        {activeView === 'prossimo' && prossimoTurno &&
+        <NeumorphicCard className={`p-6 border ${prossimoTurnoStatus.inCorso ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' : 'bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200'}`}>
             <div className="flex items-center justify-between mb-4">
               <h2 className={`text-xl font-bold flex items-center gap-2 ${prossimoTurnoStatus.inCorso ? 'text-green-800' : 'text-indigo-800'}`}>
                 {prossimoTurnoStatus.inCorso ? <Timer className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
@@ -1527,20 +1527,20 @@ export default function TurniDipendente() {
               </h2>
               {/* Countdown */}
               {!prossimoTurnoStatus.inCorso && (() => {
-                const turnoStart = moment(`${prossimoTurno.data} ${prossimoTurno.ora_inizio}`);
-                const diffMs = turnoStart.diff(now);
-                if (diffMs <= 0) return null;
-                const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                return (
-                  <div className="text-right">
+              const turnoStart = moment(`${prossimoTurno.data} ${prossimoTurno.ora_inizio}`);
+              const diffMs = turnoStart.diff(now);
+              if (diffMs <= 0) return null;
+              const hours = Math.floor(diffMs / (1000 * 60 * 60));
+              const minutes = Math.floor(diffMs % (1000 * 60 * 60) / (1000 * 60));
+              return (
+                <div className="text-right">
                     <div className="text-2xl font-bold text-indigo-700 font-mono">
                       {hours < 2 ? `${hours}h ${minutes}m` : `${hours}h`}
                     </div>
                     <div className="text-xs text-indigo-500">al turno</div>
-                  </div>
-                );
-              })()}
+                  </div>);
+
+            })()}
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
@@ -1558,52 +1558,52 @@ export default function TurniDipendente() {
                     <span>•</span>
                     <span>{prossimoTurno.ruolo}</span>
                   </div>
-                  {prossimoTurno.tipo_turno && prossimoTurno.tipo_turno !== 'Normale' && (
-                    <div className="mt-2">
+                  {prossimoTurno.tipo_turno && prossimoTurno.tipo_turno !== 'Normale' &&
+                <div className="mt-2">
                       <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
                         {prossimoTurno.tipo_turno}
                       </span>
                     </div>
-                  )}
-                  {prossimoTurno.is_prova && (
-                    <div className="mt-2 p-2 bg-purple-100 border border-purple-300 rounded-lg">
+                }
+                  {prossimoTurno.is_prova &&
+                <div className="mt-2 p-2 bg-purple-100 border border-purple-300 rounded-lg">
                       <p className="text-xs font-bold text-purple-800">🧪 TURNO DI PROVA</p>
                       <p className="text-xs text-purple-700 mt-1">
                         Oggi hai un candidato in prova. Valuta le sue performance durante il turno.
                       </p>
                     </div>
-                  )}
+                }
                 </div>
                 {!prossimoTurnoStatus.inCorso && !prossimoTurno.timbratura_entrata && !prossimoTurno.timbratura_uscita && (() => {
-                  // Verifica che il turno non sia già iniziato
-                  const turnoStart = moment(`${prossimoTurno.data} ${prossimoTurno.ora_inizio}`);
-                  const turnoNonIniziato = turnoStart.isAfter(moment());
-                  
-                  if (!turnoNonIniziato) return null;
-                  
-                  return (
-                    <div>
-                      {prossimoTurno.richiesta_scambio?.stato === 'pending' ? (
-                        <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-xs font-medium">
+                // Verifica che il turno non sia già iniziato
+                const turnoStart = moment(`${prossimoTurno.data} ${prossimoTurno.ora_inizio}`);
+                const turnoNonIniziato = turnoStart.isAfter(moment());
+
+                if (!turnoNonIniziato) return null;
+
+                return (
+                  <div>
+                      {prossimoTurno.richiesta_scambio?.stato === 'pending' ?
+                    <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-xs font-medium">
                           Scambio richiesto
-                        </span>
-                      ) : (
-                        <NeumorphicButton
-                          onClick={() => openScambioModal(prossimoTurno)}
-                          className="text-sm px-3 py-2 flex items-center gap-1"
-                        >
+                        </span> :
+
+                    <NeumorphicButton
+                      onClick={() => openScambioModal(prossimoTurno)}
+                      className="text-sm px-3 py-2 flex items-center gap-1">
+
                           <Users className="w-4 h-4" />
                           Scambia
                         </NeumorphicButton>
-                      )}
-                    </div>
-                  );
-                })()}
+                    }
+                    </div>);
+
+              })()}
               </div>
 
               {/* Timer turno in corso */}
-              {prossimoTurnoStatus.inCorso && prossimoTurnoStatus.durataLavorata && (
-                <div className="mb-4 p-4 bg-green-50 rounded-xl border border-green-200">
+              {prossimoTurnoStatus.inCorso && prossimoTurnoStatus.durataLavorata &&
+            <div className="mb-4 p-4 bg-green-50 rounded-xl border border-green-200">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-green-700 font-medium">Durata turno</span>
                     <span className="text-2xl font-bold text-green-800 font-mono">
@@ -1614,271 +1614,271 @@ export default function TurniDipendente() {
                   </div>
                   <div className="flex items-center justify-between">
                    <span className="text-sm text-green-700">Entrata: {moment(prossimoTurno.timbratura_entrata).format('HH:mm')}</span>
-                    {prossimoTurnoStatus.minutesToEnd > 0 ? (
-                      <span className="text-sm text-orange-600 font-medium">
+                    {prossimoTurnoStatus.minutesToEnd > 0 ?
+                <span className="text-sm text-orange-600 font-medium">
                         ⏱️ Mancano {prossimoTurnoStatus.minutesToEnd} min alla fine
-                      </span>
-                    ) : (
-                      <span className="text-sm text-green-600 font-medium">
+                      </span> :
+
+                <span className="text-sm text-green-600 font-medium">
                         ✅ Puoi timbrare l'uscita
                       </span>
-                    )}
+                }
                   </div>
                 </div>
-              )}
+            }
 
               {/* Bottone Timbra - SEMPRE VISIBILE IN ALTO */}
               {!prossimoTurnoStatus.inCorso && !prossimoTurno.timbratura_entrata && (() => {
-                const tipoTurno = prossimoTurno.tipo_turno || 'Normale';
-                const tipoConfig = tipoTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
-                const richiedeTimbratura = !tipoConfig || tipoConfig.richiede_timbratura !== false;
-                
-                if (!richiedeTimbratura) return null;
-                
-                return (
-                  <div className="mb-4">
+              const tipoTurno = prossimoTurno.tipo_turno || 'Normale';
+              const tipoConfig = tipoTurnoConfigs.find((tc) => tc.tipo_turno === tipoTurno);
+              const richiedeTimbratura = !tipoConfig || tipoConfig.richiede_timbratura !== false;
+
+              if (!richiedeTimbratura) return null;
+
+              return (
+                <div className="mb-4">
                     <NeumorphicButton
-                      onClick={() => handleTimbra(prossimoTurno, 'entrata')}
-                      variant="primary"
-                      className={`w-full flex items-center justify-center gap-2 py-4 text-lg ${
-                        !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                      disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}
-                    >
-                      {loadingGPS ? (
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                      ) : (
-                        <LogIn className="w-6 h-6" />
-                      )}
+                    onClick={() => handleTimbra(prossimoTurno, 'entrata')}
+                    variant="primary"
+                    className={`w-full flex items-center justify-center gap-2 py-4 text-lg ${
+                    !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : ''}`
+                    }
+                    disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}>
+
+                      {loadingGPS ?
+                    <Loader2 className="w-6 h-6 animate-spin" /> :
+
+                    <LogIn className="w-6 h-6" />
+                    }
                       Timbra Entrata
                     </NeumorphicButton>
-                    {!prossimoTurnoStatus.canTimbra && prossimoTurnoStatus.reason && (
-                      <p className="text-sm text-center mt-2 text-slate-500">
+                    {!prossimoTurnoStatus.canTimbra && prossimoTurnoStatus.reason &&
+                  <p className="text-sm text-center mt-2 text-slate-500">
                         ⚠️ {prossimoTurnoStatus.reason}
                       </p>
-                    )}
-                    {prossimoTurnoStatus.needsGPS && (
-                      <button
-                        onClick={requestGPSPermission}
-                        className="w-full mt-2 text-sm text-blue-600 hover:underline"
-                      >
+                  }
+                    {prossimoTurnoStatus.needsGPS &&
+                  <button
+                    onClick={requestGPSPermission}
+                    className="w-full mt-2 text-sm text-blue-600 hover:underline">
+
                         Clicca qui per attivare il GPS
                       </button>
-                    )}
-                  </div>
-                );
-              })()}
+                  }
+                  </div>);
+
+            })()}
 
               {/* Form e Attività da completare - SOLO PER PROSSIMO TURNO */}
               {(() => {
-                // PRIMA controlla se esistono schemi StrutturaTurno applicabili
-                const attivita = getAttivitaTurno(prossimoTurno);
-                
-                // Se non ci sono schemi StrutturaTurno applicabili, NON mostrare nessuna attività
-                // (anche se ci sono form nel FormTrackerConfig)
-                if (attivita.length === 0) return null;
-                
-                const formDovuti = getFormDovutiPerTurno(prossimoTurno);
-                
-                // Calcola se tutte le attività sono completate
-                const allAttivitaComplete = attivita.every(att => {
-                  const isFormActivity = att.form_page || att.richiede_form;
-                  const isCorsoActivity = att.corsi_ids?.length > 0;
-                  if (isFormActivity) {
-                    // Controlla prima per form_page in AttivitaCompletata con posizione e ora
-                    const completatoViaPagina = attivitaCompletate.some(ac => {
-                      if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
-                      
-                      // Se l'attività ha posizione_turno, verifica anche quella
-                      if (att.posizione_turno && ac.posizione_turno) {
-                        return ac.posizione_turno === att.posizione_turno;
-                      }
-                      
-                      // Se l'attività ha ora_inizio, verifica anche quella
-                      if (att.ora_inizio && ac.ora_attivita) {
-                        return ac.ora_attivita === att.ora_inizio;
-                      }
-                      
-                      return true;
-                    });
-                    if (completatoViaPagina) return true;
-                    return formDovuti.some(f => f.page === att.form_page && f.completato);
-                  }
-                  if (isCorsoActivity) return true; // Corsi sono opzionali
-                  return isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
-                });
-                const formNonAssociatiComplete = formDovuti
-                  .filter(form => !attivita.some(a => a.form_page === form.page))
-                  .every(f => f.completato);
-                const tuttoCompleto = allAttivitaComplete && formNonAssociatiComplete;
-                
-                return (
-                  <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+              // PRIMA controlla se esistono schemi StrutturaTurno applicabili
+              const attivita = getAttivitaTurno(prossimoTurno);
+
+              // Se non ci sono schemi StrutturaTurno applicabili, NON mostrare nessuna attività
+              // (anche se ci sono form nel FormTrackerConfig)
+              if (attivita.length === 0) return null;
+
+              const formDovuti = getFormDovutiPerTurno(prossimoTurno);
+
+              // Calcola se tutte le attività sono completate
+              const allAttivitaComplete = attivita.every((att) => {
+                const isFormActivity = att.form_page || att.richiede_form;
+                const isCorsoActivity = att.corsi_ids?.length > 0;
+                if (isFormActivity) {
+                  // Controlla prima per form_page in AttivitaCompletata con posizione e ora
+                  const completatoViaPagina = attivitaCompletate.some((ac) => {
+                    if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
+
+                    // Se l'attività ha posizione_turno, verifica anche quella
+                    if (att.posizione_turno && ac.posizione_turno) {
+                      return ac.posizione_turno === att.posizione_turno;
+                    }
+
+                    // Se l'attività ha ora_inizio, verifica anche quella
+                    if (att.ora_inizio && ac.ora_attivita) {
+                      return ac.ora_attivita === att.ora_inizio;
+                    }
+
+                    return true;
+                  });
+                  if (completatoViaPagina) return true;
+                  return formDovuti.some((f) => f.page === att.form_page && f.completato);
+                }
+                if (isCorsoActivity) return true; // Corsi sono opzionali
+                return isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
+              });
+              const formNonAssociatiComplete = formDovuti.
+              filter((form) => !attivita.some((a) => a.form_page === form.page)).
+              every((f) => f.completato);
+              const tuttoCompleto = allAttivitaComplete && formNonAssociatiComplete;
+
+              return (
+                <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-bold text-blue-800 flex items-center gap-2">
                         <ClipboardList className="w-4 h-4" />
                         {prossimoTurno.timbrata_entrata ? 'Da completare:' : 'Attività previste:'}
                       </h3>
-                      {prossimoTurno.timbrata_entrata && (
-                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${tuttoCompleto ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'}`}>
-                          {tuttoCompleto ? '✓ Tutto completato' : `${attivita.filter(a => {
-                            const isFormActivity = a.form_page || a.richiede_form;
-                            if (isFormActivity) return formDovuti.some(f => f.page === a.form_page && f.completato);
-                            return isAttivitaCompletata(prossimoTurno.id, a.nome);
-                          }).length}/${attivita.length} completate`}
+                      {prossimoTurno.timbrata_entrata &&
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${tuttoCompleto ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'}`}>
+                          {tuttoCompleto ? '✓ Tutto completato' : `${attivita.filter((a) => {
+                        const isFormActivity = a.form_page || a.richiede_form;
+                        if (isFormActivity) return formDovuti.some((f) => f.page === a.form_page && f.completato);
+                        return isAttivitaCompletata(prossimoTurno.id, a.nome);
+                      }).length}/${attivita.length} completate`}
                         </span>
-                      )}
+                    }
                     </div>
                     <div className="space-y-3">
                       {/* Unifica form e attività - mostra solo attività con relativi bottoni */}
                       {attivita.map((att, idx) => {
-                        const isFormActivity = att.form_page || att.richiede_form;
-                        const isCorsoActivity = att.corsi_ids?.length > 0;
-                        const isCompleted = isFormActivity 
-                          ? (attivitaCompletate.some(ac => {
-                              if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
-                              if (att.posizione_turno && ac.posizione_turno) return ac.posizione_turno === att.posizione_turno;
-                              if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
-                              return true;
-                            }) || formDovuti.some(f => f.page === att.form_page && f.completato))
-                          : isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
-                        
-                        return (
-                          <div key={`att-${idx}-${att.nome}`} className={`p-3 rounded-xl ${isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-white border-2 border-blue-200'} shadow-sm`}>
+                      const isFormActivity = att.form_page || att.richiede_form;
+                      const isCorsoActivity = att.corsi_ids?.length > 0;
+                      const isCompleted = isFormActivity ?
+                      attivitaCompletate.some((ac) => {
+                        if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
+                        if (att.posizione_turno && ac.posizione_turno) return ac.posizione_turno === att.posizione_turno;
+                        if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
+                        return true;
+                      }) || formDovuti.some((f) => f.page === att.form_page && f.completato) :
+                      isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
+
+                      return (
+                        <div key={`att-${idx}-${att.nome}`} className={`p-3 rounded-xl ${isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-white border-2 border-blue-200'} shadow-sm`}>
                             <div className="flex flex-col gap-2">
                               {/* Top: checkbox + info */}
                               <div className="flex items-start gap-3">
                                 <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-500' : 'bg-slate-200'}`}>
-                                  {isCompleted ? (
-                                    <Check className="w-4 h-4 text-white" />
-                                  ) : (
-                                    <span className="w-3 h-3 rounded-full bg-slate-400" />
-                                  )}
+                                  {isCompleted ?
+                                <Check className="w-4 h-4 text-white" /> :
+
+                                <span className="w-3 h-3 rounded-full bg-slate-400" />
+                                }
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className={`font-medium text-sm ${isCompleted ? 'text-green-800 line-through' : 'text-slate-800'}`}>
                                     {att.nome}
                                   </p>
-                                  {(att.ora_inizio || att.ora_fine) && (
-                                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                  {(att.ora_inizio || att.ora_fine) &&
+                                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                                       <Clock className="w-3 h-3" />
                                       {att.ora_inizio}{att.ora_fine ? ` - ${att.ora_fine}` : ''}
                                     </p>
-                                  )}
+                                }
                                 </div>
                               </div>
                               
                               {/* Bottom: action buttons in full width */}
-                              {!isCompleted && prossimoTurno.timbratura_entrata && (
-                              <div className="flex gap-2">
-                                {isCorsoActivity && (
-                                  <Link 
-                                    to={createPageUrl('Academy')}
-                                    className="flex-1 px-4 py-2.5 bg-purple-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-purple-600 shadow-sm"
-                                  >
+                              {!isCompleted && prossimoTurno.timbratura_entrata &&
+                            <div className="flex gap-2">
+                                {isCorsoActivity &&
+                              <Link
+                                to={createPageUrl('Academy')}
+                                className="flex-1 px-4 py-2.5 bg-purple-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-purple-600 shadow-sm">
+
                                     <GraduationCap className="w-4 h-4" /> Corso
                                   </Link>
-                                )}
-                                {isFormActivity && (
-                                  <Link 
-                                    to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id + (att.ora_inizio ? '&ora_attivita=' + att.ora_inizio : '')}
-                                    className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
-                                  >
+                              }
+                                {isFormActivity &&
+                              <Link
+                                to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id + (att.ora_inizio ? '&ora_attivita=' + att.ora_inizio : '')}
+                                className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm">
+
                                     <FileText className="w-4 h-4" /> Compila Form
                                   </Link>
-                                )}
-                                 {!isFormActivity && !isCorsoActivity && !att.isPagamentoStraordinari && (
-                                   <button
-                                     onClick={() => completaAttivitaMutation.mutate({ 
-                                       turno: prossimoTurno, 
-                                       attivitaNome: att.nome,
-                                       oraAttivita: att.ora_inizio
-                                     })}
-                                     disabled={completaAttivitaMutation.isPending}
-                                     className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 shadow-sm"
-                                   >
+                              }
+                                 {!isFormActivity && !isCorsoActivity && !att.isPagamentoStraordinari &&
+                              <button
+                                onClick={() => completaAttivitaMutation.mutate({
+                                  turno: prossimoTurno,
+                                  attivitaNome: att.nome,
+                                  oraAttivita: att.ora_inizio
+                                })}
+                                disabled={completaAttivitaMutation.isPending}
+                                className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-green-600 shadow-sm">
+
                                      <Check className="w-4 h-4" /> Segna Fatto
                                    </button>
-                                 )}
-                                 {att.isPagamentoStraordinari && (
-                                   <button
-                                    onClick={() => completaAttivitaMutation.mutate({ 
-                                      turno: prossimoTurno, 
-                                      attivitaNome: att.nome,
-                                      importoPagato: att.importoPagamento,
-                                      turnoStraordinarioId: att.turnoStraordinarioId,
-                                      dipendentePagatoNome: att.dipendenteStraordinario,
-                                      dipendentePagatoId: att.dipendenteStraordinarioId
-                                    })}
-                                    disabled={completaAttivitaMutation.isPending}
-                                    className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-col justify-center gap-1 hover:bg-green-600 shadow-sm"
-                                   >
+                              }
+                                 {att.isPagamentoStraordinari &&
+                              <button
+                                onClick={() => completaAttivitaMutation.mutate({
+                                  turno: prossimoTurno,
+                                  attivitaNome: att.nome,
+                                  importoPagato: att.importoPagamento,
+                                  turnoStraordinarioId: att.turnoStraordinarioId,
+                                  dipendentePagatoNome: att.dipendenteStraordinario,
+                                  dipendentePagatoId: att.dipendenteStraordinarioId
+                                })}
+                                disabled={completaAttivitaMutation.isPending}
+                                className="flex-1 px-4 py-2.5 bg-green-500 text-white text-sm font-medium rounded-xl flex items-col justify-center gap-1 hover:bg-green-600 shadow-sm">
+
                                     <Euro className="w-4 h-4" /> 
                                     <div className="text-left">
                                       <div>Paga €{att.importoPagamento.toFixed(0)}</div>
                                       <div className="text-[10px] opacity-80">a {att.dipendenteStraordinario}</div>
                                     </div>
                                    </button>
-                                 )}
+                              }
                                </div>
-                              )}
-                              {!isCompleted && !prossimoTurno.timbratura_entrata && (
-                               <div className="p-2 bg-yellow-50 rounded-lg text-xs text-yellow-700 flex items-center gap-2">
+                            }
+                              {!isCompleted && !prossimoTurno.timbratura_entrata &&
+                            <div className="p-2 bg-yellow-50 rounded-lg text-xs text-yellow-700 flex items-center gap-2">
                                  <AlertCircle className="w-3 h-3" />
                                  Timbra entrata per sbloccare
                                </div>
-                              )}
-                              {isCompleted && (
-                                <span className="px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-xl flex items-center justify-center gap-1">
+                            }
+                              {isCompleted &&
+                            <span className="px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-xl flex items-center justify-center gap-1">
                                   <CheckCircle className="w-4 h-4" /> Completato
                                 </span>
-                              )}
+                            }
 
                               {/* Mostra ricetta impasto se attività completata */}
                               {isCompleted && att.form_page === 'Impasto' && (() => {
-                                const calcoliImpasto = allFormData.CalcoliImpasto || [];
-                                const calcoloRecente = calcoliImpasto
-                                  .filter(c => c.store_id === prossimoTurno.store_id)
-                                  .sort((a, b) => new Date(b.data_calcolo) - new Date(a.data_calcolo))[0];
+                              const calcoliImpasto = allFormData.CalcoliImpasto || [];
+                              const calcoloRecente = calcoliImpasto.
+                              filter((c) => c.store_id === prossimoTurno.store_id).
+                              sort((a, b) => new Date(b.data_calcolo) - new Date(a.data_calcolo))[0];
 
-                                if (!calcoloRecente || !calcoloRecente.impasto_suggerito) return null;
+                              if (!calcoloRecente || !calcoloRecente.impasto_suggerito) return null;
 
-                                const ingredientiRicetta = ricettaImpasto
-                                  .filter(i => i.attivo !== false)
-                                  .sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+                              const ingredientiRicetta = ricettaImpasto.
+                              filter((i) => i.attivo !== false).
+                              sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
 
-                                const ingredientiNecessari = ingredientiRicetta.map(ing => {
-                                  let quantita = ing.quantita_per_pallina * calcoloRecente.impasto_suggerito;
+                              const ingredientiNecessari = ingredientiRicetta.map((ing) => {
+                                let quantita = ing.quantita_per_pallina * calcoloRecente.impasto_suggerito;
 
-                                  if (ing.arrotondamento === 'intero') {
-                                    quantita = Math.ceil(quantita);
-                                  } else if (ing.arrotondamento === 'decine') {
-                                    quantita = Math.ceil(quantita / 10) * 10;
-                                  } else if (ing.arrotondamento === 'centinaia') {
-                                    quantita = Math.ceil(quantita / 100) * 100;
-                                  }
+                                if (ing.arrotondamento === 'intero') {
+                                  quantita = Math.ceil(quantita);
+                                } else if (ing.arrotondamento === 'decine') {
+                                  quantita = Math.ceil(quantita / 10) * 10;
+                                } else if (ing.arrotondamento === 'centinaia') {
+                                  quantita = Math.ceil(quantita / 100) * 100;
+                                }
 
-                                  let displayValue = quantita;
-                                  let displayUnit = ing.unita_misura;
+                                let displayValue = quantita;
+                                let displayUnit = ing.unita_misura;
 
-                                  if (ing.unita_misura === 'kg') {
-                                    displayValue = displayValue * 1000;
-                                    displayUnit = 'g';
-                                  }
-                                  if (ing.unita_misura === 'litri') {
-                                    displayValue = displayValue * 1000;
-                                    displayUnit = 'ml';
-                                  }
+                                if (ing.unita_misura === 'kg') {
+                                  displayValue = displayValue * 1000;
+                                  displayUnit = 'g';
+                                }
+                                if (ing.unita_misura === 'litri') {
+                                  displayValue = displayValue * 1000;
+                                  displayUnit = 'ml';
+                                }
 
-                                  return {
-                                    nome: ing.nome_ingrediente,
-                                    quantita: Math.round(displayValue),
-                                    unita: displayUnit
-                                  };
-                                });
+                                return {
+                                  nome: ing.nome_ingrediente,
+                                  quantita: Math.round(displayValue),
+                                  unita: displayUnit
+                                };
+                              });
 
-                                return (
-                                  <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+                              return (
+                                <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
                                     <div className="flex items-center gap-2 mb-2">
                                       <ChefHat className="w-4 h-4 text-blue-600" />
                                       <span className="text-sm font-bold text-blue-800">
@@ -1886,43 +1886,43 @@ export default function TurniDipendente() {
                                       </span>
                                     </div>
                                     <div className="space-y-1.5">
-                                      {ingredientiNecessari.map((ing, i) => (
-                                        <div key={i} className="flex justify-between items-center text-xs bg-white p-2 rounded-lg">
+                                      {ingredientiNecessari.map((ing, i) =>
+                                    <div key={i} className="flex justify-between items-center text-xs bg-white p-2 rounded-lg">
                                           <span className="text-slate-700">{ing.nome}</span>
                                           <span className="font-bold text-slate-800">{ing.quantita} {ing.unita}</span>
                                         </div>
-                                      ))}
+                                    )}
                                     </div>
-                                    {calcoloRecente.impasto_suggerito > 65 && (
-                                      <div className="mt-2 p-2 bg-red-100 rounded-lg">
+                                    {calcoloRecente.impasto_suggerito > 65 &&
+                                  <div className="mt-2 p-2 bg-red-100 rounded-lg">
                                         <p className="text-xs text-red-700 font-medium">
                                           ⚠️ Fai {Math.ceil(calcoloRecente.impasto_suggerito / 65)} impasti separati (max 65 palline ciascuno)
                                         </p>
                                       </div>
-                                    )}
-                                  </div>
-                                );
-                              })()}
+                                  }
+                                  </div>);
+
+                            })()}
 
                               {/* Mostra precotture se attività completata */}
                               {att.form_page === 'Precotture' && (() => {
-                                // Trova l'attività completata corrispondente a questa attività
-                                const attivitaCompl = attivitaCompletate.find(ac => {
-                                  if (ac.turno_id !== prossimoTurno.id || ac.form_page !== 'Precotture') return false;
-                                  if (att.posizione_turno && ac.posizione_turno) return ac.posizione_turno === att.posizione_turno;
-                                  if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
-                                  return true;
-                                });
+                              // Trova l'attività completata corrispondente a questa attività
+                              const attivitaCompl = attivitaCompletate.find((ac) => {
+                                if (ac.turno_id !== prossimoTurno.id || ac.form_page !== 'Precotture') return false;
+                                if (att.posizione_turno && ac.posizione_turno) return ac.posizione_turno === att.posizione_turno;
+                                if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
+                                return true;
+                              });
 
-                                console.log('Precotture - att:', att);
-                                console.log('Precotture - attivitaCompl trovata:', attivitaCompl);
-                                console.log('Precotture - tutte attività completate:', attivitaCompletate.filter(ac => ac.form_page === 'Precotture'));
+                              console.log('Precotture - att:', att);
+                              console.log('Precotture - attivitaCompl trovata:', attivitaCompl);
+                              console.log('Precotture - tutte attività completate:', attivitaCompletate.filter((ac) => ac.form_page === 'Precotture'));
 
-                                if (!attivitaCompl) return null;
-                                if (attivitaCompl.rosse_da_fare === undefined || attivitaCompl.rosse_da_fare === null) return null;
+                              if (!attivitaCompl) return null;
+                              if (attivitaCompl.rosse_da_fare === undefined || attivitaCompl.rosse_da_fare === null) return null;
 
-                                return (
-                                  <div className="mt-3 p-3 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border-2 border-orange-300 shadow-md">
+                              return (
+                                <div className="mt-3 p-3 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border-2 border-orange-300 shadow-md">
                                     <div className="flex items-center gap-2 mb-3">
                                       <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
                                         <Pizza className="w-5 h-5 text-white" />
@@ -1936,33 +1936,33 @@ export default function TurniDipendente() {
                                         <span className="text-sm font-medium text-slate-700">Teglie Rosse da preparare</span>
                                         <span className="text-3xl font-bold text-orange-600">{attivitaCompl.rosse_da_fare}</span>
                                       </div>
-                                      {attivitaCompl.turno_precotture && (
-                                        <div className="mt-3 pt-3 border-t border-orange-200">
+                                      {attivitaCompl.turno_precotture &&
+                                    <div className="mt-3 pt-3 border-t border-orange-200">
                                           <div className="flex items-center justify-between">
                                             <span className="text-xs text-slate-600">Turno</span>
                                             <span className="text-sm font-bold text-orange-800 capitalize">{attivitaCompl.turno_precotture}</span>
                                           </div>
                                         </div>
-                                      )}
+                                    }
                                     </div>
-                                  </div>
-                                );
-                              })()}
+                                  </div>);
+
+                            })()}
                               </div>
-                              </div>
-                              );
-                              })}
+                              </div>);
+
+                    })}
                       {/* Form non associati a slot */}
-                      {formDovuti.filter(form => !attivita.some(a => a.form_page === form.page)).map((form, idx) => (
-                        <div key={`form-extra-${idx}`} className={`p-3 rounded-xl ${form.completato ? 'bg-green-100 border-2 border-green-300' : 'bg-white border-2 border-blue-200'} shadow-sm`}>
+                      {formDovuti.filter((form) => !attivita.some((a) => a.form_page === form.page)).map((form, idx) =>
+                    <div key={`form-extra-${idx}`} className={`p-3 rounded-xl ${form.completato ? 'bg-green-100 border-2 border-green-300' : 'bg-white border-2 border-blue-200'} shadow-sm`}>
                           <div className="flex flex-col gap-2">
                             <div className="flex items-start gap-3">
                               <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${form.completato ? 'bg-green-500' : 'bg-slate-200'}`}>
-                                {form.completato ? (
-                                  <Check className="w-4 h-4 text-white" />
-                                ) : (
-                                  <span className="w-3 h-3 rounded-full bg-slate-400" />
-                                )}
+                                {form.completato ?
+                            <Check className="w-4 h-4 text-white" /> :
+
+                            <span className="w-3 h-3 rounded-full bg-slate-400" />
+                            }
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className={`font-medium text-sm ${form.completato ? 'text-green-800 line-through' : 'text-slate-800'}`}>
@@ -1970,46 +1970,46 @@ export default function TurniDipendente() {
                                 </p>
                               </div>
                             </div>
-                            {form.completato ? (
-                              <span className="px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-xl flex items-center justify-center gap-1">
+                            {form.completato ?
+                        <span className="px-3 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-xl flex items-center justify-center gap-1">
                                 <CheckCircle className="w-4 h-4" /> Completato
-                              </span>
-                            ) : prossimoTurno.timbratura_entrata ? (
-                             <Link 
-                               to={createPageUrl(form.page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(form.nome) + '&store_id=' + prossimoTurno.store_id + '&ora_attivita=manual'}
-                               className="px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm"
-                             >
+                              </span> :
+                        prossimoTurno.timbratura_entrata ?
+                        <Link
+                          to={createPageUrl(form.page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(form.nome) + '&store_id=' + prossimoTurno.store_id + '&ora_attivita=manual'}
+                          className="px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm">
+
                                <FileText className="w-4 h-4" /> Compila Form
-                             </Link>
-                            ) : (
-                              <div className="p-2 bg-yellow-50 rounded-lg text-xs text-yellow-700 flex items-center gap-2">
+                             </Link> :
+
+                        <div className="p-2 bg-yellow-50 rounded-lg text-xs text-yellow-700 flex items-center gap-2">
                                 <AlertCircle className="w-3 h-3" />
                                 Timbra entrata per sbloccare
                               </div>
-                            )}
+                        }
                           </div>
                         </div>
-                      ))}
+                    )}
                     </div>
                     
                     {/* Warning se non tutto completato e turno in corso */}
-                    {prossimoTurno.timbratura_entrata && !tuttoCompleto && (
-                      <div className="mt-4 p-3 bg-orange-100 rounded-xl border border-orange-300">
+                    {prossimoTurno.timbratura_entrata && !tuttoCompleto &&
+                  <div className="mt-4 p-3 bg-orange-100 rounded-xl border border-orange-300">
                         <p className="text-sm text-orange-800 flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4" />
                           Completa tutte le attività prima di timbrare l'uscita
                         </p>
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
+                  }
+                  </div>);
+
+            })()}
 
               {/* Gestione Pause - solo se turno in corso */}
-              {prossimoTurnoStatus.inCorso && pauseConfig && (
-                <div className="mb-4">
-                  {pausaInCorso ? (
-                    <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+              {prossimoTurnoStatus.inCorso && pauseConfig &&
+            <div className="mb-4">
+                  {pausaInCorso ?
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Coffee className="w-5 h-5 text-amber-600" />
@@ -2017,70 +2017,70 @@ export default function TurniDipendente() {
                         </div>
                         <span className="text-lg font-bold text-amber-700 font-mono">
                           {(() => {
-                            const inizioPausa = moment(pausaInCorso.inizio_pausa);
-                            const finePausaPrevista = inizioPausa.clone().add(pauseConfig.durata_pausa_minuti, 'minutes');
-                            const diffMs = finePausaPrevista.diff(now);
-                            if (diffMs <= 0) return '00:00';
-                            const minuti = Math.floor(diffMs / 60000);
-                            const secondi = Math.floor((diffMs % 60000) / 1000);
-                            return `${String(minuti).padStart(2, '0')}:${String(secondi).padStart(2, '0')}`;
-                          })()}
+                      const inizioPausa = moment(pausaInCorso.inizio_pausa);
+                      const finePausaPrevista = inizioPausa.clone().add(pauseConfig.durata_pausa_minuti, 'minutes');
+                      const diffMs = finePausaPrevista.diff(now);
+                      if (diffMs <= 0) return '00:00';
+                      const minuti = Math.floor(diffMs / 60000);
+                      const secondi = Math.floor(diffMs % 60000 / 1000);
+                      return `${String(minuti).padStart(2, '0')}:${String(secondi).padStart(2, '0')}`;
+                    })()}
                         </span>
                       </div>
                       <p className="text-sm text-amber-700 mb-3">
                         Durata prevista: {pauseConfig.durata_pausa_minuti} minuti
                       </p>
                       <NeumorphicButton
-                        onClick={() => finisciPausaMutation.mutate(pausaInCorso)}
-                        disabled={finisciPausaMutation.isPending}
-                        className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white"
-                      >
+                  onClick={() => finisciPausaMutation.mutate(pausaInCorso)}
+                  disabled={finisciPausaMutation.isPending}
+                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white">
+
                         {finisciPausaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Termina Pausa'}
                       </NeumorphicButton>
-                    </div>
-                  ) : (
-                    <div>
+                    </div> :
+
+              <div>
                       <NeumorphicButton
-                        onClick={() => iniziaPausaMutation.mutate(prossimoTurno)}
-                        disabled={!condizioniPausa.canPause || iniziaPausaMutation.isPending}
-                        className={`w-full flex items-center justify-center gap-2 py-3 ${
-                          !condizioniPausa.canPause ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                      >
-                        {iniziaPausaMutation.isPending ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <>
+                  onClick={() => iniziaPausaMutation.mutate(prossimoTurno)}
+                  disabled={!condizioniPausa.canPause || iniziaPausaMutation.isPending}
+                  className={`w-full flex items-center justify-center gap-2 py-3 ${
+                  !condizioniPausa.canPause ? 'opacity-50 cursor-not-allowed' : ''}`
+                  }>
+
+                        {iniziaPausaMutation.isPending ?
+                  <Loader2 className="w-5 h-5 animate-spin" /> :
+
+                  <>
                             <Coffee className="w-5 h-5" />
                             Inizia Pausa
                           </>
-                        )}
+                  }
                       </NeumorphicButton>
-                      {!condizioniPausa.canPause && condizioniPausa.reason && (
-                        <p className="text-xs text-center mt-2 text-slate-500">
+                      {!condizioniPausa.canPause && condizioniPausa.reason &&
+                <p className="text-xs text-center mt-2 text-slate-500">
                           {condizioniPausa.reason}
                         </p>
-                      )}
+                }
                     </div>
-                  )}
+              }
                 </div>
-              )}
+            }
 
               {/* Bottone Timbra Uscita - solo se turno in corso */}
               {prossimoTurnoStatus.inCorso && (() => {
-                // Verifica se tutte le attività sono completate
-                const formDovuti = getFormDovutiPerTurno(prossimoTurno);
-                const attivita = getAttivitaTurno(prossimoTurno);
-                
-                // Se non ci sono attività da fare, permetti sempre timbratura
-                const haAttivita = attivita.length > 0;
-                
-                const allAttivitaComplete = attivita.every(att => {
+              // Verifica se tutte le attività sono completate
+              const formDovuti = getFormDovutiPerTurno(prossimoTurno);
+              const attivita = getAttivitaTurno(prossimoTurno);
+
+              // Se non ci sono attività da fare, permetti sempre timbratura
+              const haAttivita = attivita.length > 0;
+
+              const allAttivitaComplete = attivita.every((att) => {
                 const isFormActivity = att.form_page || att.richiede_form;
                 const isCorsoActivity = att.corsi_ids?.length > 0;
                 if (isFormActivity) {
                   // Controlla per attivita_nome + ora_attivita in AttivitaCompletata
-                  return attivitaCompletate.some(ac => {
+                  return attivitaCompletate.some((ac) => {
                     if (ac.turno_id !== prossimoTurno.id || ac.attivita_nome !== att.nome) return false;
 
                     // Se l'attività ha ora_inizio, verifica anche l'ora_attivita
@@ -2094,63 +2094,63 @@ export default function TurniDipendente() {
                 }
                 if (isCorsoActivity) return true;
                 return isAttivitaCompletata(prossimoTurno.id, att.nome, att.ora_inizio);
-                });
-                const formNonAssociatiComplete = formDovuti
-                  .filter(form => !attivita.some(a => a.form_page === form.page))
-                  .every(f => f.completato);
-                const tuttoCompleto = !haAttivita || (allAttivitaComplete && formNonAssociatiComplete);
-                
-                // Trova attività non completate
-                const attivitaNonComplete = attivita.filter(att => {
-                  const isFormActivity = att.form_page || att.richiede_form;
-                  const isCorsoActivity = att.corsi_ids?.length > 0;
-                  if (isFormActivity) {
-                    // Controlla per attivita_nome + ora_attivita
-                    return !attivitaCompletate.some(ac => {
-                      if (ac.turno_id !== prossimoTurno.id || ac.attivita_nome !== att.nome) return false;
-                      if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
-                      return !att.ora_inizio || !ac.ora_attivita;
-                    });
-                  }
-                  if (isCorsoActivity) return false;
-                  return !isAttivitaCompletata(prossimoTurno.id, att.nome, att.ora_inizio);
-                });
-                
-                const handleTimbraUscita = () => {
-                  if (haAttivita && !tuttoCompleto) {
-                    const listaAttivita = attivitaNonComplete.map(a => `• ${a.nome}`).join('\n');
-                    const conferma = window.confirm(
-                      `⚠️ ATTENZIONE\n\nHai ancora attività non completate:\n\n${listaAttivita}\n\nSei sicuro di voler timbrare l'uscita?`
-                    );
-                    if (!conferma) return;
-                  }
-                  handleTimbra(prossimoTurno, 'uscita');
-                };
-                
-                return (
-                  <>
+              });
+              const formNonAssociatiComplete = formDovuti.
+              filter((form) => !attivita.some((a) => a.form_page === form.page)).
+              every((f) => f.completato);
+              const tuttoCompleto = !haAttivita || allAttivitaComplete && formNonAssociatiComplete;
+
+              // Trova attività non completate
+              const attivitaNonComplete = attivita.filter((att) => {
+                const isFormActivity = att.form_page || att.richiede_form;
+                const isCorsoActivity = att.corsi_ids?.length > 0;
+                if (isFormActivity) {
+                  // Controlla per attivita_nome + ora_attivita
+                  return !attivitaCompletate.some((ac) => {
+                    if (ac.turno_id !== prossimoTurno.id || ac.attivita_nome !== att.nome) return false;
+                    if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
+                    return !att.ora_inizio || !ac.ora_attivita;
+                  });
+                }
+                if (isCorsoActivity) return false;
+                return !isAttivitaCompletata(prossimoTurno.id, att.nome, att.ora_inizio);
+              });
+
+              const handleTimbraUscita = () => {
+                if (haAttivita && !tuttoCompleto) {
+                  const listaAttivita = attivitaNonComplete.map((a) => `• ${a.nome}`).join('\n');
+                  const conferma = window.confirm(
+                    `⚠️ ATTENZIONE\n\nHai ancora attività non completate:\n\n${listaAttivita}\n\nSei sicuro di voler timbrare l'uscita?`
+                  );
+                  if (!conferma) return;
+                }
+                handleTimbra(prossimoTurno, 'uscita');
+              };
+
+              return (
+                <>
                     <NeumorphicButton
-                      onClick={handleTimbraUscita}
-                      variant="primary"
-                      className={`w-full flex items-center justify-center gap-2 py-4 text-lg ${
-                        !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-green-600'
-                      }`}
-                      disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}
-                    >
-                      {loadingGPS ? (
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                      ) : (
-                        <LogOut className="w-6 h-6" />
-                      )}
+                    onClick={handleTimbraUscita}
+                    variant="primary"
+                    className={`w-full flex items-center justify-center gap-2 py-4 text-lg ${
+                    !prossimoTurnoStatus.canTimbra ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-green-600'}`
+                    }
+                    disabled={!prossimoTurnoStatus.canTimbra || loadingGPS || timbraMutation.isPending}>
+
+                      {loadingGPS ?
+                    <Loader2 className="w-6 h-6 animate-spin" /> :
+
+                    <LogOut className="w-6 h-6" />
+                    }
                       Timbra Uscita
                     </NeumorphicButton>
-                    {!prossimoTurnoStatus.canTimbra && (
-                      <p className="text-sm text-center mt-2 text-orange-600 font-medium">
+                    {!prossimoTurnoStatus.canTimbra &&
+                  <p className="text-sm text-center mt-2 text-orange-600 font-medium">
                         {prossimoTurnoStatus.reason}
                       </p>
-                    )}
-                    {haAttivita && !tuttoCompleto && prossimoTurnoStatus.canTimbra && (
-                      <div className="mt-3 p-3 bg-orange-100 rounded-xl border border-orange-300">
+                  }
+                    {haAttivita && !tuttoCompleto && prossimoTurnoStatus.canTimbra &&
+                  <div className="mt-3 p-3 bg-orange-100 rounded-xl border border-orange-300">
                         <p className="text-sm text-orange-800 flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4" />
                           Attività non completate: {attivitaNonComplete.length}
@@ -2159,28 +2159,28 @@ export default function TurniDipendente() {
                           Puoi timbrare ma ricorda di completare le attività
                         </p>
                       </div>
-                    )}
-                  </>
-                );
-              })()}
+                  }
+                  </>);
+
+            })()}
             </div>
 
             {/* Colleghi in turno */}
-            {colleghiProssimoTurno.filter(c => c.dipendente_id !== currentUser?.id).length > 0 && (
-              <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            {colleghiProssimoTurno.filter((c) => c.dipendente_id !== currentUser?.id).length > 0 &&
+          <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
                 <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   Colleghi in turno con te
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {colleghiProssimoTurno
-                    .filter(c => c.dipendente_id !== currentUser?.id)
-                    .map(collega => (
-                      <div key={collega.id} className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
+                  {colleghiProssimoTurno.
+              filter((c) => c.dipendente_id !== currentUser?.id).
+              map((collega) =>
+              <div key={collega.id} className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                          collega.ruolo === 'Pizzaiolo' ? 'bg-orange-500' :
-                          collega.ruolo === 'Cassiere' ? 'bg-blue-500' : 'bg-purple-500'
-                        }`}>
+                collega.ruolo === 'Pizzaiolo' ? 'bg-orange-500' :
+                collega.ruolo === 'Cassiere' ? 'bg-blue-500' : 'bg-purple-500'}`
+                }>
                           {(collega.dipendente_nome || '?').substring(0, 2).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -2188,25 +2188,25 @@ export default function TurniDipendente() {
                           <p className="text-xs text-slate-500">{collega.ruolo} • {collega.ora_inizio}-{collega.ora_fine}</p>
                         </div>
                       </div>
-                    ))}
+              )}
                 </div>
               </div>
-            )}
+          }
           </NeumorphicCard>
-        )}
+        }
 
         {/* Nessun prossimo turno */}
-        {activeView === 'prossimo' && !prossimoTurno && (
-          <NeumorphicCard className="p-8 text-center">
+        {activeView === 'prossimo' && !prossimoTurno &&
+        <NeumorphicCard className="p-8 text-center">
             <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-500 text-lg">Nessun turno programmato</p>
             <p className="text-slate-400 text-sm mt-2">Non hai turni futuri assegnati</p>
           </NeumorphicCard>
-        )}
+        }
 
         {/* VISTA: TUTTI I TURNI */}
-        {activeView === 'tutti' && (
-          <>
+        {activeView === 'tutti' &&
+        <>
         {/* Navigazione settimana */}
         <NeumorphicCard className="p-4">
           <div className="flex items-center justify-between">
@@ -2224,12 +2224,12 @@ export default function TurniDipendente() {
 
         {/* Vista settimanale */}
         <div className="space-y-3">
-          {isLoading ? (
+          {isLoading ?
             <NeumorphicCard className="p-8 text-center">
               <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
-            </NeumorphicCard>
-          ) : (
-            weekDays.map(day => {
+            </NeumorphicCard> :
+
+            weekDays.map((day) => {
               const dayKey = day.format('YYYY-MM-DD');
               const dayTurni = turniByDay[dayKey] || [];
               const isToday = day.isSame(moment(), 'day');
@@ -2238,8 +2238,8 @@ export default function TurniDipendente() {
                 <NeumorphicCard key={dayKey} className={`p-4 ${isToday ? 'border-2 border-blue-400' : ''}`}>
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${
-                      isToday ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-700'
-                    }`}>
+                    isToday ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-700'}`
+                    }>
                       {day.format('DD')}
                     </div>
                     <div>
@@ -2248,88 +2248,88 @@ export default function TurniDipendente() {
                     </div>
                   </div>
 
-                  {dayTurni.length === 0 ? (
-                    <p className="text-slate-500 text-sm italic ml-13">Nessun turno</p>
-                  ) : (
-                    <div className="space-y-2 ml-13">
-                      {dayTurni.map(turno => {
-                        const hasTimbrato = turno.timbratura_entrata || turno.timbratura_uscita;
-                        const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
-                        const turnoNonIniziato = turnoStart.isAfter(moment());
-                        const canScambio = turnoNonIniziato && !turno.timbratura_entrata && 
-                          (!turno.richiesta_scambio || !['pending', 'accepted_by_colleague'].includes(turno.richiesta_scambio?.stato));
-                        
-                        return (
+                  {dayTurni.length === 0 ?
+                  <p className="text-slate-500 text-sm italic ml-13">Nessun turno</p> :
+
+                  <div className="space-y-2 ml-13">
+                      {dayTurni.map((turno) => {
+                      const hasTimbrato = turno.timbratura_entrata || turno.timbratura_uscita;
+                      const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
+                      const turnoNonIniziato = turnoStart.isAfter(moment());
+                      const canScambio = turnoNonIniziato && !turno.timbratura_entrata && (
+                      !turno.richiesta_scambio || !['pending', 'accepted_by_colleague'].includes(turno.richiesta_scambio?.stato));
+
+                      return (
                         <div key={turno.id} className={`p-3 rounded-lg border ${COLORI_RUOLO[turno.ruolo]} ${turno.is_prova ? 'ring-2 ring-purple-500' : ''}`}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <Clock className="w-4 h-4" />
                               <span className="font-medium">{turno.ora_inizio} - {turno.ora_fine}</span>
-                              {turno.is_prova && (
-                                <span className="px-2 py-0.5 bg-purple-500 text-white rounded-full text-[10px] font-bold">
+                              {turno.is_prova &&
+                              <span className="px-2 py-0.5 bg-purple-500 text-white rounded-full text-[10px] font-bold">
                                   🧪 PROVA
                                 </span>
-                              )}
+                              }
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-sm">{turno.ruolo}</span>
-                              {canScambio && (
-                                <button
-                                  onClick={() => openScambioModal(turno)}
-                                  className="p-1 bg-white bg-opacity-50 rounded hover:bg-opacity-80"
-                                  title="Richiedi scambio"
-                                >
+                              {canScambio &&
+                              <button
+                                onClick={() => openScambioModal(turno)}
+                                className="p-1 bg-white bg-opacity-50 rounded hover:bg-opacity-80"
+                                title="Richiedi scambio">
+
                                   <ArrowRightLeft className="w-3 h-3" />
                                 </button>
-                              )}
-                              {turno.richiesta_scambio?.stato === 'pending' && (
-                                <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full text-xs font-medium flex items-center gap-1">
+                              }
+                              {turno.richiesta_scambio?.stato === 'pending' &&
+                              <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full text-xs font-medium flex items-center gap-1">
                                   <AlertCircle className="w-3 h-3" />
                                   {turno.richiesta_scambio?.richiesto_da === currentUser?.id ? 'Richiesto' : 'Da rispondere'}
                                 </span>
-                              )}
-                              {turno.richiesta_scambio?.stato === 'accepted_by_colleague' && (
-                                <span className="px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full text-xs">
+                              }
+                              {turno.richiesta_scambio?.stato === 'accepted_by_colleague' &&
+                              <span className="px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full text-xs">
                                   Da approvare
                                 </span>
-                              )}
-                              {turno.richiesta_scambio?.stato === 'approved_by_manager' && (
-                                <span className="px-2 py-0.5 bg-green-200 text-green-800 rounded-full text-xs">
+                              }
+                              {turno.richiesta_scambio?.stato === 'approved_by_manager' &&
+                              <span className="px-2 py-0.5 bg-green-200 text-green-800 rounded-full text-xs">
                                   Approvato
                                 </span>
-                              )}
-                              {turno.richiesta_scambio?.stato === 'rejected_by_colleague' && (
-                                <span className="px-2 py-0.5 bg-red-200 text-red-800 rounded-full text-xs">
+                              }
+                              {turno.richiesta_scambio?.stato === 'rejected_by_colleague' &&
+                              <span className="px-2 py-0.5 bg-red-200 text-red-800 rounded-full text-xs">
                                   Rifiutato
                                 </span>
-                              )}
-                              {turno.richiesta_scambio?.stato === 'rejected_by_manager' && (
-                                <span className="px-2 py-0.5 bg-red-200 text-red-800 rounded-full text-xs">
+                              }
+                              {turno.richiesta_scambio?.stato === 'rejected_by_manager' &&
+                              <span className="px-2 py-0.5 bg-red-200 text-red-800 rounded-full text-xs">
                                   Negato
                                 </span>
-                              )}
+                              }
                             </div>
                           </div>
                           <div className="text-sm opacity-80 mt-1 flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
                             {getStoreName(turno.store_id)}
                           </div>
-                        </div>
-                      );
-                      })}
+                        </div>);
+
+                    })}
                     </div>
-                  )}
-                </NeumorphicCard>
-              );
+                  }
+                </NeumorphicCard>);
+
             })
-          )}
+            }
         </div>
           </>
-        )}
+        }
 
         {/* VISTA: FERIE */}
-        {activeView === 'ferie' && (
-          <div className="space-y-4">
+        {activeView === 'ferie' &&
+        <div className="space-y-4">
             {/* Form nuova richiesta */}
             <NeumorphicCard className="p-6">
               <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -2340,45 +2340,45 @@ export default function TurniDipendente() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Data Inizio</label>
                   <input
-                    type="date"
-                    value={ferieForm.data_inizio}
-                    onChange={(e) => setFerieForm({ ...ferieForm, data_inizio: e.target.value })}
-                    min={moment().format('YYYY-MM-DD')}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
+                  type="date"
+                  value={ferieForm.data_inizio}
+                  onChange={(e) => setFerieForm({ ...ferieForm, data_inizio: e.target.value })}
+                  min={moment().format('YYYY-MM-DD')}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Data Fine</label>
                   <input
-                    type="date"
-                    value={ferieForm.data_fine}
-                    onChange={(e) => setFerieForm({ ...ferieForm, data_fine: e.target.value })}
-                    min={ferieForm.data_inizio || moment().format('YYYY-MM-DD')}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
+                  type="date"
+                  value={ferieForm.data_fine}
+                  onChange={(e) => setFerieForm({ ...ferieForm, data_fine: e.target.value })}
+                  min={ferieForm.data_inizio || moment().format('YYYY-MM-DD')}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Motivo (opz.)</label>
                   <input
-                    type="text"
-                    value={ferieForm.motivo}
-                    onChange={(e) => setFerieForm({ ...ferieForm, motivo: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                    placeholder="Vacanza, motivi personali..."
-                  />
+                  type="text"
+                  value={ferieForm.motivo}
+                  onChange={(e) => setFerieForm({ ...ferieForm, motivo: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  placeholder="Vacanza, motivi personali..." />
+
                 </div>
               </div>
-              {ferieForm.data_inizio && ferieForm.data_fine && (
-                <p className="text-sm text-blue-600 mt-2">
-                  Turni coinvolti: {turniFuturi.filter(t => t.data >= ferieForm.data_inizio && t.data <= ferieForm.data_fine).length}
+              {ferieForm.data_inizio && ferieForm.data_fine &&
+            <p className="text-sm text-blue-600 mt-2">
+                  Turni coinvolti: {turniFuturi.filter((t) => t.data >= ferieForm.data_inizio && t.data <= ferieForm.data_fine).length}
                 </p>
-              )}
+            }
               <NeumorphicButton
-                onClick={() => richiestaFerieMutation.mutate(ferieForm)}
-                variant="primary"
-                className="mt-4"
-                disabled={!ferieForm.data_inizio || !ferieForm.data_fine || richiestaFerieMutation.isPending}
-              >
+              onClick={() => richiestaFerieMutation.mutate(ferieForm)}
+              variant="primary"
+              className="mt-4"
+              disabled={!ferieForm.data_inizio || !ferieForm.data_fine || richiestaFerieMutation.isPending}>
+
                 {richiestaFerieMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia Richiesta Ferie'}
               </NeumorphicButton>
             </NeumorphicCard>
@@ -2386,12 +2386,12 @@ export default function TurniDipendente() {
             {/* Storico richieste */}
             <NeumorphicCard className="p-6">
               <h2 className="text-lg font-bold text-slate-800 mb-4">Le Mie Richieste Ferie</h2>
-              {mieFerie.length === 0 ? (
-                <p className="text-slate-500 text-center py-4">Nessuna richiesta di ferie</p>
-              ) : (
-                <div className="space-y-3">
-                  {mieFerie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map(ferie => (
-                    <div key={ferie.id} className="neumorphic-pressed p-4 rounded-xl">
+              {mieFerie.length === 0 ?
+            <p className="text-slate-500 text-center py-4">Nessuna richiesta di ferie</p> :
+
+            <div className="space-y-3">
+                  {mieFerie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map((ferie) =>
+              <div key={ferie.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-slate-800">
@@ -2403,20 +2403,20 @@ export default function TurniDipendente() {
                           {getStatoLabel(ferie.stato)}
                         </span>
                       </div>
-                      {ferie.note_admin && (
-                        <p className="text-xs text-slate-500 mt-2 italic">Note: {ferie.note_admin}</p>
-                      )}
+                      {ferie.note_admin &&
+                <p className="text-xs text-slate-500 mt-2 italic">Note: {ferie.note_admin}</p>
+                }
                     </div>
-                  ))}
-                </div>
               )}
+                </div>
+            }
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* VISTA: MALATTIA */}
-        {activeView === 'malattia' && (
-          <div className="space-y-4">
+        {activeView === 'malattia' &&
+        <div className="space-y-4">
             {/* Form nuova richiesta */}
             <NeumorphicCard className="p-6">
               <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -2427,69 +2427,69 @@ export default function TurniDipendente() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Data Inizio</label>
                   <input
-                    type="date"
-                    value={malattiaForm.data_inizio}
-                    onChange={(e) => setMalattiaForm({ ...malattiaForm, data_inizio: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
+                  type="date"
+                  value={malattiaForm.data_inizio}
+                  onChange={(e) => setMalattiaForm({ ...malattiaForm, data_inizio: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Data Fine</label>
                   <input
-                    type="date"
-                    value={malattiaForm.data_fine}
-                    onChange={(e) => setMalattiaForm({ ...malattiaForm, data_fine: e.target.value })}
-                    min={malattiaForm.data_inizio}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
+                  type="date"
+                  value={malattiaForm.data_fine}
+                  onChange={(e) => setMalattiaForm({ ...malattiaForm, data_fine: e.target.value })}
+                  min={malattiaForm.data_inizio}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Descrizione (opz.)</label>
                   <input
-                    type="text"
-                    value={malattiaForm.descrizione}
-                    onChange={(e) => setMalattiaForm({ ...malattiaForm, descrizione: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                    placeholder="Descrivi brevemente..."
-                  />
+                  type="text"
+                  value={malattiaForm.descrizione}
+                  onChange={(e) => setMalattiaForm({ ...malattiaForm, descrizione: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  placeholder="Descrivi brevemente..." />
+
                 </div>
               </div>
-              {malattiaForm.data_inizio && malattiaForm.data_fine && (
-                <p className="text-sm text-blue-600 mt-2">
-                  Turni coinvolti: {turniFuturi.filter(t => 
-                    t.dipendente_id === currentUser.id &&
-                    t.data >= malattiaForm.data_inizio && 
-                    t.data <= malattiaForm.data_fine
-                  ).length}
+              {malattiaForm.data_inizio && malattiaForm.data_fine &&
+            <p className="text-sm text-blue-600 mt-2">
+                  Turni coinvolti: {turniFuturi.filter((t) =>
+              t.dipendente_id === currentUser.id &&
+              t.data >= malattiaForm.data_inizio &&
+              t.data <= malattiaForm.data_fine
+              ).length}
                 </p>
-              )}
+            }
               <div className="mt-4">
                 <label className="block text-sm font-medium text-slate-700 mb-1">Certificato Medico (opzionale)</label>
                 <div className="neumorphic-pressed p-4 rounded-xl">
-                  {malattiaForm.certificato_url ? (
-                    <div className="flex items-center gap-2 text-green-700">
+                  {malattiaForm.certificato_url ?
+                <div className="flex items-center gap-2 text-green-700">
                       <FileText className="w-5 h-5" />
                       <span className="text-sm">Certificato caricato</span>
                       <button onClick={() => setMalattiaForm({ ...malattiaForm, certificato_url: null })} className="text-red-500 ml-auto">
                         <X className="w-4 h-4" />
                       </button>
-                    </div>
-                  ) : (
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      {uploadingCertificato ? (
-                        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                      ) : (
-                        <Upload className="w-6 h-6 text-slate-400" />
-                      )}
+                    </div> :
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                      {uploadingCertificato ?
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" /> :
+
+                  <Upload className="w-6 h-6 text-slate-400" />
+                  }
                       <span className="text-sm text-slate-500">Clicca per caricare</span>
                       <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        className="hidden"
-                        onChange={(e) => handleUploadCertificato(e.target.files[0])}
-                      />
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={(e) => handleUploadCertificato(e.target.files[0])} />
+
                     </label>
-                  )}
+                }
                 </div>
               </div>
               <div className="p-3 bg-orange-50 rounded-xl mt-4 space-y-2">
@@ -2501,11 +2501,11 @@ export default function TurniDipendente() {
                 </p>
               </div>
               <NeumorphicButton
-                onClick={() => richiestaMalattiaMutation.mutate(malattiaForm)}
-                variant="primary"
-                className="mt-4"
-                disabled={!malattiaForm.data_inizio || !malattiaForm.data_fine || richiestaMalattiaMutation.isPending}
-              >
+              onClick={() => richiestaMalattiaMutation.mutate(malattiaForm)}
+              variant="primary"
+              className="mt-4"
+              disabled={!malattiaForm.data_inizio || !malattiaForm.data_fine || richiestaMalattiaMutation.isPending}>
+
                 {richiestaMalattiaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia Segnalazione'}
               </NeumorphicButton>
             </NeumorphicCard>
@@ -2513,20 +2513,20 @@ export default function TurniDipendente() {
             {/* Storico malattie */}
             <NeumorphicCard className="p-6">
               <h2 className="text-lg font-bold text-slate-800 mb-4">Le Mie Malattie</h2>
-              {mieMalattie.length === 0 ? (
-                <p className="text-slate-500 text-center py-4">Nessuna malattia registrata</p>
-              ) : (
-                <div className="space-y-3">
-                  {mieMalattie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map(malattia => {
-                    // Calcola scadenza certificato (5 giorni dall'ultimo giorno di malattia)
-                    const dataFine = malattia.data_fine || malattia.data_inizio;
-                    const scadenzaCertificato = dataFine && moment(dataFine).isValid() ? moment(dataFine).add(5, 'days') : null;
-                    const giorniRimanenti = scadenzaCertificato ? scadenzaCertificato.diff(moment(), 'days') : 0;
-                    const isScaduto = giorniRimanenti < 0;
-                    const needsCertificato = !malattia.certificato_url && (malattia.stato === 'non_certificata' || malattia.stato === 'in_attesa_verifica');
-                    
-                    return (
-                    <div key={malattia.id} className={`neumorphic-pressed p-4 rounded-xl ${isScaduto && needsCertificato ? 'border-2 border-red-300 bg-red-50' : ''}`}>
+              {mieMalattie.length === 0 ?
+            <p className="text-slate-500 text-center py-4">Nessuna malattia registrata</p> :
+
+            <div className="space-y-3">
+                  {mieMalattie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map((malattia) => {
+                // Calcola scadenza certificato (5 giorni dall'ultimo giorno di malattia)
+                const dataFine = malattia.data_fine || malattia.data_inizio;
+                const scadenzaCertificato = dataFine && moment(dataFine).isValid() ? moment(dataFine).add(5, 'days') : null;
+                const giorniRimanenti = scadenzaCertificato ? scadenzaCertificato.diff(moment(), 'days') : 0;
+                const isScaduto = giorniRimanenti < 0;
+                const needsCertificato = !malattia.certificato_url && (malattia.stato === 'non_certificata' || malattia.stato === 'in_attesa_verifica');
+
+                return (
+                  <div key={malattia.id} className={`neumorphic-pressed p-4 rounded-xl ${isScaduto && needsCertificato ? 'border-2 border-red-300 bg-red-50' : ''}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <p className="font-medium text-slate-800">
@@ -2534,78 +2534,78 @@ export default function TurniDipendente() {
                             {malattia.data_fine && moment(malattia.data_fine).isValid() && ` - ${moment(malattia.data_fine).format('DD/MM/YYYY')}`}
                           </p>
                           {malattia.descrizione && <p className="text-sm text-slate-500">{malattia.descrizione}</p>}
-                          {malattia.certificato_url ? (
-                            <a href={malattia.certificato_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1 mt-1">
+                          {malattia.certificato_url ?
+                        <a href={malattia.certificato_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1 mt-1">
                               <FileText className="w-3 h-3" /> Vedi Certificato
-                            </a>
-                          ) : needsCertificato && (
-                            <div className="mt-2">
+                            </a> :
+                        needsCertificato &&
+                        <div className="mt-2">
                               {/* Scadenza certificato */}
-                              {isScaduto ? (
-                                <div className="p-2 bg-red-100 rounded-lg mb-2">
+                              {isScaduto ?
+                          <div className="p-2 bg-red-100 rounded-lg mb-2">
                                   <p className="text-xs text-red-700 font-medium flex items-center gap-1">
                                     <AlertTriangle className="w-3 h-3" />
                                     Scadenza superata - Assenza non giustificata
                                   </p>
-                                </div>
-                              ) : giorniRimanenti <= 5 && (
-                                <div className="p-2 bg-orange-100 rounded-lg mb-2">
+                                </div> :
+                          giorniRimanenti <= 5 &&
+                          <div className="p-2 bg-orange-100 rounded-lg mb-2">
                                   <p className="text-xs text-orange-700 font-medium flex items-center gap-1">
                                     <AlertTriangle className="w-3 h-3" />
-                                    {giorniRimanenti === 0 
-                                      ? 'Scade oggi!' 
-                                      : `Scade tra ${giorniRimanenti} giorn${giorniRimanenti === 1 ? 'o' : 'i'}`}
+                                    {giorniRimanenti === 0 ?
+                              'Scade oggi!' :
+                              `Scade tra ${giorniRimanenti} giorn${giorniRimanenti === 1 ? 'o' : 'i'}`}
                                   </p>
                                   <p className="text-xs text-orange-600 mt-1">
                                    Carica il certificato entro il {scadenzaCertificato ? scadenzaCertificato.format('DD/MM/YYYY') : 'N/A'}
                                   </p>
                                 </div>
-                              )}
+                          }
                               
-                              {uploadingCertificatoForId === malattia.id ? (
-                                <div className="flex items-center gap-2 text-blue-600">
+                              {uploadingCertificatoForId === malattia.id ?
+                          <div className="flex items-center gap-2 text-blue-600">
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                   <span className="text-xs">Caricamento...</span>
-                                </div>
-                              ) : (
-                                <label className={`flex items-center gap-2 cursor-pointer text-xs px-3 py-2 rounded-lg ${isScaduto ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>
+                                </div> :
+
+                          <label className={`flex items-center gap-2 cursor-pointer text-xs px-3 py-2 rounded-lg ${isScaduto ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>
                                   <Upload className="w-4 h-4" />
                                   <span>Carica certificato</span>
                                   <input
-                                    type="file"
-                                    accept="image/*,.pdf"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                      if (e.target.files[0]) {
-                                        setUploadingCertificatoForId(malattia.id);
-                                        uploadCertificatoMutation.mutate({ malattiaId: malattia.id, file: e.target.files[0] });
-                                      }
-                                    }}
-                                  />
+                              type="file"
+                              accept="image/*,.pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files[0]) {
+                                  setUploadingCertificatoForId(malattia.id);
+                                  uploadCertificatoMutation.mutate({ malattiaId: malattia.id, file: e.target.files[0] });
+                                }
+                              }} />
+
                                 </label>
-                              )}
+                          }
                             </div>
-                          )}
+                        }
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${isScaduto && needsCertificato ? 'bg-red-200 text-red-800' : getStatoColor(malattia.stato)}`}>
                           {isScaduto && needsCertificato ? 'Non Giustificata' : getStatoLabel(malattia.stato)}
                         </span>
                       </div>
-                      {malattia.note_admin && (
-                        <p className="text-xs text-slate-500 mt-2 italic">Note: {malattia.note_admin}</p>
-                      )}
-                    </div>
-                  );
-                  })}
+                      {malattia.note_admin &&
+                    <p className="text-xs text-slate-500 mt-2 italic">Note: {malattia.note_admin}</p>
+                    }
+                    </div>);
+
+              })}
                   </div>
-                  )}
+            }
                   </NeumorphicCard>
                   </div>
-                  )}
+        }
 
         {/* VISTA: SCAMBI */}
-        {activeView === 'scambi' && (
-          <>
+        {activeView === 'scambi' &&
+        <>
           <div className="space-y-4">
             {/* Sezione 1: Scambi richiesti DA ME */}
             <NeumorphicCard className="p-6">
@@ -2617,20 +2617,20 @@ export default function TurniDipendente() {
                 Richieste di scambio che hai inviato ai tuoi colleghi
               </p>
 
-              {scambiDaMePending.length === 0 ? (
-                <p className="text-slate-500 text-center py-8">Nessuna richiesta in corso</p>
-              ) : (
-                <div className="space-y-3">
-                  {scambiDaMePending.map(mioTurno => {
-                    const scambio = mioTurno.richiesta_scambio;
-                    const suoTurnoId = scambio?.suo_turno_id;
-                    const statoScambio = scambio?.stato;
+              {scambiDaMePending.length === 0 ?
+              <p className="text-slate-500 text-center py-8">Nessuna richiesta in corso</p> :
 
-                    // Trova il turno del collega
-                    const suoTurno = turniFuturi.find(t => t.id === suoTurnoId);
+              <div className="space-y-3">
+                  {scambiDaMePending.map((mioTurno) => {
+                  const scambio = mioTurno.richiesta_scambio;
+                  const suoTurnoId = scambio?.suo_turno_id;
+                  const statoScambio = scambio?.stato;
 
-                    return (
-                      <div key={mioTurno.id} className="neumorphic-pressed p-4 rounded-xl">
+                  // Trova il turno del collega
+                  const suoTurno = turniFuturi.find((t) => t.id === suoTurnoId);
+
+                  return (
+                    <div key={mioTurno.id} className="neumorphic-pressed p-4 rounded-xl">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-3">
@@ -2662,8 +2662,8 @@ export default function TurniDipendente() {
                               </div>
 
                               {/* Turno RICHIESTO */}
-                              {suoTurno && (
-                                <div className="p-3 bg-green-50 rounded-lg border-2 border-green-200">
+                              {suoTurno &&
+                            <div className="p-3 bg-green-50 rounded-lg border-2 border-green-200">
                                   <p className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1">
                                     <Check className="w-3 h-3" />
                                     Prendi questo:
@@ -2681,7 +2681,7 @@ export default function TurniDipendente() {
                                     📍 {getStoreName(suoTurno.store_id)}
                                   </div>
                                 </div>
-                              )}
+                            }
                             </div>
 
                             <p className="text-xs text-slate-400 mt-2">
@@ -2689,36 +2689,36 @@ export default function TurniDipendente() {
                             </p>
                           </div>
                           <div className="flex flex-col gap-2 ml-3">
-                            {statoScambio === 'pending' ? (
-                              <>
+                            {statoScambio === 'pending' ?
+                          <>
                                 <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium text-center">
                                   In attesa collega
                                 </span>
                                 <button
-                                  onClick={() => cancellaScambioMutation.mutate({
-                                    mioTurnoId: mioTurno.id,
-                                    suoTurnoId: suoTurnoId
-                                  })}
-                                  disabled={cancellaScambioMutation.isPending}
-                                  className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 flex items-center gap-1"
-                                >
+                              onClick={() => cancellaScambioMutation.mutate({
+                                mioTurnoId: mioTurno.id,
+                                suoTurnoId: suoTurnoId
+                              })}
+                              disabled={cancellaScambioMutation.isPending}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 flex items-center gap-1">
+
                                   <X className="w-3 h-3" /> Cancella
                                 </button>
-                              </>
-                            ) : (
-                              <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium text-center">
+                              </> :
+
+                          <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium text-center">
                                 <CheckCircle className="w-4 h-4 mx-auto mb-1" />
-                                Accettato<br/>
+                                Accettato<br />
                                 <span className="text-[10px]">In attesa manager</span>
                               </div>
-                            )}
+                          }
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      </div>);
+
+                })}
                 </div>
-              )}
+              }
             </NeumorphicCard>
 
             {/* Sezione 2: Scambi richiesti A ME */}
@@ -2731,18 +2731,18 @@ export default function TurniDipendente() {
                 Colleghi che vogliono scambiare il loro turno con te
               </p>
 
-              {scambiPerMe.length === 0 ? (
-                <p className="text-slate-500 text-center py-8">Nessuna richiesta ricevuta</p>
-              ) : (
-                <div className="space-y-3">
-                {scambiPerMe.map(turno => {
+              {scambiPerMe.length === 0 ?
+              <p className="text-slate-500 text-center py-8">Nessuna richiesta ricevuta</p> :
+
+              <div className="space-y-3">
+                {scambiPerMe.map((turno) => {
                   const scambio = turno.richiesta_scambio;
                   const mioTurnoId = scambio?.mio_turno_id;
-                  const mioTurno = turniFuturi.find(t => t.id === mioTurnoId);
+                  const mioTurno = turniFuturi.find((t) => t.id === mioTurnoId);
                   const statoScambio = scambio?.stato;
 
                   return (
-                  <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
+                    <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-3">
@@ -2754,7 +2754,7 @@ export default function TurniDipendente() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {/* Turno che il RICHIEDENTE cede (e tu prenderesti) */}
-                          {mioTurno && (
+                          {mioTurno &&
                             <div className="p-3 bg-green-50 rounded-lg border-2 border-green-200">
                               <p className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1">
                                 <Check className="w-3 h-3" />
@@ -2773,7 +2773,7 @@ export default function TurniDipendente() {
                                 📍 {getStoreName(mioTurno.store_id)}
                               </div>
                             </div>
-                          )}
+                            }
 
                           {/* Il TUO turno che cedi */}
                           <div className="p-3 bg-red-50 rounded-lg border-2 border-red-200">
@@ -2801,45 +2801,45 @@ export default function TurniDipendente() {
                         </p>
                       </div>
                       <div className="flex flex-col gap-2 ml-3">
-                        {statoScambio === 'pending' ? (
+                        {statoScambio === 'pending' ?
                           <>
                             <button
                               onClick={() => rispondiScambioMutation.mutate({ suoTurnoId: turno.id, accetta: true })}
                               disabled={rispondiScambioMutation.isPending}
-                              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1"
-                            >
+                              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1">
+
                               <Check className="w-3 h-3" /> Accetta
                             </button>
                             <button
                               onClick={() => rispondiScambioMutation.mutate({ suoTurnoId: turno.id, accetta: false })}
                               disabled={rispondiScambioMutation.isPending}
-                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1"
-                            >
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1">
+
                               <X className="w-3 h-3" /> Rifiuta
                             </button>
-                          </>
-                        ) : (
+                          </> :
+
                           <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium text-center">
                             <CheckCircle className="w-4 h-4 mx-auto mb-1" />
-                            Accettato<br/>
+                            Accettato<br />
                             <span className="text-[10px]">In attesa approvazione Store Manager</span>
                           </div>
-                        )}
+                          }
                       </div>
                     </div>
-                  </div>
-                );
+                  </div>);
+
                 })}
               </div>
-            )}
+              }
           </NeumorphicCard>
           </div>
           </>
-        )}
+        }
 
         {/* VISTA: TURNI LIBERI */}
-        {activeView === 'liberi' && (
-          <NeumorphicCard className="p-6">
+        {activeView === 'liberi' &&
+        <NeumorphicCard className="p-6">
             <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 text-green-500" />
               Turni Liberi Disponibili
@@ -2848,14 +2848,14 @@ export default function TurniDipendente() {
               Questi turni corrispondono ai tuoi ruoli ({currentUser?.ruoli_dipendente?.join(', ')}) e sono disponibili.
             </p>
             
-            {turniLiberi.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">Nessun turno libero disponibile per i tuoi ruoli</p>
-            ) : (
-              <div className="space-y-3">
-                {turniLiberi.sort((a, b) => a.data.localeCompare(b.data)).map(turno => {
-                  const giaRichiesto = mieRichiesteTurni.some(r => r.turno_id === turno.id && r.stato === 'in_attesa');
-                  return (
-                    <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
+            {turniLiberi.length === 0 ?
+          <p className="text-slate-500 text-center py-8">Nessun turno libero disponibile per i tuoi ruoli</p> :
+
+          <div className="space-y-3">
+                {turniLiberi.sort((a, b) => a.data.localeCompare(b.data)).map((turno) => {
+              const giaRichiesto = mieRichiesteTurni.some((r) => r.turno_id === turno.id && r.stato === 'in_attesa');
+              return (
+                <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-bold text-slate-800 capitalize">
@@ -2870,55 +2870,55 @@ export default function TurniDipendente() {
                           <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
                             <MapPin className="w-3 h-3" />
                             {getStoreName(turno.store_id)}
-                            {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                              <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                            {turno.tipo_turno && turno.tipo_turno !== 'Normale' &&
+                        <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
                                 {turno.tipo_turno}
                               </span>
-                            )}
+                        }
                           </div>
                         </div>
-                        {giaRichiesto ? (
-                          <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
+                        {giaRichiesto ?
+                    <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
                             Richiesto
-                          </span>
-                        ) : (
-                          <NeumorphicButton
-                            onClick={() => richiediTurnoLiberoMutation.mutate(turno)}
-                            variant="primary"
-                            className="text-sm"
-                            disabled={richiediTurnoLiberoMutation.isPending}
-                          >
+                          </span> :
+
+                    <NeumorphicButton
+                      onClick={() => richiediTurnoLiberoMutation.mutate(turno)}
+                      variant="primary"
+                      className="text-sm"
+                      disabled={richiediTurnoLiberoMutation.isPending}>
+
                             Richiedi
                           </NeumorphicButton>
-                        )}
+                    }
                       </div>
-                    </div>
-                  );
-                })}
+                    </div>);
+
+            })}
               </div>
-            )}
+          }
 
             {/* Richieste in corso */}
-            {mieRichiesteTurni.filter(r => r.stato === 'in_attesa').length > 0 && (
-              <div className="mt-6 pt-6 border-t border-slate-200">
+            {mieRichiesteTurni.filter((r) => r.stato === 'in_attesa').length > 0 &&
+          <div className="mt-6 pt-6 border-t border-slate-200">
                 <h3 className="font-bold text-slate-700 mb-3">Le tue richieste in attesa</h3>
                 <div className="space-y-2">
-                  {mieRichiesteTurni.filter(r => r.stato === 'in_attesa').map(richiesta => (
-                    <div key={richiesta.id} className="p-3 bg-yellow-50 rounded-xl text-sm">
+                  {mieRichiesteTurni.filter((r) => r.stato === 'in_attesa').map((richiesta) =>
+              <div key={richiesta.id} className="p-3 bg-yellow-50 rounded-xl text-sm">
                       <span className="font-medium">{moment(richiesta.data_turno).format('DD/MM/YYYY')}</span>
                       <span className="text-slate-500"> • {richiesta.ora_inizio}-{richiesta.ora_fine}</span>
                       <span className="text-slate-500"> • {richiesta.store_name}</span>
                     </div>
-                  ))}
+              )}
                 </div>
               </div>
-            )}
+          }
           </NeumorphicCard>
-        )}
+        }
 
         {/* VISTA: DISPONIBILITÀ */}
-        {activeView === 'disponibilita' && currentUser && (
-          <>
+        {activeView === 'disponibilita' && currentUser &&
+        <>
             <NeumorphicCard className="p-4 bg-blue-50 border border-blue-200">
               <p className="text-sm text-blue-800">
                 <strong>ℹ️ Disponibilità:</strong> Indica quando sei disponibile o non disponibile a lavorare. 
@@ -2929,35 +2929,35 @@ export default function TurniDipendente() {
             {/* Tabs: Calendario vs Ricorrenti */}
             <div className="flex gap-2">
               <NeumorphicButton
-                onClick={() => setActiveView('disponibilita')}
-                variant="primary"
-                className="flex-1"
-              >
+              onClick={() => setActiveView('disponibilita')}
+              variant="primary"
+              className="flex-1">
+
                 Vista Calendario
               </NeumorphicButton>
             </div>
 
-            <DisponibilitaCalendar 
-              dipendente={currentUser} 
-              disponibilita={mieDisponibilita} 
-            />
+            <DisponibilitaCalendar
+            dipendente={currentUser}
+            disponibilita={mieDisponibilita} />
+
 
             <div className="mt-6">
-              <DisponibilitaRicorrenti 
-                dipendente={currentUser} 
-                disponibilita={mieDisponibilita} 
-              />
+              <DisponibilitaRicorrenti
+              dipendente={currentUser}
+              disponibilita={mieDisponibilita} />
+
             </div>
           </>
-        )}
+        }
 
         {/* Modal Scambio Turno */}
-        {showScambioModal && selectedTurnoScambio && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showScambioModal && selectedTurnoScambio &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800">Richiedi Scambio Turno</h2>
-                <button onClick={() => { setShowScambioModal(false); setSelectedTurnoScambio(null); }} className="nav-button p-2 rounded-lg">
+                <button onClick={() => {setShowScambioModal(false);setSelectedTurnoScambio(null);}} className="nav-button p-2 rounded-lg">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -2976,34 +2976,34 @@ export default function TurniDipendente() {
 
               <h3 className="font-medium text-slate-700 mb-3">Seleziona un collega:</h3>
 
-              {colleghiPerScambio.length === 0 ? (
-                <div className="text-center py-4">
+              {colleghiPerScambio.length === 0 ?
+            <div className="text-center py-4">
                   <p className="text-slate-500 mb-2">
                     Nessun collega disponibile con il ruolo {selectedTurnoScambio.ruolo}
                   </p>
                   <p className="text-xs text-slate-400">
                     Totale utenti: {allUsersData.length} | Apri console (F12) per debug
                   </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {colleghiPerScambio.map(collega => {
-                    const isSelected = selectedCollegaScambio?.id === collega.id;
-                    return (
-                    <div 
-                      key={collega.id}
-                      className={`p-4 rounded-xl border transition-all ${
-                        collega.haConflitti ? 'border-red-300 bg-red-50 cursor-not-allowed opacity-60' :
-                        isSelected ? 'border-blue-500 bg-blue-100' :
-                        'border-green-300 bg-green-50 cursor-pointer hover:bg-green-100'
-                      }`}
-                      onClick={() => {
-                        if (!collega.haConflitti) {
-                          setSelectedCollegaScambio(collega);
-                          setSelectedTurnoCollegaScambio(null);
-                        }
-                      }}
-                    >
+                </div> :
+
+            <div className="space-y-3">
+                  {colleghiPerScambio.map((collega) => {
+                const isSelected = selectedCollegaScambio?.id === collega.id;
+                return (
+                  <div
+                    key={collega.id}
+                    className={`p-4 rounded-xl border transition-all ${
+                    collega.haConflitti ? 'border-red-300 bg-red-50 cursor-not-allowed opacity-60' :
+                    isSelected ? 'border-blue-500 bg-blue-100' :
+                    'border-green-300 bg-green-50 cursor-pointer hover:bg-green-100'}`
+                    }
+                    onClick={() => {
+                      if (!collega.haConflitti) {
+                        setSelectedCollegaScambio(collega);
+                        setSelectedTurnoCollegaScambio(null);
+                      }
+                    }}>
+
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
@@ -3015,91 +3015,91 @@ export default function TurniDipendente() {
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                          {collega.haConflitti ? (
-                            <span className="flex items-center gap-1 text-xs text-red-700 bg-red-200 px-2 py-1 rounded-full font-medium">
+                          {collega.haConflitti ?
+                        <span className="flex items-center gap-1 text-xs text-red-700 bg-red-200 px-2 py-1 rounded-full font-medium">
                               <X className="w-3 h-3" />
                               Conflitto orario
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-xs text-green-700 bg-green-200 px-2 py-1 rounded-full font-medium">
+                            </span> :
+
+                        <span className="flex items-center gap-1 text-xs text-green-700 bg-green-200 px-2 py-1 rounded-full font-medium">
                               <Check className="w-3 h-3" />
                               Disponibile
                             </span>
-                          )}
+                        }
                         </div>
                       </div>
                       
                       {/* Mostra turni del collega in quel giorno */}
-                      {collega.tuttiTurniGiorno.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-slate-200">
+                      {collega.tuttiTurniGiorno.length > 0 &&
+                    <div className="mt-2 pt-2 border-t border-slate-200">
                           <p className="text-xs font-medium text-slate-600 mb-1">Turni del collega in questo giorno:</p>
                           <div className="space-y-1">
-                            {collega.tuttiTurniGiorno.map(turno => {
-                              const isSovrapposto = collega.turniSovrapposti.some(t => t.id === turno.id);
-                              return (
-                                <div 
-                                  key={turno.id}
-                                  className={`text-xs p-2 rounded-lg flex items-center justify-between ${
-                                    isSovrapposto ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'
-                                  }`}
-                                >
+                            {collega.tuttiTurniGiorno.map((turno) => {
+                          const isSovrapposto = collega.turniSovrapposti.some((t) => t.id === turno.id);
+                          return (
+                            <div
+                              key={turno.id}
+                              className={`text-xs p-2 rounded-lg flex items-center justify-between ${
+                              isSovrapposto ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`
+                              }>
+
                                   <div className="flex items-center gap-2">
                                     <Clock className="w-3 h-3" />
                                     <span>{turno.ora_inizio} - {turno.ora_fine}</span>
                                     <span>•</span>
                                     <span>{getStoreName(turno.store_id)}</span>
                                   </div>
-                                  {isSovrapposto && (
-                                    <span className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                                  {isSovrapposto &&
+                              <span className="flex items-center gap-1 text-xs text-red-600 font-medium">
                                       <AlertTriangle className="w-3 h-3" />
                                       Sovrapposto
                                     </span>
-                                  )}
-                                </div>
-                              );
-                            })}
+                              }
+                                </div>);
+
+                        })}
                           </div>
                         </div>
-                      )}
+                    }
                       
-                      {collega.tuttiTurniGiorno.length === 0 && !collega.haConflitti && (
-                        <div className="mt-2 pt-2 border-t border-green-200">
+                      {collega.tuttiTurniGiorno.length === 0 && !collega.haConflitti &&
+                    <div className="mt-2 pt-2 border-t border-green-200">
                           <p className="text-xs text-green-700 flex items-center gap-1">
                             <CheckCircle className="w-3 h-3" />
                             Nessun altro turno in questo giorno - completamente libero
                           </p>
                         </div>
-                        )}
-                        </div>
-                        );
-                        })}
+                    }
+                        </div>);
+
+              })}
                 </div>
-              )}
+            }
 
               {/* Selezione turno del collega */}
-              {selectedCollegaScambio && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+              {selectedCollegaScambio &&
+            <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
                   <h3 className="font-medium text-blue-800 mb-3">
                     Seleziona il turno di {selectedCollegaScambio.nome_cognome || selectedCollegaScambio.full_name} da scambiare:
                   </h3>
-                  {turniFuturiCollega.length === 0 ? (
-                    <p className="text-sm text-slate-500 text-center py-4">
+                  {turniFuturiCollega.length === 0 ?
+              <p className="text-sm text-slate-500 text-center py-4">
                       Nessun turno futuro disponibile per questo collega
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {turniFuturiCollega.map(turnoC => {
-                        const isSelectedTurno = selectedTurnoCollegaScambio?.id === turnoC.id;
-                        return (
-                          <div
-                            key={turnoC.id}
-                            className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                              isSelectedTurno 
-                                ? 'border-blue-500 bg-blue-100' 
-                                : 'border-slate-200 bg-white hover:bg-slate-50'
-                            }`}
-                            onClick={() => setSelectedTurnoCollegaScambio(turnoC)}
-                          >
+                    </p> :
+
+              <div className="space-y-2">
+                      {turniFuturiCollega.map((turnoC) => {
+                  const isSelectedTurno = selectedTurnoCollegaScambio?.id === turnoC.id;
+                  return (
+                    <div
+                      key={turnoC.id}
+                      className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                      isSelectedTurno ?
+                      'border-blue-500 bg-blue-100' :
+                      'border-slate-200 bg-white hover:bg-slate-50'}`
+                      }
+                      onClick={() => setSelectedTurnoCollegaScambio(turnoC)}>
+
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="font-medium text-slate-800 capitalize">
@@ -3116,51 +3116,51 @@ export default function TurniDipendente() {
                                   {getStoreName(turnoC.store_id)}
                                 </div>
                               </div>
-                              {isSelectedTurno && (
-                                <Check className="w-5 h-5 text-blue-600" />
-                              )}
+                              {isSelectedTurno &&
+                        <Check className="w-5 h-5 text-blue-600" />
+                        }
                             </div>
-                          </div>
-                        );
-                      })}
+                          </div>);
+
+                })}
                     </div>
-                  )}
+              }
                 </div>
-              )}
+            }
 
               <div className="mt-4 flex gap-3">
-                <NeumorphicButton 
-                  onClick={() => { 
-                    setShowScambioModal(false); 
-                    setSelectedTurnoScambio(null);
-                    setSelectedCollegaScambio(null);
-                    setSelectedTurnoCollegaScambio(null);
-                  }} 
-                  className="flex-1"
-                >
+                <NeumorphicButton
+                onClick={() => {
+                  setShowScambioModal(false);
+                  setSelectedTurnoScambio(null);
+                  setSelectedCollegaScambio(null);
+                  setSelectedTurnoCollegaScambio(null);
+                }}
+                className="flex-1">
+
                   Annulla
                 </NeumorphicButton>
-                {selectedCollegaScambio && selectedTurnoCollegaScambio && (
-                  <NeumorphicButton
-                    onClick={() => {
-                      richiestaScambioMutation.mutate({
-                        mioTurnoId: selectedTurnoScambio.id,
-                        suoTurnoId: selectedTurnoCollegaScambio.id,
-                        richiestoA: selectedCollegaScambio.id
-                      });
-                    }}
-                    disabled={richiestaScambioMutation.isPending}
-                    variant="primary"
-                    className="flex-1"
-                  >
+                {selectedCollegaScambio && selectedTurnoCollegaScambio &&
+              <NeumorphicButton
+                onClick={() => {
+                  richiestaScambioMutation.mutate({
+                    mioTurnoId: selectedTurnoScambio.id,
+                    suoTurnoId: selectedTurnoCollegaScambio.id,
+                    richiestoA: selectedCollegaScambio.id
+                  });
+                }}
+                disabled={richiestaScambioMutation.isPending}
+                variant="primary"
+                className="flex-1">
+
                     {richiestaScambioMutation.isPending ? 'Invio...' : 'Conferma Scambio'}
                   </NeumorphicButton>
-                )}
+              }
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
