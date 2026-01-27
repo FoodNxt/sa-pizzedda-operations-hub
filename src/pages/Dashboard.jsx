@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X, RefreshCw, Package, Clock, FileText, UserX, Sparkles, ExternalLink } from "lucide-react";
+import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X, RefreshCw, Package, Clock, FileText, UserX, Sparkles, ExternalLink, ArrowUp, ArrowDown } from "lucide-react";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [syncMessage, setSyncMessage] = useState(null);
+  const [comparisonMode, setComparisonMode] = useState('weekly'); // 'weekly' or 'monthly'
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -155,6 +156,11 @@ export default function Dashboard() {
   const { data: uscite = [] } = useQuery({
     queryKey: ['uscite'],
     queryFn: () => base44.entities.Uscita.list()
+  });
+
+  const { data: prodottiVenduti = [] } = useQuery({
+    queryKey: ['prodotti-venduti'],
+    queryFn: () => base44.entities.ProdottiVenduti.list('-data_vendita', 1000)
   });
 
   const safeParseDate = (dateString) => {
@@ -854,6 +860,72 @@ export default function Dashboard() {
     ).sort((a, b) => a.data.localeCompare(b.data));
   }, [turni]);
 
+  const topBottomProducts = useMemo(() => {
+    let cutoffDate, endFilterDate, previousCutoffDate, previousEndDate;
+    
+    if (startDate || endDate) {
+      cutoffDate = startDate ? safeParseDate(startDate) : new Date(0);
+      endFilterDate = endDate ? safeParseDate(endDate) : new Date();
+    } else {
+      const days = parseInt(dateRange);
+      cutoffDate = subDays(new Date(), days);
+      endFilterDate = new Date();
+    }
+
+    // Calcola periodo precedente per confronto
+    const daysDiff = Math.round((endFilterDate - cutoffDate) / (1000 * 60 * 60 * 24));
+    const comparisonDays = comparisonMode === 'weekly' ? 7 : 30;
+    previousEndDate = subDays(cutoffDate, 1);
+    previousCutoffDate = subDays(previousEndDate, comparisonDays);
+
+    const filteredCurrent = prodottiVenduti.filter((p) => {
+      if (!p.data_vendita) return false;
+      const itemDate = safeParseDate(p.data_vendita);
+      if (!itemDate) return false;
+      if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
+      if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
+      return true;
+    });
+
+    const filteredPrevious = prodottiVenduti.filter((p) => {
+      if (!p.data_vendita) return false;
+      const itemDate = safeParseDate(p.data_vendita);
+      if (!itemDate) return false;
+      if (previousCutoffDate && isBefore(itemDate, previousCutoffDate)) return false;
+      if (previousEndDate && isAfter(itemDate, previousEndDate)) return false;
+      return true;
+    });
+
+    // Aggrega quantità per prodotto
+    const productMap = {};
+    const previousProductMap = {};
+
+    filteredCurrent.forEach((p) => {
+      const key = p.nome_prodotto;
+      if (!productMap[key]) productMap[key] = 0;
+      productMap[key] += p.quantita || 0;
+    });
+
+    filteredPrevious.forEach((p) => {
+      const key = p.nome_prodotto;
+      if (!previousProductMap[key]) previousProductMap[key] = 0;
+      previousProductMap[key] += p.quantita || 0;
+    });
+
+    // Calcola variazioni percentuali
+    const productsWithChange = Object.entries(productMap).map(([nome, qty]) => {
+      const previousQty = previousProductMap[nome] || 0;
+      const change = previousQty > 0 ? ((qty - previousQty) / previousQty * 100) : (qty > 0 ? 100 : 0);
+      return { nome, quantita: qty, change };
+    });
+
+    const sorted = productsWithChange.sort((a, b) => b.quantita - a.quantita);
+    const top3 = sorted.slice(0, 3);
+    const bottom3 = sorted.slice(-3).reverse();
+
+    return { top3, bottom3 };
+  }, [prodottiVenduti, dateRange, startDate, endDate, comparisonMode]);
+
   const clearCustomDates = () => {
     setStartDate('');
     setEndDate('');
@@ -916,13 +988,13 @@ export default function Dashboard() {
         }
 
         <NeumorphicCard className="p-4 lg:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="w-5 h-5 text-blue-600" />
-            <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri Periodo</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <label className="text-sm text-slate-600 mb-2 block">Periodo</label>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri Periodo</h2>
+            </div>
+            
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 lg:flex-1 lg:max-w-4xl">
               <select
                 value={dateRange}
                 onChange={(e) => {
@@ -932,39 +1004,31 @@ export default function Dashboard() {
                     setEndDate('');
                   }
                 }}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
-
+                className="w-full lg:w-48 neumorphic-pressed px-4 py-2.5 rounded-xl text-slate-700 outline-none text-sm">
                 <option value="7">Ultimi 7 giorni</option>
                 <option value="30">Ultimi 30 giorni</option>
                 <option value="90">Ultimi 90 giorni</option>
                 <option value="365">Ultimo anno</option>
                 <option value="custom">Personalizzato</option>
               </select>
-            </div>
 
-            {dateRange === 'custom' &&
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Inizio</label>
-                  <input
+              {dateRange === 'custom' &&
+              <>
+                <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
-
-                </div>
-
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Fine</label>
-                  <input
+                  placeholder="Inizio"
+                  className="w-full lg:w-40 neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
+                <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
-
-                </div>
-              </div>
-            }
+                  placeholder="Fine"
+                  className="w-full lg:w-40 neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
+              </>
+              }
+            </div>
           </div>
         </NeumorphicCard>
 
@@ -1108,6 +1172,146 @@ export default function Dashboard() {
             </div>
           </NeumorphicCard>
         </div>
+
+        {/* Trend Revenue */}
+        <NeumorphicCard className="p-4 lg:p-6">
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Revenue</h2>
+          {processedData.dailyRevenue.length > 0 ?
+          <div className="w-full overflow-x-auto">
+              <div style={{ minWidth: '300px' }}>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={processedData.dailyRevenue}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                    <XAxis
+                    dataKey="date"
+                    stroke="#64748b"
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60} />
+
+                    <YAxis
+                    stroke="#64748b"
+                    tick={{ fontSize: 12 }}
+                    width={60} />
+
+                    <Tooltip
+                    contentStyle={{
+                      background: 'rgba(248, 250, 252, 0.95)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value) => `€${value.toFixed(2)}`} />
+
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                    <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    name="Revenue €"
+                    dot={{ fill: '#3b82f6', r: 3 }} />
+
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div> :
+
+          <div className="h-[250px] flex items-center justify-center text-slate-500">
+              Nessun dato disponibile per il periodo selezionato
+            </div>
+          }
+        </NeumorphicCard>
+
+        {/* Top & Bottom Prodotti */}
+        <NeumorphicCard className="p-4 lg:p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800">Prodotti più e meno venduti</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Confronto:</span>
+              <button
+                onClick={() => setComparisonMode('weekly')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  comparisonMode === 'weekly' 
+                    ? 'bg-blue-500 text-white shadow-md' 
+                    : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                }`}>
+                Settimanale
+              </button>
+              <button
+                onClick={() => setComparisonMode('monthly')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  comparisonMode === 'monthly' 
+                    ? 'bg-blue-500 text-white shadow-md' 
+                    : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                }`}>
+                Mensile
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Top 3 */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <h3 className="font-bold text-green-700 mb-3 text-sm flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Top 3 Prodotti
+              </h3>
+              <div className="space-y-2">
+                {topBottomProducts.top3.length > 0 ? topBottomProducts.top3.map((prod, idx) =>
+                  <div key={idx} className="p-2 rounded-lg bg-green-50 border border-green-200">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-slate-800">{prod.nome}</p>
+                        <p className="text-[10px] text-slate-500">Quantità: {prod.quantita}</p>
+                      </div>
+                      <div className="text-right ml-2">
+                        <div className={`flex items-center gap-1 text-xs font-bold ${
+                          prod.change > 0 ? 'text-green-600' : prod.change < 0 ? 'text-red-600' : 'text-slate-500'
+                        }`}>
+                          {prod.change > 0 ? <ArrowUp className="w-3 h-3" /> : prod.change < 0 ? <ArrowDown className="w-3 h-3" /> : null}
+                          {prod.change > 0 ? '+' : ''}{prod.change.toFixed(1)}%
+                        </div>
+                        <p className="text-[9px] text-slate-400">vs {comparisonMode === 'weekly' ? '7gg fa' : '30gg fa'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : <p className="text-xs text-slate-400 text-center py-4">Nessun dato</p>}
+              </div>
+            </div>
+
+            {/* Bottom 3 */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <h3 className="font-bold text-red-700 mb-3 text-sm flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 rotate-180" />
+                Bottom 3 Prodotti
+              </h3>
+              <div className="space-y-2">
+                {topBottomProducts.bottom3.length > 0 ? topBottomProducts.bottom3.map((prod, idx) =>
+                  <div key={idx} className="p-2 rounded-lg bg-red-50 border border-red-200">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-xs font-bold text-slate-800">{prod.nome}</p>
+                        <p className="text-[10px] text-slate-500">Quantità: {prod.quantita}</p>
+                      </div>
+                      <div className="text-right ml-2">
+                        <div className={`flex items-center gap-1 text-xs font-bold ${
+                          prod.change > 0 ? 'text-green-600' : prod.change < 0 ? 'text-red-600' : 'text-slate-500'
+                        }`}>
+                          {prod.change > 0 ? <ArrowUp className="w-3 h-3" /> : prod.change < 0 ? <ArrowDown className="w-3 h-3" /> : null}
+                          {prod.change > 0 ? '+' : ''}{prod.change.toFixed(1)}%
+                        </div>
+                        <p className="text-[9px] text-slate-400">vs {comparisonMode === 'weekly' ? '7gg fa' : '30gg fa'}</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : <p className="text-xs text-slate-400 text-center py-4">Nessun dato</p>}
+              </div>
+            </div>
+          </div>
+        </NeumorphicCard>
 
         {/* Metriche Operative */}
         <NeumorphicCard className="p-6">
@@ -1340,57 +1544,6 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-4 lg:p-6">
-          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Revenue</h2>
-          {processedData.dailyRevenue.length > 0 ?
-          <div className="w-full overflow-x-auto">
-              <div style={{ minWidth: '300px' }}>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={processedData.dailyRevenue}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis
-                    dataKey="date"
-                    stroke="#64748b"
-                    tick={{ fontSize: 12 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={60} />
-
-                    <YAxis
-                    stroke="#64748b"
-                    tick={{ fontSize: 12 }}
-                    width={60} />
-
-                    <Tooltip
-                    contentStyle={{
-                      background: 'rgba(248, 250, 252, 0.95)',
-                      border: 'none',
-                      borderRadius: '12px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                      fontSize: '12px'
-                    }}
-                    formatter={(value) => `€${value.toFixed(2)}`} />
-
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    name="Revenue €"
-                    dot={{ fill: '#3b82f6', r: 3 }} />
-
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div> :
-
-          <div className="h-[250px] flex items-center justify-center text-slate-500">
-              Nessun dato disponibile per il periodo selezionato
-            </div>
-          }
         </NeumorphicCard>
       </div>
     </ProtectedPage>);
