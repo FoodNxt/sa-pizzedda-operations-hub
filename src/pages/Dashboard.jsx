@@ -20,137 +20,137 @@ export default function Dashboard() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: reviews = [] } = useQuery({
     queryKey: ['reviews'],
-    queryFn: () => base44.entities.Review.list(),
+    queryFn: () => base44.entities.Review.list()
   });
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees'],
-    queryFn: () => base44.entities.Employee.list(),
+    queryFn: () => base44.entities.Employee.list()
   });
 
   const { data: iPraticoData = [], isLoading: dataLoading } = useQuery({
     queryKey: ['iPratico'],
-    queryFn: () => base44.entities.iPratico.list('-order_date', 1000),
+    queryFn: () => base44.entities.iPratico.list('-order_date', 1000)
   });
 
   const { data: ordini = [] } = useQuery({
     queryKey: ['ordini-fornitori'],
     queryFn: async () => {
       const allOrdini = await base44.entities.OrdineFornitore.list();
-      return allOrdini.filter(o => o.status === 'completato');
-    },
+      return allOrdini.filter((o) => o.status === 'completato');
+    }
   });
 
   const { data: turni = [] } = useQuery({
     queryKey: ['turni-planday'],
-    queryFn: () => base44.entities.TurnoPlanday.list(),
+    queryFn: () => base44.entities.TurnoPlanday.list()
   });
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['all-users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list()
   });
 
   const { data: conteggiosCassa = [] } = useQuery({
     queryKey: ['conteggi-cassa'],
-    queryFn: () => base44.entities.ConteggioCassa.list('-data_conteggio', 100),
+    queryFn: () => base44.entities.ConteggioCassa.list('-data_conteggio', 100)
   });
 
   const { data: alertsCassaConfig = [] } = useQuery({
     queryKey: ['alerts-cassa-config'],
-    queryFn: () => base44.entities.AlertCassaConfig.list(),
+    queryFn: () => base44.entities.AlertCassaConfig.list()
   });
 
   const { data: sprechi = [] } = useQuery({
     queryKey: ['sprechi'],
-    queryFn: () => base44.entities.Spreco.list('-data_rilevazione', 200),
+    queryFn: () => base44.entities.Spreco.list('-data_rilevazione', 200)
   });
 
   const { data: cleaningInspections = [] } = useQuery({
     queryKey: ['cleaning-inspections'],
-    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 200),
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 200)
   });
 
   const { data: materiePrime = [] } = useQuery({
     queryKey: ['materie-prime'],
-    queryFn: () => base44.entities.MateriePrime.list(),
+    queryFn: () => base44.entities.MateriePrime.list()
   });
 
   const { data: wrongOrderMatches = [] } = useQuery({
     queryKey: ['wrong-order-matches'],
-    queryFn: () => base44.entities.WrongOrderMatch.list(),
+    queryFn: () => base44.entities.WrongOrderMatch.list()
   });
 
   const { data: metricWeights = [] } = useQuery({
     queryKey: ['metric-weights'],
-    queryFn: () => base44.entities.MetricWeight.list(),
+    queryFn: () => base44.entities.MetricWeight.list()
   });
 
   const { data: attrezzature = [] } = useQuery({
     queryKey: ['attrezzature'],
-    queryFn: () => base44.entities.Attrezzatura.list(),
+    queryFn: () => base44.entities.Attrezzatura.list()
   });
 
   const { data: domande = [] } = useQuery({
     queryKey: ['domande-pulizia'],
-    queryFn: () => base44.entities.DomandaPulizia.list(),
+    queryFn: () => base44.entities.DomandaPulizia.list()
   });
 
   const { data: malattie = [] } = useQuery({
     queryKey: ['richieste-malattia-all'],
-    queryFn: () => base44.entities.RichiestaMalattia.list(),
+    queryFn: () => base44.entities.RichiestaMalattia.list()
   });
 
   const { data: richiesteAssenze = { ferie: [], malattie: [], turniLiberi: [], scambi: [] } } = useQuery({
     queryKey: ['richieste-assenze'],
     queryFn: async () => {
       const [ferie, malattie, turniLiberi, scambi] = await Promise.all([
-        base44.entities.RichiestaFerie.filter({ stato: 'in_attesa' }),
-        base44.entities.RichiestaMalattia.list(),
-        base44.entities.RichiestaTurnoLibero.filter({ stato: 'in_attesa' }),
-        base44.entities.TurnoPlanday.list()
-      ]);
-      const malattieInAttesa = malattie.filter(m => 
-        (m.stato === 'non_certificata' || m.stato === 'in_attesa_verifica') &&
-        Array.isArray(m.turni_coinvolti) &&
-        m.turni_coinvolti.length > 0
+      base44.entities.RichiestaFerie.filter({ stato: 'in_attesa' }),
+      base44.entities.RichiestaMalattia.list(),
+      base44.entities.RichiestaTurnoLibero.filter({ stato: 'in_attesa' }),
+      base44.entities.TurnoPlanday.list()]
       );
-      const scambiInAttesa = scambi.filter(t => 
-        t.richiesta_scambio?.stato === 'accepted_by_colleague' &&
-        t.id === t.richiesta_scambio.mio_turno_id
+      const malattieInAttesa = malattie.filter((m) =>
+      (m.stato === 'non_certificata' || m.stato === 'in_attesa_verifica') &&
+      Array.isArray(m.turni_coinvolti) &&
+      m.turni_coinvolti.length > 0
+      );
+      const scambiInAttesa = scambi.filter((t) =>
+      t.richiesta_scambio?.stato === 'accepted_by_colleague' &&
+      t.id === t.richiesta_scambio.mio_turno_id
       );
       return { ferie, malattie: malattieInAttesa, turniLiberi, scambi: scambiInAttesa };
-    },
+    }
   });
 
   const { data: contratti = [] } = useQuery({
     queryKey: ['contratti'],
-    queryFn: () => base44.entities.Contratto.list(),
+    queryFn: () => base44.entities.Contratto.list()
   });
 
   const { data: regoleOrdini = [] } = useQuery({
     queryKey: ['regole-ordini'],
-    queryFn: () => base44.entities.RegolaOrdine.filter({ is_active: true }),
+    queryFn: () => base44.entities.RegolaOrdine.filter({ is_active: true })
   });
 
   const { data: inventario = [] } = useQuery({
     queryKey: ['inventario'],
-    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 100),
+    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 100)
   });
 
   const { data: inventarioCantina = [] } = useQuery({
     queryKey: ['inventario-cantina'],
-    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 100),
+    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 100)
   });
 
   const { data: uscite = [] } = useQuery({
     queryKey: ['uscite'],
-    queryFn: () => base44.entities.Uscita.list(),
+    queryFn: () => base44.entities.Uscita.list()
   });
 
   const safeParseDate = (dateString) => {
@@ -176,7 +176,7 @@ export default function Dashboard() {
   const processedData = useMemo(() => {
     let cutoffDate;
     let endFilterDate;
-    
+
     if (startDate || endDate) {
       cutoffDate = startDate ? safeParseDate(startDate) : new Date(0);
       endFilterDate = endDate ? safeParseDate(endDate) : new Date();
@@ -185,30 +185,30 @@ export default function Dashboard() {
       cutoffDate = subDays(new Date(), days);
       endFilterDate = new Date();
     }
-    
-    const filteredData = iPraticoData.filter(item => {
+
+    const filteredData = iPraticoData.filter((item) => {
       if (!item.order_date) return false;
-      
+
       const itemDate = safeParseDate(item.order_date);
       if (!itemDate) return false;
-      
+
       if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
       if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
-      
+
       return true;
     });
 
-    const totalRevenue = filteredData.reduce((sum, item) => 
-      sum + (item.total_revenue || 0), 0
+    const totalRevenue = filteredData.reduce((sum, item) =>
+    sum + (item.total_revenue || 0), 0
     );
 
-    const totalOrders = filteredData.reduce((sum, item) => 
-      sum + (item.total_orders || 0), 0
+    const totalOrders = filteredData.reduce((sum, item) =>
+    sum + (item.total_orders || 0), 0
     );
 
     // Revenue by store
     const revenueByStore = {};
-    filteredData.forEach(item => {
+    filteredData.forEach((item) => {
       const storeId = item.store_id;
       if (!revenueByStore[storeId]) {
         revenueByStore[storeId] = 0;
@@ -218,36 +218,36 @@ export default function Dashboard() {
 
     // Food Cost by store
     const foodCostByStore = {};
-    stores.forEach(store => {
+    stores.forEach((store) => {
       const storeRevenue = revenueByStore[store.id] || 0;
-      const storeCOGS = ordini
-        .filter(o => o.store_id === store.id)
-        .reduce((sum, o) => sum + (o.totale_ordine || 0), 0);
-      const foodCostPerc = storeRevenue > 0 ? (storeCOGS / storeRevenue) * 100 : 0;
+      const storeCOGS = ordini.
+      filter((o) => o.store_id === store.id).
+      reduce((sum, o) => sum + (o.totale_ordine || 0), 0);
+      const foodCostPerc = storeRevenue > 0 ? storeCOGS / storeRevenue * 100 : 0;
       foodCostByStore[store.id] = { cogs: storeCOGS, revenue: storeRevenue, percentage: foodCostPerc };
     });
 
     // Produttività by store (€/h lavorata)
     const produttivitaByStore = {};
-    stores.forEach(store => {
+    stores.forEach((store) => {
       const storeRevenue = revenueByStore[store.id] || 0;
-      const storeTurni = turni.filter(t => 
-        t.store_id === store.id && 
-        t.timbratura_entrata && 
-        t.timbratura_uscita
+      const storeTurni = turni.filter((t) =>
+      t.store_id === store.id &&
+      t.timbratura_entrata &&
+      t.timbratura_uscita
       );
       const totaleOre = storeTurni.reduce((sum, t) => {
         const entrata = new Date(t.timbratura_entrata);
         const uscita = new Date(t.timbratura_uscita);
-        return sum + ((uscita - entrata) / (1000 * 60 * 60));
+        return sum + (uscita - entrata) / (1000 * 60 * 60);
       }, 0);
       produttivitaByStore[store.id] = totaleOre > 0 ? storeRevenue / totaleOre : 0;
     });
 
     const revenueByDate = {};
-    filteredData.forEach(item => {
+    filteredData.forEach((item) => {
       if (!item.order_date) return;
-      
+
       const dateStr = item.order_date;
       if (!revenueByDate[dateStr]) {
         revenueByDate[dateStr] = { date: dateStr, revenue: 0 };
@@ -255,36 +255,36 @@ export default function Dashboard() {
       revenueByDate[dateStr].revenue += item.total_revenue || 0;
     });
 
-    const dailyRevenue = Object.values(revenueByDate)
-      .map(d => {
-        const parsedDate = safeParseDate(d.date);
-        return {
-          date: parsedDate,
-          dateStr: d.date,
-          revenue: parseFloat(d.revenue.toFixed(2))
-        };
-      })
-      .filter(d => d.date !== null)
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .map(d => ({
-        date: safeFormatDate(d.date, 'dd MMM'),
-        revenue: d.revenue
-      }))
-      .filter(d => d.date !== 'N/A');
+    const dailyRevenue = Object.values(revenueByDate).
+    map((d) => {
+      const parsedDate = safeParseDate(d.date);
+      return {
+        date: parsedDate,
+        dateStr: d.date,
+        revenue: parseFloat(d.revenue.toFixed(2))
+      };
+    }).
+    filter((d) => d.date !== null).
+    sort((a, b) => a.date.getTime() - b.date.getTime()).
+    map((d) => ({
+      date: safeFormatDate(d.date, 'dd MMM'),
+      revenue: d.revenue
+    })).
+    filter((d) => d.date !== 'N/A');
 
-    return { 
-      totalRevenue, 
-      totalOrders, 
-      dailyRevenue, 
-      revenueByStore, 
-      foodCostByStore, 
-      produttivitaByStore 
+    return {
+      totalRevenue,
+      totalOrders,
+      dailyRevenue,
+      revenueByStore,
+      foodCostByStore,
+      produttivitaByStore
     };
   }, [iPraticoData, dateRange, startDate, endDate, ordini, turni, stores]);
 
   // Metriche principali
   const topRevenueStore = useMemo(() => {
-    const storeRevenues = stores.map(s => ({
+    const storeRevenues = stores.map((s) => ({
       name: s.name,
       revenue: processedData.revenueByStore[s.id] || 0
     })).sort((a, b) => b.revenue - a.revenue);
@@ -292,34 +292,34 @@ export default function Dashboard() {
   }, [stores, processedData.revenueByStore]);
 
   const foodCostStats = useMemo(() => {
-    const storeFoodCosts = stores.map(s => ({
+    const storeFoodCosts = stores.map((s) => ({
       name: s.name,
       percentage: processedData.foodCostByStore[s.id]?.percentage || 0
-    })).filter(s => s.percentage > 0).sort((a, b) => a.percentage - b.percentage);
-    const avgFoodCost = storeFoodCosts.length > 0 
-      ? storeFoodCosts.reduce((sum, s) => sum + s.percentage, 0) / storeFoodCosts.length 
-      : 0;
+    })).filter((s) => s.percentage > 0).sort((a, b) => a.percentage - b.percentage);
+    const avgFoodCost = storeFoodCosts.length > 0 ?
+    storeFoodCosts.reduce((sum, s) => sum + s.percentage, 0) / storeFoodCosts.length :
+    0;
     return { avg: avgFoodCost, best: storeFoodCosts[0], worst: storeFoodCosts[storeFoodCosts.length - 1] };
   }, [stores, processedData.foodCostByStore]);
 
   const employeePerformance = useMemo(() => {
-    const dipendenti = allUsers.filter(u => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0);
+    const dipendenti = allUsers.filter((u) => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0);
     const totalEmployees = dipendenti.length;
 
     const getWeight = (metricName, ruolo = null) => {
       let weight;
       if (ruolo) {
-        weight = metricWeights.find(w => w.metric_name === metricName && w.ruolo === ruolo && w.is_active);
+        weight = metricWeights.find((w) => w.metric_name === metricName && w.ruolo === ruolo && w.is_active);
       } else {
-        weight = metricWeights.find(w => w.metric_name === metricName && w.is_active);
+        weight = metricWeights.find((w) => w.metric_name === metricName && w.is_active);
       }
       return weight ? weight.weight : 1;
     };
 
-    const employeeScores = dipendenti.map(user => {
+    const employeeScores = dipendenti.map((user) => {
       const employeeName = user.nome_cognome || user.full_name || user.email;
-      
-      const employeeShifts = turni.filter(s => {
+
+      const employeeShifts = turni.filter((s) => {
         if (s.dipendente_nome !== employeeName) return false;
         const shiftDate = safeParseDate(s.data);
         if (!shiftDate) return false;
@@ -327,9 +327,9 @@ export default function Dashboard() {
         today.setHours(23, 59, 59, 999);
         return shiftDate <= today;
       });
-      
-      const employeeWrongOrders = wrongOrderMatches.filter(m => m.matched_employee_name === employeeName);
-      
+
+      const employeeWrongOrders = wrongOrderMatches.filter((m) => m.matched_employee_name === employeeName);
+
       const w_bonus_recensione = getWeight('bonus_per_recensione');
       const w_min_recensioni = getWeight('min_recensioni');
       const w_malus_recensioni = getWeight('malus_sotto_minimo_recensioni');
@@ -337,13 +337,13 @@ export default function Dashboard() {
       const w_pulizie = getWeight('pulizie');
 
       let performanceScore = 100;
-      
+
       let deductionOrdini = 0;
       let deductionRitardi = 0;
       let deductionTimbrature = 0;
-      
-      employeeWrongOrders.forEach(order => {
-        const shiftData = employeeShifts.find(s => {
+
+      employeeWrongOrders.forEach((order) => {
+        const shiftData = employeeShifts.find((s) => {
           if (!s.data) return false;
           const shiftDate = safeParseDate(s.data);
           if (!shiftDate) return false;
@@ -358,8 +358,8 @@ export default function Dashboard() {
         }
         deductionOrdini += weight;
       });
-      
-      employeeShifts.forEach(shift => {
+
+      employeeShifts.forEach((shift) => {
         if (!shift.timbratura_entrata || !shift.ora_inizio) return;
         try {
           const clockInTime = new Date(shift.timbratura_entrata);
@@ -377,69 +377,69 @@ export default function Dashboard() {
           }
         } catch (e) {}
       });
-      
-      const missingClockIns = employeeShifts.filter(s => {
+
+      const missingClockIns = employeeShifts.filter((s) => {
         if (s.timbratura_entrata) return false;
         const shiftDate = safeParseDate(s.data);
         if (!shiftDate) return false;
         const today = new Date();
         return shiftDate <= today;
       });
-      
-      missingClockIns.forEach(shift => {
+
+      missingClockIns.forEach((shift) => {
         let weight = getWeight('timbrature_mancanti', shift.ruolo);
         if (weight === 1 && shift.ruolo) {
           weight = getWeight('timbrature_mancanti', null) || 1;
         }
         deductionTimbrature += weight;
       });
-      
+
       performanceScore -= deductionOrdini;
       performanceScore -= deductionRitardi;
       performanceScore -= deductionTimbrature;
-      
-      const employeeGoogleReviews = reviews.filter(r => {
+
+      const employeeGoogleReviews = reviews.filter((r) => {
         if (r.source !== 'google' || !r.employee_assigned_name) return false;
-        const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+        const assignedNames = r.employee_assigned_name.split(',').map((n) => n.trim().toLowerCase());
         return assignedNames.includes(employeeName.toLowerCase());
       });
-      
-      const avgRating = employeeGoogleReviews.length > 0
-        ? employeeGoogleReviews.reduce((sum, r) => sum + r.rating, 0) / employeeGoogleReviews.length
-        : 0;
-      
+
+      const avgRating = employeeGoogleReviews.length > 0 ?
+      employeeGoogleReviews.reduce((sum, r) => sum + r.rating, 0) / employeeGoogleReviews.length :
+      0;
+
       if (employeeGoogleReviews.length > 0 && avgRating < 5) {
         const reviewPenalty = (5 - avgRating) * w_punteggio_recensioni;
         performanceScore -= reviewPenalty;
       }
-      
+
       if (employeeGoogleReviews.length > 0 && w_bonus_recensione > 0) {
         const reviewBonus = employeeGoogleReviews.length * w_bonus_recensione;
         performanceScore += reviewBonus;
       }
-      
+
       if (w_min_recensioni > 0 && employeeGoogleReviews.length < w_min_recensioni && w_malus_recensioni > 0) {
         const recensioniMancanti = w_min_recensioni - employeeGoogleReviews.length;
         const malusTotale = recensioniMancanti * w_malus_recensioni;
         performanceScore -= malusTotale;
       }
-      
+
       let puliti = 0;
       let sporchi = 0;
-      
-      cleaningInspections.forEach(inspection => {
+
+      cleaningInspections.forEach((inspection) => {
         if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
-        
+
         const dataCompilazione = new Date(inspection.inspection_date);
         const inspectionStoreId = inspection.store_id;
-        
-        inspection.domande_risposte.forEach(domanda => {
+
+        inspection.domande_risposte.forEach((domanda) => {
           let nomeAttrezzatura = domanda.attrezzatura;
-          
+
           if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
-            const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+            const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
             nomeAttrezzatura = originalQuestion?.attrezzatura;
-            
+
             if (!nomeAttrezzatura) {
               const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
               for (const attr of attrezzature) {
@@ -451,14 +451,14 @@ export default function Dashboard() {
               }
             }
           }
-          
+
           if (!nomeAttrezzatura) return;
-          
-          const attrezzatura = attrezzature.find(a => a.nome === nomeAttrezzatura);
+
+          const attrezzatura = attrezzature.find((a) => a.nome === nomeAttrezzatura);
           if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
-          
+
           let statoPulizia = null;
-          
+
           if (domanda.tipo_controllo === 'foto') {
             const normalizeAttrezzatura = (name) => {
               const map = {
@@ -478,23 +478,23 @@ export default function Dashboard() {
             const correctedField = `${normalizedName}_corrected_status`;
             statoPulizia = inspection[correctedField] || inspection[statusField];
           } else if (domanda.tipo_controllo === 'scelta_multipla') {
-            const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+            const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
             const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
             statoPulizia = isCorrect ? 'pulito' : 'sporco';
           }
-          
+
           if (!statoPulizia) return;
-          
-          attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
-            const candidateShifts = employeeShifts.filter(t => {
+
+          attrezzatura.ruoli_responsabili.forEach((ruoloResponsabile) => {
+            const candidateShifts = employeeShifts.filter((t) => {
               if (t.store_id !== inspectionStoreId) return false;
               if (t.ruolo !== ruoloResponsabile) return false;
               if (!t.dipendente_nome) return false;
               if (!t.data || !t.ora_fine) return false;
 
-              const shiftEndTime = t.timbratura_uscita 
-                ? new Date(t.timbratura_uscita)
-                : new Date(t.data + 'T' + t.ora_fine);
+              const shiftEndTime = t.timbratura_uscita ?
+              new Date(t.timbratura_uscita) :
+              new Date(t.data + 'T' + t.ora_fine);
 
               return shiftEndTime <= dataCompilazione;
             });
@@ -515,18 +515,18 @@ export default function Dashboard() {
           });
         });
       });
-      
+
       const totalControlli = puliti + sporchi;
       if (totalControlli > 0) {
-        const percentualePulito = (puliti / totalControlli) * 100;
+        const percentualePulito = puliti / totalControlli * 100;
         if (percentualePulito < 80) {
           const cleaningPenalty = (80 - percentualePulito) * w_pulizie * 0.1;
           performanceScore -= cleaningPenalty;
         }
       }
-      
+
       performanceScore = Math.max(0, Math.min(100, performanceScore));
-      
+
       return {
         id: user.id,
         name: employeeName,
@@ -542,13 +542,13 @@ export default function Dashboard() {
   }, [allUsers, turni, wrongOrderMatches, metricWeights, reviews, cleaningInspections, attrezzature, domande]);
 
   const produttivitaStats = useMemo(() => {
-    const storeProd = stores.map(s => ({
+    const storeProd = stores.map((s) => ({
       name: s.name,
       produttivita: processedData.produttivitaByStore[s.id] || 0
-    })).filter(s => s.produttivita > 0).sort((a, b) => b.produttivita - a.produttivita);
-    const avgProd = storeProd.length > 0 
-      ? storeProd.reduce((sum, s) => sum + s.produttivita, 0) / storeProd.length 
-      : 0;
+    })).filter((s) => s.produttivita > 0).sort((a, b) => b.produttivita - a.produttivita);
+    const avgProd = storeProd.length > 0 ?
+    storeProd.reduce((sum, s) => sum + s.produttivita, 0) / storeProd.length :
+    0;
     return { avg: avgProd, best: storeProd[0], worst: storeProd[storeProd.length - 1] };
   }, [stores, processedData.produttivitaByStore]);
 
@@ -563,7 +563,7 @@ export default function Dashboard() {
       endFilterDate = new Date();
     }
 
-    const filteredReviews = reviews.filter(r => {
+    const filteredReviews = reviews.filter((r) => {
       if (!r.review_date) return false;
       const itemDate = safeParseDate(r.review_date);
       if (!itemDate) return false;
@@ -572,36 +572,36 @@ export default function Dashboard() {
       return true;
     });
 
-    const reviewsByEmployee = allUsers
-      .filter(u => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0)
-      .map(emp => {
-        const employeeName = emp.nome_cognome || emp.full_name;
-        const assignedReviews = filteredReviews.filter(r => {
-          if (!r.employee_assigned_name) return false;
-          const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
-          return assignedNames.includes(employeeName.toLowerCase());
-        });
-        return { name: employeeName, count: assignedReviews.length };
-      })
-      .filter(e => e.count > 0)
-      .sort((a, b) => b.count - a.count);
+    const reviewsByEmployee = allUsers.
+    filter((u) => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0).
+    map((emp) => {
+      const employeeName = emp.nome_cognome || emp.full_name;
+      const assignedReviews = filteredReviews.filter((r) => {
+        if (!r.employee_assigned_name) return false;
+        const assignedNames = r.employee_assigned_name.split(',').map((n) => n.trim().toLowerCase());
+        return assignedNames.includes(employeeName.toLowerCase());
+      });
+      return { name: employeeName, count: assignedReviews.length };
+    }).
+    filter((e) => e.count > 0).
+    sort((a, b) => b.count - a.count);
 
-    const avgRatingByEmployee = allUsers
-      .filter(u => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0)
-      .map(emp => {
-        const employeeName = emp.nome_cognome || emp.full_name;
-        const assignedReviews = filteredReviews.filter(r => {
-          if (!r.employee_assigned_name) return false;
-          const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
-          return assignedNames.includes(employeeName.toLowerCase());
-        });
-        const avgRating = assignedReviews.length > 0 
-          ? assignedReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / assignedReviews.length 
-          : 0;
-        return { name: employeeName, rating: avgRating, count: assignedReviews.length };
-      })
-      .filter(e => e.count > 0)
-      .sort((a, b) => b.rating - a.rating);
+    const avgRatingByEmployee = allUsers.
+    filter((u) => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0).
+    map((emp) => {
+      const employeeName = emp.nome_cognome || emp.full_name;
+      const assignedReviews = filteredReviews.filter((r) => {
+        if (!r.employee_assigned_name) return false;
+        const assignedNames = r.employee_assigned_name.split(',').map((n) => n.trim().toLowerCase());
+        return assignedNames.includes(employeeName.toLowerCase());
+      });
+      const avgRating = assignedReviews.length > 0 ?
+      assignedReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / assignedReviews.length :
+      0;
+      return { name: employeeName, rating: avgRating, count: assignedReviews.length };
+    }).
+    filter((e) => e.count > 0).
+    sort((a, b) => b.rating - a.rating);
 
     return {
       totalReviews: filteredReviews.length,
@@ -615,24 +615,24 @@ export default function Dashboard() {
 
   // Metriche operative
   const cassaStats = useMemo(() => {
-    const storeLastCassa = stores.map(store => {
-      const storeConteggios = conteggiosCassa
-        .filter(c => c.store_id === store.id && c.data_conteggio)
-        .sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio));
-      
+    const storeLastCassa = stores.map((store) => {
+      const storeConteggios = conteggiosCassa.
+      filter((c) => c.store_id === store.id && c.data_conteggio).
+      sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio));
+
       if (storeConteggios.length === 0) return null;
-      
+
       const lastConteggio = storeConteggios[0];
-      const alert = alertsCassaConfig.find(a => a.store_id === store.id && a.is_active);
+      const alert = alertsCassaConfig.find((a) => a.store_id === store.id && a.is_active);
       const hasAlert = alert && (lastConteggio.valore_conteggio || 0) > (alert.soglia_alert || 50);
-      
+
       return {
         storeName: store.name,
         lastDate: lastConteggio.data_conteggio,
         differenza: lastConteggio.valore_conteggio || 0,
         hasAlert
       };
-    }).filter(s => s !== null);
+    }).filter((s) => s !== null);
     return storeLastCassa;
   }, [stores, conteggiosCassa, alertsCassaConfig]);
 
@@ -647,7 +647,7 @@ export default function Dashboard() {
       endFilterDate = new Date();
     }
 
-    const filteredSprechi = sprechi.filter(s => {
+    const filteredSprechi = sprechi.filter((s) => {
       if (!s.data_rilevazione) return false;
       const itemDate = safeParseDate(s.data_rilevazione);
       if (!itemDate) return false;
@@ -658,10 +658,10 @@ export default function Dashboard() {
 
     // Raggruppa per locale e somma
     const sprechiPerStore = {};
-    filteredSprechi.forEach(s => {
-      const storeName = stores.find(st => st.id === s.store_id)?.name || 'N/A';
+    filteredSprechi.forEach((s) => {
+      const storeName = stores.find((st) => st.id === s.store_id)?.name || 'N/A';
       const valore = (s.quantita_grammi || 0) * (s.costo_unitario || 0) / 1000;
-      
+
       if (!sprechiPerStore[storeName]) {
         sprechiPerStore[storeName] = { storeName, totale: 0, count: 0 };
       }
@@ -674,12 +674,12 @@ export default function Dashboard() {
 
   const { data: ordiniInviati = [] } = useQuery({
     queryKey: ['ordini-inviati'],
-    queryFn: () => base44.entities.OrdineFornitore.filter({ status: 'inviato' }),
+    queryFn: () => base44.entities.OrdineFornitore.filter({ status: 'inviato' })
   });
 
   const { data: ordiniCompletati = [] } = useQuery({
     queryKey: ['ordini-completati'],
-    queryFn: () => base44.entities.OrdineFornitore.filter({ status: 'completato' }),
+    queryFn: () => base44.entities.OrdineFornitore.filter({ status: 'completato' })
   });
 
   // Alert operativi - Ordini suggeriti aggregati per fornitore/store
@@ -688,57 +688,57 @@ export default function Dashboard() {
     const ordiniDettagliati = [];
     const allInventory = [...inventario, ...inventarioCantina];
     const latestByProduct = {};
-    
-    allInventory.forEach(item => {
+
+    allInventory.forEach((item) => {
       const key = `${item.store_id}-${item.prodotto_id}`;
       if (!latestByProduct[key] || new Date(item.data_rilevazione) > new Date(latestByProduct[key].data_rilevazione)) {
         latestByProduct[key] = item;
       }
     });
-    
-    Object.values(latestByProduct).forEach(reading => {
-      const product = materiePrime.find(p => p.id === reading.prodotto_id);
+
+    Object.values(latestByProduct).forEach((reading) => {
+      const product = materiePrime.find((p) => p.id === reading.prodotto_id);
       if (!product) return;
-      
-      const store = stores.find(s => s.id === reading.store_id);
+
+      const store = stores.find((s) => s.id === reading.store_id);
       if (!store) return;
-      
-      const isAssignedToStore = !product.assigned_stores || 
-                                 product.assigned_stores.length === 0 || 
-                                 product.assigned_stores.includes(reading.store_id);
+
+      const isAssignedToStore = !product.assigned_stores ||
+      product.assigned_stores.length === 0 ||
+      product.assigned_stores.includes(reading.store_id);
       if (!isAssignedToStore) return;
-      
-      const isInUsoForStore = product.in_uso_per_store?.[reading.store_id] === true || 
-                              (!product.in_uso_per_store?.[reading.store_id] && product.in_uso === true);
+
+      const isInUsoForStore = product.in_uso_per_store?.[reading.store_id] === true ||
+      !product.in_uso_per_store?.[reading.store_id] && product.in_uso === true;
       if (!isInUsoForStore) return;
-      
+
       const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
-      
+
       if (reading.quantita_rilevata <= quantitaCritica && quantitaOrdine > 0) {
         // Check se ha ordine in corso
-        const hasPendingOrder = ordiniInviati.some(o => 
-          o.store_id === reading.store_id &&
-          o.prodotti.some(p => p.prodotto_id === product.id)
+        const hasPendingOrder = ordiniInviati.some((o) =>
+        o.store_id === reading.store_id &&
+        o.prodotti.some((p) => p.prodotto_id === product.id)
         );
-        
+
         // Check se è arrivato oggi
-        const hasArrivedToday = ordiniCompletati.some(o => {
-          const completedToday = o.data_completamento && 
-            new Date(o.data_completamento).toDateString() === new Date().toDateString();
+        const hasArrivedToday = ordiniCompletati.some((o) => {
+          const completedToday = o.data_completamento &&
+          new Date(o.data_completamento).toDateString() === new Date().toDateString();
           return completedToday &&
-            o.store_id === reading.store_id &&
-            o.prodotti.some(p => p.prodotto_id === product.id);
+          o.store_id === reading.store_id &&
+          o.prodotti.some((p) => p.prodotto_id === product.id);
         });
-        
+
         // Salta se ha ordine in corso o è arrivato oggi
         if (hasPendingOrder || hasArrivedToday) return;
-        
+
         const prezzoUnitario = product.prezzo_unitario || 0;
         const ivaPerc = product.iva_percentuale ?? 22;
-        const prezzoConIva = prezzoUnitario * (1 + (ivaPerc / 100));
+        const prezzoConIva = prezzoUnitario * (1 + ivaPerc / 100);
         const costoTotale = prezzoConIva * quantitaOrdine;
-        
+
         ordiniDettagliati.push({
           store: store.name,
           storeId: store.id,
@@ -750,10 +750,10 @@ export default function Dashboard() {
         });
       }
     });
-    
+
     // Aggrega per fornitore/store
     const ordiniAggregati = {};
-    ordiniDettagliati.forEach(ord => {
+    ordiniDettagliati.forEach((ord) => {
       const key = `${ord.fornitore}|${ord.storeId}`;
       if (!ordiniAggregati[key]) {
         ordiniAggregati[key] = {
@@ -767,7 +767,7 @@ export default function Dashboard() {
       ordiniAggregati[key].costoTotale += ord.costoRiga;
       ordiniAggregati[key].numeroArticoli += 1;
     });
-    
+
     return Object.values(ordiniAggregati);
   }, [stores, inventario, inventarioCantina, materiePrime, ordiniInviati, ordiniCompletati]);
 
@@ -775,65 +775,65 @@ export default function Dashboard() {
     if (!allUsers) return [];
     const oggi = moment();
     const tra30Giorni = moment().add(30, 'days');
-    
-    return allUsers
-      .filter(user => {
-        // Escludi dipendenti che hanno un'uscita registrata
-        if (uscite.some(u => u.dipendente_id === user.id)) return false;
-        
-        if (user.user_type !== 'dipendente' && user.user_type !== 'user') return false;
-        if (!user.data_inizio_contratto) return false;
-        return user.data_fine_contratto || (user.durata_contratto_mesi && user.durata_contratto_mesi > 0);
-      })
-      .map(user => {
-        let dataFine;
-        
-        if (user.data_fine_contratto) {
-          dataFine = moment(user.data_fine_contratto);
-        } else if (user.durata_contratto_mesi && user.durata_contratto_mesi > 0) {
-          dataFine = moment(user.data_inizio_contratto).add(parseInt(user.durata_contratto_mesi), 'months');
-        }
-        
-        if (!dataFine) return null;
-        
-        const giorniRimanenti = dataFine.diff(oggi, 'days');
-        if (dataFine.isBetween(oggi, tra30Giorni, 'day', '[]')) {
-          return {
-            dipendente: user.nome_cognome || user.full_name || 'N/A',
-            dataScadenza: dataFine.format('YYYY-MM-DD'),
-            giorniRimanenti
-          };
-        }
-        return null;
-      })
-      .filter(c => c !== null)
-      .sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
+
+    return allUsers.
+    filter((user) => {
+      // Escludi dipendenti che hanno un'uscita registrata
+      if (uscite.some((u) => u.dipendente_id === user.id)) return false;
+
+      if (user.user_type !== 'dipendente' && user.user_type !== 'user') return false;
+      if (!user.data_inizio_contratto) return false;
+      return user.data_fine_contratto || user.durata_contratto_mesi && user.durata_contratto_mesi > 0;
+    }).
+    map((user) => {
+      let dataFine;
+
+      if (user.data_fine_contratto) {
+        dataFine = moment(user.data_fine_contratto);
+      } else if (user.durata_contratto_mesi && user.durata_contratto_mesi > 0) {
+        dataFine = moment(user.data_inizio_contratto).add(parseInt(user.durata_contratto_mesi), 'months');
+      }
+
+      if (!dataFine) return null;
+
+      const giorniRimanenti = dataFine.diff(oggi, 'days');
+      if (dataFine.isBetween(oggi, tra30Giorni, 'day', '[]')) {
+        return {
+          dipendente: user.nome_cognome || user.full_name || 'N/A',
+          dataScadenza: dataFine.format('YYYY-MM-DD'),
+          giorniRimanenti
+        };
+      }
+      return null;
+    }).
+    filter((c) => c !== null).
+    sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
   }, [allUsers, uscite]);
 
   const pulizieScores = useMemo(() => {
     if (!cleaningInspections || !stores) return [];
     const last30Days = moment().subtract(30, 'days').format('YYYY-MM-DD');
-    
-    const scoresByStore = stores.map(store => {
-      const storeInspections = cleaningInspections.filter(i => 
-        i.store_id === store.id && 
-        i.inspection_date && 
-        i.inspection_date.split('T')[0] >= last30Days &&
-        i.analysis_status === 'completed' &&
-        i.overall_score !== null && i.overall_score !== undefined
+
+    const scoresByStore = stores.map((store) => {
+      const storeInspections = cleaningInspections.filter((i) =>
+      i.store_id === store.id &&
+      i.inspection_date &&
+      i.inspection_date.split('T')[0] >= last30Days &&
+      i.analysis_status === 'completed' &&
+      i.overall_score !== null && i.overall_score !== undefined
       );
-      
-      const avgScore = storeInspections.length > 0 
-        ? storeInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / storeInspections.length 
-        : null;
-      
+
+      const avgScore = storeInspections.length > 0 ?
+      storeInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / storeInspections.length :
+      null;
+
       return {
         storeName: store.name,
         avgScore,
         count: storeInspections.length
       };
-    }).filter(s => s.avgScore !== null).sort((a, b) => b.avgScore - a.avgScore);
-    
+    }).filter((s) => s.avgScore !== null).sort((a, b) => b.avgScore - a.avgScore);
+
     return scoresByStore;
   }, [stores, cleaningInspections]);
 
@@ -841,12 +841,12 @@ export default function Dashboard() {
     if (!turni) return [];
     const oggi = moment().format('YYYY-MM-DD');
     const tra14Giorni = moment().add(14, 'days').format('YYYY-MM-DD');
-    
-    return turni.filter(t => 
-      !t.dipendente_id && 
-      t.data >= oggi && 
-      t.data <= tra14Giorni &&
-      t.stato === 'programmato'
+
+    return turni.filter((t) =>
+    !t.dipendente_id &&
+    t.data >= oggi &&
+    t.data <= tra14Giorni &&
+    t.stato === 'programmato'
     ).sort((a, b) => a.data.localeCompare(b.data));
   }, [turni]);
 
@@ -862,8 +862,8 @@ export default function Dashboard() {
       return response.data;
     },
     onSuccess: (data) => {
-      setSyncMessage({ 
-        type: 'success', 
+      setSyncMessage({
+        type: 'success',
         text: `Sincronizzati ${data.summary.created} dipendenti (${data.summary.skipped} già esistenti)`
       });
       setTimeout(() => setSyncMessage(null), 5000);
@@ -880,36 +880,36 @@ export default function Dashboard() {
         <div className="mb-4 lg:mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-                Dashboard
+              <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Dashboard
+
               </h1>
-              <p className="text-sm text-slate-500">Monitor business performance</p>
+              <p className="text-slate-50 text-sm">Monitor business performance</p>
             </div>
-            {employees.length === 0 && (
-              <NeumorphicButton
-                onClick={() => syncEmployeesMutation.mutate()}
-                disabled={syncEmployeesMutation.isPending}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                {syncEmployeesMutation.isPending ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
-                )}
+            {employees.length === 0 &&
+            <NeumorphicButton
+              onClick={() => syncEmployeesMutation.mutate()}
+              disabled={syncEmployeesMutation.isPending}
+              variant="primary"
+              className="flex items-center gap-2">
+
+                {syncEmployeesMutation.isPending ?
+              <RefreshCw className="w-4 h-4 animate-spin" /> :
+
+              <RefreshCw className="w-4 h-4" />
+              }
                 Sincronizza Dipendenti
               </NeumorphicButton>
-            )}
+            }
           </div>
         </div>
 
-        {syncMessage && (
-          <NeumorphicCard className={`p-4 ${syncMessage.type === 'success' ? 'bg-green-50' : 'bg-red-50'}`}>
+        {syncMessage &&
+        <NeumorphicCard className={`p-4 ${syncMessage.type === 'success' ? 'bg-green-50' : 'bg-red-50'}`}>
             <p className={`text-sm ${syncMessage.type === 'success' ? 'text-green-700' : 'text-red-700'}`}>
               {syncMessage.text}
             </p>
           </NeumorphicCard>
-        )}
+        }
 
         <NeumorphicCard className="p-4 lg:p-6">
           <div className="flex items-center gap-2 mb-4">
@@ -928,8 +928,8 @@ export default function Dashboard() {
                     setEndDate('');
                   }
                 }}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-              >
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
                 <option value="7">Ultimi 7 giorni</option>
                 <option value="30">Ultimi 30 giorni</option>
                 <option value="90">Ultimi 90 giorni</option>
@@ -938,29 +938,29 @@ export default function Dashboard() {
               </select>
             </div>
 
-            {dateRange === 'custom' && (
-              <div className="grid grid-cols-2 gap-3">
+            {dateRange === 'custom' &&
+            <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-slate-600 mb-2 block">Inizio</label>
                   <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
-                  />
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
+
                 </div>
 
                 <div>
                   <label className="text-sm text-slate-600 mb-2 block">Fine</label>
                   <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm"
-                  />
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
+
                 </div>
               </div>
-            )}
+            }
           </div>
         </NeumorphicCard>
 
@@ -1120,8 +1120,8 @@ export default function Dashboard() {
                 <ExternalLink className="w-3 h-3" />
               </Link>
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {cassaStats.length > 0 ? cassaStats.map((cassa, idx) => (
-                  <div key={idx} className={`p-2 rounded-lg ${cassa.hasAlert ? 'bg-red-50' : 'bg-slate-50'}`}>
+                {cassaStats.length > 0 ? cassaStats.map((cassa, idx) =>
+                <div key={idx} className={`p-2 rounded-lg ${cassa.hasAlert ? 'bg-red-50' : 'bg-slate-50'}`}>
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-medium text-slate-700">{cassa.storeName}</span>
                       <div className="text-right">
@@ -1131,13 +1131,13 @@ export default function Dashboard() {
                         <p className="text-[10px] text-slate-400">{moment(cassa.lastDate).format('DD/MM/YYYY')}</p>
                       </div>
                     </div>
-                    {cassa.hasAlert && (
-                      <p className="text-[10px] text-red-600 mt-1">⚠️ Sopra soglia alert</p>
-                    )}
+                    {cassa.hasAlert &&
+                  <p className="text-[10px] text-red-600 mt-1">⚠️ Sopra soglia alert</p>
+                  }
                   </div>
-                )) : (
-                  <p className="text-xs text-slate-400 text-center py-4">Nessun conteggio cassa registrato</p>
-                )}
+                ) :
+                <p className="text-xs text-slate-400 text-center py-4">Nessun conteggio cassa registrato</p>
+                }
               </div>
             </div>
 
@@ -1148,8 +1148,8 @@ export default function Dashboard() {
                 <ExternalLink className="w-3 h-3" />
               </Link>
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {sprechiStats.length > 0 ? sprechiStats.map((spreco, idx) => (
-                  <div key={idx} className="p-2 rounded-lg bg-red-50 border border-red-200">
+                {sprechiStats.length > 0 ? sprechiStats.map((spreco, idx) =>
+                <div key={idx} className="p-2 rounded-lg bg-red-50 border border-red-200">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-medium text-slate-700">{spreco.storeName}</span>
                       <div className="text-right">
@@ -1158,9 +1158,9 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                )) : (
-                  <p className="text-xs text-slate-400 text-center py-4">Nessuno spreco registrato</p>
-                )}
+                ) :
+                <p className="text-xs text-slate-400 text-center py-4">Nessuno spreco registrato</p>
+                }
               </div>
             </div>
           </div>
@@ -1179,14 +1179,14 @@ export default function Dashboard() {
               <Link to={createPageUrl('OrdiniAdmin')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <Package className="w-4 h-4 text-orange-600" />
                 Ordini da Fare
-                {ordiniDaFare.length > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{ordiniDaFare.length}</span>
-                )}
+                {ordiniDaFare.length > 0 &&
+                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{ordiniDaFare.length}</span>
+                }
                 <ExternalLink className="w-3 h-3 ml-auto" />
               </Link>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {ordiniDaFare.length > 0 ? ordiniDaFare.map((ord, idx) => (
-                  <div key={idx} className="p-2 rounded-lg bg-orange-50 border border-orange-200">
+                {ordiniDaFare.length > 0 ? ordiniDaFare.map((ord, idx) =>
+                <div key={idx} className="p-2 rounded-lg bg-orange-50 border border-orange-200">
                     <div className="flex justify-between items-start mb-1">
                       <div>
                         <p className="text-xs font-bold text-slate-800">{ord.fornitore}</p>
@@ -1198,9 +1198,9 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                )) : (
-                  <p className="text-xs text-slate-400 text-center py-4">Nessun ordine urgente</p>
-                )}
+                ) :
+                <p className="text-xs text-slate-400 text-center py-4">Nessun ordine urgente</p>
+                }
               </div>
             </div>
 
@@ -1209,52 +1209,52 @@ export default function Dashboard() {
               <Link to={createPageUrl('Assenze')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <Calendar className="w-4 h-4 text-blue-600" />
                 Richieste in Attesa
-                {richiesteAssenze && (richiesteAssenze.ferie?.length + richiesteAssenze.malattie?.length + richiesteAssenze.turniLiberi?.length + richiesteAssenze.scambi?.length) > 0 && (
-                 <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                {richiesteAssenze && richiesteAssenze.ferie?.length + richiesteAssenze.malattie?.length + richiesteAssenze.turniLiberi?.length + richiesteAssenze.scambi?.length > 0 &&
+                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
                    {(richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0) + (richiesteAssenze.scambi?.length || 0)}
                  </span>
-                )}
+                }
                 <ExternalLink className="w-3 h-3 ml-auto" />
               </Link>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {richiesteAssenze?.ferie?.map(f => {
-                  const user = allUsers.find(u => u.id === f.dipendente_id);
+                {richiesteAssenze?.ferie?.map((f) => {
+                  const user = allUsers.find((u) => u.id === f.dipendente_id);
                   return (
                     <div key={f.id} className="p-2 rounded-lg bg-blue-50 border border-blue-200">
                       <p className="text-xs font-medium text-slate-700">{user?.nome_cognome || user?.full_name}</p>
                       <p className="text-[10px] text-blue-600">🏖️ Ferie: {moment(f.data_inizio).format('DD/MM')} - {moment(f.data_fine).format('DD/MM')}</p>
-                    </div>
-                  );
+                    </div>);
+
                 })}
-                {richiesteAssenze?.malattie?.map(m => {
-                  const user = allUsers.find(u => u.id === m.dipendente_id);
+                {richiesteAssenze?.malattie?.map((m) => {
+                  const user = allUsers.find((u) => u.id === m.dipendente_id);
                   return (
                     <div key={m.id} className="p-2 rounded-lg bg-red-50 border border-red-200">
                       <p className="text-xs font-medium text-slate-700">{user?.nome_cognome || user?.full_name}</p>
                       <p className="text-[10px] text-red-600">🤒 Malattia: {moment(m.data_inizio).format('DD/MM')} - {moment(m.data_fine).format('DD/MM')}</p>
-                    </div>
-                  );
+                    </div>);
+
                 })}
-                {richiesteAssenze?.turniLiberi?.map(t => {
-                  const user = allUsers.find(u => u.id === t.dipendente_id);
+                {richiesteAssenze?.turniLiberi?.map((t) => {
+                  const user = allUsers.find((u) => u.id === t.dipendente_id);
                   return (
                     <div key={t.id} className="p-2 rounded-lg bg-purple-50 border border-purple-200">
                       <p className="text-xs font-medium text-slate-700">{user?.nome_cognome || user?.full_name}</p>
                       <p className="text-[10px] text-purple-600">📅 Turno libero: {moment(t.data_turno).format('DD/MM/YYYY')}</p>
-                    </div>
-                  );
+                    </div>);
+
                 })}
-                {richiesteAssenze?.scambi?.map(t => {
+                {richiesteAssenze?.scambi?.map((t) => {
                   return (
                     <div key={t.id} className="p-2 rounded-lg bg-indigo-50 border border-indigo-200">
                       <p className="text-xs font-medium text-slate-700">{t.richiesta_scambio.richiesto_da_nome} ↔ {t.richiesta_scambio.richiesto_a_nome}</p>
                       <p className="text-[10px] text-indigo-600">🔄 Scambio: {moment(t.data).format('DD/MM/YYYY')}</p>
-                    </div>
-                  );
+                    </div>);
+
                 })}
-                {(!richiesteAssenze || ((richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0) + (richiesteAssenze.scambi?.length || 0)) === 0) && (
-                  <p className="text-xs text-slate-400 text-center py-4">Nessuna richiesta in attesa</p>
-                )}
+                {(!richiesteAssenze || (richiesteAssenze.ferie?.length || 0) + (richiesteAssenze.malattie?.length || 0) + (richiesteAssenze.turniLiberi?.length || 0) + (richiesteAssenze.scambi?.length || 0) === 0) &&
+                <p className="text-xs text-slate-400 text-center py-4">Nessuna richiesta in attesa</p>
+                }
               </div>
             </div>
 
@@ -1263,22 +1263,22 @@ export default function Dashboard() {
               <Link to={createPageUrl('Alerts')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <FileText className="w-4 h-4 text-purple-600" />
                 Contratti in Scadenza (30gg)
-                {contrattiInScadenza.length > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{contrattiInScadenza.length}</span>
-                )}
+                {contrattiInScadenza.length > 0 &&
+                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{contrattiInScadenza.length}</span>
+                }
                 <ExternalLink className="w-3 h-3 ml-auto" />
               </Link>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {contrattiInScadenza.length > 0 ? contrattiInScadenza.map((c, idx) => (
-                  <div key={idx} className="p-2 rounded-lg bg-purple-50 border border-purple-200">
+                {contrattiInScadenza.length > 0 ? contrattiInScadenza.map((c, idx) =>
+                <div key={idx} className="p-2 rounded-lg bg-purple-50 border border-purple-200">
                     <p className="text-xs font-medium text-slate-700">{c.dipendente}</p>
                     <p className="text-[10px] text-purple-600">
                       Scade il {moment(c.dataScadenza).format('DD/MM/YYYY')} ({c.giorniRimanenti} giorni)
                     </p>
                   </div>
-                )) : (
-                  <p className="text-xs text-slate-400 text-center py-4">Nessun contratto in scadenza</p>
-                )}
+                ) :
+                <p className="text-xs text-slate-400 text-center py-4">Nessun contratto in scadenza</p>
+                }
               </div>
             </div>
 
@@ -1290,21 +1290,21 @@ export default function Dashboard() {
                 <ExternalLink className="w-3 h-3 ml-auto" />
               </Link>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {pulizieScores.length > 0 ? pulizieScores.map((ps, idx) => (
-                  <div key={idx} className="p-2 rounded-lg bg-cyan-50 border border-cyan-200">
+                {pulizieScores.length > 0 ? pulizieScores.map((ps, idx) =>
+                <div key={idx} className="p-2 rounded-lg bg-cyan-50 border border-cyan-200">
                     <div className="flex justify-between items-center">
                       <p className="text-xs font-medium text-slate-700">{ps.storeName}</p>
                       <span className={`text-xs font-bold ${
-                        ps.avgScore >= 80 ? 'text-green-600' :
-                        ps.avgScore >= 60 ? 'text-blue-600' :
-                        ps.avgScore >= 40 ? 'text-yellow-600' : 'text-red-600'
-                      }`}>{ps.avgScore.toFixed(0)}/100</span>
+                    ps.avgScore >= 80 ? 'text-green-600' :
+                    ps.avgScore >= 60 ? 'text-blue-600' :
+                    ps.avgScore >= 40 ? 'text-yellow-600' : 'text-red-600'}`
+                    }>{ps.avgScore.toFixed(0)}/100</span>
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1">{ps.count} controlli</p>
                   </div>
-                )) : (
-                  <p className="text-xs text-slate-400 text-center py-4">Nessun dato pulizie</p>
-                )}
+                ) :
+                <p className="text-xs text-slate-400 text-center py-4">Nessun dato pulizie</p>
+                }
               </div>
             </div>
 
@@ -1313,14 +1313,14 @@ export default function Dashboard() {
               <Link to={createPageUrl('Planday')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <UserX className="w-4 h-4 text-red-600" />
                 Turni Liberi (Prossimi 14 giorni)
-                {turniLiberi.length > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{turniLiberi.length}</span>
-                )}
+                {turniLiberi.length > 0 &&
+                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{turniLiberi.length}</span>
+                }
                 <ExternalLink className="w-3 h-3 ml-auto" />
               </Link>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {turniLiberi.length > 0 ? turniLiberi.map(t => {
-                  const store = stores.find(s => s.id === t.store_id);
+                {turniLiberi.length > 0 ? turniLiberi.map((t) => {
+                  const store = stores.find((s) => s.id === t.store_id);
                   return (
                     <div key={t.id} className="p-2 rounded-lg bg-red-50 border border-red-200 flex justify-between items-center">
                       <div>
@@ -1328,11 +1328,11 @@ export default function Dashboard() {
                         <p className="text-[10px] text-slate-600">{moment(t.data).format('DD/MM/YYYY')} • {t.ora_inizio}-{t.ora_fine} • {t.ruolo}</p>
                       </div>
                       <span className="text-xs text-red-600 font-bold whitespace-nowrap ml-2">NON ASSEGNATO</span>
-                    </div>
-                  );
-                }) : (
-                  <p className="text-xs text-slate-400 text-center py-4">Tutti i turni sono assegnati</p>
-                )}
+                    </div>);
+
+                }) :
+                <p className="text-xs text-slate-400 text-center py-4">Tutti i turni sono assegnati</p>
+                }
               </div>
             </div>
           </div>
@@ -1340,55 +1340,55 @@ export default function Dashboard() {
 
         <NeumorphicCard className="p-4 lg:p-6">
           <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Revenue</h2>
-          {processedData.dailyRevenue.length > 0 ? (
-            <div className="w-full overflow-x-auto">
+          {processedData.dailyRevenue.length > 0 ?
+          <div className="w-full overflow-x-auto">
               <div style={{ minWidth: '300px' }}>
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={processedData.dailyRevenue}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#64748b" 
-                      tick={{ fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      stroke="#64748b"
-                      tick={{ fontSize: 12 }}
-                      width={60}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(248, 250, 252, 0.95)', 
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        fontSize: '12px'
-                      }}
-                      formatter={(value) => `€${value.toFixed(2)}`}
-                    />
+                    <XAxis
+                    dataKey="date"
+                    stroke="#64748b"
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60} />
+
+                    <YAxis
+                    stroke="#64748b"
+                    tick={{ fontSize: 12 }}
+                    width={60} />
+
+                    <Tooltip
+                    contentStyle={{
+                      background: 'rgba(248, 250, 252, 0.95)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value) => `€${value.toFixed(2)}`} />
+
                     <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2} 
-                      name="Revenue €"
-                      dot={{ fill: '#3b82f6', r: 3 }}
-                    />
+                    <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    name="Revenue €"
+                    dot={{ fill: '#3b82f6', r: 3 }} />
+
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-          ) : (
-            <div className="h-[250px] flex items-center justify-center text-slate-500">
+            </div> :
+
+          <div className="h-[250px] flex items-center justify-center text-slate-500">
               Nessun dato disponibile per il periodo selezionato
             </div>
-          )}
+          }
         </NeumorphicCard>
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
