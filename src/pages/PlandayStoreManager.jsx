@@ -147,6 +147,9 @@ export default function PlandayStoreManager() {
     mutationFn: (data) => base44.entities.TurnoPlanday.create(data),
     onSuccess: async (newTurno, variables) => {
       queryClient.invalidateQueries({ queryKey: ['turni-store-manager'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-store-manager-all'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
       
       // Invia email di notifica al dipendente se assegnato
       if (variables.dipendente_id && variables.dipendente_nome) {
@@ -208,6 +211,9 @@ export default function PlandayStoreManager() {
     mutationFn: ({ id, data }) => base44.entities.TurnoPlanday.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-store-manager'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-store-manager-all'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
       queryClient.invalidateQueries({ queryKey: ['scambi-turni-sm'] });
       resetForm();
     },
@@ -255,11 +261,13 @@ export default function PlandayStoreManager() {
 
   const handleSaveTurnoFromChild = (turnoData, existingId = null) => {
     const dipendente = users.find(u => u.id === turnoData.dipendente_id);
+    const store = allStores.find(s => s.id === turnoData.store_id);
     const momento = getTurnoTipo({ ora_inizio: turnoData.ora_inizio });
     const sequence = momento === 'Mattina' ? 'first' : 'second';
     
     const dataToSave = {
       ...turnoData,
+      store_nome: store?.name || '',
       dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
       stato: 'programmato',
       momento_turno: momento,
@@ -681,11 +689,13 @@ export default function PlandayStoreManager() {
                   <NeumorphicButton 
                     onClick={() => {
                       const dipendente = users.find(u => u.id === turnoForm.dipendente_id);
+                      const store = allStores.find(s => s.id === turnoForm.store_id);
                       const momento = getTurnoTipo({ ora_inizio: turnoForm.ora_inizio });
                       const sequence = momento === 'Mattina' ? 'first' : 'second';
                       
                       const dataToSave = {
                         ...turnoForm,
+                        store_nome: store?.name || '',
                         dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
                         momento_turno: momento,
                         turno_sequence: sequence,
