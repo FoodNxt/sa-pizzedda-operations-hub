@@ -622,6 +622,125 @@ export default function ProdottiVenduti() {
         </NeumorphicCard>
       )}
 
+      {/* Top & Worst Performers */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <h2 className="text-xl font-bold text-[#6b6b6b]">🚀 Trend Prodotti (Volumi)</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPerformersPeriod(30)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                performersPeriod === 30 
+                  ? 'bg-[#8b7355] text-white' 
+                  : 'bg-[#e0e5ec] text-[#6b6b6b]'
+              }`}
+            >
+              30gg
+            </button>
+            <button
+              onClick={() => setPerformersPeriod(60)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                performersPeriod === 60 
+                  ? 'bg-[#8b7355] text-white' 
+                  : 'bg-[#e0e5ec] text-[#6b6b6b]'
+              }`}
+            >
+              60gg
+            </button>
+            <button
+              onClick={() => setPerformersPeriod(90)}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                performersPeriod === 90 
+                  ? 'bg-[#8b7355] text-white' 
+                  : 'bg-[#e0e5ec] text-[#6b6b6b]'
+              }`}
+            >
+              90gg
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Performers */}
+          <div>
+            <h3 className="text-lg font-bold text-green-600 mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              Top Performers (Crescita)
+            </h3>
+            {performers.topPerformers.length === 0 ? (
+              <p className="text-sm text-slate-400">Nessun prodotto in crescita</p>
+            ) : (
+              <div className="space-y-2">
+                {performers.topPerformers.map((product, index) => (
+                  <div key={product.name} className="neumorphic-pressed p-3 rounded-lg">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
+                          <span className="font-medium text-[#6b6b6b] text-sm">{product.name}</span>
+                          <span className="text-xs text-slate-400 px-2 py-0.5 rounded-full bg-slate-100">
+                            {product.category}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                          <span>Attuale: <span className="font-bold text-[#6b6b6b]">{product.current}</span></span>
+                          <span>Precedente: <span className="text-slate-400">{product.previous}</span></span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-green-600 font-bold text-sm">+{product.delta}</div>
+                        {product.previous > 0 && (
+                          <div className="text-xs text-green-500">+{product.percentChange.toFixed(0)}%</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Worst Performers */}
+          <div>
+            <h3 className="text-lg font-bold text-red-600 mb-4 flex items-center gap-2">
+              <TrendingDown className="w-5 h-5" />
+              Worst Performers (Calo)
+            </h3>
+            {performers.worstPerformers.length === 0 ? (
+              <p className="text-sm text-slate-400">Nessun prodotto in calo</p>
+            ) : (
+              <div className="space-y-2">
+                {performers.worstPerformers.map((product, index) => (
+                  <div key={product.name} className="neumorphic-pressed p-3 rounded-lg">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
+                          <span className="font-medium text-[#6b6b6b] text-sm">{product.name}</span>
+                          <span className="text-xs text-slate-400 px-2 py-0.5 rounded-full bg-slate-100">
+                            {product.category}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                          <span>Attuale: <span className="font-bold text-[#6b6b6b]">{product.current}</span></span>
+                          <span>Precedente: <span className="text-slate-400">{product.previous}</span></span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-red-600 font-bold text-sm">{product.delta}</div>
+                        {product.previous > 0 && (
+                          <div className="text-xs text-red-500">{product.percentChange.toFixed(0)}%</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </NeumorphicCard>
+
       {/* Daily Trend */}
       {productTotals.length > 0 && (
         <NeumorphicCard className="p-6">
