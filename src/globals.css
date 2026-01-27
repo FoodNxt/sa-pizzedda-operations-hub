@@ -51,36 +51,52 @@ body {
   --spacing-multiplier: 0.6;
 }
 
-.compact-layout h1 {
+.compact-layout h1,
+.compact-layout h1 *,
+.compact-layout [class*="text-"] h1 {
   font-size: 1.5rem !important;
   margin-bottom: 0.5rem !important;
   line-height: 1.2 !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
   letter-spacing: -0.02em;
 }
 
-.compact-layout h2 {
+.compact-layout h2,
+.compact-layout h2 *,
+.compact-layout [class*="text-"] h2 {
   font-size: 1.25rem !important;
   margin-bottom: 0.5rem !important;
   color: #ffffff !important;
   font-weight: 700 !important;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
 }
 
-.compact-layout h3 {
+.compact-layout h3,
+.compact-layout h3 *,
+.compact-layout [class*="text-"] h3 {
   font-size: 1.1rem !important;
   margin-bottom: 0.25rem !important;
   color: #ffffff !important;
   font-weight: 600 !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
 }
 
 .compact-layout p {
   margin-bottom: 0.5rem !important;
   line-height: 1.4 !important;
-  color: #f1f5f9 !important;
+  color: #ffffff !important;
+}
+
+/* Sottotitoli specifici - sempre bianchi */
+.compact-layout .mb-1 + p,
+.compact-layout .mb-2 + p,
+.compact-layout h1 + p,
+.compact-layout h2 + p,
+.compact-layout h3 + p {
+  color: #ffffff !important;
+  opacity: 0.9;
 }
 
 /* Dark SaaS Cards */
@@ -336,34 +352,35 @@ svg defs {
 
 .compact-layout h1,
 .compact-layout h2,
-.compact-layout h3 {
+.compact-layout h3,
+.compact-layout h4,
+.compact-layout h5,
+.compact-layout h6 {
   color: #ffffff !important;
   font-weight: 700 !important;
 }
 
-.compact-layout h4,
-.compact-layout h5,
-.compact-layout h6 {
-  color: #f1f5f9 !important;
-  font-weight: 600 !important;
+/* Sottotitoli e descrizioni - devono essere bianche */
+.compact-layout > div > div > p,
+.compact-layout > div > p,
+.compact-layout p.text-sm,
+.compact-layout p.text-xs {
+  color: #ffffff !important;
 }
 
-.compact-layout p,
-.compact-layout span {
-  color: #f1f5f9 !important;
-}
-
+/* Override per tutte le classi text-slate che sono sottotitoli */
 .compact-layout .text-slate-500,
-.compact-layout .text-slate-600 {
-  color: #e2e8f0 !important;
-}
-
+.compact-layout .text-slate-600,
 .compact-layout .text-slate-700,
-.compact-layout .text-slate-800 {
-  color: #e2e8f0 !important;
+.compact-layout .text-slate-800,
+.compact-layout .text-slate-900 {
+  color: #ffffff !important;
 }
 
-.compact-layout .text-slate-900 {
+/* Assicura che gli span nei titoli siano bianchi */
+.compact-layout h1 span,
+.compact-layout h2 span,
+.compact-layout h3 span {
   color: #ffffff !important;
 }
 
