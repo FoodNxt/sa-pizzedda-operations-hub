@@ -1322,18 +1322,34 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                               disabled={!isCompleted}
                             >
                               <div className="flex-1 text-left">
-                                <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                  <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
-                                  <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
-                                    {getStatoIcon(activation.stato)}
-                                    {activation.stato.replace('_', ' ').toUpperCase()}
-                                  </span>
-                                  {isCompleted && (
-                                    isCollapsed ? (
-                                      <ChevronRight className="w-4 h-4 text-slate-400" />
-                                    ) : (
-                                      <ChevronDown className="w-4 h-4 text-slate-400" />
-                                    )
+                                <div className="flex items-start gap-2 mb-2 flex-wrap">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
+                                      {getStatoIcon(activation.stato)}
+                                      {activation.stato.replace('_', ' ').toUpperCase()}
+                                    </span>
+                                    {isCompleted && (
+                                      isCollapsed ? (
+                                        <ChevronRight className="w-4 h-4 text-slate-400" />
+                                      ) : (
+                                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                                      )
+                                    )}
+                                  </div>
+                                  {activation.stato !== 'completata' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (confirm('Segnare questa activation come completata?')) {
+                                          handleMarkActivationComplete(activation.id);
+                                        }
+                                      }}
+                                      className="nav-button p-2 rounded-lg hover:bg-green-50"
+                                      title="Segna come completata"
+                                    >
+                                      <CheckCircle className="w-4 h-4 text-green-600" />
+                                    </button>
                                   )}
                                 </div>
                                 {activation.descrizione && (
