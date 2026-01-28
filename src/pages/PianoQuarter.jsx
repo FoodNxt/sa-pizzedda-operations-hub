@@ -33,15 +33,15 @@ const getQuarterDateRange = (quarterStr) => {
 const getQuartersInRange = (startDate, endDate) => {
   const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
   const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
-  
+
   const quarters = new Set();
   let current = new Date(start);
-  
+
   while (current <= end) {
     quarters.add(getQuarter(current));
     current.setMonth(current.getMonth() + 1);
   }
-  
+
   return Array.from(quarters);
 };
 
@@ -86,7 +86,7 @@ export default function PianoQuarter() {
     data_fine: '',
     note: ''
   });
-  
+
   const [showTargetSettings, setShowTargetSettings] = useState(false);
   const [targetForm, setTargetForm] = useState({ nome: '', descrizione: '' });
   const [editingTarget, setEditingTarget] = useState(null);
@@ -132,7 +132,7 @@ export default function PianoQuarter() {
   // Carica food cost percentage e platform fees dalla configurazione
   useEffect(() => {
     if (financeConfigs.length > 0) {
-      const activeConfig = financeConfigs.find(c => c.is_active);
+      const activeConfig = financeConfigs.find((c) => c.is_active);
       if (activeConfig?.default_food_cost_percentage) {
         setFoodCostPercentage(activeConfig.default_food_cost_percentage);
       }
@@ -145,13 +145,13 @@ export default function PianoQuarter() {
   // Mutations
   const updateFoodCostMutation = useMutation({
     mutationFn: async (newPercentage) => {
-      const activeConfig = financeConfigs.find(c => c.is_active);
+      const activeConfig = financeConfigs.find((c) => c.is_active);
       if (activeConfig) {
-        await base44.entities.FinanceConfig.update(activeConfig.id, { 
-          default_food_cost_percentage: newPercentage 
+        await base44.entities.FinanceConfig.update(activeConfig.id, {
+          default_food_cost_percentage: newPercentage
         });
       } else {
-        await base44.entities.FinanceConfig.create({ 
+        await base44.entities.FinanceConfig.create({
           default_food_cost_percentage: newPercentage,
           is_active: true
         });
@@ -159,18 +159,18 @@ export default function PianoQuarter() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance-config'] });
-    },
+    }
   });
 
   const updatePlatformFeesMutation = useMutation({
     mutationFn: async (newPercentage) => {
-      const activeConfig = financeConfigs.find(c => c.is_active);
+      const activeConfig = financeConfigs.find((c) => c.is_active);
       if (activeConfig) {
-        await base44.entities.FinanceConfig.update(activeConfig.id, { 
-          default_platform_fees_percentage: newPercentage 
+        await base44.entities.FinanceConfig.update(activeConfig.id, {
+          default_platform_fees_percentage: newPercentage
         });
       } else {
-        await base44.entities.FinanceConfig.create({ 
+        await base44.entities.FinanceConfig.create({
           default_platform_fees_percentage: newPercentage,
           is_active: true
         });
@@ -178,7 +178,7 @@ export default function PianoQuarter() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance-config'] });
-    },
+    }
   });
 
   const createAdsMutation = useMutation({
@@ -286,7 +286,7 @@ export default function PianoQuarter() {
 
   const handleSubmitAds = (e) => {
     e.preventDefault();
-    const stores_names = stores.filter(s => formAds.stores_ids.includes(s.id)).map(s => s.name);
+    const stores_names = stores.filter((s) => formAds.stores_ids.includes(s.id)).map((s) => s.name);
     const quarters = getQuartersInRange(formAds.data_inizio, formAds.data_fine);
     const data = { ...formAds, stores_names, quarters };
 
@@ -299,7 +299,7 @@ export default function PianoQuarter() {
 
   const handleSubmitPromo = (e) => {
     e.preventDefault();
-    const stores_names = stores.filter(s => formPromo.stores_ids.includes(s.id)).map(s => s.name);
+    const stores_names = stores.filter((s) => formPromo.stores_ids.includes(s.id)).map((s) => s.name);
     const quarters = getQuartersInRange(formPromo.data_inizio, formPromo.data_fine);
     const data = { ...formPromo, stores_names, quarters };
 
@@ -344,36 +344,36 @@ export default function PianoQuarter() {
 
   const toggleStore = (storeId, isAds = true) => {
     if (isAds) {
-      setFormAds(prev => ({
+      setFormAds((prev) => ({
         ...prev,
-        stores_ids: prev.stores_ids.includes(storeId)
-          ? prev.stores_ids.filter(id => id !== storeId)
-          : [...prev.stores_ids, storeId]
+        stores_ids: prev.stores_ids.includes(storeId) ?
+        prev.stores_ids.filter((id) => id !== storeId) :
+        [...prev.stores_ids, storeId]
       }));
     } else {
-      setFormPromo(prev => ({
+      setFormPromo((prev) => ({
         ...prev,
-        stores_ids: prev.stores_ids.includes(storeId)
-          ? prev.stores_ids.filter(id => id !== storeId)
-          : [...prev.stores_ids, storeId]
+        stores_ids: prev.stores_ids.includes(storeId) ?
+        prev.stores_ids.filter((id) => id !== storeId) :
+        [...prev.stores_ids, storeId]
       }));
     }
   };
 
   const toggleAllStores = (isAds = true) => {
-    const allStoreIds = stores.map(s => s.id);
+    const allStoreIds = stores.map((s) => s.id);
     if (isAds) {
       const allSelected = formAds.stores_ids.length === allStoreIds.length;
-      setFormAds(prev => ({ ...prev, stores_ids: allSelected ? [] : allStoreIds }));
+      setFormAds((prev) => ({ ...prev, stores_ids: allSelected ? [] : allStoreIds }));
     } else {
       const allSelected = formPromo.stores_ids.length === allStoreIds.length;
-      setFormPromo(prev => ({ ...prev, stores_ids: allSelected ? [] : allStoreIds }));
+      setFormPromo((prev) => ({ ...prev, stores_ids: allSelected ? [] : allStoreIds }));
     }
   };
 
   const aggiungiProdotto = () => {
     if (nuovoProdotto.trim()) {
-      setFormPromo(prev => ({
+      setFormPromo((prev) => ({
         ...prev,
         prodotti_scontati: [...prev.prodotti_scontati, nuovoProdotto.trim()]
       }));
@@ -382,7 +382,7 @@ export default function PianoQuarter() {
   };
 
   const rimuoviProdotto = (index) => {
-    setFormPromo(prev => ({
+    setFormPromo((prev) => ({
       ...prev,
       prodotti_scontati: prev.prodotti_scontati.filter((_, i) => i !== index)
     }));
@@ -390,7 +390,7 @@ export default function PianoQuarter() {
 
   // Filter piani per quarter selezionato
   const pianiAdsQuarter = useMemo(() => {
-    return pianiAds.filter(p => {
+    return pianiAds.filter((p) => {
       if (p.quarters && p.quarters.length > 0) {
         return p.quarters.includes(selectedQuarter);
       }
@@ -404,7 +404,7 @@ export default function PianoQuarter() {
   }, [pianiAds, selectedQuarter]);
 
   const pianiPromoQuarter = useMemo(() => {
-    return pianiPromo.filter(p => {
+    return pianiPromo.filter((p) => {
       if (p.quarters && p.quarters.length > 0) {
         return p.quarters.includes(selectedQuarter);
       }
@@ -419,13 +419,13 @@ export default function PianoQuarter() {
 
   // Promo nel mese selezionato
   const promoMese = useMemo(() => {
-    return pianiPromo.filter(p => {
+    return pianiPromo.filter((p) => {
       const start = new Date(p.data_inizio);
       const end = new Date(p.data_fine);
       const monthStart = startOfMonth(promoCalendarMonth);
       const monthEnd = endOfMonth(promoCalendarMonth);
-      
-      return (start <= monthEnd && end >= monthStart);
+
+      return start <= monthEnd && end >= monthStart;
     });
   }, [pianiPromo, promoCalendarMonth]);
 
@@ -436,48 +436,48 @@ export default function PianoQuarter() {
     const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
     // Net Sales (revenue after discounts) - from iPratico
-    const revenue = iPraticoData
-      .filter(d => {
-        const dDate = new Date(d.order_date);
-        return dDate >= startDate && dDate <= endDate;
-      })
-      .reduce((sum, d) => {
-        if (selectedDeliveryApp === 'Glovo' && (d.sourceApp_glovo || 0) > 0) {
-          return sum + d.sourceApp_glovo;
-        } else if (selectedDeliveryApp === 'Deliveroo' && (d.sourceApp_deliveroo || 0) > 0) {
-          return sum + d.sourceApp_deliveroo;
-        }
-        return sum;
-      }, 0);
+    const revenue = iPraticoData.
+    filter((d) => {
+      const dDate = new Date(d.order_date);
+      return dDate >= startDate && dDate <= endDate;
+    }).
+    reduce((sum, d) => {
+      if (selectedDeliveryApp === 'Glovo' && (d.sourceApp_glovo || 0) > 0) {
+        return sum + d.sourceApp_glovo;
+      } else if (selectedDeliveryApp === 'Deliveroo' && (d.sourceApp_deliveroo || 0) > 0) {
+        return sum + d.sourceApp_deliveroo;
+      }
+      return sum;
+    }, 0);
 
     // Discounts - from Sconto entity (dividing by app count when multiple apps)
-    const totalDiscounts = scontiData
-      .filter(d => {
-        const dDate = new Date(d.order_date);
-        return dDate >= startDate && dDate <= endDate;
-      })
-      .reduce((sum, d) => {
-        // Count which apps have this discount
-        const appsWithDiscount = [
-          d.sourceApp_glovo,
-          d.sourceApp_deliveroo,
-          d.sourceApp_justeat,
-          d.sourceApp_onlineordering,
-          d.sourceApp_ordertable,
-          d.sourceApp_tabesto,
-          d.sourceApp_deliverect,
-          d.sourceApp_store
-        ].filter(Boolean).length;
+    const totalDiscounts = scontiData.
+    filter((d) => {
+      const dDate = new Date(d.order_date);
+      return dDate >= startDate && dDate <= endDate;
+    }).
+    reduce((sum, d) => {
+      // Count which apps have this discount
+      const appsWithDiscount = [
+      d.sourceApp_glovo,
+      d.sourceApp_deliveroo,
+      d.sourceApp_justeat,
+      d.sourceApp_onlineordering,
+      d.sourceApp_ordertable,
+      d.sourceApp_tabesto,
+      d.sourceApp_deliverect,
+      d.sourceApp_store].
+      filter(Boolean).length;
 
-        const discountPortion = appsWithDiscount > 0 ? (d.total_discount_price || 0) / appsWithDiscount : 0;
+      const discountPortion = appsWithDiscount > 0 ? (d.total_discount_price || 0) / appsWithDiscount : 0;
 
-        if (selectedDeliveryApp === 'Glovo' && d.sourceApp_glovo) {
-          return sum + discountPortion;
-        } else if (selectedDeliveryApp === 'Deliveroo' && d.sourceApp_deliveroo) {
-          return sum + discountPortion;
-        }
-        return sum;
-      }, 0);
+      if (selectedDeliveryApp === 'Glovo' && d.sourceApp_glovo) {
+        return sum + discountPortion;
+      } else if (selectedDeliveryApp === 'Deliveroo' && d.sourceApp_deliveroo) {
+        return sum + discountPortion;
+      }
+      return sum;
+    }, 0);
 
     // Gross Sales (revenue + discounts)
     const grossSales = revenue + totalDiscounts;
@@ -497,29 +497,29 @@ export default function PianoQuarter() {
     }
 
     let adsBudget = 0;
-    pianiAds
-      .filter(p => p.piattaforma === selectedDeliveryApp)
-      .forEach(p => {
-        const pStart = new Date(p.data_inizio);
-        const pEnd = new Date(p.data_fine);
-        const pDays = Math.floor((pEnd - pStart) / (1000 * 60 * 60 * 24)) + 1;
-        
-        // Giorni di overlap
-        const overlapStart = new Date(Math.max(startDate.getTime(), pStart.getTime()));
-        const overlapEnd = new Date(Math.min(endDate.getTime(), pEnd.getTime()));
-        
-        if (overlapStart <= overlapEnd) {
-          const overlapDays = Math.floor((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
-          const budgetGiornaliero = p.budget / pDays;
-          const budgetPeriodo = budgetGiornaliero * overlapDays;
-          
-          // Applica cofinanziamento
-          const percentualeCofinanziamento = p.percentuale_cofinanziamento || 0;
-          const costoEffettivo = budgetPeriodo * (1 - percentualeCofinanziamento / 100);
-          
-          adsBudget += costoEffettivo;
-        }
-      });
+    pianiAds.
+    filter((p) => p.piattaforma === selectedDeliveryApp).
+    forEach((p) => {
+      const pStart = new Date(p.data_inizio);
+      const pEnd = new Date(p.data_fine);
+      const pDays = Math.floor((pEnd - pStart) / (1000 * 60 * 60 * 24)) + 1;
+
+      // Giorni di overlap
+      const overlapStart = new Date(Math.max(startDate.getTime(), pStart.getTime()));
+      const overlapEnd = new Date(Math.min(endDate.getTime(), pEnd.getTime()));
+
+      if (overlapStart <= overlapEnd) {
+        const overlapDays = Math.floor((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
+        const budgetGiornaliero = p.budget / pDays;
+        const budgetPeriodo = budgetGiornaliero * overlapDays;
+
+        // Applica cofinanziamento
+        const percentualeCofinanziamento = p.percentuale_cofinanziamento || 0;
+        const costoEffettivo = budgetPeriodo * (1 - percentualeCofinanziamento / 100);
+
+        adsBudget += costoEffettivo;
+      }
+    });
 
     return {
       revenue,
@@ -540,11 +540,11 @@ export default function PianoQuarter() {
   return (
     <ProtectedPage pageName="PianoQuarter">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-            Piano Quarter
+        <div className="text-slate-50 mb-6">
+          <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Piano Quarter
+
           </h1>
-          <p className="text-slate-500 mt-1">Gestione piani trimestrali di Ads, Promo e Conto Economico</p>
+          <p className="text-slate-50 mt-1">Gestione piani trimestrali di Ads, Promo e Conto Economico</p>
         </div>
 
         {/* Tabs */}
@@ -553,33 +553,33 @@ export default function PianoQuarter() {
             <button
               onClick={() => setActiveTab('ads')}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'ads'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
+              activeTab === 'ads' ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'text-slate-600 hover:bg-slate-50'}`
+              }>
+
               <Euro className="w-5 h-5 inline mr-2" />
               Ads
             </button>
             <button
               onClick={() => setActiveTab('promo')}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'promo'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
+              activeTab === 'promo' ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'text-slate-600 hover:bg-slate-50'}`
+              }>
+
               <TrendingDown className="w-5 h-5 inline mr-2" />
               Promo
             </button>
             <button
               onClick={() => setActiveTab('conto')}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'conto'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
+              activeTab === 'conto' ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'text-slate-600 hover:bg-slate-50'}`
+              }>
+
               <DollarSign className="w-5 h-5 inline mr-2" />
               Conto Economico
             </button>
@@ -587,16 +587,16 @@ export default function PianoQuarter() {
         </NeumorphicCard>
 
         {/* Sezione Ads */}
-        {activeTab === 'ads' && (
-          <>
+        {activeTab === 'ads' &&
+        <>
             <div className="flex justify-between items-center">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Quarter</label>
                 <select
-                  value={selectedQuarter}
-                  onChange={(e) => setSelectedQuarter(e.target.value)}
-                  className="neumorphic-pressed px-4 py-2 rounded-lg"
-                >
+                value={selectedQuarter}
+                onChange={(e) => setSelectedQuarter(e.target.value)}
+                className="neumorphic-pressed px-4 py-2 rounded-lg">
+
                   <option value="Q1-26">Q1-26 (Gen-Mar)</option>
                   <option value="Q2-26">Q2-26 (Apr-Giu)</option>
                   <option value="Q3-26">Q3-26 (Lug-Set)</option>
@@ -604,17 +604,17 @@ export default function PianoQuarter() {
                 </select>
               </div>
               <NeumorphicButton
-                onClick={() => setShowFormAds(true)}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
+              onClick={() => setShowFormAds(true)}
+              variant="primary"
+              className="flex items-center gap-2">
+
                 <Plus className="w-5 h-5" />
                 Nuovo Piano Ads
               </NeumorphicButton>
             </div>
 
-            {showFormAds && (
-              <NeumorphicCard className="p-6">
+            {showFormAds &&
+          <NeumorphicCard className="p-6">
                 <h2 className="text-xl font-bold text-slate-700 mb-4">
                   {editingAds ? 'Modifica Piano Ads' : 'Nuovo Piano Ads'}
                 </h2>
@@ -623,23 +623,23 @@ export default function PianoQuarter() {
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Nome Piano</label>
                       <input
-                        type="text"
-                        value={formAds.nome}
-                        onChange={(e) => setFormAds({ ...formAds, nome: e.target.value })}
-                        placeholder="es. Glovo Q1 2026"
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      />
+                    type="text"
+                    value={formAds.nome}
+                    onChange={(e) => setFormAds({ ...formAds, nome: e.target.value })}
+                    placeholder="es. Glovo Q1 2026"
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required />
+
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Piattaforma</label>
                       <select
-                        value={formAds.piattaforma}
-                        onChange={(e) => setFormAds({ ...formAds, piattaforma: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      >
+                    value={formAds.piattaforma}
+                    onChange={(e) => setFormAds({ ...formAds, piattaforma: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required>
+
                         <option value="Glovo">Glovo</option>
                         <option value="Deliveroo">Deliveroo</option>
                       </select>
@@ -648,50 +648,50 @@ export default function PianoQuarter() {
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Budget (€)</label>
                       <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formAds.budget}
-                        onChange={(e) => setFormAds({ ...formAds, budget: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      />
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formAds.budget}
+                    onChange={(e) => setFormAds({ ...formAds, budget: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required />
+
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">% Cofinanziamento</label>
                       <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={formAds.percentuale_cofinanziamento}
-                        onChange={(e) => setFormAds({ ...formAds, percentuale_cofinanziamento: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      />
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={formAds.percentuale_cofinanziamento}
+                    onChange={(e) => setFormAds({ ...formAds, percentuale_cofinanziamento: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required />
+
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Data Inizio</label>
                       <input
-                        type="date"
-                        value={formAds.data_inizio}
-                        onChange={(e) => setFormAds({ ...formAds, data_inizio: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      />
+                    type="date"
+                    value={formAds.data_inizio}
+                    onChange={(e) => setFormAds({ ...formAds, data_inizio: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required />
+
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Data Fine</label>
                       <input
-                        type="date"
-                        value={formAds.data_fine}
-                        onChange={(e) => setFormAds({ ...formAds, data_fine: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      />
+                    type="date"
+                    value={formAds.data_fine}
+                    onChange={(e) => setFormAds({ ...formAds, data_fine: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required />
+
                     </div>
                   </div>
 
@@ -699,36 +699,36 @@ export default function PianoQuarter() {
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-sm font-medium text-slate-700">Locali di Riferimento</label>
                       <button
-                        type="button"
-                        onClick={() => toggleAllStores(true)}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
+                    type="button"
+                    onClick={() => toggleAllStores(true)}
+                    className="text-sm text-blue-600 hover:underline">
+
                         {formAds.stores_ids.length === stores.length ? 'Deseleziona Tutti' : 'Seleziona Tutti'}
                       </button>
                     </div>
                     <div className="neumorphic-pressed p-4 rounded-lg space-y-2 max-h-48 overflow-y-auto">
-                      {stores.map(store => (
-                        <label key={store.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                      {stores.map((store) =>
+                  <label key={store.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
                           <input
-                            type="checkbox"
-                            checked={formAds.stores_ids.includes(store.id)}
-                            onChange={() => toggleStore(store.id, true)}
-                            className="w-4 h-4"
-                          />
+                      type="checkbox"
+                      checked={formAds.stores_ids.includes(store.id)}
+                      onChange={() => toggleStore(store.id, true)}
+                      className="w-4 h-4" />
+
                           <span className="text-sm text-slate-700">{store.name}</span>
                         </label>
-                      ))}
+                  )}
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Note</label>
                     <textarea
-                      value={formAds.note}
-                      onChange={(e) => setFormAds({ ...formAds, note: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                      rows="3"
-                    />
+                  value={formAds.note}
+                  onChange={(e) => setFormAds({ ...formAds, note: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                  rows="3" />
+
                   </div>
 
                   <div className="flex gap-3 justify-end">
@@ -741,11 +741,11 @@ export default function PianoQuarter() {
                   </div>
                 </form>
               </NeumorphicCard>
-            )}
+          }
 
             <div className="space-y-4">
-              {pianiAdsQuarter.map(piano => (
-                <NeumorphicCard key={piano.id} className="p-6">
+              {pianiAdsQuarter.map((piano) =>
+            <NeumorphicCard key={piano.id} className="p-6">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
@@ -753,11 +753,11 @@ export default function PianoQuarter() {
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg font-medium text-sm">
                           {piano.piattaforma}
                         </span>
-                        {piano.quarters?.map(q => (
-                          <span key={q} className="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-medium">
+                        {piano.quarters?.map((q) =>
+                    <span key={q} className="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-medium">
                             {q}
                           </span>
-                        ))}
+                    )}
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
                         <div>
@@ -783,38 +783,38 @@ export default function PianoQuarter() {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleEditAds(piano)}
-                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                      >
+                    onClick={() => handleEditAds(piano)}
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+
                         <Edit className="w-4 h-4 text-blue-600" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm('Eliminare questo piano ads?')) {
-                            deleteAdsMutation.mutate(piano.id);
-                          }
-                        }}
-                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                      >
+                    onClick={() => {
+                      if (confirm('Eliminare questo piano ads?')) {
+                        deleteAdsMutation.mutate(piano.id);
+                      }
+                    }}
+                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+
                         <Trash2 className="w-4 h-4 text-red-600" />
                       </button>
                     </div>
                   </div>
                 </NeumorphicCard>
-              ))}
+            )}
 
-              {pianiAdsQuarter.length === 0 && !showFormAds && (
-                <div className="text-center py-12 text-slate-500">
+              {pianiAdsQuarter.length === 0 && !showFormAds &&
+            <div className="text-center py-12 text-slate-500">
                   Nessun piano ads per {selectedQuarter}
                 </div>
-              )}
+            }
             </div>
           </>
-        )}
+        }
 
         {/* Modal Impostazioni Target */}
-        {showTargetSettings && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showTargetSettings &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-slate-800">Gestione Target Sconto</h2>
@@ -828,38 +828,38 @@ export default function PianoQuarter() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Nome Target</label>
                   <input
-                    type="text"
-                    value={targetForm.nome}
-                    onChange={(e) => setTargetForm({ ...targetForm, nome: e.target.value })}
-                    placeholder="es. Nuovi Clienti"
-                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                  />
+                  type="text"
+                  value={targetForm.nome}
+                  onChange={(e) => setTargetForm({ ...targetForm, nome: e.target.value })}
+                  placeholder="es. Nuovi Clienti"
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg" />
+
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Descrizione</label>
                   <input
-                    type="text"
-                    value={targetForm.descrizione}
-                    onChange={(e) => setTargetForm({ ...targetForm, descrizione: e.target.value })}
-                    placeholder="Descrizione del target..."
-                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                  />
+                  type="text"
+                  value={targetForm.descrizione}
+                  onChange={(e) => setTargetForm({ ...targetForm, descrizione: e.target.value })}
+                  placeholder="Descrizione del target..."
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg" />
+
                 </div>
                 <NeumorphicButton
-                  onClick={() => {
-                    if (!targetForm.nome.trim()) {
-                      alert('Inserisci un nome per il target');
-                      return;
-                    }
-                    if (editingTarget) {
-                      updateTargetMutation.mutate({ id: editingTarget.id, data: targetForm });
-                    } else {
-                      createTargetMutation.mutate({ ...targetForm, ordine: promoTargets.length });
-                    }
-                  }}
-                  variant="primary"
-                  className="w-full"
-                >
+                onClick={() => {
+                  if (!targetForm.nome.trim()) {
+                    alert('Inserisci un nome per il target');
+                    return;
+                  }
+                  if (editingTarget) {
+                    updateTargetMutation.mutate({ id: editingTarget.id, data: targetForm });
+                  } else {
+                    createTargetMutation.mutate({ ...targetForm, ordine: promoTargets.length });
+                  }
+                }}
+                variant="primary"
+                className="w-full">
+
                   {editingTarget ? 'Aggiorna' : 'Aggiungi Target'}
                 </NeumorphicButton>
               </div>
@@ -867,55 +867,55 @@ export default function PianoQuarter() {
               {/* Lista target esistenti */}
               <div className="space-y-2">
                 <h3 className="text-sm font-bold text-slate-700 mb-3">Target Esistenti</h3>
-                {promoTargets.length === 0 ? (
-                  <p className="text-sm text-slate-500 text-center py-4">Nessun target creato</p>
-                ) : (
-                  promoTargets.map(target => (
-                    <div key={target.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+                {promoTargets.length === 0 ?
+              <p className="text-sm text-slate-500 text-center py-4">Nessun target creato</p> :
+
+              promoTargets.map((target) =>
+              <div key={target.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
                       <div>
                         <p className="font-medium text-slate-800">{target.nome}</p>
                         {target.descrizione && <p className="text-xs text-slate-500">{target.descrizione}</p>}
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => {
-                            setEditingTarget(target);
-                            setTargetForm({ nome: target.nome, descrizione: target.descrizione || '' });
-                          }}
-                          className="p-2 rounded-lg hover:bg-blue-50"
-                        >
+                    onClick={() => {
+                      setEditingTarget(target);
+                      setTargetForm({ nome: target.nome, descrizione: target.descrizione || '' });
+                    }}
+                    className="p-2 rounded-lg hover:bg-blue-50">
+
                           <Edit className="w-4 h-4 text-blue-600" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm('Eliminare questo target?')) {
-                              deleteTargetMutation.mutate(target.id);
-                            }
-                          }}
-                          className="p-2 rounded-lg hover:bg-red-50"
-                        >
+                    onClick={() => {
+                      if (confirm('Eliminare questo target?')) {
+                        deleteTargetMutation.mutate(target.id);
+                      }
+                    }}
+                    className="p-2 rounded-lg hover:bg-red-50">
+
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </button>
                       </div>
                     </div>
-                  ))
-                )}
+              )
+              }
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Sezione Promo */}
-        {activeTab === 'promo' && (
-          <>
+        {activeTab === 'promo' &&
+        <>
             <div className="flex justify-between items-center">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Quarter</label>
                 <select
-                  value={selectedQuarter}
-                  onChange={(e) => setSelectedQuarter(e.target.value)}
-                  className="neumorphic-pressed px-4 py-2 rounded-lg"
-                >
+                value={selectedQuarter}
+                onChange={(e) => setSelectedQuarter(e.target.value)}
+                className="neumorphic-pressed px-4 py-2 rounded-lg">
+
                   <option value="Q1-26">Q1-26 (Gen-Mar)</option>
                   <option value="Q2-26">Q2-26 (Apr-Giu)</option>
                   <option value="Q3-26">Q3-26 (Lug-Set)</option>
@@ -924,25 +924,25 @@ export default function PianoQuarter() {
               </div>
               <div className="flex gap-2">
                 <NeumorphicButton
-                  onClick={() => setShowTargetSettings(true)}
-                  className="flex items-center gap-2"
-                >
+                onClick={() => setShowTargetSettings(true)}
+                className="flex items-center gap-2">
+
                   <Settings className="w-5 h-5" />
                   Target Sconto
                 </NeumorphicButton>
                 <NeumorphicButton
-                  onClick={() => setShowFormPromo(true)}
-                  variant="primary"
-                  className="flex items-center gap-2"
-                >
+                onClick={() => setShowFormPromo(true)}
+                variant="primary"
+                className="flex items-center gap-2">
+
                   <Plus className="w-5 h-5" />
                   Nuova Promo
                 </NeumorphicButton>
               </div>
             </div>
 
-            {showFormPromo && (
-              <NeumorphicCard className="p-6">
+            {showFormPromo &&
+          <NeumorphicCard className="p-6">
                 <h2 className="text-xl font-bold text-slate-700 mb-4">
                   {editingPromo ? 'Modifica Promo' : 'Nuova Promo'}
                 </h2>
@@ -951,23 +951,23 @@ export default function PianoQuarter() {
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Nome Promo</label>
                       <input
-                        type="text"
-                        value={formPromo.nome}
-                        onChange={(e) => setFormPromo({ ...formPromo, nome: e.target.value })}
-                        placeholder="es. Promo Pizze Speciali"
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      />
+                    type="text"
+                    value={formPromo.nome}
+                    onChange={(e) => setFormPromo({ ...formPromo, nome: e.target.value })}
+                    placeholder="es. Promo Pizze Speciali"
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required />
+
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Piattaforma</label>
                       <select
-                        value={formPromo.piattaforma}
-                        onChange={(e) => setFormPromo({ ...formPromo, piattaforma: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      >
+                    value={formPromo.piattaforma}
+                    onChange={(e) => setFormPromo({ ...formPromo, piattaforma: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required>
+
                         <option value="Glovo">Glovo</option>
                         <option value="Deliveroo">Deliveroo</option>
                       </select>
@@ -976,64 +976,64 @@ export default function PianoQuarter() {
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">% Sconto</label>
                       <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={formPromo.percentuale_sconto}
-                        onChange={(e) => setFormPromo({ ...formPromo, percentuale_sconto: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      />
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={formPromo.percentuale_sconto}
+                    onChange={(e) => setFormPromo({ ...formPromo, percentuale_sconto: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required />
+
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">% Cofinanziamento</label>
                       <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value={formPromo.percentuale_cofinanziamento}
-                        onChange={(e) => setFormPromo({ ...formPromo, percentuale_cofinanziamento: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                      />
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={formPromo.percentuale_cofinanziamento}
+                    onChange={(e) => setFormPromo({ ...formPromo, percentuale_cofinanziamento: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg" />
+
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">A chi è rivolto</label>
                       <select
-                        value={formPromo.target_sconto}
-                        onChange={(e) => setFormPromo({ ...formPromo, target_sconto: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                      >
+                    value={formPromo.target_sconto}
+                    onChange={(e) => setFormPromo({ ...formPromo, target_sconto: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg">
+
                         <option value="">Seleziona target</option>
-                        {promoTargets.filter(t => t.attivo).map(target => (
-                          <option key={target.id} value={target.nome}>{target.nome}</option>
-                        ))}
+                        {promoTargets.filter((t) => t.attivo).map((target) =>
+                    <option key={target.id} value={target.nome}>{target.nome}</option>
+                    )}
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Data Inizio</label>
                       <input
-                        type="date"
-                        value={formPromo.data_inizio}
-                        onChange={(e) => setFormPromo({ ...formPromo, data_inizio: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      />
+                    type="date"
+                    value={formPromo.data_inizio}
+                    onChange={(e) => setFormPromo({ ...formPromo, data_inizio: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required />
+
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Data Fine</label>
                       <input
-                        type="date"
-                        value={formPromo.data_fine}
-                        onChange={(e) => setFormPromo({ ...formPromo, data_fine: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                        required
-                      />
+                    type="date"
+                    value={formPromo.data_fine}
+                    onChange={(e) => setFormPromo({ ...formPromo, data_fine: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                    required />
+
                     </div>
                   </div>
 
@@ -1041,25 +1041,25 @@ export default function PianoQuarter() {
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-sm font-medium text-slate-700">Locali di Riferimento</label>
                       <button
-                        type="button"
-                        onClick={() => toggleAllStores(false)}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
+                    type="button"
+                    onClick={() => toggleAllStores(false)}
+                    className="text-sm text-blue-600 hover:underline">
+
                         {formPromo.stores_ids.length === stores.length ? 'Deseleziona Tutti' : 'Seleziona Tutti'}
                       </button>
                     </div>
                     <div className="neumorphic-pressed p-4 rounded-lg space-y-2 max-h-48 overflow-y-auto">
-                      {stores.map(store => (
-                        <label key={store.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                      {stores.map((store) =>
+                  <label key={store.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
                           <input
-                            type="checkbox"
-                            checked={formPromo.stores_ids.includes(store.id)}
-                            onChange={() => toggleStore(store.id, false)}
-                            className="w-4 h-4"
-                          />
+                      type="checkbox"
+                      checked={formPromo.stores_ids.includes(store.id)}
+                      onChange={() => toggleStore(store.id, false)}
+                      className="w-4 h-4" />
+
                           <span className="text-sm text-slate-700">{store.name}</span>
                         </label>
-                      ))}
+                  )}
                     </div>
                   </div>
 
@@ -1067,49 +1067,49 @@ export default function PianoQuarter() {
                     <label className="block text-sm font-medium text-slate-700 mb-2">Prodotti in Sconto</label>
                     <div className="flex gap-2 mb-3">
                       <input
-                        type="text"
-                        value={nuovoProdotto}
-                        onChange={(e) => setNuovoProdotto(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            aggiungiProdotto();
-                          }
-                        }}
-                        placeholder="Nome prodotto..."
-                        className="flex-1 neumorphic-pressed px-4 py-2 rounded-lg"
-                      />
+                    type="text"
+                    value={nuovoProdotto}
+                    onChange={(e) => setNuovoProdotto(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        aggiungiProdotto();
+                      }
+                    }}
+                    placeholder="Nome prodotto..."
+                    className="flex-1 neumorphic-pressed px-4 py-2 rounded-lg" />
+
                       <NeumorphicButton type="button" onClick={aggiungiProdotto}>
                         <Plus className="w-4 h-4" />
                       </NeumorphicButton>
                     </div>
                     <div className="neumorphic-pressed p-3 rounded-lg space-y-2">
-                      {formPromo.prodotti_scontati.length === 0 && (
-                        <p className="text-sm text-slate-400 text-center py-2">Nessun prodotto aggiunto</p>
-                      )}
-                      {formPromo.prodotti_scontati.map((prodotto, index) => (
-                        <div key={index} className="flex items-center justify-between bg-orange-50 px-3 py-2 rounded-lg">
+                      {formPromo.prodotti_scontati.length === 0 &&
+                  <p className="text-sm text-slate-400 text-center py-2">Nessun prodotto aggiunto</p>
+                  }
+                      {formPromo.prodotti_scontati.map((prodotto, index) =>
+                  <div key={index} className="flex items-center justify-between bg-orange-50 px-3 py-2 rounded-lg">
                           <span className="text-sm text-slate-700">{prodotto}</span>
                           <button
-                            type="button"
-                            onClick={() => rimuoviProdotto(index)}
-                            className="text-red-600 hover:text-red-800"
-                          >
+                      type="button"
+                      onClick={() => rimuoviProdotto(index)}
+                      className="text-red-600 hover:text-red-800">
+
                             <X className="w-4 h-4" />
                           </button>
                         </div>
-                      ))}
+                  )}
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Note</label>
                     <textarea
-                      value={formPromo.note}
-                      onChange={(e) => setFormPromo({ ...formPromo, note: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                      rows="3"
-                    />
+                  value={formPromo.note}
+                  onChange={(e) => setFormPromo({ ...formPromo, note: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                  rows="3" />
+
                   </div>
 
                   <div className="flex gap-3 justify-end">
@@ -1122,14 +1122,14 @@ export default function PianoQuarter() {
                   </div>
                 </form>
               </NeumorphicCard>
-            )}
+          }
 
             <div className="space-y-6">
               {/* Lista Promo Quarter */}
               <div className="space-y-4">
                 <h3 className="font-bold text-slate-800">Promo {selectedQuarter}</h3>
-                {pianiPromoQuarter.map(piano => (
-                  <NeumorphicCard key={piano.id} className="p-4">
+                {pianiPromoQuarter.map((piano) =>
+              <NeumorphicCard key={piano.id} className="p-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h4 className="font-bold text-slate-800 mb-2">{piano.nome}</h4>
@@ -1142,25 +1142,25 @@ export default function PianoQuarter() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleEditPromo(piano)}
-                          className="p-2 hover:bg-slate-100 rounded-lg"
-                        >
+                      onClick={() => handleEditPromo(piano)}
+                      className="p-2 hover:bg-slate-100 rounded-lg">
+
                           <Edit className="w-4 h-4 text-blue-600" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm('Eliminare questa promo?')) {
-                              deletePromoMutation.mutate(piano.id);
-                            }
-                          }}
-                          className="p-2 hover:bg-slate-100 rounded-lg"
-                        >
+                      onClick={() => {
+                        if (confirm('Eliminare questa promo?')) {
+                          deletePromoMutation.mutate(piano.id);
+                        }
+                      }}
+                      className="p-2 hover:bg-slate-100 rounded-lg">
+
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </button>
                       </div>
                     </div>
                   </NeumorphicCard>
-                ))}
+              )}
               </div>
 
               {/* Calendario Promo */}
@@ -1178,52 +1178,52 @@ export default function PianoQuarter() {
                 </div>
 
                 <div className="grid grid-cols-7 gap-1 mb-4">
-                  {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
-                    <div key={day} className="text-center text-xs font-bold text-slate-500 py-2">
+                  {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((day) =>
+                <div key={day} className="text-center text-xs font-bold text-slate-500 py-2">
                       {day}
                     </div>
-                  ))}
+                )}
                 </div>
 
                 <div className="grid grid-cols-7 gap-2">
-                  {promoCalendarDays.map(day => {
-                    const dayPromo = promoMese.filter(p => {
-                      const pStart = new Date(p.data_inizio);
-                      const pEnd = new Date(p.data_fine);
-                      return day >= pStart && day <= pEnd;
-                    });
+                  {promoCalendarDays.map((day) => {
+                  const dayPromo = promoMese.filter((p) => {
+                    const pStart = new Date(p.data_inizio);
+                    const pEnd = new Date(p.data_fine);
+                    return day >= pStart && day <= pEnd;
+                  });
 
-                    return (
-                      <button
-                        key={day.toString()}
-                        onClick={() => dayPromo.length > 0 && setSelectedPromoDay(day)}
-                        className={`p-3 rounded-lg text-sm text-center border cursor-pointer transition-all hover:shadow-lg ${
-                          isSameMonth(day, promoCalendarMonth)
-                            ? dayPromo.length > 0
-                              ? 'bg-orange-100 border-orange-300'
-                              : 'bg-slate-50 border-slate-200'
-                            : 'bg-slate-100 border-slate-300'
-                        }`}
-                      >
+                  return (
+                    <button
+                      key={day.toString()}
+                      onClick={() => dayPromo.length > 0 && setSelectedPromoDay(day)}
+                      className={`p-3 rounded-lg text-sm text-center border cursor-pointer transition-all hover:shadow-lg ${
+                      isSameMonth(day, promoCalendarMonth) ?
+                      dayPromo.length > 0 ?
+                      'bg-orange-100 border-orange-300' :
+                      'bg-slate-50 border-slate-200' :
+                      'bg-slate-100 border-slate-300'}`
+                      }>
+
                         <div className="font-bold text-slate-700 mb-2">{format(day, 'd')}</div>
-                        {dayPromo.length > 0 && (
-                          <div className="space-y-1">
-                            {dayPromo.map(p => (
-                              <div key={p.id} className="bg-orange-500 text-white px-1 py-1 rounded text-xs font-medium truncate">
+                        {dayPromo.length > 0 &&
+                      <div className="space-y-1">
+                            {dayPromo.map((p) =>
+                        <div key={p.id} className="bg-orange-500 text-white px-1 py-1 rounded text-xs font-medium truncate">
                                 {p.percentuale_sconto}% - {p.piattaforma}
                               </div>
-                            ))}
-                          </div>
                         )}
-                      </button>
-                    );
-                  })}
+                          </div>
+                      }
+                      </button>);
+
+                })}
                 </div>
               </NeumorphicCard>
 
               {/* Modal dettagli promo */}
-              {selectedPromoDay && (
-                <>
+              {selectedPromoDay &&
+            <>
                   <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setSelectedPromoDay(null)} />
                   <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg max-h-[80vh] overflow-y-auto">
                     <NeumorphicCard className="p-6">
@@ -1232,69 +1232,69 @@ export default function PianoQuarter() {
                           Promo - {format(selectedPromoDay, 'd MMMM yyyy', { locale: it })}
                         </h3>
                         <button
-                          onClick={() => setSelectedPromoDay(null)}
-                          className="text-slate-400 hover:text-slate-600"
-                        >
+                      onClick={() => setSelectedPromoDay(null)}
+                      className="text-slate-400 hover:text-slate-600">
+
                           <X className="w-5 h-5" />
                         </button>
                       </div>
 
                       <div className="space-y-4">
-                        {promoMese.filter(p => {
-                          const pStart = new Date(p.data_inizio);
-                          const pEnd = new Date(p.data_fine);
-                          return selectedPromoDay >= pStart && selectedPromoDay <= pEnd;
-                        }).map(promo => (
-                          <div key={promo.id} className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        {promoMese.filter((p) => {
+                      const pStart = new Date(p.data_inizio);
+                      const pEnd = new Date(p.data_fine);
+                      return selectedPromoDay >= pStart && selectedPromoDay <= pEnd;
+                    }).map((promo) =>
+                    <div key={promo.id} className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                             <h4 className="font-bold text-slate-800 mb-2">{promo.nome}</h4>
                             <div className="space-y-2 text-sm text-slate-700">
                               <p><span className="font-semibold">📱 Piattaforma:</span> {promo.piattaforma}</p>
                               <p><span className="font-semibold">🏷️ Sconto:</span> {promo.percentuale_sconto}%</p>
-                              {promo.percentuale_cofinanziamento > 0 && (
-                                <p><span className="font-semibold">💰 Cofinanziamento:</span> {promo.percentuale_cofinanziamento}%</p>
-                              )}
-                              {promo.target_sconto && (
-                                <p><span className="font-semibold">🎯 Target:</span> {promo.target_sconto}</p>
-                              )}
+                              {promo.percentuale_cofinanziamento > 0 &&
+                        <p><span className="font-semibold">💰 Cofinanziamento:</span> {promo.percentuale_cofinanziamento}%</p>
+                        }
+                              {promo.target_sconto &&
+                        <p><span className="font-semibold">🎯 Target:</span> {promo.target_sconto}</p>
+                        }
                               <p><span className="font-semibold">📅 Periodo:</span> {format(parseISO(promo.data_inizio), 'dd MMM', { locale: it })} - {format(parseISO(promo.data_fine), 'dd MMM', { locale: it })}</p>
-                              {promo.prodotti_scontati && promo.prodotti_scontati.length > 0 && (
-                                <div>
+                              {promo.prodotti_scontati && promo.prodotti_scontati.length > 0 &&
+                        <div>
                                   <span className="font-semibold">🛒 Prodotti:</span>
                                   <div className="flex flex-wrap gap-2 mt-1">
-                                    {promo.prodotti_scontati.map((prod, idx) => (
-                                      <span key={idx} className="px-2 py-1 bg-orange-200 text-orange-800 rounded text-xs">
+                                    {promo.prodotti_scontati.map((prod, idx) =>
+                            <span key={idx} className="px-2 py-1 bg-orange-200 text-orange-800 rounded text-xs">
                                         {prod}
                                       </span>
-                                    ))}
+                            )}
                                   </div>
                                 </div>
-                              )}
-                              {promo.note && (
-                                <p><span className="font-semibold">📝 Note:</span> {promo.note}</p>
-                              )}
+                        }
+                              {promo.note &&
+                        <p><span className="font-semibold">📝 Note:</span> {promo.note}</p>
+                        }
                             </div>
                           </div>
-                        ))}
+                    )}
                       </div>
                     </NeumorphicCard>
                   </div>
                 </>
-              )}
+            }
             </div>
           </>
-        )}
+        }
 
         {/* Sezione Conto Economico */}
-        {activeTab === 'conto' && (
-          <>
+        {activeTab === 'conto' &&
+        <>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">App Delivery</label>
                 <select
-                  value={selectedDeliveryApp}
-                  onChange={(e) => setSelectedDeliveryApp(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                >
+                value={selectedDeliveryApp}
+                onChange={(e) => setSelectedDeliveryApp(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-2 rounded-lg">
+
                   <option value="Glovo">Glovo</option>
                   <option value="Deliveroo">Deliveroo</option>
                 </select>
@@ -1302,52 +1302,52 @@ export default function PianoQuarter() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Food Cost %</label>
                 <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={foodCostPercentage}
-                  onChange={(e) => {
-                    const newValue = parseFloat(e.target.value);
-                    setFoodCostPercentage(newValue);
-                    updateFoodCostMutation.mutate(newValue);
-                  }}
-                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                />
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={foodCostPercentage}
+                onChange={(e) => {
+                  const newValue = parseFloat(e.target.value);
+                  setFoodCostPercentage(newValue);
+                  updateFoodCostMutation.mutate(newValue);
+                }}
+                className="w-full neumorphic-pressed px-4 py-2 rounded-lg" />
+
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Platform Fees %</label>
                 <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={platformFeesPercentage}
-                  onChange={(e) => {
-                    const newValue = parseFloat(e.target.value);
-                    setPlatformFeesPercentage(newValue);
-                    updatePlatformFeesMutation.mutate(newValue);
-                  }}
-                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                />
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={platformFeesPercentage}
+                onChange={(e) => {
+                  const newValue = parseFloat(e.target.value);
+                  setPlatformFeesPercentage(newValue);
+                  updatePlatformFeesMutation.mutate(newValue);
+                }}
+                className="w-full neumorphic-pressed px-4 py-2 rounded-lg" />
+
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Data Inizio</label>
                 <input
-                  type="date"
-                  value={contoEconomicoDateRange.start}
-                  onChange={(e) => setContoEconomicoDateRange({ ...contoEconomicoDateRange, start: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                />
+                type="date"
+                value={contoEconomicoDateRange.start}
+                onChange={(e) => setContoEconomicoDateRange({ ...contoEconomicoDateRange, start: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-2 rounded-lg" />
+
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Data Fine</label>
                 <input
-                  type="date"
-                  value={contoEconomicoDateRange.end}
-                  onChange={(e) => setContoEconomicoDateRange({ ...contoEconomicoDateRange, end: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
-                />
+                type="date"
+                value={contoEconomicoDateRange.end}
+                onChange={(e) => setContoEconomicoDateRange({ ...contoEconomicoDateRange, end: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-2 rounded-lg" />
+
               </div>
             </div>
 
@@ -1390,57 +1390,57 @@ export default function PianoQuarter() {
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Food Cost ({foodCostPercentage}% of Gross)</span>
-                      <span className="font-bold">{((Math.abs(contoEconomico.foodCost) / contoEconomico.grossSales) * 100).toFixed(1)}%</span>
+                      <span className="font-bold">{(Math.abs(contoEconomico.foodCost) / contoEconomico.grossSales * 100).toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div
-                        className="bg-red-500 h-2 rounded-full"
-                        style={{ width: `${Math.min((Math.abs(contoEconomico.foodCost) / contoEconomico.revenue) * 100, 100)}%` }}
-                      />
+                      className="bg-red-500 h-2 rounded-full"
+                      style={{ width: `${Math.min(Math.abs(contoEconomico.foodCost) / contoEconomico.revenue * 100, 100)}%` }} />
+
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Platform Fees ({platformFeesPercentage}%)</span>
-                      <span className="font-bold">{((Math.abs(contoEconomico.platformFees) / contoEconomico.revenue) * 100).toFixed(1)}%</span>
+                      <span className="font-bold">{(Math.abs(contoEconomico.platformFees) / contoEconomico.revenue * 100).toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div
-                        className="bg-purple-500 h-2 rounded-full"
-                        style={{ width: `${Math.min((Math.abs(contoEconomico.platformFees) / contoEconomico.revenue) * 100, 100)}%` }}
-                      />
+                      className="bg-purple-500 h-2 rounded-full"
+                      style={{ width: `${Math.min(Math.abs(contoEconomico.platformFees) / contoEconomico.revenue * 100, 100)}%` }} />
+
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Ads Budget</span>
-                      <span className="font-bold">{((Math.abs(contoEconomico.adsBudget) / contoEconomico.revenue) * 100).toFixed(1)}%</span>
+                      <span className="font-bold">{(Math.abs(contoEconomico.adsBudget) / contoEconomico.revenue * 100).toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div
-                        className="bg-orange-500 h-2 rounded-full"
-                        style={{ width: `${Math.min((Math.abs(contoEconomico.adsBudget) / contoEconomico.revenue) * 100, 100)}%` }}
-                      />
+                      className="bg-orange-500 h-2 rounded-full"
+                      style={{ width: `${Math.min(Math.abs(contoEconomico.adsBudget) / contoEconomico.revenue * 100, 100)}%` }} />
+
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Utile Lordo</span>
-                      <span className="font-bold">{((contoEconomico.total / contoEconomico.revenue) * 100).toFixed(1)}%</span>
+                      <span className="font-bold">{(contoEconomico.total / contoEconomico.revenue * 100).toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full ${contoEconomico.total >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
-                        style={{ width: `${Math.min(Math.abs((contoEconomico.total / contoEconomico.revenue) * 100), 100)}%` }}
-                      />
+                      className={`h-2 rounded-full ${contoEconomico.total >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
+                      style={{ width: `${Math.min(Math.abs(contoEconomico.total / contoEconomico.revenue * 100), 100)}%` }} />
+
                     </div>
                   </div>
                 </div>
               </NeumorphicCard>
             </div>
           </>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
