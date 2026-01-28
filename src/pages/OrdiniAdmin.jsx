@@ -380,7 +380,7 @@ export default function OrdiniAdmin() {
     });
 
     return orders;
-  }, [inventory, inventoryCantina, products, stores, ricette]);
+  }, [allInventory, products, stores, ricette, selectedStore]);
 
   // Group orders by store and supplier
   const ordersByStoreAndSupplier = React.useMemo(() => {
