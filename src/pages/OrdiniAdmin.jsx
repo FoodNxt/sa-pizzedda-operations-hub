@@ -205,8 +205,10 @@ export default function OrdiniAdmin() {
 
       if (ricetta?.somma_a_materia_prima_id && ricetta?.somma_ingrediente_id) {
         // Find the ingredient to use for proportion calculation
-        const ingredienteIndex = parseInt(ricetta.somma_ingrediente_id.replace('ing_', ''));
-        const ingrediente = ricetta.ingredienti?.[ingredienteIndex];
+        // somma_ingrediente_id is the materia_prima_id, not an array index
+        const ingrediente = ricetta.ingredienti?.find((ing) => 
+          ing.materia_prima_id === ricetta.somma_ingrediente_id
+        );
 
         if (ingrediente && ricetta.quantita_prodotta && ricetta.quantita_prodotta > 0) {
           // Calculate proportion: how much raw ingredient is needed per unit of finished product
