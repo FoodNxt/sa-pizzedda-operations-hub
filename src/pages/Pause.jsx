@@ -24,17 +24,17 @@ export default function Pause() {
 
   const { data: configs = [] } = useQuery({
     queryKey: ['pause-config'],
-    queryFn: () => base44.entities.PauseConfig.list('-created_date'),
+    queryFn: () => base44.entities.PauseConfig.list('-created_date')
   });
 
   const { data: pause = [] } = useQuery({
     queryKey: ['pause'],
-    queryFn: () => base44.entities.Pausa.list('-inizio_pausa', 200),
+    queryFn: () => base44.entities.Pausa.list('-inizio_pausa', 200)
   });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const createConfigMutation = useMutation({
@@ -42,7 +42,7 @@ export default function Pause() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pause-config'] });
       resetForm();
-    },
+    }
   });
 
   const updateConfigMutation = useMutation({
@@ -50,17 +50,17 @@ export default function Pause() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pause-config'] });
       resetForm();
-    },
+    }
   });
 
   const deleteConfigMutation = useMutation({
     mutationFn: (id) => base44.entities.PauseConfig.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pause-config'] });
-    },
+    }
   });
 
-  const activeConfig = configs.find(c => c.attivo);
+  const activeConfig = configs.find((c) => c.attivo);
 
   const resetForm = () => {
     setShowConfigForm(false);
@@ -111,17 +111,17 @@ export default function Pause() {
   };
 
   // Statistiche pause
-  const pauseOggi = pause.filter(p => {
+  const pauseOggi = pause.filter((p) => {
     const dataP = parseISO(p.data_turno);
     const oggi = new Date();
     return dataP.toDateString() === oggi.toDateString();
   });
 
-  const pauseInCorso = pause.filter(p => p.stato === 'in_corso');
-  const pauseCompletate = pause.filter(p => p.stato === 'completata');
-  const durataMediaPause = pauseCompletate.length > 0
-    ? Math.round(pauseCompletate.reduce((sum, p) => sum + (p.durata_effettiva_minuti || 0), 0) / pauseCompletate.length)
-    : 0;
+  const pauseInCorso = pause.filter((p) => p.stato === 'in_corso');
+  const pauseCompletate = pause.filter((p) => p.stato === 'completata');
+  const durataMediaPause = pauseCompletate.length > 0 ?
+  Math.round(pauseCompletate.reduce((sum, p) => sum + (p.durata_effettiva_minuti || 0), 0) / pauseCompletate.length) :
+  0;
 
   return (
     <ProtectedPage pageName="Pause">
@@ -129,17 +129,17 @@ export default function Pause() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
-              <Coffee className="w-10 h-10 text-amber-600" />
-              Gestione Pause
+            <h1 className="text-slate-50 text-3xl font-bold flex items-center gap-3">Gestione Pause
+
+
             </h1>
-            <p className="text-slate-500 mt-1">Configura e monitora le pause dei dipendenti</p>
+            <p className="text-slate-50 mt-1">Configura e monitora le pause dei dipendenti</p>
           </div>
           <NeumorphicButton
             onClick={() => setShowConfigForm(!showConfigForm)}
             variant="primary"
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <Settings className="w-5 h-5" />
             Nuova Configurazione
           </NeumorphicButton>
@@ -181,8 +181,8 @@ export default function Pause() {
         </div>
 
         {/* Form configurazione */}
-        {showConfigForm && (
-          <NeumorphicCard className="p-6">
+        {showConfigForm &&
+        <NeumorphicCard className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 <Settings className="w-6 h-6 text-amber-600" />
@@ -199,13 +199,13 @@ export default function Pause() {
                     Durata Minima Turno (minuti)
                   </label>
                   <input
-                    type="number"
-                    required
-                    min="0"
-                    value={formData.durata_minima_turno_minuti}
-                    onChange={(e) => setFormData({ ...formData, durata_minima_turno_minuti: parseInt(e.target.value) })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  />
+                  type="number"
+                  required
+                  min="0"
+                  value={formData.durata_minima_turno_minuti}
+                  onChange={(e) => setFormData({ ...formData, durata_minima_turno_minuti: parseInt(e.target.value) })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                   <p className="text-xs text-slate-500 mt-1">
                     {Math.floor(formData.durata_minima_turno_minuti / 60)}h {formData.durata_minima_turno_minuti % 60}m
                   </p>
@@ -216,13 +216,13 @@ export default function Pause() {
                     Durata Pausa (minuti)
                   </label>
                   <input
-                    type="number"
-                    required
-                    min="1"
-                    value={formData.durata_pausa_minuti}
-                    onChange={(e) => setFormData({ ...formData, durata_pausa_minuti: parseInt(e.target.value) })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  />
+                  type="number"
+                  required
+                  min="1"
+                  value={formData.durata_pausa_minuti}
+                  onChange={(e) => setFormData({ ...formData, durata_pausa_minuti: parseInt(e.target.value) })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                 </div>
 
                 <div>
@@ -230,13 +230,13 @@ export default function Pause() {
                     Numero Pause per Turno
                   </label>
                   <input
-                    type="number"
-                    required
-                    min="1"
-                    value={formData.numero_pause_per_turno}
-                    onChange={(e) => setFormData({ ...formData, numero_pause_per_turno: parseInt(e.target.value) })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  />
+                  type="number"
+                  required
+                  min="1"
+                  value={formData.numero_pause_per_turno}
+                  onChange={(e) => setFormData({ ...formData, numero_pause_per_turno: parseInt(e.target.value) })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                 </div>
 
                 <div>
@@ -244,13 +244,13 @@ export default function Pause() {
                     Numero Minimo Colleghi Presenti
                   </label>
                   <input
-                    type="number"
-                    required
-                    min="1"
-                    value={formData.numero_minimo_colleghi}
-                    onChange={(e) => setFormData({ ...formData, numero_minimo_colleghi: parseInt(e.target.value) })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  />
+                  type="number"
+                  required
+                  min="1"
+                  value={formData.numero_minimo_colleghi}
+                  onChange={(e) => setFormData({ ...formData, numero_minimo_colleghi: parseInt(e.target.value) })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                 </div>
               </div>
 
@@ -258,54 +258,54 @@ export default function Pause() {
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-sm font-medium text-slate-700">Slot Orari Consentiti</label>
                   <NeumorphicButton
-                    type="button"
-                    onClick={() => setFormData({
-                      ...formData,
-                      slot_orari: [...formData.slot_orari, { orario_inizio: '11:00', orario_fine: '15:00' }]
-                    })}
-                    className="text-sm flex items-center gap-1"
-                  >
+                  type="button"
+                  onClick={() => setFormData({
+                    ...formData,
+                    slot_orari: [...formData.slot_orari, { orario_inizio: '11:00', orario_fine: '15:00' }]
+                  })}
+                  className="text-sm flex items-center gap-1">
+
                     <Plus className="w-4 h-4" /> Aggiungi Slot
                   </NeumorphicButton>
                 </div>
                 <div className="space-y-2">
-                  {formData.slot_orari.map((slot, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
+                  {formData.slot_orari.map((slot, idx) =>
+                <div key={idx} className="flex items-center gap-2">
                       <input
-                        type="time"
-                        value={slot.orario_inizio}
-                        onChange={(e) => {
-                          const newSlots = [...formData.slot_orari];
-                          newSlots[idx].orario_inizio = e.target.value;
-                          setFormData({ ...formData, slot_orari: newSlots });
-                        }}
-                        className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                      />
+                    type="time"
+                    value={slot.orario_inizio}
+                    onChange={(e) => {
+                      const newSlots = [...formData.slot_orari];
+                      newSlots[idx].orario_inizio = e.target.value;
+                      setFormData({ ...formData, slot_orari: newSlots });
+                    }}
+                    className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none" />
+
                       <span className="text-slate-500">-</span>
                       <input
-                        type="time"
-                        value={slot.orario_fine}
-                        onChange={(e) => {
-                          const newSlots = [...formData.slot_orari];
-                          newSlots[idx].orario_fine = e.target.value;
-                          setFormData({ ...formData, slot_orari: newSlots });
-                        }}
-                        className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                      />
-                      {formData.slot_orari.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setFormData({
-                            ...formData,
-                            slot_orari: formData.slot_orari.filter((_, i) => i !== idx)
-                          })}
-                          className="text-red-500 hover:text-red-700"
-                        >
+                    type="time"
+                    value={slot.orario_fine}
+                    onChange={(e) => {
+                      const newSlots = [...formData.slot_orari];
+                      newSlots[idx].orario_fine = e.target.value;
+                      setFormData({ ...formData, slot_orari: newSlots });
+                    }}
+                    className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none" />
+
+                      {formData.slot_orari.length > 1 &&
+                  <button
+                    type="button"
+                    onClick={() => setFormData({
+                      ...formData,
+                      slot_orari: formData.slot_orari.filter((_, i) => i !== idx)
+                    })}
+                    className="text-red-500 hover:text-red-700">
+
                           <Trash2 className="w-4 h-4" />
                         </button>
-                      )}
+                  }
                     </div>
-                  ))}
+                )}
                 </div>
               </div>
 
@@ -319,11 +319,11 @@ export default function Pause() {
               </div>
             </form>
           </NeumorphicCard>
-        )}
+        }
 
         {/* Configurazione attiva */}
-        {activeConfig && (
-          <NeumorphicCard className="p-6">
+        {activeConfig &&
+        <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
               <Settings className="w-6 h-6 text-green-600" />
               Configurazione Attiva
@@ -347,11 +347,11 @@ export default function Pause() {
                 <Calendar className="w-6 h-6 text-blue-600 mx-auto mb-2" />
                 <p className="text-sm text-slate-500 mb-1">Slot Orari</p>
                 <div className="text-xs text-slate-800 space-y-1">
-                  {(activeConfig.slot_orari || []).map((slot, idx) => (
-                    <div key={idx} className="font-bold">
+                  {(activeConfig.slot_orari || []).map((slot, idx) =>
+                <div key={idx} className="font-bold">
                       {slot.orario_inizio} - {slot.orario_fine}
                     </div>
-                  ))}
+                )}
                 </div>
               </div>
 
@@ -363,29 +363,29 @@ export default function Pause() {
 
               <div className="neumorphic-pressed p-4 rounded-xl text-center flex flex-col gap-2 items-center justify-center">
                 <NeumorphicButton
-                  onClick={() => handleEdit(activeConfig)}
-                  className="text-sm w-full"
-                >
+                onClick={() => handleEdit(activeConfig)}
+                className="text-sm w-full">
+
                   Modifica
                 </NeumorphicButton>
                 <NeumorphicButton
-                  onClick={() => toggleConfigStatus(activeConfig)}
-                  className="text-sm w-full"
-                >
+                onClick={() => toggleConfigStatus(activeConfig)}
+                className="text-sm w-full">
+
                   Disattiva
                 </NeumorphicButton>
               </div>
             </div>
           </NeumorphicCard>
-        )}
+        }
 
         {/* Altre configurazioni */}
-        {configs.filter(c => !c.attivo).length > 0 && (
-          <NeumorphicCard className="p-6">
+        {configs.filter((c) => !c.attivo).length > 0 &&
+        <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-slate-800 mb-4">Configurazioni Inattive</h2>
             <div className="space-y-3">
-              {configs.filter(c => !c.attivo).map(config => (
-                <div key={config.id} className="neumorphic-pressed p-4 rounded-xl flex items-center justify-between">
+              {configs.filter((c) => !c.attivo).map((config) =>
+            <div key={config.id} className="neumorphic-pressed p-4 rounded-xl flex items-center justify-between">
                   <div className="grid grid-cols-4 gap-4 flex-1">
                     <div>
                       <p className="text-xs text-slate-500">Turno Min</p>
@@ -398,9 +398,9 @@ export default function Pause() {
                     <div>
                       <p className="text-xs text-slate-500">Slot Orari</p>
                       <div className="text-xs text-slate-700 space-y-0.5">
-                        {(config.slot_orari || []).map((slot, idx) => (
-                          <div key={idx}>{slot.orario_inizio} - {slot.orario_fine}</div>
-                        ))}
+                        {(config.slot_orari || []).map((slot, idx) =>
+                    <div key={idx}>{slot.orario_inizio} - {slot.orario_fine}</div>
+                    )}
                       </div>
                     </div>
                     <div>
@@ -409,27 +409,27 @@ export default function Pause() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <NeumorphicButton 
-                      onClick={() => handleEdit(config)} 
-                      className="text-sm flex items-center gap-1"
-                    >
+                    <NeumorphicButton
+                  onClick={() => handleEdit(config)}
+                  className="text-sm flex items-center gap-1">
+
                       <Settings className="w-4 h-4" /> Modifica
                     </NeumorphicButton>
                     <NeumorphicButton onClick={() => toggleConfigStatus(config)} className="text-sm">
                       Attiva
                     </NeumorphicButton>
                     <button
-                      onClick={() => handleDelete(config.id)}
-                      className="text-red-500 hover:text-red-700 p-2"
-                    >
+                  onClick={() => handleDelete(config.id)}
+                  className="text-red-500 hover:text-red-700 p-2">
+
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-              ))}
+            )}
             </div>
           </NeumorphicCard>
-        )}
+        }
 
         {/* Log pause */}
         <NeumorphicCard className="p-6">
@@ -438,13 +438,13 @@ export default function Pause() {
             Logging Pause
           </h2>
           
-          {pause.length === 0 ? (
-            <div className="text-center py-12">
+          {pause.length === 0 ?
+          <div className="text-center py-12">
               <Coffee className="w-16 h-16 text-slate-300 mx-auto mb-3" />
               <p className="text-slate-500">Nessuna pausa registrata</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+            </div> :
+
+          <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-amber-600">
@@ -459,8 +459,8 @@ export default function Pause() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pause.map(p => (
-                    <tr key={p.id} className="border-b border-slate-200 hover:bg-slate-50">
+                  {pause.map((p) =>
+                <tr key={p.id} className="border-b border-slate-200 hover:bg-slate-50">
                       <td className="p-3 text-sm text-slate-700">
                         {format(parseISO(p.data_turno), 'dd/MM/yyyy', { locale: it })}
                       </td>
@@ -478,19 +478,19 @@ export default function Pause() {
                       <td className="p-3 text-sm text-slate-700">{p.colleghi_presenti_al_momento || '-'}</td>
                       <td className="p-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          p.stato === 'in_corso' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                        }`}>
+                    p.stato === 'in_corso' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`
+                    }>
                           {p.stato === 'in_corso' ? 'In corso' : 'Completata'}
                         </span>
                       </td>
                     </tr>
-                  ))}
+                )}
                 </tbody>
               </table>
             </div>
-          )}
+          }
         </NeumorphicCard>
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
