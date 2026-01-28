@@ -26,30 +26,30 @@ export default function Produttivita() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: revenueData = [] } = useQuery({
     queryKey: ['revenue-by-time-slot'],
-    queryFn: () => base44.entities.RevenueByTimeSlot.list('-date', 1000),
+    queryFn: () => base44.entities.RevenueByTimeSlot.list('-date', 1000)
   });
 
   const { data: allShifts = [] } = useQuery({
     queryKey: ['planday-shifts'],
-    queryFn: () => base44.entities.TurnoPlanday.list('-data', 2000),
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 2000)
   });
 
   const { data: tipiTurnoConfig = [] } = useQuery({
     queryKey: ['tipi-turno-config'],
-    queryFn: () => base44.entities.TipoTurnoConfig.list(),
+    queryFn: () => base44.entities.TipoTurnoConfig.list()
   });
 
   // Estrai tipi turno unici da config + turni esistenti
   const availableTipiTurno = useMemo(() => {
     const tipiMap = new Map();
-    
+
     // Prima aggiungi tutti i tipi dalla config
-    tipiTurnoConfig.forEach(config => {
+    tipiTurnoConfig.forEach((config) => {
       if (config.is_active !== false && config.nome) {
         tipiMap.set(config.nome, {
           nome: config.nome,
@@ -58,11 +58,11 @@ export default function Produttivita() {
         });
       }
     });
-    
+
     // Poi aggiungi tipi dai turni effettivi (se non già presenti)
-    allShifts.forEach(shift => {
+    allShifts.forEach((shift) => {
       if (shift.tipo_turno && !tipiMap.has(shift.tipo_turno)) {
-        const config = tipiTurnoConfig.find(t => t.nome === shift.tipo_turno);
+        const config = tipiTurnoConfig.find((t) => t.nome === shift.tipo_turno);
         tipiMap.set(shift.tipo_turno, {
           nome: shift.tipo_turno,
           colore: config?.colore || '#94a3b8',
@@ -77,7 +77,7 @@ export default function Produttivita() {
   // Inizializza tipi turno inclusi con tutti i tipi disponibili
   React.useEffect(() => {
     if (includedTipiTurno.length === 0 && availableTipiTurno.length > 0) {
-      const tipi = availableTipiTurno.map(t => t.nome);
+      const tipi = availableTipiTurno.map((t) => t.nome);
       setIncludedTipiTurno(tipi);
     }
   }, [availableTipiTurno]);
@@ -85,8 +85,8 @@ export default function Produttivita() {
   // Filtra turni in base ai tipi selezionati
   const filteredShifts = useMemo(() => {
     if (includedTipiTurno.length === 0) return [];
-    return allShifts.filter(shift => 
-      includedTipiTurno.includes(shift.tipo_turno)
+    return allShifts.filter((shift) =>
+    includedTipiTurno.includes(shift.tipo_turno)
     );
   }, [allShifts, includedTipiTurno]);
 
@@ -94,21 +94,21 @@ export default function Produttivita() {
     let filtered = revenueData;
 
     if (selectedStore !== 'all') {
-      filtered = filtered.filter(r => r.store_id === selectedStore);
+      filtered = filtered.filter((r) => r.store_id === selectedStore);
     }
 
     const now = new Date();
     if (dateRange === 'month') {
       const monthStart = startOfMonth(now);
       const monthEnd = endOfMonth(now);
-      filtered = filtered.filter(r => {
+      filtered = filtered.filter((r) => {
         const date = parseISO(r.date);
         return date >= monthStart && date <= monthEnd;
       });
     } else if (dateRange === 'custom') {
       const start = parseISO(startDate);
       const end = parseISO(endDate);
-      filtered = filtered.filter(r => {
+      filtered = filtered.filter((r) => {
         const date = parseISO(r.date);
         return date >= start && date <= end;
       });
@@ -121,7 +121,7 @@ export default function Produttivita() {
   const hoursWorkedBySlot = useMemo(() => {
     const slotData = {}; // { slot: { totalHours, daysSet } }
 
-    filteredShifts.forEach(shift => {
+    filteredShifts.forEach((shift) => {
       if (!shift.ora_inizio || !shift.ora_fine) return;
       if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
 
@@ -133,7 +133,7 @@ export default function Produttivita() {
 
       const [startHour, startMin] = startTime.split(':').map(Number);
       const [endHour, endMin] = endTime.split(':').map(Number);
-      
+
       let currentMin = startHour * 60 + startMin;
       const endMinTotal = endHour * 60 + endMin;
 
@@ -141,21 +141,21 @@ export default function Produttivita() {
         const h = Math.floor(currentMin / 60);
         const m = currentMin % 60;
         const slot = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
-        
+
         if (!slotData[slot]) {
           slotData[slot] = { totalHours: 0, daysSet: new Set() };
         }
-        
+
         slotData[slot].totalHours += 0.5; // 30 minutes = 0.5 hours
         slotData[slot].daysSet.add(shiftDate);
-        
+
         currentMin += 30;
       }
     });
 
     // Calculate average hours per day for each slot
     const avgHours = {};
-    Object.keys(slotData).forEach(slot => {
+    Object.keys(slotData).forEach((slot) => {
       const daysCount = slotData[slot].daysSet.size;
       avgHours[slot] = daysCount > 0 ? slotData[slot].totalHours / daysCount : 0;
     });
@@ -170,7 +170,7 @@ export default function Produttivita() {
     // Filter by day of week if selected
     if (selectedDayOfWeek !== 'all') {
       const selectedDayIndex = parseInt(selectedDayOfWeek);
-      dataToAggregate = filteredData.filter(record => {
+      dataToAggregate = filteredData.filter((record) => {
         const date = parseISO(record.date);
         const dayIndex = date.getDay(); // 0=Sunday, 1=Monday, etc.
         const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Convert to 0=Monday
@@ -192,8 +192,8 @@ export default function Produttivita() {
     });
 
     const aggregation = {};
-    
-    dataToAggregate.forEach(record => {
+
+    dataToAggregate.forEach((record) => {
       Object.entries(record.slots || {}).forEach(([slot, revenue]) => {
         let key;
         if (timeSlotView === '1hour') {
@@ -211,32 +211,32 @@ export default function Produttivita() {
       });
     });
 
-    return Object.values(aggregation)
-      .map(item => ({
-        slot: item.slot,
-        avgRevenue: item.revenue / item.count,
-        avgHours: avgHoursPerSlot[item.slot] || 0,
-        revenuePerHour: (avgHoursPerSlot[item.slot] || 0) > 0 ? (item.revenue / item.count) / (avgHoursPerSlot[item.slot] || 0) : 0
-      }))
-      .sort((a, b) => a.slot.localeCompare(b.slot));
+    return Object.values(aggregation).
+    map((item) => ({
+      slot: item.slot,
+      avgRevenue: item.revenue / item.count,
+      avgHours: avgHoursPerSlot[item.slot] || 0,
+      revenuePerHour: (avgHoursPerSlot[item.slot] || 0) > 0 ? item.revenue / item.count / (avgHoursPerSlot[item.slot] || 0) : 0
+    })).
+    sort((a, b) => a.slot.localeCompare(b.slot));
   }, [filteredData, timeSlotView, hoursWorkedBySlot, selectedDayOfWeek]);
 
   // Daily data for selected date
   const dailySlotData = useMemo(() => {
-    const dayData = filteredData.find(r => r.date === selectedDate);
+    const dayData = filteredData.find((r) => r.date === selectedDate);
     if (!dayData || !dayData.slots) return [];
 
     // Get shifts for this specific date
-    const dayShifts = filteredShifts.filter(s => s.data === selectedDate);
+    const dayShifts = filteredShifts.filter((s) => s.data === selectedDate);
     const dayHoursSlot = {};
 
-    dayShifts.forEach(shift => {
+    dayShifts.forEach((shift) => {
       if (!shift.ora_inizio || !shift.ora_fine) return;
       if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
 
       const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
       const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
-      
+
       let currentMin = startHour * 60 + startMin;
       const endMinTotal = endHour * 60 + endMin;
 
@@ -244,29 +244,29 @@ export default function Produttivita() {
         const h = Math.floor(currentMin / 60);
         const m = currentMin % 60;
         const slot = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
-        
+
         if (!dayHoursSlot[slot]) {
           dayHoursSlot[slot] = 0;
         }
         dayHoursSlot[slot] += 0.5;
-        
+
         currentMin += 30;
       }
     });
 
-    const data = Object.entries(dayData.slots)
-      .map(([slot, revenue]) => ({ 
-        slot, 
-        revenue,
-        hours: dayHoursSlot[slot] || 0,
-        revenuePerHour: (dayHoursSlot[slot] || 0) > 0 ? revenue / (dayHoursSlot[slot] || 0) : 0
-      }))
-      .sort((a, b) => a.slot.localeCompare(b.slot));
+    const data = Object.entries(dayData.slots).
+    map(([slot, revenue]) => ({
+      slot,
+      revenue,
+      hours: dayHoursSlot[slot] || 0,
+      revenuePerHour: (dayHoursSlot[slot] || 0) > 0 ? revenue / (dayHoursSlot[slot] || 0) : 0
+    })).
+    sort((a, b) => a.slot.localeCompare(b.slot));
 
     // Aggregate by view type
     if (timeSlotView === '1hour') {
       const hourlyAgg = {};
-      data.forEach(item => {
+      data.forEach((item) => {
         const hour = item.slot.split(':')[0] + ':00';
         if (!hourlyAgg[hour]) {
           hourlyAgg[hour] = { slot: hour, revenue: 0, hours: 0 };
@@ -274,12 +274,12 @@ export default function Produttivita() {
         hourlyAgg[hour].revenue += item.revenue;
         hourlyAgg[hour].hours += item.hours;
       });
-      return Object.values(hourlyAgg)
-        .map(item => ({
-          ...item,
-          revenuePerHour: item.hours > 0 ? item.revenue / item.hours : 0
-        }))
-        .sort((a, b) => a.slot.localeCompare(b.slot));
+      return Object.values(hourlyAgg).
+      map((item) => ({
+        ...item,
+        revenuePerHour: item.hours > 0 ? item.revenue / item.hours : 0
+      })).
+      sort((a, b) => a.slot.localeCompare(b.slot));
     }
 
     return data;
@@ -289,7 +289,7 @@ export default function Produttivita() {
   const heatmapData = useMemo(() => {
     const daySlotMap = {};
     const daysOfWeek = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
-    
+
     // Pre-calculate average hours per hour slot (sum of 30-min slots)
     const avgHoursPerSlot = {};
     Object.entries(hoursWorkedBySlot || {}).forEach(([slot, hours]) => {
@@ -300,13 +300,13 @@ export default function Produttivita() {
         avgHoursPerSlot[slot] = hours;
       }
     });
-    
-    filteredData.forEach(record => {
+
+    filteredData.forEach((record) => {
       const date = parseISO(record.date);
       const dayIndex = date.getDay(); // 0=Sunday, 1=Monday, etc.
       const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Convert to 0=Monday
       const dayName = daysOfWeek[adjustedIndex];
-      
+
       Object.entries(record.slots || {}).forEach(([slot, revenue]) => {
         let key;
         if (timeSlotView === '1hour') {
@@ -315,7 +315,7 @@ export default function Produttivita() {
         } else {
           key = slot;
         }
-        
+
         const mapKey = `${dayName}|${key}`;
         if (!daySlotMap[mapKey]) {
           daySlotMap[mapKey] = { revenue: 0, count: 0 };
@@ -324,49 +324,49 @@ export default function Produttivita() {
         daySlotMap[mapKey].count += 1;
       });
     });
-    
+
     // Convert to structured format with metadata
-    const result = daysOfWeek.map(day => {
+    const result = daysOfWeek.map((day) => {
       const dayData = { day, metadata: {} };
-      Object.keys(daySlotMap)
-        .filter(k => k.startsWith(day + '|'))
-        .forEach(k => {
-          const slot = k.split('|')[1];
-          const data = daySlotMap[k];
-          const avgRevenue = data.revenue / data.count;
-          const avgHours = avgHoursPerSlot[slot] || 0;
-          const productivity = avgHours > 0 ? avgRevenue / avgHours : 0;
-          
-          dayData[slot] = productivity;
-          dayData.metadata[slot] = {
-            avgRevenue,
-            avgHours,
-            productivity,
-            count: data.count
-          };
-        });
+      Object.keys(daySlotMap).
+      filter((k) => k.startsWith(day + '|')).
+      forEach((k) => {
+        const slot = k.split('|')[1];
+        const data = daySlotMap[k];
+        const avgRevenue = data.revenue / data.count;
+        const avgHours = avgHoursPerSlot[slot] || 0;
+        const productivity = avgHours > 0 ? avgRevenue / avgHours : 0;
+
+        dayData[slot] = productivity;
+        dayData.metadata[slot] = {
+          avgRevenue,
+          avgHours,
+          productivity,
+          count: data.count
+        };
+      });
       return dayData;
     });
-    
+
     return result;
   }, [filteredData, timeSlotView, hoursWorkedBySlot]);
 
   // Weekly/Monthly productivity by store
   const storeProductivity = useMemo(() => {
     const storeData = {};
-    
+
     // Group by store and time period (week/month)
-    filteredData.forEach(record => {
+    filteredData.forEach((record) => {
       const date = parseISO(record.date);
       const storeId = record.store_id;
       const storeName = record.store_name;
-      
+
       if (!storeId) return;
-      
+
       // Get week and month identifiers
       const weekKey = `${format(startOfWeek(date, { locale: it }), 'yyyy-MM-dd')}`;
       const monthKey = format(date, 'yyyy-MM');
-      
+
       // Initialize store data
       if (!storeData[storeId]) {
         storeData[storeId] = {
@@ -375,68 +375,68 @@ export default function Produttivita() {
           monthly: {}
         };
       }
-      
+
       // Weekly data
       if (!storeData[storeId].weekly[weekKey]) {
         storeData[storeId].weekly[weekKey] = { revenue: 0, hours: 0, date: weekKey };
       }
       storeData[storeId].weekly[weekKey].revenue += record.total_revenue || 0;
-      
+
       // Monthly data
       if (!storeData[storeId].monthly[monthKey]) {
         storeData[storeId].monthly[monthKey] = { revenue: 0, hours: 0, date: monthKey };
       }
       storeData[storeId].monthly[monthKey].revenue += record.total_revenue || 0;
     });
-    
+
     // Add hours from shifts
-    filteredShifts.forEach(shift => {
+    filteredShifts.forEach((shift) => {
       if (!shift.ora_inizio || !shift.ora_fine || !shift.data || !shift.store_id) return;
-      
+
       const date = parseISO(shift.data);
       const weekKey = `${format(startOfWeek(date, { locale: it }), 'yyyy-MM-dd')}`;
       const monthKey = format(date, 'yyyy-MM');
-      
+
       // Calculate shift duration in hours
       const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
       const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
       const hours = (endHour * 60 + endMin - (startHour * 60 + startMin)) / 60;
-      
+
       if (storeData[shift.store_id]) {
         // Weekly hours
         if (storeData[shift.store_id].weekly[weekKey]) {
           storeData[shift.store_id].weekly[weekKey].hours += hours;
         }
-        
+
         // Monthly hours
         if (storeData[shift.store_id].monthly[monthKey]) {
           storeData[shift.store_id].monthly[monthKey].hours += hours;
         }
       }
     });
-    
+
     // Calculate productivity (€/hour)
-    Object.keys(storeData).forEach(storeId => {
-      Object.keys(storeData[storeId].weekly).forEach(weekKey => {
+    Object.keys(storeData).forEach((storeId) => {
+      Object.keys(storeData[storeId].weekly).forEach((weekKey) => {
         const data = storeData[storeId].weekly[weekKey];
         data.productivity = data.hours > 0 ? data.revenue / data.hours : 0;
       });
-      
-      Object.keys(storeData[storeId].monthly).forEach(monthKey => {
+
+      Object.keys(storeData[storeId].monthly).forEach((monthKey) => {
         const data = storeData[storeId].monthly[monthKey];
         data.productivity = data.hours > 0 ? data.revenue / data.hours : 0;
       });
     });
-    
+
     return storeData;
   }, [filteredData, filteredShifts]);
 
   // Daily productivity by store
   const dailyProductivity = useMemo(() => {
     const dailyData = {};
-    
+
     // Aggregate revenue by date and store
-    filteredData.forEach(record => {
+    filteredData.forEach((record) => {
       const key = `${record.date}_${record.store_id}`;
       if (!dailyData[key]) {
         dailyData[key] = {
@@ -449,30 +449,30 @@ export default function Produttivita() {
       }
       dailyData[key].revenue += record.total_revenue || 0;
     });
-    
+
     // Add hours from shifts for each day
-    filteredShifts.forEach(shift => {
+    filteredShifts.forEach((shift) => {
       if (!shift.ora_inizio || !shift.ora_fine || !shift.data || !shift.store_id) return;
-      
+
       const key = `${shift.data}_${shift.store_id}`;
-      
+
       // Calculate shift duration in hours
       const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
       const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
       const hours = (endHour * 60 + endMin - (startHour * 60 + startMin)) / 60;
-      
+
       if (dailyData[key]) {
         dailyData[key].hours += hours;
       }
     });
-    
+
     // Calculate productivity
-    return Object.values(dailyData)
-      .map(item => ({
-        ...item,
-        productivity: item.hours > 0 ? item.revenue / item.hours : 0
-      }))
-      .sort((a, b) => b.date.localeCompare(a.date));
+    return Object.values(dailyData).
+    map((item) => ({
+      ...item,
+      productivity: item.hours > 0 ? item.revenue / item.hours : 0
+    })).
+    sort((a, b) => b.date.localeCompare(a.date));
   }, [filteredData, filteredShifts]);
 
   const stats = {
@@ -488,13 +488,13 @@ export default function Produttivita() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">📊 Produttività</h1>
-            <p className="text-[#9b9b9b]">Analisi revenue per slot orari</p>
+            <h1 className="text-slate-50 mb-2 text-3xl font-bold">📊 Produttività</h1>
+            <p className="text-slate-50">Analisi revenue per slot orari</p>
           </div>
           <button
             onClick={() => setShowSettings(true)}
-            className="neumorphic-flat p-3 rounded-xl hover:bg-slate-100 transition-all"
-          >
+            className="neumorphic-flat p-3 rounded-xl hover:bg-slate-100 transition-all">
+
             <Settings className="w-5 h-5 text-slate-600" />
           </button>
         </div>
@@ -545,21 +545,21 @@ export default function Produttivita() {
               <button
                 onClick={() => setTimeSlotView('30min')}
                 className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                  timeSlotView === '30min'
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                    : 'neumorphic-flat text-[#6b6b6b]'
-                }`}
-              >
+                timeSlotView === '30min' ?
+                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                'neumorphic-flat text-[#6b6b6b]'}`
+                }>
+
                 30 minuti
               </button>
               <button
                 onClick={() => setTimeSlotView('1hour')}
                 className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                  timeSlotView === '1hour'
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                    : 'neumorphic-flat text-[#6b6b6b]'
-                }`}
-              >
+                timeSlotView === '1hour' ?
+                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                'neumorphic-flat text-[#6b6b6b]'}`
+                }>
+
                 1 ora
               </button>
             </div>
@@ -574,12 +574,12 @@ export default function Produttivita() {
               <select
                 value={selectedStore}
                 onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              >
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                 <option value="all">Tutti i negozi</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id}>{store.name}</option>
-                ))}
+                {stores.map((store) =>
+                <option key={store.id} value={store.id}>{store.name}</option>
+                )}
               </select>
             </div>
 
@@ -588,36 +588,36 @@ export default function Produttivita() {
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              >
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                 <option value="month">Questo mese</option>
                 <option value="custom">Personalizzato</option>
                 <option value="all">Tutti i periodi</option>
               </select>
             </div>
 
-            {dateRange === 'custom' && (
-              <>
+            {dateRange === 'custom' &&
+            <>
                 <div>
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Data Inizio</label>
                   <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  />
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
+
                 </div>
                 <div>
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Data Fine</label>
                   <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  />
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
+
                 </div>
               </>
-            )}
+            }
           </div>
         </NeumorphicCard>
 
@@ -629,20 +629,20 @@ export default function Produttivita() {
                <div className="flex gap-3">
                  <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
                    <input
-                     type="checkbox"
-                     checked={showRevenue}
-                     onChange={(e) => setShowRevenue(e.target.checked)}
-                     className="w-4 h-4"
-                   />
+                    type="checkbox"
+                    checked={showRevenue}
+                    onChange={(e) => setShowRevenue(e.target.checked)}
+                    className="w-4 h-4" />
+
                    Revenue
                  </label>
                  <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
                    <input
-                     type="checkbox"
-                     checked={showHours}
-                     onChange={(e) => setShowHours(e.target.checked)}
-                     className="w-4 h-4"
-                   />
+                    type="checkbox"
+                    checked={showHours}
+                    onChange={(e) => setShowHours(e.target.checked)}
+                    className="w-4 h-4" />
+
                    Ore Lavorate
                  </label>
                </div>
@@ -650,10 +650,10 @@ export default function Produttivita() {
              <div>
                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Giorno della Settimana</label>
                <select
-                 value={selectedDayOfWeek}
-                 onChange={(e) => setSelectedDayOfWeek(e.target.value)}
-                 className="w-full md:w-64 neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-               >
+                value={selectedDayOfWeek}
+                onChange={(e) => setSelectedDayOfWeek(e.target.value)}
+                className="w-full md:w-64 neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none">
+
                  <option value="all">Tutti i giorni</option>
                  <option value="0">Lunedì</option>
                  <option value="1">Martedì</option>
@@ -665,34 +665,34 @@ export default function Produttivita() {
                </select>
              </div>
            </div>
-          {aggregatedData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
+          {aggregatedData.length > 0 ?
+          <ResponsiveContainer width="100%" height={400}>
               <BarChart data={aggregatedData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="slot" 
-                  angle={timeSlotView === '30min' ? -45 : 0}
-                  textAnchor={timeSlotView === '30min' ? 'end' : 'middle'}
-                  height={timeSlotView === '30min' ? 100 : 50}
-                  interval={timeSlotView === '30min' ? 1 : 0}
-                />
+                <XAxis
+                dataKey="slot"
+                angle={timeSlotView === '30min' ? -45 : 0}
+                textAnchor={timeSlotView === '30min' ? 'end' : 'middle'}
+                height={timeSlotView === '30min' ? 100 : 50}
+                interval={timeSlotView === '30min' ? 1 : 0} />
+
                 <YAxis yAxisId="left" orientation="left" stroke="#3b82f6" />
                 <YAxis yAxisId="right" orientation="right" stroke="#f59e0b" />
-                <Tooltip 
-                  formatter={(value, name) => {
-                    if (name === 'avgRevenue') return `€${value.toFixed(2)}`;
-                    if (name === 'avgHours') return `${value.toFixed(1)}h`;
-                    return value;
-                  }}
-                />
+                <Tooltip
+                formatter={(value, name) => {
+                  if (name === 'avgRevenue') return `€${value.toFixed(2)}`;
+                  if (name === 'avgHours') return `${value.toFixed(1)}h`;
+                  return value;
+                }} />
+
                 <Legend />
                 {showRevenue && <Bar yAxisId="left" dataKey="avgRevenue" fill="#3b82f6" name="Revenue Media (€)" />}
                 {showHours && <Bar yAxisId="right" dataKey="avgHours" fill="#f59e0b" name="Ore Medie Lavorate" />}
               </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          )}
+            </ResponsiveContainer> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          }
         </NeumorphicCard>
 
         {/* Heatmap - Produttività per Giorno e Slot */}
@@ -708,21 +708,21 @@ export default function Produttivita() {
               <button
                 onClick={() => setHeatmapMode('productivity')}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  heatmapMode === 'productivity'
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                    : 'neumorphic-flat text-[#6b6b6b]'
-                }`}
-              >
+                heatmapMode === 'productivity' ?
+                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                'neumorphic-flat text-[#6b6b6b]'}`
+                }>
+
                 Produttività (€/ora)
               </button>
               <button
                 onClick={() => setHeatmapMode('revenue')}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  heatmapMode === 'revenue'
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                    : 'neumorphic-flat text-[#6b6b6b]'
-                }`}
-              >
+                heatmapMode === 'revenue' ?
+                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                'neumorphic-flat text-[#6b6b6b]'}`
+                }>
+
                 Fatturato (€)
               </button>
             </div>
@@ -730,26 +730,26 @@ export default function Produttivita() {
           {heatmapData.length > 0 && (() => {
             // Get all unique slots from data
             const allSlots = new Set();
-            heatmapData.forEach(row => {
-              Object.keys(row).forEach(key => {
+            heatmapData.forEach((row) => {
+              Object.keys(row).forEach((key) => {
                 if (key !== 'day' && key !== 'metadata') allSlots.add(key);
               });
             });
             const slots = Array.from(allSlots).sort();
-            
+
             // Find min/max for color scaling
-            const allValues = heatmapData.flatMap(row => 
-              slots.map(slot => {
-                if (heatmapMode === 'productivity') {
-                  return row[slot] || 0;
-                } else {
-                  return row.metadata?.[slot]?.avgRevenue || 0;
-                }
-              }).filter(v => v > 0)
+            const allValues = heatmapData.flatMap((row) =>
+            slots.map((slot) => {
+              if (heatmapMode === 'productivity') {
+                return row[slot] || 0;
+              } else {
+                return row.metadata?.[slot]?.avgRevenue || 0;
+              }
+            }).filter((v) => v > 0)
             );
             const maxValue = allValues.length > 0 ? Math.max(...allValues) : 100;
             const minValue = allValues.length > 0 ? Math.min(...allValues) : 0;
-            
+
             const getColor = (value) => {
               if (!value || value === 0) return 'bg-gray-100';
               const normalized = (value - minValue) / (maxValue - minValue);
@@ -759,44 +759,44 @@ export default function Produttivita() {
               if (normalized >= 0.2) return 'bg-orange-400 text-gray-900';
               return 'bg-red-400 text-white';
             };
-            
+
             return (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr>
                       <th className="p-2 text-left text-[#9b9b9b] font-medium sticky left-0 bg-white z-10">Giorno</th>
-                      {slots.map(slot => (
-                        <th key={slot} className="p-2 text-center text-[#9b9b9b] font-medium min-w-[60px]">
+                      {slots.map((slot) =>
+                      <th key={slot} className="p-2 text-center text-[#9b9b9b] font-medium min-w-[60px]">
                           {slot}
                         </th>
-                      ))}
+                      )}
                     </tr>
                   </thead>
                   <tbody>
-                    {heatmapData.map(row => (
-                      <tr key={row.day} className="border-t border-gray-200">
+                    {heatmapData.map((row) =>
+                    <tr key={row.day} className="border-t border-gray-200">
                         <td className="p-2 font-medium text-[#6b6b6b] sticky left-0 bg-white z-10">
                           {row.day}
                         </td>
-                        {slots.map(slot => {
-                          const value = heatmapMode === 'productivity' 
-                            ? (row[slot] || 0)
-                            : (row.metadata?.[slot]?.avgRevenue || 0);
-                          const metadata = row.metadata?.[slot];
-                          return (
-                            <td
-                              key={slot}
-                              onClick={() => metadata && setSelectedHeatmapCell({ day: row.day, slot, ...metadata })}
-                              className={`p-2 text-center font-semibold transition-all hover:scale-110 cursor-pointer ${getColor(value)}`}
-                              title={value > 0 ? (heatmapMode === 'productivity' ? `€${value.toFixed(2)}/ora` : `€${value.toFixed(2)}`) : 'Nessun dato'}
-                            >
+                        {slots.map((slot) => {
+                        const value = heatmapMode === 'productivity' ?
+                        row[slot] || 0 :
+                        row.metadata?.[slot]?.avgRevenue || 0;
+                        const metadata = row.metadata?.[slot];
+                        return (
+                          <td
+                            key={slot}
+                            onClick={() => metadata && setSelectedHeatmapCell({ day: row.day, slot, ...metadata })}
+                            className={`p-2 text-center font-semibold transition-all hover:scale-110 cursor-pointer ${getColor(value)}`}
+                            title={value > 0 ? heatmapMode === 'productivity' ? `€${value.toFixed(2)}/ora` : `€${value.toFixed(2)}` : 'Nessun dato'}>
+
                               {value > 0 ? `€${value.toFixed(0)}` : '-'}
-                            </td>
-                          );
-                        })}
+                            </td>);
+
+                      })}
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
                 <div className="mt-4 flex items-center justify-center gap-4 text-xs">
@@ -813,21 +813,21 @@ export default function Produttivita() {
                     <span className="text-[#9b9b9b]">Alta</span>
                   </div>
                 </div>
-              </div>
-            );
+              </div>);
+
           })()}
         </NeumorphicCard>
 
         {/* Heatmap Cell Detail Modal */}
-        {selectedHeatmapCell && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {selectedHeatmapCell &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-[#6b6b6b]">Dettaglio Slot</h3>
                 <button
-                  onClick={() => setSelectedHeatmapCell(null)}
-                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                >
+                onClick={() => setSelectedHeatmapCell(null)}
+                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
+
                   <X className="w-5 h-5 text-[#9b9b9b]" />
                 </button>
               </div>
@@ -876,7 +876,7 @@ export default function Produttivita() {
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Revenue per Hour Chart - NEW */}
         <NeumorphicCard className="p-6">
@@ -890,29 +890,29 @@ export default function Produttivita() {
                 type="checkbox"
                 checked={showRevenuePerHour}
                 onChange={(e) => setShowRevenuePerHour(e.target.checked)}
-                className="w-4 h-4"
-              />
+                className="w-4 h-4" />
+
               Mostra grafico
             </label>
           </div>
-          {showRevenuePerHour && aggregatedData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={400}>
+          {showRevenuePerHour && aggregatedData.length > 0 ?
+          <ResponsiveContainer width="100%" height={400}>
               <LineChart data={aggregatedData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="slot" 
-                  angle={timeSlotView === '30min' ? -45 : 0}
-                  textAnchor={timeSlotView === '30min' ? 'end' : 'middle'}
-                  height={timeSlotView === '30min' ? 100 : 50}
-                  interval={timeSlotView === '30min' ? 1 : 0}
-                />
+                <XAxis
+                dataKey="slot"
+                angle={timeSlotView === '30min' ? -45 : 0}
+                textAnchor={timeSlotView === '30min' ? 'end' : 'middle'}
+                height={timeSlotView === '30min' ? 100 : 50}
+                interval={timeSlotView === '30min' ? 1 : 0} />
+
                 <YAxis />
-                <Tooltip 
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      const data = payload[0].payload;
-                      return (
-                        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                <Tooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
                           <p className="font-bold text-gray-800 mb-2">{label}</p>
                           <p className="text-sm text-gray-700">
                             <span className="font-semibold">€/ora:</span> €{data.revenuePerHour.toFixed(2)}
@@ -923,28 +923,28 @@ export default function Produttivita() {
                           <p className="text-sm text-gray-600">
                             <span className="font-semibold">Ore medie:</span> {data.avgHours.toFixed(1)}h
                           </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
+                        </div>);
+
+                  }
+                  return null;
+                }} />
+
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenuePerHour" 
-                  stroke="#10b981" 
-                  strokeWidth={3} 
-                  name="€/ora" 
-                  dot={{ fill: '#10b981', r: 4 }}
-                />
+                <Line
+                type="monotone"
+                dataKey="revenuePerHour"
+                stroke="#10b981"
+                strokeWidth={3}
+                name="€/ora"
+                dot={{ fill: '#10b981', r: 4 }} />
+
               </LineChart>
-            </ResponsiveContainer>
-          ) : !showRevenuePerHour ? (
-            <p className="text-center text-[#9b9b9b] py-8">Grafico nascosto</p>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          )}
+            </ResponsiveContainer> :
+          !showRevenuePerHour ?
+          <p className="text-center text-[#9b9b9b] py-8">Grafico nascosto</p> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          }
         </NeumorphicCard>
 
         {/* Store Productivity Comparison - Weekly */}
@@ -956,58 +956,58 @@ export default function Produttivita() {
             </h3>
             <p className="text-sm text-[#9b9b9b]">€/ora per settimana - confronto tra negozi</p>
           </div>
-          {Object.keys(storeProductivity).length > 0 ? (
-            <div className="overflow-x-auto">
+          {Object.keys(storeProductivity).length > 0 ?
+          <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
                     <th className="text-left p-3 text-[#9b9b9b] font-medium">Settimana</th>
-                    {Object.values(storeProductivity).map(store => (
-                      <th key={store.name} className="text-right p-3 text-[#9b9b9b] font-medium">{store.name}</th>
-                    ))}
+                    {Object.values(storeProductivity).map((store) =>
+                  <th key={store.name} className="text-right p-3 text-[#9b9b9b] font-medium">{store.name}</th>
+                  )}
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
-                    const allWeeks = new Set();
-                    Object.values(storeProductivity).forEach(store => {
-                      Object.keys(store.weekly).forEach(week => allWeeks.add(week));
-                    });
-                    const sortedWeeks = Array.from(allWeeks).sort().reverse();
-                    
-                    return sortedWeeks.map(week => (
-                      <tr key={week} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                  const allWeeks = new Set();
+                  Object.values(storeProductivity).forEach((store) => {
+                    Object.keys(store.weekly).forEach((week) => allWeeks.add(week));
+                  });
+                  const sortedWeeks = Array.from(allWeeks).sort().reverse();
+
+                  return sortedWeeks.map((week) =>
+                  <tr key={week} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                         <td className="p-3 text-[#6b6b6b] font-medium">
                           {format(parseISO(week), "'Sett.' w - dd/MM", { locale: it })}
                         </td>
-                        {Object.values(storeProductivity).map(store => {
-                          const data = store.weekly[week];
-                          return (
-                            <td key={store.name} className="p-3 text-right">
-                              {data ? (
-                                <div className="space-y-1">
+                        {Object.values(storeProductivity).map((store) => {
+                      const data = store.weekly[week];
+                      return (
+                        <td key={store.name} className="p-3 text-right">
+                              {data ?
+                          <div className="space-y-1">
                                   <span className="font-bold text-green-600">
                                     €{data.productivity.toFixed(2)}/h
                                   </span>
                                   <div className="text-xs text-[#9b9b9b]">
                                     €{data.revenue.toFixed(0)} / {data.hours.toFixed(0)}h
                                   </div>
-                                </div>
-                              ) : (
-                                <span className="text-[#9b9b9b]">-</span>
-                              )}
-                            </td>
-                          );
-                        })}
+                                </div> :
+
+                          <span className="text-[#9b9b9b]">-</span>
+                          }
+                            </td>);
+
+                    })}
                       </tr>
-                    ));
-                  })()}
+                  );
+                })()}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          )}
+            </div> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          }
         </NeumorphicCard>
 
         {/* Daily Productivity Table by Store */}
@@ -1016,8 +1016,8 @@ export default function Produttivita() {
             <h3 className="text-lg font-bold text-[#6b6b6b]">Produttività Giornaliera per Negozio</h3>
             <p className="text-sm text-[#9b9b9b]">Fatturato, ore lavorate e produttività per ogni giorno</p>
           </div>
-          {dailyProductivity.length > 0 ? (
-            <div className="overflow-x-auto">
+          {dailyProductivity.length > 0 ?
+          <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
@@ -1029,8 +1029,8 @@ export default function Produttivita() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dailyProductivity.map((record) => (
-                    <tr key={`${record.date}_${record.store_id}`} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                  {dailyProductivity.map((record) =>
+                <tr key={`${record.date}_${record.store_id}`} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                       <td className="p-3 text-[#6b6b6b] font-medium">
                         {format(parseISO(record.date), 'dd/MM/yyyy', { locale: it })}
                       </td>
@@ -1045,13 +1045,13 @@ export default function Produttivita() {
                         {record.productivity > 0 ? `€${record.productivity.toFixed(2)}` : '-'}
                       </td>
                     </tr>
-                  ))}
+                )}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          )}
+            </div> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          }
         </NeumorphicCard>
 
         {/* Store Productivity Comparison - Monthly */}
@@ -1063,58 +1063,58 @@ export default function Produttivita() {
             </h3>
             <p className="text-sm text-[#9b9b9b]">€/ora per mese - confronto tra negozi</p>
           </div>
-          {Object.keys(storeProductivity).length > 0 ? (
-            <div className="overflow-x-auto">
+          {Object.keys(storeProductivity).length > 0 ?
+          <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
                     <th className="text-left p-3 text-[#9b9b9b] font-medium">Mese</th>
-                    {Object.values(storeProductivity).map(store => (
-                      <th key={store.name} className="text-right p-3 text-[#9b9b9b] font-medium">{store.name}</th>
-                    ))}
+                    {Object.values(storeProductivity).map((store) =>
+                  <th key={store.name} className="text-right p-3 text-[#9b9b9b] font-medium">{store.name}</th>
+                  )}
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
-                    const allMonths = new Set();
-                    Object.values(storeProductivity).forEach(store => {
-                      Object.keys(store.monthly).forEach(month => allMonths.add(month));
-                    });
-                    const sortedMonths = Array.from(allMonths).sort().reverse();
-                    
-                    return sortedMonths.map(month => (
-                      <tr key={month} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                  const allMonths = new Set();
+                  Object.values(storeProductivity).forEach((store) => {
+                    Object.keys(store.monthly).forEach((month) => allMonths.add(month));
+                  });
+                  const sortedMonths = Array.from(allMonths).sort().reverse();
+
+                  return sortedMonths.map((month) =>
+                  <tr key={month} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                         <td className="p-3 text-[#6b6b6b] font-medium">
                           {format(parseISO(month + '-01'), 'MMMM yyyy', { locale: it })}
                         </td>
-                        {Object.values(storeProductivity).map(store => {
-                          const data = store.monthly[month];
-                          return (
-                            <td key={store.name} className="p-3 text-right">
-                              {data ? (
-                                <div className="space-y-1">
+                        {Object.values(storeProductivity).map((store) => {
+                      const data = store.monthly[month];
+                      return (
+                        <td key={store.name} className="p-3 text-right">
+                              {data ?
+                          <div className="space-y-1">
                                   <span className="font-bold text-green-600">
                                     €{data.productivity.toFixed(2)}/h
                                   </span>
                                   <div className="text-xs text-[#9b9b9b]">
                                     €{data.revenue.toFixed(0)} / {data.hours.toFixed(0)}h
                                   </div>
-                                </div>
-                              ) : (
-                                <span className="text-[#9b9b9b]">-</span>
-                              )}
-                            </td>
-                          );
-                        })}
+                                </div> :
+
+                          <span className="text-[#9b9b9b]">-</span>
+                          }
+                            </td>);
+
+                    })}
                       </tr>
-                    ));
-                  })()}
+                  );
+                })()}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          )}
+            </div> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          }
         </NeumorphicCard>
 
         {/* Daily Productivity Table by Store */}
@@ -1123,8 +1123,8 @@ export default function Produttivita() {
             <h3 className="text-lg font-bold text-[#6b6b6b]">Produttività Giornaliera per Negozio</h3>
             <p className="text-sm text-[#9b9b9b]">Fatturato, ore lavorate e produttività per ogni giorno</p>
           </div>
-          {dailyProductivity.length > 0 ? (
-            <div className="overflow-x-auto">
+          {dailyProductivity.length > 0 ?
+          <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
@@ -1136,8 +1136,8 @@ export default function Produttivita() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dailyProductivity.map((record) => (
-                    <tr key={`${record.date}_${record.store_id}`} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                  {dailyProductivity.map((record) =>
+                <tr key={`${record.date}_${record.store_id}`} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                       <td className="p-3 text-[#6b6b6b] font-medium">
                         {format(parseISO(record.date), 'dd/MM/yyyy', { locale: it })}
                       </td>
@@ -1152,13 +1152,13 @@ export default function Produttivita() {
                         {record.productivity > 0 ? `€${record.productivity.toFixed(2)}` : '-'}
                       </td>
                     </tr>
-                  ))}
+                )}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          )}
+            </div> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          }
         </NeumorphicCard>
 
         {/* Raw Data Table */}
@@ -1167,8 +1167,8 @@ export default function Produttivita() {
             <h3 className="text-lg font-bold text-[#6b6b6b]">Dati Raw da Zapier</h3>
             <p className="text-sm text-[#9b9b9b]">Tutti i record caricati ({filteredData.length} record)</p>
           </div>
-          {filteredData.length > 0 ? (
-            <div className="overflow-x-auto">
+          {filteredData.length > 0 ?
+          <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
@@ -1181,9 +1181,9 @@ export default function Produttivita() {
                 </thead>
                 <tbody>
                   {filteredData.map((record) => {
-                    const slotCount = Object.keys(record.slots || {}).length;
-                    return (
-                      <tr key={record.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                  const slotCount = Object.keys(record.slots || {}).length;
+                  return (
+                    <tr key={record.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                         <td className="p-3 text-[#6b6b6b] font-medium">
                           {format(parseISO(record.date), 'dd/MM/yyyy', { locale: it })}
                         </td>
@@ -1195,27 +1195,27 @@ export default function Produttivita() {
                         <td className="p-3 text-xs text-[#9b9b9b]">
                           {format(parseISO(record.created_date), 'dd/MM/yyyy HH:mm', { locale: it })}
                         </td>
-                      </tr>
-                    );
-                  })}
+                      </tr>);
+
+                })}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          )}
+            </div> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          }
         </NeumorphicCard>
 
         {/* Settings Modal */}
-        {showSettings && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showSettings &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-[#6b6b6b]">Impostazioni Produttività</h3>
                 <button
-                  onClick={() => setShowSettings(false)}
-                  className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                >
+                onClick={() => setShowSettings(false)}
+                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
+
                   <X className="w-5 h-5 text-[#9b9b9b]" />
                 </button>
               </div>
@@ -1227,39 +1227,39 @@ export default function Produttivita() {
                     Seleziona quali tipi di turno includere nel calcolo delle ore lavorate
                   </p>
                   <div className="space-y-2">
-                    {availableTipiTurno.length > 0 ? (
-                      availableTipiTurno.map(tipo => (
-                        <label key={tipo.nome} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                    {availableTipiTurno.length > 0 ?
+                  availableTipiTurno.map((tipo) =>
+                  <label key={tipo.nome} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
                           <input
-                            type="checkbox"
-                            checked={includedTipiTurno.includes(tipo.nome)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setIncludedTipiTurno(prev => [...prev, tipo.nome]);
-                              } else {
-                                setIncludedTipiTurno(prev => prev.filter(t => t !== tipo.nome));
-                              }
-                            }}
-                            className="w-5 h-5 rounded flex-shrink-0"
-                          />
-                          <div 
-                            className="w-4 h-4 rounded flex-shrink-0" 
-                            style={{ backgroundColor: tipo.colore }}
-                          />
+                      type="checkbox"
+                      checked={includedTipiTurno.includes(tipo.nome)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setIncludedTipiTurno((prev) => [...prev, tipo.nome]);
+                        } else {
+                          setIncludedTipiTurno((prev) => prev.filter((t) => t !== tipo.nome));
+                        }
+                      }}
+                      className="w-5 h-5 rounded flex-shrink-0" />
+
+                          <div
+                      className="w-4 h-4 rounded flex-shrink-0"
+                      style={{ backgroundColor: tipo.colore }} />
+
                           <span className="font-medium text-[#6b6b6b] text-sm">{tipo.nome}</span>
                         </label>
-                      ))
-                    ) : (
-                      <p className="text-sm text-slate-500 text-center py-4">
+                  ) :
+
+                  <p className="text-sm text-slate-500 text-center py-4">
                         Nessun tipo di turno trovato nei turni esistenti.
                       </p>
-                    )}
+                  }
                   </div>
-                  {includedTipiTurno.length === 0 && (
-                    <p className="text-xs text-red-600 mt-2">
+                  {includedTipiTurno.length === 0 &&
+                <p className="text-xs text-red-600 mt-2">
                       ⚠️ Seleziona almeno un tipo di turno
                     </p>
-                  )}
+                }
                 </div>
 
                 <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
@@ -1271,16 +1271,16 @@ export default function Produttivita() {
 
               <div className="mt-6 flex justify-end">
                 <button
-                  onClick={() => setShowSettings(false)}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
-                >
+                onClick={() => setShowSettings(false)}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all">
+
                   Applica
                 </button>
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
