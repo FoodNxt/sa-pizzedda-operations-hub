@@ -13,8 +13,8 @@ import {
   Plus,
   X,
   Save,
-  Pizza
-} from 'lucide-react';
+  Pizza } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, parseISO, startOfWeek, endOfWeek, subDays } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -43,40 +43,40 @@ export default function AnalisiSprechi() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: teglieButtate = [] } = useQuery({
     queryKey: ['teglie-buttate'],
-    queryFn: () => base44.entities.TeglieButtate.list('-data_rilevazione'),
+    queryFn: () => base44.entities.TeglieButtate.list('-data_rilevazione')
   });
 
   const { data: ricette = [] } = useQuery({
     queryKey: ['ricette'],
-    queryFn: () => base44.entities.Ricetta.list(),
+    queryFn: () => base44.entities.Ricetta.list()
   });
 
   const { data: sprechi = [] } = useQuery({
     queryKey: ['sprechi'],
-    queryFn: () => base44.entities.Spreco.list('-data_rilevazione'),
+    queryFn: () => base44.entities.Spreco.list('-data_rilevazione')
   });
 
   const { data: materiePrime = [] } = useQuery({
     queryKey: ['materie-prime'],
-    queryFn: () => base44.entities.MateriePrime.list(),
+    queryFn: () => base44.entities.MateriePrime.list()
   });
 
   const { data: sprechiConfigs = [] } = useQuery({
     queryKey: ['sprechi-configs'],
-    queryFn: () => base44.entities.SprechiConfig.list(),
+    queryFn: () => base44.entities.SprechiConfig.list()
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list()
   });
 
-  const activeSprechiConfig = sprechiConfigs.find(c => c.is_active) || null;
+  const activeSprechiConfig = sprechiConfigs.find((c) => c.is_active) || null;
 
   const saveConfigMutation = useMutation({
     mutationFn: async (configData) => {
@@ -84,30 +84,30 @@ export default function AnalisiSprechi() {
       for (const config of existing) {
         await base44.entities.SprechiConfig.update(config.id, { is_active: false });
       }
-      return base44.entities.SprechiConfig.create({ 
+      return base44.entities.SprechiConfig.create({
         config_name: 'default_config',
-        ...configData, 
-        is_active: true 
+        ...configData,
+        is_active: true
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprechi-configs'] });
       setShowSprechiConfig(false);
-    },
+    }
   });
 
   const saveSprecoMutation = useMutation({
     mutationFn: async (sprecoData) => {
       const user = await base44.auth.me();
-      const store = stores.find(s => s.id === sprecoData.store_id);
-      
+      const store = stores.find((s) => s.id === sprecoData.store_id);
+
       // Trova il prodotto per determinare tipo e costo
-      let prodotto = materiePrime.find(m => m.id === sprecoData.prodotto_id);
+      let prodotto = materiePrime.find((m) => m.id === sprecoData.prodotto_id);
       let tipo_prodotto = 'materia_prima';
       let costo_unitario = prodotto?.prezzo_unitario || 0;
-      
+
       if (!prodotto) {
-        prodotto = ricette.find(r => r.id === sprecoData.prodotto_id);
+        prodotto = ricette.find((r) => r.id === sprecoData.prodotto_id);
         if (prodotto) {
           tipo_prodotto = prodotto.is_semilavorato ? 'semilavorato' : 'ricetta';
           costo_unitario = prodotto.costo_unitario || 0;
@@ -134,14 +134,14 @@ export default function AnalisiSprechi() {
         quantita_grammi: '',
         motivo: ''
       });
-    },
+    }
   });
 
   const deleteSprecoMutation = useMutation({
     mutationFn: (id) => base44.entities.Spreco.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sprechi'] });
-    },
+    }
   });
 
   React.useEffect(() => {
@@ -159,7 +159,7 @@ export default function AnalisiSprechi() {
     const daysAgo = parseInt(dateRange);
     const cutoffDate = subDays(now, daysAgo);
 
-    return teglieButtate.filter(t => {
+    return teglieButtate.filter((t) => {
       const dataRilevazione = parseISO(t.data_rilevazione);
       if (dataRilevazione < cutoffDate) return false;
       if (selectedStore !== 'all' && t.store_id !== selectedStore) return false;
@@ -173,7 +173,7 @@ export default function AnalisiSprechi() {
     const daysAgo = parseInt(dateRange);
     const cutoffDate = subDays(now, daysAgo);
 
-    return sprechi.filter(s => {
+    return sprechi.filter((s) => {
       const dataRilevazione = parseISO(s.data_rilevazione);
       if (dataRilevazione < cutoffDate) return false;
       if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
@@ -183,16 +183,16 @@ export default function AnalisiSprechi() {
 
   // Calculate average costs per tray type
   const averageCosts = useMemo(() => {
-    const ricetteRosse = ricette.filter(r => r.tipo_teglia === 'rossa' && r.costo_unitario);
-    const ricetteBianche = ricette.filter(r => r.tipo_teglia === 'bianca' && r.costo_unitario);
+    const ricetteRosse = ricette.filter((r) => r.tipo_teglia === 'rossa' && r.costo_unitario);
+    const ricetteBianche = ricette.filter((r) => r.tipo_teglia === 'bianca' && r.costo_unitario);
 
-    const avgRossa = ricetteRosse.length > 0
-      ? ricetteRosse.reduce((sum, r) => sum + r.costo_unitario, 0) / ricetteRosse.length
-      : 0;
+    const avgRossa = ricetteRosse.length > 0 ?
+    ricetteRosse.reduce((sum, r) => sum + r.costo_unitario, 0) / ricetteRosse.length :
+    0;
 
-    const avgBianca = ricetteBianche.length > 0
-      ? ricetteBianche.reduce((sum, r) => sum + r.costo_unitario, 0) / ricetteBianche.length
-      : 0;
+    const avgBianca = ricetteBianche.length > 0 ?
+    ricetteBianche.reduce((sum, r) => sum + r.costo_unitario, 0) / ricetteBianche.length :
+    0;
 
     return { rossa: avgRossa, bianca: avgBianca };
   }, [ricette]);
@@ -202,7 +202,7 @@ export default function AnalisiSprechi() {
     const totalRosse = filteredData.reduce((sum, t) => sum + (t.teglie_rosse_buttate || 0), 0);
     const totalBianche = filteredData.reduce((sum, t) => sum + (t.teglie_bianche_buttate || 0), 0);
     const totalTeglie = totalRosse + totalBianche;
-    const costoTotale = (totalRosse * averageCosts.rossa) + (totalBianche * averageCosts.bianca);
+    const costoTotale = totalRosse * averageCosts.rossa + totalBianche * averageCosts.bianca;
 
     return {
       totalRosse,
@@ -216,15 +216,15 @@ export default function AnalisiSprechi() {
   const chartDataByDate = useMemo(() => {
     const dataByDate = {};
 
-    filteredData.forEach(t => {
+    filteredData.forEach((t) => {
       const date = format(parseISO(t.data_rilevazione), 'dd/MM/yyyy');
       if (!dataByDate[date]) {
         dataByDate[date] = { date, rosse: 0, bianche: 0, costo: 0 };
       }
       dataByDate[date].rosse += t.teglie_rosse_buttate || 0;
       dataByDate[date].bianche += t.teglie_bianche_buttate || 0;
-      dataByDate[date].costo += (t.teglie_rosse_buttate || 0) * averageCosts.rossa + 
-                                  (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
+      dataByDate[date].costo += (t.teglie_rosse_buttate || 0) * averageCosts.rossa +
+      (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
     });
 
     return Object.values(dataByDate).sort((a, b) => {
@@ -238,14 +238,14 @@ export default function AnalisiSprechi() {
   const chartDataByStore = useMemo(() => {
     const dataByStore = {};
 
-    filteredData.forEach(t => {
+    filteredData.forEach((t) => {
       if (!dataByStore[t.store_name]) {
         dataByStore[t.store_name] = { store: t.store_name, rosse: 0, bianche: 0, costo: 0 };
       }
       dataByStore[t.store_name].rosse += t.teglie_rosse_buttate || 0;
       dataByStore[t.store_name].bianche += t.teglie_bianche_buttate || 0;
-      dataByStore[t.store_name].costo += (t.teglie_rosse_buttate || 0) * averageCosts.rossa + 
-                                          (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
+      dataByStore[t.store_name].costo += (t.teglie_rosse_buttate || 0) * averageCosts.rossa +
+      (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
     });
 
     return Object.values(dataByStore).sort((a, b) => b.costo - a.costo);
@@ -256,18 +256,18 @@ export default function AnalisiSprechi() {
     const giorni = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
     const dataByDay = {};
 
-    giorni.forEach(day => {
+    giorni.forEach((day) => {
       dataByDay[day] = { giorno: day, totale: 0, costo: 0, count: 0 };
     });
 
-    filteredData.forEach(t => {
+    filteredData.forEach((t) => {
       const date = parseISO(t.data_rilevazione);
       const dayIndex = date.getDay();
       const dayName = giorni[dayIndex];
-      
+
       const totalTeglie = (t.teglie_rosse_buttate || 0) + (t.teglie_bianche_buttate || 0);
-      const costo = (t.teglie_rosse_buttate || 0) * averageCosts.rossa + 
-                    (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
+      const costo = (t.teglie_rosse_buttate || 0) * averageCosts.rossa +
+      (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
 
       dataByDay[dayName].totale += totalTeglie;
       dataByDay[dayName].costo += costo;
@@ -275,7 +275,7 @@ export default function AnalisiSprechi() {
     });
 
     // Calculate averages
-    return giorni.map(day => ({
+    return giorni.map((day) => ({
       giorno: day,
       media: dataByDay[day].count > 0 ? (dataByDay[day].totale / dataByDay[day].count).toFixed(1) : 0,
       costoMedio: dataByDay[day].count > 0 ? (dataByDay[day].costo / dataByDay[day].count).toFixed(2) : 0
@@ -289,25 +289,25 @@ export default function AnalisiSprechi() {
     const giorni = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
     const dataByDay = {};
 
-    giorni.forEach(day => {
+    giorni.forEach((day) => {
       dataByDay[day] = { giorno: day, totale: 0, costo: 0, count: 0 };
     });
 
-    filteredData.forEach(t => {
+    filteredData.forEach((t) => {
       const date = parseISO(t.data_rilevazione);
       const dayIndex = date.getDay();
       const dayName = giorni[dayIndex];
-      
+
       const totalTeglie = (t.teglie_rosse_buttate || 0) + (t.teglie_bianche_buttate || 0);
-      const costo = (t.teglie_rosse_buttate || 0) * averageCosts.rossa + 
-                    (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
+      const costo = (t.teglie_rosse_buttate || 0) * averageCosts.rossa +
+      (t.teglie_bianche_buttate || 0) * averageCosts.bianca;
 
       dataByDay[dayName].totale += totalTeglie;
       dataByDay[dayName].costo += costo;
       dataByDay[dayName].count += 1;
     });
 
-    return giorni.map(day => ({
+    return giorni.map((day) => ({
       giorno: day,
       media: dataByDay[day].count > 0 ? (dataByDay[day].totale / dataByDay[day].count).toFixed(1) : 0,
       costoMedio: dataByDay[day].count > 0 ? (dataByDay[day].costo / dataByDay[day].count).toFixed(2) : 0
@@ -320,12 +320,12 @@ export default function AnalisiSprechi() {
     const totalQuantitaKg = totalQuantitaGrammi / 1000;
     const costoTotale = filteredSprechi.reduce((sum, s) => {
       const quantitaKg = (s.quantita_grammi || 0) / 1000;
-      return sum + (quantitaKg * (s.costo_unitario || 0));
+      return sum + quantitaKg * (s.costo_unitario || 0);
     }, 0);
 
     // Group by motivo
     const byMotivo = {};
-    filteredSprechi.forEach(s => {
+    filteredSprechi.forEach((s) => {
       if (!byMotivo[s.motivo]) {
         byMotivo[s.motivo] = { motivo: s.motivo, count: 0, quantita: 0, costo: 0 };
       }
@@ -337,7 +337,7 @@ export default function AnalisiSprechi() {
 
     // Group by store
     const byStore = {};
-    filteredSprechi.forEach(s => {
+    filteredSprechi.forEach((s) => {
       if (!byStore[s.store_name]) {
         byStore[s.store_name] = { store_name: s.store_name, costo: 0, quantita: 0, count: 0 };
       }
@@ -349,7 +349,7 @@ export default function AnalisiSprechi() {
 
     // Group by product
     const byProduct = {};
-    filteredSprechi.forEach(s => {
+    filteredSprechi.forEach((s) => {
       if (!byProduct[s.prodotto_nome]) {
         byProduct[s.prodotto_nome] = { prodotto_nome: s.prodotto_nome, costo: 0, quantita: 0, count: 0 };
       }
@@ -379,20 +379,20 @@ export default function AnalisiSprechi() {
 
   const handleAddProdotto = (prodotto, tipo) => {
     const alreadyExists = sprechiConfigForm.prodotti_abilitati.some(
-      p => p.prodotto_id === prodotto.id
+      (p) => p.prodotto_id === prodotto.id
     );
     if (alreadyExists) return;
 
     setSprechiConfigForm({
       ...sprechiConfigForm,
       prodotti_abilitati: [
-        ...sprechiConfigForm.prodotti_abilitati,
-        {
-          prodotto_id: prodotto.id,
-          nome: prodotto.nome_prodotto,
-          tipo: tipo
-        }
-      ]
+      ...sprechiConfigForm.prodotti_abilitati,
+      {
+        prodotto_id: prodotto.id,
+        nome: prodotto.nome_prodotto,
+        tipo: tipo
+      }]
+
     });
   };
 
@@ -400,7 +400,7 @@ export default function AnalisiSprechi() {
     setSprechiConfigForm({
       ...sprechiConfigForm,
       prodotti_abilitati: sprechiConfigForm.prodotti_abilitati.filter(
-        p => p.prodotto_id !== prodottoId
+        (p) => p.prodotto_id !== prodottoId
       )
     });
   };
@@ -419,7 +419,7 @@ export default function AnalisiSprechi() {
   const handleRemoveMotivo = (motivo) => {
     setSprechiConfigForm({
       ...sprechiConfigForm,
-      motivi_disponibili: sprechiConfigForm.motivi_disponibili.filter(m => m !== motivo)
+      motivi_disponibili: sprechiConfigForm.motivi_disponibili.filter((m) => m !== motivo)
     });
   };
 
@@ -438,28 +438,28 @@ export default function AnalisiSprechi() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <Trash2 className="w-10 h-10 text-orange-600" />
-            <h1 className="text-3xl font-bold text-[#6b6b6b]">Analisi Sprechi</h1>
+            <h1 className="text-slate-50 text-3xl font-bold">Analisi Sprechi</h1>
           </div>
-          {activeTab === 'sprechi' && (
-            <div className="flex gap-2">
+          {activeTab === 'sprechi' &&
+          <div className="flex gap-2">
               <button
-                onClick={() => setShowSprechiForm(true)}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-2 shadow-lg"
-              >
+              onClick={() => setShowSprechiForm(true)}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-2 shadow-lg">
+
                 <Plus className="w-5 h-5" />
                 Nuovo Spreco
               </button>
               <button
-                onClick={handleOpenSprechiConfig}
-                className="neumorphic-flat px-4 py-2 rounded-xl text-[#6b6b6b] hover:text-blue-600 transition-colors flex items-center gap-2"
-              >
+              onClick={handleOpenSprechiConfig}
+              className="neumorphic-flat px-4 py-2 rounded-xl text-[#6b6b6b] hover:text-blue-600 transition-colors flex items-center gap-2">
+
                 <Settings className="w-5 h-5" />
                 Configura
               </button>
             </div>
-          )}
+          }
         </div>
-        <p className="text-[#9b9b9b]">Analizza l'andamento delle teglie buttate e degli sprechi</p>
+        <p className="text-slate-50">Analizza l'andamento delle teglie buttate e degli sprechi</p>
       </div>
 
       {/* Tabs */}
@@ -467,51 +467,51 @@ export default function AnalisiSprechi() {
         <button
           onClick={() => setActiveTab('teglie')}
           className={`px-6 py-3 rounded-xl font-medium transition-all ${
-            activeTab === 'teglie'
-              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-              : 'neumorphic-flat text-slate-600'
-          }`}
-        >
+          activeTab === 'teglie' ?
+          'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+          'neumorphic-flat text-slate-600'}`
+          }>
+
           <Pizza className="w-5 h-5 inline mr-2" />
           Teglie Buttate
         </button>
         <button
           onClick={() => setActiveTab('sprechi')}
           className={`px-6 py-3 rounded-xl font-medium transition-all ${
-            activeTab === 'sprechi'
-              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-              : 'neumorphic-flat text-slate-600'
-          }`}
-        >
+          activeTab === 'sprechi' ?
+          'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+          'neumorphic-flat text-slate-600'}`
+          }>
+
           <Trash2 className="w-5 h-5 inline mr-2" />
           Sprechi
         </button>
       </div>
 
       {/* Section: Teglie Buttate */}
-      {activeTab === 'teglie' && (
-        <>
+      {activeTab === 'teglie' &&
+      <>
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <NeumorphicCard className="px-4 py-2">
           <select
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-            className="bg-transparent text-[#6b6b6b] outline-none"
-          >
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="bg-transparent text-[#6b6b6b] outline-none">
+
             <option value="all">Tutti i Locali</option>
-            {stores.map(store => (
+            {stores.map((store) =>
               <option key={store.id} value={store.id}>{store.name}</option>
-            ))}
+              )}
           </select>
         </NeumorphicCard>
 
         <NeumorphicCard className="px-4 py-2">
           <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            className="bg-transparent text-[#6b6b6b] outline-none"
-          >
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="bg-transparent text-[#6b6b6b] outline-none">
+
             <option value="7">Ultimi 7 giorni</option>
             <option value="30">Ultimi 30 giorni</option>
             <option value="60">Ultimi 60 giorni</option>
@@ -577,7 +577,7 @@ export default function AnalisiSprechi() {
       </NeumorphicCard>
 
       {/* Confronto per negozio */}
-      {selectedStore === 'all' && chartDataByStore.length > 0 && (
+      {selectedStore === 'all' && chartDataByStore.length > 0 &&
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-6 flex items-center gap-2">
             <Store className="w-6 h-6 text-purple-600" />
@@ -597,10 +597,10 @@ export default function AnalisiSprechi() {
             </BarChart>
           </ResponsiveContainer>
         </NeumorphicCard>
-      )}
+        }
 
       {/* Analisi per giorno della settimana - Tutti i negozi */}
-      {selectedStore === 'all' && (
+      {selectedStore === 'all' &&
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
             <Calendar className="w-6 h-6 text-green-600" />
@@ -623,13 +623,13 @@ export default function AnalisiSprechi() {
           {/* Insights */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             {(() => {
-              const maxWaste = chartDataByDayOfWeek.reduce((max, day) => 
-                parseFloat(day.media) > parseFloat(max.media) ? day : max
-              , chartDataByDayOfWeek[0]);
-              
-              const minWaste = chartDataByDayOfWeek.reduce((min, day) => 
-                parseFloat(day.media) < parseFloat(min.media) ? day : min
-              , chartDataByDayOfWeek[0]);
+              const maxWaste = chartDataByDayOfWeek.reduce((max, day) =>
+              parseFloat(day.media) > parseFloat(max.media) ? day : max,
+              chartDataByDayOfWeek[0]);
+
+              const minWaste = chartDataByDayOfWeek.reduce((min, day) =>
+              parseFloat(day.media) < parseFloat(min.media) ? day : min,
+              chartDataByDayOfWeek[0]);
 
               return (
                 <>
@@ -650,19 +650,19 @@ export default function AnalisiSprechi() {
                     <p className="text-2xl font-bold text-green-700">{minWaste.giorno}</p>
                     <p className="text-sm text-green-600">Media: {minWaste.media} teglie (€{minWaste.costoMedio})</p>
                   </div>
-                </>
-              );
+                </>);
+
             })()}
           </div>
         </NeumorphicCard>
-      )}
+        }
 
       {/* Analisi per giorno della settimana - Singolo negozio */}
-      {selectedStore !== 'all' && chartDataByDayPerStore.length > 0 && (
+      {selectedStore !== 'all' && chartDataByDayPerStore.length > 0 &&
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
             <Calendar className="w-6 h-6 text-green-600" />
-            Analisi per Giorno della Settimana ({stores.find(s => s.id === selectedStore)?.name})
+            Analisi per Giorno della Settimana ({stores.find((s) => s.id === selectedStore)?.name})
           </h2>
           <p className="text-sm text-[#9b9b9b] mb-6">Media sprechi per giorno della settimana</p>
           <ResponsiveContainer width="100%" height={300}>
@@ -681,13 +681,13 @@ export default function AnalisiSprechi() {
           {/* Insights per negozio */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             {(() => {
-              const maxWaste = chartDataByDayPerStore.reduce((max, day) => 
-                parseFloat(day.media) > parseFloat(max.media) ? day : max
-              , chartDataByDayPerStore[0]);
-              
-              const minWaste = chartDataByDayPerStore.reduce((min, day) => 
-                parseFloat(day.media) < parseFloat(min.media) ? day : min
-              , chartDataByDayPerStore[0]);
+              const maxWaste = chartDataByDayPerStore.reduce((max, day) =>
+              parseFloat(day.media) > parseFloat(max.media) ? day : max,
+              chartDataByDayPerStore[0]);
+
+              const minWaste = chartDataByDayPerStore.reduce((min, day) =>
+              parseFloat(day.media) < parseFloat(min.media) ? day : min,
+              chartDataByDayPerStore[0]);
 
               return (
                 <>
@@ -708,12 +708,12 @@ export default function AnalisiSprechi() {
                     <p className="text-2xl font-bold text-green-700">{minWaste.giorno}</p>
                     <p className="text-sm text-green-600">Media: {minWaste.media} teglie (€{minWaste.costoMedio})</p>
                   </div>
-                </>
-              );
+                </>);
+
             })()}
           </div>
         </NeumorphicCard>
-      )}
+        }
 
       {/* Info box */}
       <NeumorphicCard className="p-6 bg-blue-50">
@@ -725,8 +725,8 @@ export default function AnalisiSprechi() {
               Il costo delle teglie buttate è calcolato usando il costo medio delle ricette per tipo di teglia:
             </p>
             <ul className="text-sm text-blue-700 mt-2 space-y-1">
-              <li>• <strong>Teglie Rosse:</strong> €{averageCosts.rossa.toFixed(2)} (media da {ricette.filter(r => r.tipo_teglia === 'rossa').length} ricette)</li>
-              <li>• <strong>Teglie Bianche:</strong> €{averageCosts.bianca.toFixed(2)} (media da {ricette.filter(r => r.tipo_teglia === 'bianca').length} ricette)</li>
+              <li>• <strong>Teglie Rosse:</strong> €{averageCosts.rossa.toFixed(2)} (media da {ricette.filter((r) => r.tipo_teglia === 'rossa').length} ricette)</li>
+              <li>• <strong>Teglie Bianche:</strong> €{averageCosts.bianca.toFixed(2)} (media da {ricette.filter((r) => r.tipo_teglia === 'bianca').length} ricette)</li>
             </ul>
             <p className="text-xs text-blue-600 mt-3">
               💡 Assegna le ricette alle teglie nella pagina "Ricette" per migliorare la precisione del calcolo
@@ -735,32 +735,32 @@ export default function AnalisiSprechi() {
         </div>
       </NeumorphicCard>
         </>
-      )}
+      }
 
       {/* Section: Sprechi */}
-      {activeTab === 'sprechi' && (
-        <>
+      {activeTab === 'sprechi' &&
+      <>
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
             <NeumorphicCard className="px-4 py-2">
               <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="bg-transparent text-[#6b6b6b] outline-none"
-              >
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="bg-transparent text-[#6b6b6b] outline-none">
+
                 <option value="all">Tutti i Locali</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id}>{store.name}</option>
-                ))}
+                {stores.map((store) =>
+              <option key={store.id} value={store.id}>{store.name}</option>
+              )}
               </select>
             </NeumorphicCard>
 
             <NeumorphicCard className="px-4 py-2">
               <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="bg-transparent text-[#6b6b6b] outline-none"
-              >
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="bg-transparent text-[#6b6b6b] outline-none">
+
                 <option value="7">Ultimi 7 giorni</option>
                 <option value="30">Ultimi 30 giorni</option>
                 <option value="60">Ultimi 60 giorni</option>
@@ -802,10 +802,10 @@ export default function AnalisiSprechi() {
               <AlertTriangle className="w-6 h-6 text-orange-600" />
               Sprechi per Motivo
             </h2>
-            {sprechiStats.byMotivo.length > 0 ? (
-              <div className="space-y-3">
-                {sprechiStats.byMotivo.map((item, idx) => (
-                  <div key={idx} className="neumorphic-flat p-4 rounded-xl">
+            {sprechiStats.byMotivo.length > 0 ?
+          <div className="space-y-3">
+                {sprechiStats.byMotivo.map((item, idx) =>
+            <div key={idx} className="neumorphic-flat p-4 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="font-bold text-[#6b6b6b]">{item.motivo}</h3>
                       <span className="text-sm font-medium text-red-600">€{item.costo.toFixed(2)}</span>
@@ -816,16 +816,16 @@ export default function AnalisiSprechi() {
                       <span>{item.quantita.toFixed(2)} kg</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-[#9b9b9b] py-8">Nessuno spreco registrato nel periodo selezionato</p>
             )}
+              </div> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessuno spreco registrato nel periodo selezionato</p>
+          }
           </NeumorphicCard>
 
           {/* Store Comparison Chart */}
-          {selectedStore === 'all' && sprechiStats.byStore.length > 0 && (
-            <NeumorphicCard className="p-6">
+          {selectedStore === 'all' && sprechiStats.byStore.length > 0 &&
+        <NeumorphicCard className="p-6">
               <h2 className="text-xl font-bold text-[#6b6b6b] mb-6 flex items-center gap-2">
                 <Store className="w-6 h-6 text-purple-600" />
                 Sprechi per Negozio
@@ -843,11 +843,11 @@ export default function AnalisiSprechi() {
                 </BarChart>
               </ResponsiveContainer>
             </NeumorphicCard>
-          )}
+        }
 
           {/* Top Products Chart */}
-          {sprechiStats.byProduct.length > 0 && (
-            <NeumorphicCard className="p-6">
+          {sprechiStats.byProduct.length > 0 &&
+        <NeumorphicCard className="p-6">
               <h2 className="text-xl font-bold text-[#6b6b6b] mb-6 flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-orange-600" />
                 Top 10 Prodotti per Impatto Economico
@@ -863,13 +863,13 @@ export default function AnalisiSprechi() {
                 </BarChart>
               </ResponsiveContainer>
             </NeumorphicCard>
-          )}
+        }
 
           {/* Recent Sprechi List */}
           <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Sprechi Recenti</h2>
-            {filteredSprechi.length > 0 ? (
-              <div className="overflow-x-auto">
+            {filteredSprechi.length > 0 ?
+          <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-slate-200">
@@ -885,14 +885,14 @@ export default function AnalisiSprechi() {
                   </thead>
                   <tbody>
                     {filteredSprechi.slice(0, 20).map((spreco) => {
-                      const user = users.find(u => u.email === spreco.rilevato_da);
-                      return (
-                        <tr key={spreco.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  const user = users.find((u) => u.email === spreco.rilevato_da);
+                  return (
+                    <tr key={spreco.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 px-3 font-medium text-[#6b6b6b]">{spreco.prodotto_nome}</td>
                           <td className="py-3 px-3 text-[#9b9b9b]">{spreco.store_name}</td>
                           <td className="py-3 px-3 text-[#9b9b9b]">{user?.full_name || spreco.rilevato_da || '-'}</td>
                           <td className="py-3 px-3 text-center font-bold text-red-600">{(spreco.quantita_grammi / 1000).toFixed(2)}</td>
-                          <td className="py-3 px-3 text-right text-red-700">€{((spreco.quantita_grammi / 1000) * (spreco.costo_unitario || 0)).toFixed(2)}</td>
+                          <td className="py-3 px-3 text-right text-red-700">€{(spreco.quantita_grammi / 1000 * (spreco.costo_unitario || 0)).toFixed(2)}</td>
                           <td className="py-3 px-3 text-center">
                             <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs">{spreco.motivo}</span>
                           </td>
@@ -901,39 +901,39 @@ export default function AnalisiSprechi() {
                           </td>
                           <td className="py-3 px-3 text-center">
                             <button
-                              onClick={() => {
-                                if (confirm('Sei sicuro di voler eliminare questo spreco?')) {
-                                  deleteSprecoMutation.mutate(spreco.id);
-                                }
-                              }}
-                              className="text-red-500 hover:text-red-700 transition-colors"
-                            >
+                          onClick={() => {
+                            if (confirm('Sei sicuro di voler eliminare questo spreco?')) {
+                              deleteSprecoMutation.mutate(spreco.id);
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700 transition-colors">
+
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
-                        </tr>
-                      );
-                    })}
+                        </tr>);
+
+                })}
                   </tbody>
                 </table>
-              </div>
-            ) : (
-              <p className="text-center text-[#9b9b9b] py-8">Nessuno spreco registrato</p>
-            )}
+              </div> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessuno spreco registrato</p>
+          }
           </NeumorphicCard>
         </>
-      )}
+      }
 
       {/* Sprechi Form Modal */}
-      {showSprechiForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {showSprechiForm &&
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="bg-white p-6 max-w-xl w-full">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-[#6b6b6b]">Registra Spreco</h2>
               <button
-                onClick={() => setShowSprechiForm(false)}
-                className="neumorphic-flat p-2 rounded-lg text-[#9b9b9b] hover:text-[#6b6b6b]"
-              >
+              onClick={() => setShowSprechiForm(false)}
+              className="neumorphic-flat p-2 rounded-lg text-[#9b9b9b] hover:text-[#6b6b6b]">
+
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -942,110 +942,110 @@ export default function AnalisiSprechi() {
               <div>
                 <label className="block text-sm font-medium text-[#6b6b6b] mb-2">Negozio *</label>
                 <select
-                  value={sprechiForm.store_id}
-                  onChange={(e) => setSprechiForm({ ...sprechiForm, store_id: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                >
+                value={sprechiForm.store_id}
+                onChange={(e) => setSprechiForm({ ...sprechiForm, store_id: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                   <option value="">Seleziona negozio</option>
-                  {stores.map(store => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
-                  ))}
+                  {stores.map((store) =>
+                <option key={store.id} value={store.id}>{store.name}</option>
+                )}
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-[#6b6b6b] mb-2">Data e Ora *</label>
                 <input
-                  type="datetime-local"
-                  value={sprechiForm.data_rilevazione}
-                  onChange={(e) => setSprechiForm({ ...sprechiForm, data_rilevazione: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                />
+                type="datetime-local"
+                value={sprechiForm.data_rilevazione}
+                onChange={(e) => setSprechiForm({ ...sprechiForm, data_rilevazione: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
+
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-[#6b6b6b] mb-2">Prodotto *</label>
                 <select
-                  value={sprechiForm.prodotto_id}
-                  onChange={(e) => setSprechiForm({ ...sprechiForm, prodotto_id: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                >
+                value={sprechiForm.prodotto_id}
+                onChange={(e) => setSprechiForm({ ...sprechiForm, prodotto_id: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                   <option value="">Seleziona prodotto</option>
-                  {activeSprechiConfig?.prodotti_abilitati?.length > 0 ? (
-                    activeSprechiConfig.prodotti_abilitati.map(p => (
-                      <option key={p.prodotto_id} value={p.prodotto_id}>
+                  {activeSprechiConfig?.prodotti_abilitati?.length > 0 ?
+                activeSprechiConfig.prodotti_abilitati.map((p) =>
+                <option key={p.prodotto_id} value={p.prodotto_id}>
                         {p.nome} ({p.tipo})
                       </option>
-                    ))
-                  ) : (
-                    <>
+                ) :
+
+                <>
                       <optgroup label="Materie Prime">
-                        {materiePrime.filter(m => m.attivo).map(m => (
-                          <option key={m.id} value={m.id}>{m.nome_prodotto}</option>
-                        ))}
+                        {materiePrime.filter((m) => m.attivo).map((m) =>
+                    <option key={m.id} value={m.id}>{m.nome_prodotto}</option>
+                    )}
                       </optgroup>
                       <optgroup label="Ricette">
-                        {ricette.filter(r => r.attivo && !r.is_semilavorato).map(r => (
-                          <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
-                        ))}
+                        {ricette.filter((r) => r.attivo && !r.is_semilavorato).map((r) =>
+                    <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
+                    )}
                       </optgroup>
                       <optgroup label="Semilavorati">
-                        {ricette.filter(r => r.attivo && r.is_semilavorato).map(r => (
-                          <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
-                        ))}
+                        {ricette.filter((r) => r.attivo && r.is_semilavorato).map((r) =>
+                    <option key={r.id} value={r.id}>{r.nome_prodotto}</option>
+                    )}
                       </optgroup>
                     </>
-                  )}
+                }
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-[#6b6b6b] mb-2">Quantità (grammi) *</label>
                 <input
-                  type="number"
-                  value={sprechiForm.quantita_grammi}
-                  onChange={(e) => setSprechiForm({ ...sprechiForm, quantita_grammi: e.target.value })}
-                  placeholder="es. 250"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                />
+                type="number"
+                value={sprechiForm.quantita_grammi}
+                onChange={(e) => setSprechiForm({ ...sprechiForm, quantita_grammi: e.target.value })}
+                placeholder="es. 250"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
+
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-[#6b6b6b] mb-2">Motivo *</label>
-                {activeSprechiConfig?.motivi_disponibili?.length > 0 ? (
-                  <select
-                    value={sprechiForm.motivo}
-                    onChange={(e) => setSprechiForm({ ...sprechiForm, motivo: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  >
+                {activeSprechiConfig?.motivi_disponibili?.length > 0 ?
+              <select
+                value={sprechiForm.motivo}
+                onChange={(e) => setSprechiForm({ ...sprechiForm, motivo: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                     <option value="">Seleziona motivo</option>
-                    {activeSprechiConfig.motivi_disponibili.map((motivo, idx) => (
-                      <option key={idx} value={motivo}>{motivo}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={sprechiForm.motivo}
-                    onChange={(e) => setSprechiForm({ ...sprechiForm, motivo: e.target.value })}
-                    placeholder="es. Scaduto, Bruciato, Caduto..."
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  />
+                    {activeSprechiConfig.motivi_disponibili.map((motivo, idx) =>
+                <option key={idx} value={motivo}>{motivo}</option>
                 )}
+                  </select> :
+
+              <input
+                type="text"
+                value={sprechiForm.motivo}
+                onChange={(e) => setSprechiForm({ ...sprechiForm, motivo: e.target.value })}
+                placeholder="es. Scaduto, Bruciato, Caduto..."
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
+
+              }
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
-                  onClick={() => setShowSprechiForm(false)}
-                  className="neumorphic-flat px-6 py-3 rounded-xl text-[#6b6b6b] hover:text-[#9b9b9b]"
-                >
+                onClick={() => setShowSprechiForm(false)}
+                className="neumorphic-flat px-6 py-3 rounded-xl text-[#6b6b6b] hover:text-[#9b9b9b]">
+
                   Annulla
                 </button>
                 <button
-                  onClick={handleSaveSpreco}
-                  disabled={saveSprecoMutation.isPending}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 shadow-lg disabled:opacity-50"
-                >
+                onClick={handleSaveSpreco}
+                disabled={saveSprecoMutation.isPending}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 shadow-lg disabled:opacity-50">
+
                   <Save className="w-5 h-5" />
                   {saveSprecoMutation.isPending ? 'Salvataggio...' : 'Salva Spreco'}
                 </button>
@@ -1053,18 +1053,18 @@ export default function AnalisiSprechi() {
             </div>
           </NeumorphicCard>
         </div>
-      )}
+      }
 
       {/* Sprechi Config Modal */}
-      {showSprechiConfig && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {showSprechiConfig &&
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="bg-white p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-[#6b6b6b]">Configurazione Sprechi</h2>
               <button
-                onClick={() => setShowSprechiConfig(false)}
-                className="neumorphic-flat p-2 rounded-lg text-[#9b9b9b] hover:text-[#6b6b6b]"
-              >
+              onClick={() => setShowSprechiConfig(false)}
+              className="neumorphic-flat p-2 rounded-lg text-[#9b9b9b] hover:text-[#6b6b6b]">
+
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1075,32 +1075,32 @@ export default function AnalisiSprechi() {
                 <h3 className="text-lg font-bold text-[#6b6b6b] mb-3">Motivi Spreco</h3>
                 <div className="flex gap-2 mb-3">
                   <input
-                    type="text"
-                    value={newMotivo}
-                    onChange={(e) => setNewMotivo(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddMotivo()}
-                    placeholder="Nuovo motivo..."
-                    className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  />
+                  type="text"
+                  value={newMotivo}
+                  onChange={(e) => setNewMotivo(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddMotivo()}
+                  placeholder="Nuovo motivo..."
+                  className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
+
                   <button
-                    onClick={handleAddMotivo}
-                    className="neumorphic-flat px-4 py-3 rounded-xl text-blue-600 hover:bg-blue-50"
-                  >
+                  onClick={handleAddMotivo}
+                  className="neumorphic-flat px-4 py-3 rounded-xl text-blue-600 hover:bg-blue-50">
+
                     <Plus className="w-5 h-5" />
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {sprechiConfigForm.motivi_disponibili.map((motivo, idx) => (
-                    <div key={idx} className="neumorphic-flat px-3 py-2 rounded-lg flex items-center gap-2">
+                  {sprechiConfigForm.motivi_disponibili.map((motivo, idx) =>
+                <div key={idx} className="neumorphic-flat px-3 py-2 rounded-lg flex items-center gap-2">
                       <span className="text-sm text-[#6b6b6b]">{motivo}</span>
                       <button
-                        onClick={() => handleRemoveMotivo(motivo)}
-                        className="text-red-500 hover:text-red-700"
-                      >
+                    onClick={() => handleRemoveMotivo(motivo)}
+                    className="text-red-500 hover:text-red-700">
+
                         <X className="w-4 h-4" />
                       </button>
                     </div>
-                  ))}
+                )}
                 </div>
               </div>
 
@@ -1112,20 +1112,20 @@ export default function AnalisiSprechi() {
                 <div className="mb-4">
                   <p className="text-sm text-slate-600 mb-2">Prodotti selezionati:</p>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {sprechiConfigForm.prodotti_abilitati.map((prodotto) => (
-                      <div key={prodotto.prodotto_id} className="neumorphic-pressed p-3 rounded-lg flex items-center justify-between">
+                    {sprechiConfigForm.prodotti_abilitati.map((prodotto) =>
+                  <div key={prodotto.prodotto_id} className="neumorphic-pressed p-3 rounded-lg flex items-center justify-between">
                         <div>
                           <span className="text-sm font-medium text-[#6b6b6b]">{prodotto.nome}</span>
                           <span className="text-xs text-[#9b9b9b] ml-2">({prodotto.tipo})</span>
                         </div>
                         <button
-                          onClick={() => handleRemoveProdotto(prodotto.prodotto_id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
+                      onClick={() => handleRemoveProdotto(prodotto.prodotto_id)}
+                      className="text-red-500 hover:text-red-700">
+
                           <X className="w-4 h-4" />
                         </button>
                       </div>
-                    ))}
+                  )}
                   </div>
                 </div>
 
@@ -1135,20 +1135,20 @@ export default function AnalisiSprechi() {
                   <div>
                     <h4 className="text-sm font-bold text-[#6b6b6b] mb-2">Materie Prime</h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {materiePrime.filter(m => m.attivo).map(mp => (
-                        <button
-                          key={mp.id}
-                          onClick={() => handleAddProdotto(mp, 'materia_prima')}
-                          disabled={sprechiConfigForm.prodotti_abilitati.some(p => p.prodotto_id === mp.id)}
-                          className={`w-full text-left p-2 rounded-lg text-sm transition-all ${
-                            sprechiConfigForm.prodotti_abilitati.some(p => p.prodotto_id === mp.id)
-                              ? 'bg-green-100 text-green-700'
-                              : 'neumorphic-flat text-[#6b6b6b] hover:bg-blue-50'
-                          }`}
-                        >
+                      {materiePrime.filter((m) => m.attivo).map((mp) =>
+                    <button
+                      key={mp.id}
+                      onClick={() => handleAddProdotto(mp, 'materia_prima')}
+                      disabled={sprechiConfigForm.prodotti_abilitati.some((p) => p.prodotto_id === mp.id)}
+                      className={`w-full text-left p-2 rounded-lg text-sm transition-all ${
+                      sprechiConfigForm.prodotti_abilitati.some((p) => p.prodotto_id === mp.id) ?
+                      'bg-green-100 text-green-700' :
+                      'neumorphic-flat text-[#6b6b6b] hover:bg-blue-50'}`
+                      }>
+
                           {mp.nome_prodotto}
                         </button>
-                      ))}
+                    )}
                     </div>
                   </div>
 
@@ -1156,20 +1156,20 @@ export default function AnalisiSprechi() {
                   <div>
                     <h4 className="text-sm font-bold text-[#6b6b6b] mb-2">Ricette</h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {ricette.filter(r => r.attivo && !r.is_semilavorato).map(r => (
-                        <button
-                          key={r.id}
-                          onClick={() => handleAddProdotto(r, 'ricetta')}
-                          disabled={sprechiConfigForm.prodotti_abilitati.some(p => p.prodotto_id === r.id)}
-                          className={`w-full text-left p-2 rounded-lg text-sm transition-all ${
-                            sprechiConfigForm.prodotti_abilitati.some(p => p.prodotto_id === r.id)
-                              ? 'bg-green-100 text-green-700'
-                              : 'neumorphic-flat text-[#6b6b6b] hover:bg-blue-50'
-                          }`}
-                        >
+                      {ricette.filter((r) => r.attivo && !r.is_semilavorato).map((r) =>
+                    <button
+                      key={r.id}
+                      onClick={() => handleAddProdotto(r, 'ricetta')}
+                      disabled={sprechiConfigForm.prodotti_abilitati.some((p) => p.prodotto_id === r.id)}
+                      className={`w-full text-left p-2 rounded-lg text-sm transition-all ${
+                      sprechiConfigForm.prodotti_abilitati.some((p) => p.prodotto_id === r.id) ?
+                      'bg-green-100 text-green-700' :
+                      'neumorphic-flat text-[#6b6b6b] hover:bg-blue-50'}`
+                      }>
+
                           {r.nome_prodotto}
                         </button>
-                      ))}
+                    )}
                     </div>
                   </div>
 
@@ -1177,20 +1177,20 @@ export default function AnalisiSprechi() {
                   <div>
                     <h4 className="text-sm font-bold text-[#6b6b6b] mb-2">Semilavorati</h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {ricette.filter(r => r.attivo && r.is_semilavorato).map(r => (
-                        <button
-                          key={r.id}
-                          onClick={() => handleAddProdotto(r, 'semilavorato')}
-                          disabled={sprechiConfigForm.prodotti_abilitati.some(p => p.prodotto_id === r.id)}
-                          className={`w-full text-left p-2 rounded-lg text-sm transition-all ${
-                            sprechiConfigForm.prodotti_abilitati.some(p => p.prodotto_id === r.id)
-                              ? 'bg-green-100 text-green-700'
-                              : 'neumorphic-flat text-[#6b6b6b] hover:bg-blue-50'
-                          }`}
-                        >
+                      {ricette.filter((r) => r.attivo && r.is_semilavorato).map((r) =>
+                    <button
+                      key={r.id}
+                      onClick={() => handleAddProdotto(r, 'semilavorato')}
+                      disabled={sprechiConfigForm.prodotti_abilitati.some((p) => p.prodotto_id === r.id)}
+                      className={`w-full text-left p-2 rounded-lg text-sm transition-all ${
+                      sprechiConfigForm.prodotti_abilitati.some((p) => p.prodotto_id === r.id) ?
+                      'bg-green-100 text-green-700' :
+                      'neumorphic-flat text-[#6b6b6b] hover:bg-blue-50'}`
+                      }>
+
                           {r.nome_prodotto}
                         </button>
-                      ))}
+                    )}
                     </div>
                   </div>
                 </div>
@@ -1199,15 +1199,15 @@ export default function AnalisiSprechi() {
               {/* Save Button */}
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
-                  onClick={() => setShowSprechiConfig(false)}
-                  className="neumorphic-flat px-6 py-3 rounded-xl text-[#6b6b6b] hover:text-[#9b9b9b]"
-                >
+                onClick={() => setShowSprechiConfig(false)}
+                className="neumorphic-flat px-6 py-3 rounded-xl text-[#6b6b6b] hover:text-[#9b9b9b]">
+
                   Annulla
                 </button>
                 <button
-                  onClick={handleSaveSprechiConfig}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 shadow-lg"
-                >
+                onClick={handleSaveSprechiConfig}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 shadow-lg">
+
                   <Save className="w-5 h-5" />
                   Salva Configurazione
                 </button>
@@ -1215,7 +1215,7 @@ export default function AnalisiSprechi() {
             </div>
           </NeumorphicCard>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
