@@ -22,12 +22,12 @@ export default function Attrezzature() {
 
   const { data: attrezzature = [] } = useQuery({
     queryKey: ['attrezzature'],
-    queryFn: () => base44.entities.Attrezzatura.list(),
+    queryFn: () => base44.entities.Attrezzatura.list()
   });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
 
@@ -37,7 +37,7 @@ export default function Attrezzature() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attrezzature'] });
       resetForm();
-    },
+    }
   });
 
   const updateMutation = useMutation({
@@ -45,14 +45,14 @@ export default function Attrezzature() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attrezzature'] });
       resetForm();
-    },
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Attrezzatura.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attrezzature'] });
-    },
+    }
   });
 
   const resetForm = () => {
@@ -83,7 +83,7 @@ export default function Attrezzature() {
     setUploadingIcon(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setFormData(prev => ({ ...prev, icona_url: file_url }));
+      setFormData((prev) => ({ ...prev, icona_url: file_url }));
     } catch (error) {
       console.error('Upload error:', error);
       alert('Errore nel caricamento');
@@ -101,16 +101,16 @@ export default function Attrezzature() {
   };
 
   const toggleStore = (storeId) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      stores_assegnati: prev.stores_assegnati.includes(storeId)
-        ? prev.stores_assegnati.filter(id => id !== storeId)
-        : [...prev.stores_assegnati, storeId]
+      stores_assegnati: prev.stores_assegnati.includes(storeId) ?
+      prev.stores_assegnati.filter((id) => id !== storeId) :
+      [...prev.stores_assegnati, storeId]
     }));
   };
 
   const getStoreName = (storeId) => {
-    return stores.find(s => s.id === storeId)?.name || storeId;
+    return stores.find((s) => s.id === storeId)?.name || storeId;
   };
 
   return (
@@ -119,14 +119,14 @@ export default function Attrezzature() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[#6b6b6b] mb-1">Attrezzature</h1>
-            <p className="text-[#9b9b9b]">Gestisci le attrezzature dei locali</p>
+            <h1 className="text-slate-50 mb-1 text-3xl font-bold">Attrezzature</h1>
+            <p className="text-slate-50">Gestisci le attrezzature dei locali</p>
           </div>
           <NeumorphicButton
             onClick={() => setShowForm(true)}
             variant="primary"
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <Plus className="w-5 h-5" />
             Nuova Attrezzatura
           </NeumorphicButton>
@@ -135,88 +135,88 @@ export default function Attrezzature() {
         {/* Attrezzature List */}
         <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Elenco Attrezzature ({attrezzature.length})</h2>
-          {attrezzature.length === 0 ? (
-            <div className="text-center py-12">
+          {attrezzature.length === 0 ?
+          <div className="text-center py-12">
               <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <p className="text-[#9b9b9b]">Nessuna attrezzatura creata</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {attrezzature.map((attrezzatura) => (
-                <div
-                  key={attrezzatura.id}
-                  className={`neumorphic-pressed p-4 rounded-xl ${
-                    attrezzatura.attivo === false ? 'opacity-50' : ''
-                  }`}
-                >
+            </div> :
+
+          <div className="space-y-3">
+              {attrezzature.map((attrezzatura) =>
+            <div
+              key={attrezzatura.id}
+              className={`neumorphic-pressed p-4 rounded-xl ${
+              attrezzatura.attivo === false ? 'opacity-50' : ''}`
+              }>
+
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        {attrezzatura.icona_url ? (
-                          <img src={attrezzatura.icona_url} alt={attrezzatura.nome} className="w-8 h-8 object-contain rounded" />
-                        ) : (
-                          <Package className="w-5 h-5 text-[#8b7355]" />
-                        )}
+                        {attrezzatura.icona_url ?
+                    <img src={attrezzatura.icona_url} alt={attrezzatura.nome} className="w-8 h-8 object-contain rounded" /> :
+
+                    <Package className="w-5 h-5 text-[#8b7355]" />
+                    }
                         <h3 className="font-bold text-[#6b6b6b]">{attrezzatura.nome}</h3>
-                        {attrezzatura.attivo === false && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                        {attrezzatura.attivo === false &&
+                    <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
                             Disattivata
                           </span>
-                        )}
+                    }
                       </div>
                       <div className="flex flex-wrap gap-2 mb-2">
-                        {(!attrezzatura.stores_assegnati || attrezzatura.stores_assegnati.length === 0) ? (
-                          <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                        {!attrezzatura.stores_assegnati || attrezzatura.stores_assegnati.length === 0 ?
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
                             Tutti i locali
-                          </span>
-                        ) : (
-                          attrezzatura.stores_assegnati.map((storeId) => (
-                            <span
-                              key={storeId}
-                              className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700"
-                            >
+                          </span> :
+
+                    attrezzatura.stores_assegnati.map((storeId) =>
+                    <span
+                      key={storeId}
+                      className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+
                               {getStoreName(storeId)}
                             </span>
-                          ))
-                        )}
+                    )
+                    }
                       </div>
-                      {((attrezzatura.ruoli_responsabili && attrezzatura.ruoli_responsabili.length > 0) || attrezzatura.ruolo_responsabile) && (
-                        <div className="flex items-center gap-1 text-sm text-[#8b7355]">
+                      {(attrezzatura.ruoli_responsabili && attrezzatura.ruoli_responsabili.length > 0 || attrezzatura.ruolo_responsabile) &&
+                  <div className="flex items-center gap-1 text-sm text-[#8b7355]">
                           <User className="w-4 h-4" />
                           <span>Responsabili: <strong>{
-                            (attrezzatura.ruoli_responsabili || (attrezzatura.ruolo_responsabile ? [attrezzatura.ruolo_responsabile] : [])).join(', ')
-                          }</strong></span>
+                        (attrezzatura.ruoli_responsabili || (attrezzatura.ruolo_responsabile ? [attrezzatura.ruolo_responsabile] : [])).join(', ')
+                        }</strong></span>
                         </div>
-                      )}
+                  }
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleEdit(attrezzatura)}
-                        className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                      >
+                    onClick={() => handleEdit(attrezzatura)}
+                    className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors">
+
                         <Edit className="w-4 h-4 text-blue-600" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm('Eliminare questa attrezzatura?')) {
-                            deleteMutation.mutate(attrezzatura.id);
-                          }
-                        }}
-                        className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                      >
+                    onClick={() => {
+                      if (confirm('Eliminare questa attrezzatura?')) {
+                        deleteMutation.mutate(attrezzatura.id);
+                      }
+                    }}
+                    className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
+
                         <Trash2 className="w-4 h-4 text-red-600" />
                       </button>
                     </div>
                   </div>
                 </div>
-              ))}
+            )}
             </div>
-          )}
+          }
         </NeumorphicCard>
 
         {/* Form Modal */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showForm &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="max-w-2xl w-full">
               <NeumorphicCard className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -234,13 +234,13 @@ export default function Attrezzature() {
                       Nome Attrezzatura <span className="text-red-600">*</span>
                     </label>
                     <input
-                      type="text"
-                      required
-                      value={formData.nome}
-                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                      placeholder="Es: Forno, Impastatrice, Frigo..."
-                    />
+                    type="text"
+                    required
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    placeholder="Es: Forno, Impastatrice, Frigo..." />
+
                   </div>
 
                   <div>
@@ -248,36 +248,36 @@ export default function Attrezzature() {
                       <Image className="w-4 h-4" />
                       Icona/Immagine (per Mappa Locali)
                     </label>
-                    {formData.icona_url ? (
-                      <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                    {formData.icona_url ?
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-xl border border-green-200">
                         <img src={formData.icona_url} alt="Icona" className="w-16 h-16 object-contain rounded-lg" />
                         <span className="text-sm text-green-700 flex-1">Icona caricata</span>
                         <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, icona_url: '' })}
-                          className="text-red-500 hover:text-red-700"
-                        >
+                      type="button"
+                      onClick={() => setFormData({ ...formData, icona_url: '' })}
+                      className="text-red-500 hover:text-red-700">
+
                           <X className="w-4 h-4" />
                         </button>
-                      </div>
-                    ) : (
-                      <label className="neumorphic-pressed flex items-center justify-center gap-2 h-24 rounded-xl cursor-pointer hover:bg-slate-50">
-                        {uploadingIcon ? (
-                          <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                        ) : (
-                          <>
+                      </div> :
+
+                  <label className="neumorphic-pressed flex items-center justify-center gap-2 h-24 rounded-xl cursor-pointer hover:bg-slate-50">
+                        {uploadingIcon ?
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" /> :
+
+                    <>
                             <Upload className="w-5 h-5 text-slate-400" />
                             <span className="text-sm text-slate-600">Carica icona</span>
                           </>
-                        )}
+                    }
                         <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => e.target.files[0] && handleUploadIcon(e.target.files[0])}
-                          className="hidden"
-                        />
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => e.target.files[0] && handleUploadIcon(e.target.files[0])}
+                      className="hidden" />
+
                       </label>
-                    )}
+                  }
                   </div>
 
                   <div>
@@ -286,20 +286,20 @@ export default function Attrezzature() {
                       Locali (vuoto = tutti i locali)
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {stores.map((store) => (
-                        <button
-                          key={store.id}
-                          type="button"
-                          onClick={() => toggleStore(store.id)}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                            formData.stores_assegnati.includes(store.id)
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                              : 'neumorphic-flat text-[#6b6b6b]'
-                          }`}
-                        >
+                      {stores.map((store) =>
+                    <button
+                      key={store.id}
+                      type="button"
+                      onClick={() => toggleStore(store.id)}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                      formData.stores_assegnati.includes(store.id) ?
+                      'bg-gradient-to-r from-blue-500 to-blue-600 text-white' :
+                      'neumorphic-flat text-[#6b6b6b]'}`
+                      }>
+
                           {store.name}
                         </button>
-                      ))}
+                    )}
                     </div>
                   </div>
 
@@ -309,39 +309,39 @@ export default function Attrezzature() {
                       Ruoli Responsabili Pulizia
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {['Pizzaiolo', 'Cassiere', 'Store Manager'].map(ruolo => (
-                        <button
-                          key={ruolo}
-                          type="button"
-                          onClick={() => {
-                            const current = formData.ruoli_responsabili || [];
-                            if (current.includes(ruolo)) {
-                              setFormData({ ...formData, ruoli_responsabili: current.filter(r => r !== ruolo) });
-                            } else {
-                              setFormData({ ...formData, ruoli_responsabili: [...current, ruolo] });
-                            }
-                          }}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                            (formData.ruoli_responsabili || []).includes(ruolo)
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                              : 'neumorphic-flat text-[#6b6b6b]'
-                          }`}
-                        >
+                      {['Pizzaiolo', 'Cassiere', 'Store Manager'].map((ruolo) =>
+                    <button
+                      key={ruolo}
+                      type="button"
+                      onClick={() => {
+                        const current = formData.ruoli_responsabili || [];
+                        if (current.includes(ruolo)) {
+                          setFormData({ ...formData, ruoli_responsabili: current.filter((r) => r !== ruolo) });
+                        } else {
+                          setFormData({ ...formData, ruoli_responsabili: [...current, ruolo] });
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                      (formData.ruoli_responsabili || []).includes(ruolo) ?
+                      'bg-gradient-to-r from-blue-500 to-blue-600 text-white' :
+                      'neumorphic-flat text-[#6b6b6b]'}`
+                      }>
+
                           {ruolo}
                         </button>
-                      ))}
+                    )}
                     </div>
                     <p className="text-xs text-slate-500 mt-1">Seleziona uno o più ruoli responsabili della pulizia</p>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <input
-                      type="checkbox"
-                      id="attivo"
-                      checked={formData.attivo}
-                      onChange={(e) => setFormData({ ...formData, attivo: e.target.checked })}
-                      className="w-5 h-5"
-                    />
+                    type="checkbox"
+                    id="attivo"
+                    checked={formData.attivo}
+                    onChange={(e) => setFormData({ ...formData, attivo: e.target.checked })}
+                    className="w-5 h-5" />
+
                     <label htmlFor="attivo" className="text-sm font-medium text-[#6b6b6b]">
                       Attrezzatura Attiva
                     </label>
@@ -360,8 +360,8 @@ export default function Attrezzature() {
               </NeumorphicCard>
             </div>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
