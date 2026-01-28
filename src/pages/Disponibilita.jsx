@@ -13,8 +13,8 @@ import {
   X,
   CheckCircle,
   XCircle,
-  Save
-} from 'lucide-react';
+  Save } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks } from 'date-fns';
@@ -31,27 +31,27 @@ export default function Disponibilita() {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list()
   });
 
   const { data: turni = [] } = useQuery({
     queryKey: ['turni-planday'],
-    queryFn: () => base44.entities.TurnoPlanday.list(),
+    queryFn: () => base44.entities.TurnoPlanday.list()
   });
 
   const { data: accessiStore = [] } = useQuery({
     queryKey: ['accessi-store'],
-    queryFn: () => base44.entities.AccessoStore.list(),
+    queryFn: () => base44.entities.AccessoStore.list()
   });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: disponibilitaConfigs = [] } = useQuery({
     queryKey: ['disponibilita-config'],
-    queryFn: () => base44.entities.DisponibilitaConfig.list(),
+    queryFn: () => base44.entities.DisponibilitaConfig.list()
   });
 
   const saveConfigMutation = useMutation({
@@ -65,18 +65,18 @@ export default function Disponibilita() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disponibilita-config'] });
       setShowSettings(false);
-    },
+    }
   });
 
   const updateTurnoMutation = useMutation({
     mutationFn: ({ turnoId, data }) => base44.entities.TurnoPlanday.update(turnoId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-planday'] });
-    },
+    }
   });
 
   React.useEffect(() => {
-    const activeConfig = disponibilitaConfigs.find(c => c.is_active);
+    const activeConfig = disponibilitaConfigs.find((c) => c.is_active);
     if (activeConfig) {
       setRetribuzioneOraria(activeConfig.retribuzione_oraria_straordinari || 10);
       setAttivitaPagamentoAbilitata(activeConfig.attivita_pagamento_abilitata !== false);
@@ -122,7 +122,7 @@ export default function Disponibilita() {
 
   // Filter turni by date range (include anche turni in corso senza uscita)
   const filteredTurni = useMemo(() => {
-    return turni.filter(t => {
+    return turni.filter((t) => {
       if (t.tipo_turno !== 'Straordinario') return false;
       if (t.data < startDate || t.data > endDate) return false;
       // Include anche turni con solo entrata (in corso)
@@ -132,50 +132,50 @@ export default function Disponibilita() {
 
   // Calculate disponibilità for each employee
   const disponibilitaData = useMemo(() => {
-    const dipendenti = users.filter(u => {
+    const dipendenti = users.filter((u) => {
       const userType = u.user_type === 'user' ? 'dipendente' : u.user_type;
       return userType === 'dipendente' && u.ruoli_dipendente && u.ruoli_dipendente.length > 0;
     });
 
-    return dipendenti.map(dipendente => {
+    return dipendenti.map((dipendente) => {
       const ruoli = dipendente.ruoli_dipendente || [];
-      
+
       // Find stores this employee has access to from assigned_stores
       const storesAbilitati = dipendente.assigned_stores || [];
 
       // Calculate overtime hours done by this employee (escludi turni in corso)
-      const oreStraordinarioFatte = filteredTurni
-        .filter(t => t.dipendente_id === dipendente.id)
-        .reduce((sum, t) => {
-          if (!t.timbratura_entrata || !t.timbratura_uscita) return sum;
-          const start = new Date(t.timbratura_entrata);
-          const end = new Date(t.timbratura_uscita);
-          const hours = (end - start) / (1000 * 60 * 60);
-          return sum + hours;
-        }, 0);
+      const oreStraordinarioFatte = filteredTurni.
+      filter((t) => t.dipendente_id === dipendente.id).
+      reduce((sum, t) => {
+        if (!t.timbratura_entrata || !t.timbratura_uscita) return sum;
+        const start = new Date(t.timbratura_entrata);
+        const end = new Date(t.timbratura_uscita);
+        const hours = (end - start) / (1000 * 60 * 60);
+        return sum + hours;
+      }, 0);
 
       // Calculate potential overtime hours (escludi turni in corso)
       // Consider only straordinari done by this employee OR other employees with same role
       // in stores where this employee is enabled to work
-      const oreStraordinarioPotenziali = filteredTurni
-        .filter(t => {
-          // Must be in an assigned store
-          if (!storesAbilitati.includes(t.store_id)) return false;
-          
-          // Must be same role as employee
-          return ruoli.includes(t.ruolo);
-        })
-        .reduce((sum, t) => {
-          if (!t.timbratura_entrata || !t.timbratura_uscita) return sum;
-          const start = new Date(t.timbratura_entrata);
-          const end = new Date(t.timbratura_uscita);
-          const hours = (end - start) / (1000 * 60 * 60);
-          return sum + hours;
-        }, 0);
+      const oreStraordinarioPotenziali = filteredTurni.
+      filter((t) => {
+        // Must be in an assigned store
+        if (!storesAbilitati.includes(t.store_id)) return false;
 
-      const percentuale = oreStraordinarioPotenziali > 0 
-        ? (oreStraordinarioFatte / oreStraordinarioPotenziali) * 100 
-        : 0;
+        // Must be same role as employee
+        return ruoli.includes(t.ruolo);
+      }).
+      reduce((sum, t) => {
+        if (!t.timbratura_entrata || !t.timbratura_uscita) return sum;
+        const start = new Date(t.timbratura_entrata);
+        const end = new Date(t.timbratura_uscita);
+        const hours = (end - start) / (1000 * 60 * 60);
+        return sum + hours;
+      }, 0);
+
+      const percentuale = oreStraordinarioPotenziali > 0 ?
+      oreStraordinarioFatte / oreStraordinarioPotenziali * 100 :
+      0;
 
       return {
         dipendente,
@@ -192,11 +192,11 @@ export default function Disponibilita() {
 
   // Straordinari data (include turni in corso)
   const straordinariData = useMemo(() => {
-    return filteredTurni.map(turno => {
+    return filteredTurni.map((turno) => {
       if (!turno.timbratura_entrata) {
         return null;
       }
-      
+
       const start = new Date(turno.timbratura_entrata);
       const end = turno.timbratura_uscita ? new Date(turno.timbratura_uscita) : new Date();
       const ore = (end - start) / (1000 * 60 * 60);
@@ -210,16 +210,16 @@ export default function Disponibilita() {
         isPagato: turno.straordinario_pagato || false,
         inCorso
       };
-    }).filter(t => t !== null).sort((a, b) => new Date(b.data) - new Date(a.data));
+    }).filter((t) => t !== null).sort((a, b) => new Date(b.data) - new Date(a.data));
   }, [filteredTurni, retribuzioneOraria]);
 
   const straordinariStats = useMemo(() => {
     const totaleOre = straordinariData.reduce((sum, t) => sum + t.ore, 0);
     const totaleRetribuzione = straordinariData.reduce((sum, t) => sum + t.retribuzione, 0);
-    const pagati = straordinariData.filter(t => t.isPagato && !t.inCorso).length;
-    const daPagare = straordinariData.filter(t => !t.isPagato && !t.inCorso).length;
-    const inCorso = straordinariData.filter(t => t.inCorso).length;
-    const importoDaPagare = straordinariData.filter(t => !t.isPagato && !t.inCorso).reduce((sum, t) => sum + t.retribuzione, 0);
+    const pagati = straordinariData.filter((t) => t.isPagato && !t.inCorso).length;
+    const daPagare = straordinariData.filter((t) => !t.isPagato && !t.inCorso).length;
+    const inCorso = straordinariData.filter((t) => t.inCorso).length;
+    const importoDaPagare = straordinariData.filter((t) => !t.isPagato && !t.inCorso).reduce((sum, t) => sum + t.retribuzione, 0);
 
     return {
       totaleOre,
@@ -250,8 +250,8 @@ export default function Disponibilita() {
     <ProtectedPage pageName="Disponibilita">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">📊 Disponibilità Dipendenti</h1>
-          <p className="text-[#9b9b9b]">Ore straordinario fatte vs potenziali per ogni dipendente</p>
+          <h1 className="text-slate-50 mb-2 text-3xl font-bold">📊 Disponibilità Dipendenti</h1>
+          <p className="text-slate-50">Ore straordinario fatte vs potenziali per ogni dipendente</p>
         </div>
 
         {/* Tabs */}
@@ -259,29 +259,29 @@ export default function Disponibilita() {
           <button
             onClick={() => setActiveTab('disponibilita')}
             className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-              activeTab === 'disponibilita'
-                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
-                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
-            }`}
-          >
+            activeTab === 'disponibilita' ?
+            'neumorphic-pressed bg-blue-50 text-blue-700' :
+            'neumorphic-flat text-slate-600 hover:text-slate-800'}`
+            }>
+
             <TrendingUp className="w-4 h-4" />
             Disponibilità
           </button>
           <button
             onClick={() => setActiveTab('straordinari')}
             className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-              activeTab === 'straordinari'
-                ? 'neumorphic-pressed bg-blue-50 text-blue-700'
-                : 'neumorphic-flat text-slate-600 hover:text-slate-800'
-            }`}
-          >
+            activeTab === 'straordinari' ?
+            'neumorphic-pressed bg-blue-50 text-blue-700' :
+            'neumorphic-flat text-slate-600 hover:text-slate-800'}`
+            }>
+
             <Euro className="w-4 h-4" />
             Straordinari
           </button>
         </div>
 
-        {activeTab === 'disponibilita' && (
-          <>
+        {activeTab === 'disponibilita' &&
+        <>
         {/* Filters */}
         <NeumorphicCard className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -291,10 +291,10 @@ export default function Disponibilita() {
                 Periodo Temporale
               </label>
               <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              >
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                 <option value="week">Ultima Settimana</option>
                 <option value="2weeks">Ultime 2 Settimane</option>
                 <option value="month">Ultimo Mese</option>
@@ -356,13 +356,13 @@ export default function Disponibilita() {
 
         {/* Employee List */}
         <div className="space-y-3">
-          {sortedData.length === 0 ? (
+          {sortedData.length === 0 ?
             <NeumorphicCard className="p-12 text-center">
               <Users className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
               <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Nessun dipendente trovato</h3>
               <p className="text-[#9b9b9b]">Non ci sono dipendenti con ruoli assegnati</p>
-            </NeumorphicCard>
-          ) : (
+            </NeumorphicCard> :
+
             sortedData.map((data) => {
               const { dipendente, oreStraordinarioFatte, oreStraordinarioPotenziali, percentuale, ruoli, storesAbilitati } = data;
               const nome = dipendente.nome_cognome || dipendente.full_name || dipendente.email;
@@ -377,33 +377,33 @@ export default function Disponibilita() {
                       <div>
                         <h3 className="text-lg font-bold text-[#6b6b6b]">{nome}</h3>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {ruoli.map(ruolo => (
-                            <span
-                              key={ruolo}
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
-                                ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
-                                'bg-purple-100 text-purple-700'
-                              }`}
-                            >
+                          {ruoli.map((ruolo) =>
+                          <span
+                            key={ruolo}
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
+                            ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
+                            'bg-purple-100 text-purple-700'}`
+                            }>
+
                               {ruolo}
                             </span>
-                          ))}
+                          )}
                         </div>
                         <p className="text-xs text-[#9b9b9b] mt-2">
-                        Negozi abilitati: {storesAbilitati.length > 0
-                        ? storesAbilitati.map(sid => stores.find(s => s.id === sid)?.name).filter(Boolean).join(', ') || 'Nessuno'
-                        : 'Nessuno'}
+                        Negozi abilitati: {storesAbilitati.length > 0 ?
+                          storesAbilitati.map((sid) => stores.find((s) => s.id === sid)?.name).filter(Boolean).join(', ') || 'Nessuno' :
+                          'Nessuno'}
                         </p>
                       </div>
                     </div>
 
                     <div className="text-right">
                       <div className={`text-4xl font-bold ${
-                        percentuale >= 80 ? 'text-green-600' :
-                        percentuale >= 50 ? 'text-orange-600' :
-                        'text-red-600'
-                      }`}>
+                      percentuale >= 80 ? 'text-green-600' :
+                      percentuale >= 50 ? 'text-orange-600' :
+                      'text-red-600'}`
+                      }>
                         {percentuale.toFixed(0)}%
                       </div>
                       <p className="text-xs text-[#9b9b9b] mt-1">disponibilità</p>
@@ -415,12 +415,12 @@ export default function Disponibilita() {
                     <div className="h-4 bg-slate-200 rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all duration-500 ${
-                          percentuale >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                          percentuale >= 50 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                          'bg-gradient-to-r from-red-500 to-red-600'
-                        }`}
-                        style={{ width: `${Math.min(percentuale, 100)}%` }}
-                      />
+                        percentuale >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                        percentuale >= 50 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                        'bg-gradient-to-r from-red-500 to-red-600'}`
+                        }
+                        style={{ width: `${Math.min(percentuale, 100)}%` }} />
+
                     </div>
                   </div>
 
@@ -438,17 +438,17 @@ export default function Disponibilita() {
                       <p className="text-2xl font-bold text-purple-600">{oreStraordinarioPotenziali.toFixed(1)}h</p>
                     </div>
                   </div>
-                </NeumorphicCard>
-              );
+                </NeumorphicCard>);
+
             })
-          )}
+            }
         </div>
         </>
-        )}
+        }
 
         {/* Straordinari Tab */}
-        {activeTab === 'straordinari' && (
-          <>
+        {activeTab === 'straordinari' &&
+        <>
             {/* Filters */}
             <NeumorphicCard className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -458,10 +458,10 @@ export default function Disponibilita() {
                     Periodo Temporale
                   </label>
                   <select
-                    value={timeRange}
-                    onChange={(e) => setTimeRange(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  >
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                     <option value="week">Ultima Settimana</option>
                     <option value="2weeks">Ultime 2 Settimane</option>
                     <option value="month">Ultimo Mese</option>
@@ -480,9 +480,9 @@ export default function Disponibilita() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setShowSettings(true)}
-                    className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                  >
+                  onClick={() => setShowSettings(true)}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
+
                     <Settings className="w-5 h-5 text-slate-600" />
                   </button>
                 </div>
@@ -513,9 +513,9 @@ export default function Disponibilita() {
                 <AlertCircle className="w-10 h-10 text-orange-600 mx-auto mb-3" />
                 <p className="text-xs text-[#9b9b9b] mb-1">Da Pagare</p>
                 <p className="text-2xl font-bold text-orange-600">€{straordinariStats.importoDaPagare}</p>
-                {straordinariStats.inCorso > 0 && (
-                  <p className="text-xs text-blue-600 mt-1">+ {straordinariStats.inCorso} in corso</p>
-                )}
+                {straordinariStats.inCorso > 0 &&
+              <p className="text-xs text-blue-600 mt-1">+ {straordinariStats.inCorso} in corso</p>
+              }
               </NeumorphicCard>
             </div>
 
@@ -537,40 +537,40 @@ export default function Disponibilita() {
             <NeumorphicCard className="p-6">
               <h2 className="text-lg font-bold text-[#6b6b6b] mb-4">Turni Straordinari</h2>
               
-              {straordinariData.length === 0 ? (
-                <div className="text-center py-12">
+              {straordinariData.length === 0 ?
+            <div className="text-center py-12">
                   <Clock className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
                   <p className="text-slate-500">Nessun turno straordinario nel periodo selezionato</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {straordinariData.map(turno => {
-                    const storeName = stores.find(s => s.id === turno.store_id)?.name || turno.store_nome || 'N/A';
-                    
-                    return (
-                      <div
-                       key={turno.id}
-                       className={`neumorphic-pressed p-4 rounded-xl transition-all ${
-                         turno.inCorso ? 'bg-blue-50 border-2 border-blue-300' :
-                         turno.isPagato ? 'bg-green-50 border-2 border-green-200' : 'bg-white'
-                       }`}
-                      >
+                </div> :
+
+            <div className="space-y-3">
+                  {straordinariData.map((turno) => {
+                const storeName = stores.find((s) => s.id === turno.store_id)?.name || turno.store_nome || 'N/A';
+
+                return (
+                  <div
+                    key={turno.id}
+                    className={`neumorphic-pressed p-4 rounded-xl transition-all ${
+                    turno.inCorso ? 'bg-blue-50 border-2 border-blue-300' :
+                    turno.isPagato ? 'bg-green-50 border-2 border-green-200' : 'bg-white'}`
+                    }>
+
                        <div className="flex items-start justify-between gap-4">
                          <div className="flex-1">
                            <div className="flex items-center gap-2 mb-2">
                              <h3 className="font-bold text-slate-800">{turno.dipendente_nome}</h3>
                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                               turno.ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
-                               turno.ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
-                               'bg-purple-100 text-purple-700'
-                             }`}>
+                          turno.ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
+                          turno.ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
+                          'bg-purple-100 text-purple-700'}`
+                          }>
                                {turno.ruolo}
                              </span>
-                             {turno.inCorso && (
-                               <span className="px-2 py-1 bg-blue-500 text-white rounded-full text-xs font-bold animate-pulse">
+                             {turno.inCorso &&
+                          <span className="px-2 py-1 bg-blue-500 text-white rounded-full text-xs font-bold animate-pulse">
                                  IN CORSO
                                </span>
-                             )}
+                          }
                            </div>
 
                            <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
@@ -598,53 +598,53 @@ export default function Disponibilita() {
                              <p className="text-2xl font-bold text-green-600">€{turno.retribuzione}</p>
                              <p className="text-xs text-slate-500">({retribuzioneOraria}€/h)</p>
                            </div>
-                           {turno.inCorso ? (
-                             <span className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
+                           {turno.inCorso ?
+                        <span className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
                                In Corso
-                             </span>
-                           ) : (
-                             <button
-                               onClick={() => togglePagamento(turno.id, turno.isPagato)}
-                               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                                 turno.isPagato
-                                   ? 'bg-green-500 text-white hover:bg-green-600'
-                                   : 'bg-orange-500 text-white hover:bg-orange-600'
-                               }`}
-                             >
-                               {turno.isPagato ? (
-                                 <>
+                             </span> :
+
+                        <button
+                          onClick={() => togglePagamento(turno.id, turno.isPagato)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                          turno.isPagato ?
+                          'bg-green-500 text-white hover:bg-green-600' :
+                          'bg-orange-500 text-white hover:bg-orange-600'}`
+                          }>
+
+                               {turno.isPagato ?
+                          <>
                                    <CheckCircle className="w-4 h-4" />
                                    Pagato
-                                 </>
-                               ) : (
-                                 <>
+                                 </> :
+
+                          <>
                                    <XCircle className="w-4 h-4" />
                                    Da Pagare
                                  </>
-                               )}
+                          }
                              </button>
-                           )}
+                        }
                          </div>
                        </div>
-                      </div>
-                    );
-                  })}
+                      </div>);
+
+              })}
                 </div>
-              )}
+            }
             </NeumorphicCard>
           </>
-        )}
+        }
 
         {/* Settings Modal */}
-        {showSettings && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showSettings &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-slate-800">Configurazione Straordinari</h2>
-                <button 
-                  onClick={() => setShowSettings(false)} 
-                  className="p-2 rounded-lg hover:bg-slate-100"
-                >
+                <button
+                onClick={() => setShowSettings(false)}
+                className="p-2 rounded-lg hover:bg-slate-100">
+
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -653,12 +653,12 @@ export default function Disponibilita() {
                 <div>
                   <label className="text-sm text-slate-600 mb-2 block">Retribuzione Oraria (€/h)</label>
                   <input
-                    type="number"
-                    step="0.01"
-                    value={retribuzioneOraria}
-                    onChange={(e) => setRetribuzioneOraria(parseFloat(e.target.value) || 0)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                  />
+                  type="number"
+                  step="0.01"
+                  value={retribuzioneOraria}
+                  onChange={(e) => setRetribuzioneOraria(parseFloat(e.target.value) || 0)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
                   <p className="text-xs text-slate-500 mt-1">
                     Questa tariffa verrà applicata a tutti i turni straordinari
                   </p>
@@ -668,11 +668,11 @@ export default function Disponibilita() {
                   <h3 className="text-sm font-bold text-blue-800 mb-3">Attività "Pagamento straordinari"</h3>
                   <div className="flex items-center gap-3 mb-2">
                     <input
-                      type="checkbox"
-                      checked={attivitaPagamentoAbilitata}
-                      onChange={(e) => setAttivitaPagamentoAbilitata(e.target.checked)}
-                      className="w-5 h-5 rounded"
-                    />
+                    type="checkbox"
+                    checked={attivitaPagamentoAbilitata}
+                    onChange={(e) => setAttivitaPagamentoAbilitata(e.target.checked)}
+                    className="w-5 h-5 rounded" />
+
                     <label className="text-sm text-slate-700 flex-1">
                       Abilita attività automatica per cassieri quando inizia uno straordinario
                     </label>
@@ -685,15 +685,15 @@ export default function Disponibilita() {
 
                 <div className="flex gap-3 pt-4">
                   <button
-                    onClick={() => setShowSettings(false)}
-                    className="flex-1 px-4 py-3 rounded-xl neumorphic-flat text-slate-700 font-medium"
-                  >
+                  onClick={() => setShowSettings(false)}
+                  className="flex-1 px-4 py-3 rounded-xl neumorphic-flat text-slate-700 font-medium">
+
                     Annulla
                   </button>
                   <button
-                    onClick={handleSaveSettings}
-                    className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium flex items-center justify-center gap-2"
-                  >
+                  onClick={handleSaveSettings}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium flex items-center justify-center gap-2">
+
                     <Save className="w-4 h-4" />
                     Salva
                   </button>
@@ -701,8 +701,8 @@ export default function Disponibilita() {
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
