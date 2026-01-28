@@ -4,8 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileText, Plus, Edit, Save, X, Trash2, Send, CheckCircle, Clock, Eye, Download,
   AlertCircle, User, Briefcase, FileEdit, AlertTriangle, BookOpen, History, Settings, Loader2,
-  Upload, DollarSign, Folder, FolderPlus
-} from 'lucide-react';
+  Upload, DollarSign, Folder, FolderPlus } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -17,7 +17,7 @@ export default function Documenti() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    base44.auth.me().then(user => {
+    base44.auth.me().then((user) => {
       setCurrentUser(user);
       const normalizedType = user.user_type === 'user' ? 'dipendente' : user.user_type;
       setIsAdmin(normalizedType === 'admin' || normalizedType === 'manager');
@@ -30,8 +30,8 @@ export default function Documenti() {
         <div className="max-w-7xl mx-auto p-8 text-center">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
-      </ProtectedPage>
-    );
+      </ProtectedPage>);
+
   }
 
   // Vista Dipendente
@@ -50,41 +50,41 @@ export default function Documenti() {
             <button
               onClick={() => setActiveTab('contratti')}
               className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
-                activeTab === 'contratti' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
-              }`}
-            >
+              activeTab === 'contratti' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'}`
+              }>
+
               Contratti
             </button>
             <button
               onClick={() => setActiveTab('lettere')}
               className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
-                activeTab === 'lettere' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
-              }`}
-            >
+              activeTab === 'lettere' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'}`
+              }>
+
               Lettere
             </button>
             <button
               onClick={() => setActiveTab('regolamento')}
               className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
-                activeTab === 'regolamento' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
-              }`}
-            >
+              activeTab === 'regolamento' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'}`
+              }>
+
               Regolamento
             </button>
             <button
               onClick={() => setActiveTab('buste_paga')}
               className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
-                activeTab === 'buste_paga' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
-              }`}
-            >
+              activeTab === 'buste_paga' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'}`
+              }>
+
               Buste Paga
             </button>
             <button
               onClick={() => setActiveTab('unilav')}
               className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
-                activeTab === 'unilav' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'
-              }`}
-            >
+              activeTab === 'unilav' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'}`
+              }>
+
               Unilav
             </button>
           </div>
@@ -95,8 +95,8 @@ export default function Documenti() {
           {activeTab === 'buste_paga' && <DipendenteBustePagaSection currentUser={currentUser} />}
           {activeTab === 'unilav' && <DipendenteUnilavSection currentUser={currentUser} />}
         </div>
-      </ProtectedPage>
-    );
+      </ProtectedPage>);
+
   }
 
   // Vista Admin
@@ -107,9 +107,9 @@ export default function Documenti() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-10 h-10 text-[#8b7355]" />
-              <h1 className="text-3xl font-bold text-[#6b6b6b]">Gestione Documenti</h1>
+              <h1 className="text-slate-50 text-3xl font-bold">Gestione Documenti</h1>
             </div>
-            <p className="text-[#9b9b9b]">Contratti, lettere di richiamo e regolamento dipendenti</p>
+            <p className="text-slate-50">Contratti, lettere di richiamo e regolamento dipendenti</p>
           </div>
         </div>
 
@@ -117,41 +117,41 @@ export default function Documenti() {
           <button
             onClick={() => setActiveTab('contratti')}
             className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'contratti' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'
-            }`}
-          >
+            activeTab === 'contratti' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'}`
+            }>
+
             Contratti
           </button>
           <button
             onClick={() => setActiveTab('lettere')}
             className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'lettere' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'
-            }`}
-          >
+            activeTab === 'lettere' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'}`
+            }>
+
             Lettere Richiamo
           </button>
           <button
             onClick={() => setActiveTab('regolamento')}
             className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'regolamento' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'
-            }`}
-          >
+            activeTab === 'regolamento' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'}`
+            }>
+
             Regolamento
           </button>
           <button
             onClick={() => setActiveTab('buste_paga')}
             className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'buste_paga' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'
-            }`}
-          >
+            activeTab === 'buste_paga' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'}`
+            }>
+
             Buste Paga
           </button>
           <button
             onClick={() => setActiveTab('unilav')}
             className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
-              activeTab === 'unilav' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'
-            }`}
-          >
+            activeTab === 'unilav' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'}`
+            }>
+
             Unilav
           </button>
         </div>
@@ -162,8 +162,8 @@ export default function Documenti() {
         {activeTab === 'buste_paga' && <BustePagaSection />}
         {activeTab === 'unilav' && <UnilavSection />}
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
 
 // ============= DIPENDENTE VIEWS =============
@@ -208,7 +208,7 @@ function DipendenteContrattiSection({ currentUser }) {
   const { data: contratti = [], isLoading } = useQuery({
     queryKey: ['miei-contratti', currentUser?.id],
     queryFn: () => base44.entities.Contratto.filter({ user_id: currentUser.id }),
-    enabled: !!currentUser,
+    enabled: !!currentUser
   });
 
   const signMutation = useMutation({
@@ -217,7 +217,7 @@ function DipendenteContrattiSection({ currentUser }) {
       queryClient.invalidateQueries({ queryKey: ['miei-contratti'] });
       setViewingContract(null);
       alert('Contratto firmato con successo!');
-    },
+    }
   });
 
   const handleSign = () => {
@@ -226,28 +226,28 @@ function DipendenteContrattiSection({ currentUser }) {
       return;
     }
     if (!confirm('Confermi di aver letto e accettato il contratto?')) return;
-    
+
     signMutation.mutate({
       id: viewingContract.id,
       data: { ...viewingContract, status: 'firmato', data_firma: new Date().toISOString(), firma_dipendente: signatureName.trim() }
     });
   };
 
-  const toSign = contratti.filter(c => c.status === 'inviato');
-  const signed = contratti.filter(c => c.status === 'firmato');
+  const toSign = contratti.filter((c) => c.status === 'inviato');
+  const signed = contratti.filter((c) => c.status === 'firmato');
 
   if (isLoading) return <NeumorphicCard className="p-8 text-center"><p>Caricamento...</p></NeumorphicCard>;
 
   return (
     <>
-      {toSign.length > 0 && (
-        <div>
+      {toSign.length > 0 &&
+      <div>
           <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
             <Edit className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" /> Da Firmare ({toSign.length})
           </h2>
           <div className="space-y-3">
-            {toSign.map(c => (
-              <NeumorphicCard key={c.id} className="p-3 lg:p-4 border-2 border-orange-300">
+            {toSign.map((c) =>
+          <NeumorphicCard key={c.id} className="p-3 lg:p-4 border-2 border-orange-300">
                 <div className="flex flex-col gap-2 mb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -261,19 +261,19 @@ function DipendenteContrattiSection({ currentUser }) {
                   <Edit className="w-4 h-4" /> Visualizza e Firma
                 </button>
               </NeumorphicCard>
-            ))}
+          )}
           </div>
         </div>
-      )}
+      }
 
-      {signed.length > 0 && (
-        <div>
+      {signed.length > 0 &&
+      <div>
           <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" /> Firmati ({signed.length})
           </h2>
           <div className="space-y-3">
-            {signed.map(c => (
-              <NeumorphicCard key={c.id} className="p-3 lg:p-4">
+            {signed.map((c) =>
+          <NeumorphicCard key={c.id} className="p-3 lg:p-4">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">{c.template_nome}</h3>
@@ -283,34 +283,34 @@ function DipendenteContrattiSection({ currentUser }) {
                     <button onClick={() => setViewingContract(c)} className="nav-button p-2 rounded-lg">
                       <Eye className="w-4 h-4 text-blue-600" />
                     </button>
-                    <button 
-                      onClick={() => downloadContrattoFirmato(c)} 
-                      className="nav-button p-2 rounded-lg"
-                      disabled={downloadingPdf === c.id}
-                    >
-                      {downloadingPdf === c.id ? (
-                        <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4 text-green-600" />
-                      )}
+                    <button
+                  onClick={() => downloadContrattoFirmato(c)}
+                  className="nav-button p-2 rounded-lg"
+                  disabled={downloadingPdf === c.id}>
+
+                      {downloadingPdf === c.id ?
+                  <Loader2 className="w-4 h-4 text-blue-600 animate-spin" /> :
+
+                  <Download className="w-4 h-4 text-green-600" />
+                  }
                     </button>
                   </div>
                 </div>
               </NeumorphicCard>
-            ))}
+          )}
           </div>
         </div>
-      )}
+      }
 
-      {contratti.length === 0 && (
-        <NeumorphicCard className="p-8 text-center">
+      {contratti.length === 0 &&
+      <NeumorphicCard className="p-8 text-center">
           <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">Nessun contratto disponibile</p>
         </NeumorphicCard>
-      )}
+      }
 
-      {viewingContract && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+      {viewingContract &&
+      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
           <div className="w-full h-full flex flex-col bg-white">
             <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-800">{viewingContract.template_nome}</h2>
@@ -323,15 +323,15 @@ function DipendenteContrattiSection({ currentUser }) {
             </div>
             <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl">
               <div className="max-w-4xl mx-auto">
-                {viewingContract.status === 'inviato' ? (
-                  <div className="space-y-3">
+                {viewingContract.status === 'inviato' ?
+              <div className="space-y-3">
                     <input type="text" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} placeholder="Nome e Cognome" className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
                     <button onClick={handleSign} disabled={signMutation.isPending} className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2">
                       <CheckCircle className="w-6 h-6" /> {signMutation.isPending ? 'Firma in corso...' : 'Firma Contratto'}
                     </button>
-                  </div>
-                ) : (
-                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                  </div> :
+
+              <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
                     <div className="flex items-center gap-3">
                       <CheckCircle className="w-6 h-6 text-green-600" />
                       <div>
@@ -340,14 +340,14 @@ function DipendenteContrattiSection({ currentUser }) {
                       </div>
                     </div>
                   </div>
-                )}
+              }
               </div>
             </div>
           </div>
         </div>
-      )}
-    </>
-  );
+      }
+    </>);
+
 }
 
 function DipendenteLettereSection({ currentUser }) {
@@ -391,12 +391,12 @@ function DipendenteLettereSection({ currentUser }) {
     queryKey: ['mie-lettere', currentUser?.id],
     queryFn: async () => {
       const data = await base44.entities.LetteraRichiamo.filter({ user_id: currentUser.id });
-      base44.functions.invoke('processAutomaticChiusuraProcedura', {}).catch(err => 
-        console.log('Background automation check:', err)
+      base44.functions.invoke('processAutomaticChiusuraProcedura', {}).catch((err) =>
+      console.log('Background automation check:', err)
       );
       return data;
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser
   });
 
   const signMutation = useMutation({
@@ -405,22 +405,22 @@ function DipendenteLettereSection({ currentUser }) {
       queryClient.invalidateQueries({ queryKey: ['mie-lettere'] });
       setViewingLettera(null);
       alert('Documento firmato con successo!');
-    },
+    }
   });
 
   const handleViewLettera = async (lettera) => {
     setViewingLettera(lettera);
-    
+
     if (lettera.tipo_lettera === 'lettera_richiamo' && !lettera.data_visualizzazione) {
       try {
         await base44.entities.LetteraRichiamo.update(lettera.id, {
           data_visualizzazione: new Date().toISOString()
         });
-        
+
         // Trigger automation check
-        base44.functions.invoke('processAutomaticChiusuraProcedura', {})
-          .catch(err => console.log('Background automation check:', err));
-        
+        base44.functions.invoke('processAutomaticChiusuraProcedura', {}).
+        catch((err) => console.log('Background automation check:', err));
+
         queryClient.invalidateQueries({ queryKey: ['mie-lettere'] });
       } catch (error) {
         console.error('Error marking as viewed:', error);
@@ -434,15 +434,15 @@ function DipendenteLettereSection({ currentUser }) {
       return;
     }
     if (!confirm('Confermi di aver letto e preso visione del documento?')) return;
-    
+
     signMutation.mutate({
       id: viewingLettera.id,
       data: { ...viewingLettera, status: 'firmata', data_firma: new Date().toISOString(), firma_dipendente: signatureName.trim() }
     });
   };
 
-  const toSign = lettere.filter(l => l.status === 'inviata');
-  const signed = lettere.filter(l => l.status === 'firmata');
+  const toSign = lettere.filter((l) => l.status === 'inviata');
+  const signed = lettere.filter((l) => l.status === 'firmata');
 
   const getTipoLabel = (tipo) => {
     return tipo === 'lettera_richiamo' ? 'Lettera di Richiamo' : 'Chiusura Procedura';
@@ -452,14 +452,14 @@ function DipendenteLettereSection({ currentUser }) {
 
   return (
     <>
-      {toSign.length > 0 && (
-        <div>
+      {toSign.length > 0 &&
+      <div>
           <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" /> Da Firmare ({toSign.length})
           </h2>
           <div className="space-y-3">
-            {toSign.map(l => (
-              <NeumorphicCard key={l.id} className="p-3 lg:p-4 border-2 border-orange-300">
+            {toSign.map((l) =>
+          <NeumorphicCard key={l.id} className="p-3 lg:p-4 border-2 border-orange-300">
                 <div className="flex flex-col gap-2 mb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -473,19 +473,19 @@ function DipendenteLettereSection({ currentUser }) {
                   <Eye className="w-4 h-4" /> Visualizza e Firma
                 </button>
               </NeumorphicCard>
-            ))}
+          )}
           </div>
         </div>
-      )}
+      }
 
-      {signed.length > 0 && (
-        <div>
+      {signed.length > 0 &&
+      <div>
           <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" /> Firmati ({signed.length})
           </h2>
           <div className="space-y-3">
-            {signed.map(l => (
-              <NeumorphicCard key={l.id} className="p-3 lg:p-4">
+            {signed.map((l) =>
+          <NeumorphicCard key={l.id} className="p-3 lg:p-4">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-slate-800 text-sm lg:text-base">{getTipoLabel(l.tipo_lettera)}</h3>
@@ -495,34 +495,34 @@ function DipendenteLettereSection({ currentUser }) {
                     <button onClick={() => handleViewLettera(l)} className="nav-button p-2 rounded-lg">
                       <Eye className="w-4 h-4 text-blue-600" />
                     </button>
-                    <button 
-                      onClick={() => downloadLetteraPDF(l)} 
-                      className="nav-button p-2 rounded-lg"
-                      disabled={downloadingPdf === l.id}
-                    >
-                      {downloadingPdf === l.id ? (
-                        <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4 text-green-600" />
-                      )}
+                    <button
+                  onClick={() => downloadLetteraPDF(l)}
+                  className="nav-button p-2 rounded-lg"
+                  disabled={downloadingPdf === l.id}>
+
+                      {downloadingPdf === l.id ?
+                  <Loader2 className="w-4 h-4 text-blue-600 animate-spin" /> :
+
+                  <Download className="w-4 h-4 text-green-600" />
+                  }
                     </button>
                   </div>
                 </div>
               </NeumorphicCard>
-            ))}
+          )}
           </div>
         </div>
-      )}
+      }
 
-      {lettere.length === 0 && (
-        <NeumorphicCard className="p-8 text-center">
+      {lettere.length === 0 &&
+      <NeumorphicCard className="p-8 text-center">
           <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">Nessuna lettera disponibile</p>
         </NeumorphicCard>
-      )}
+      }
 
-      {viewingLettera && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+      {viewingLettera &&
+      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
           <div className="w-full h-full flex flex-col bg-white">
             <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-800">{getTipoLabel(viewingLettera.tipo_lettera)}</h2>
@@ -535,15 +535,15 @@ function DipendenteLettereSection({ currentUser }) {
             </div>
             <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl">
               <div className="max-w-4xl mx-auto">
-                {viewingLettera.status === 'inviata' ? (
-                  <div className="space-y-3">
+                {viewingLettera.status === 'inviata' ?
+              <div className="space-y-3">
                     <input type="text" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} placeholder="Nome e Cognome" className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
                     <button onClick={handleSign} disabled={signMutation.isPending} className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2">
                       <CheckCircle className="w-6 h-6" /> {signMutation.isPending ? 'Firma in corso...' : 'Firma per Presa Visione'}
                     </button>
-                  </div>
-                ) : (
-                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                  </div> :
+
+              <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
                     <div className="flex items-center gap-3">
                       <CheckCircle className="w-6 h-6 text-green-600" />
                       <div>
@@ -552,21 +552,21 @@ function DipendenteLettereSection({ currentUser }) {
                       </div>
                     </div>
                   </div>
-                )}
+              }
               </div>
             </div>
           </div>
         </div>
-      )}
-    </>
-  );
+      }
+    </>);
+
 }
 
 function DipendenteUnilavSection({ currentUser }) {
   const { data: unilavDocs = [], isLoading } = useQuery({
     queryKey: ['unilav-docs', currentUser?.id],
     queryFn: () => base44.entities.Unilav.filter({ user_id: currentUser?.id }),
-    enabled: !!currentUser,
+    enabled: !!currentUser
   });
 
   if (isLoading) {
@@ -574,87 +574,87 @@ function DipendenteUnilavSection({ currentUser }) {
       <NeumorphicCard className="p-8 text-center">
         <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
         <p className="text-slate-500">Caricamento...</p>
-      </NeumorphicCard>
-    );
+      </NeumorphicCard>);
+
   }
 
   return (
     <>
-      {unilavDocs.length === 0 ? (
-        <NeumorphicCard className="p-8 text-center">
+      {unilavDocs.length === 0 ?
+      <NeumorphicCard className="p-8 text-center">
           <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">Nessun documento Unilav disponibile</p>
-        </NeumorphicCard>
-      ) : (
-        <div className="space-y-3">
-          {unilavDocs.map(doc => (
-            <NeumorphicCard key={doc.id} className="p-3 lg:p-4">
+        </NeumorphicCard> :
+
+      <div className="space-y-3">
+          {unilavDocs.map((doc) =>
+        <NeumorphicCard key={doc.id} className="p-3 lg:p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">
                     {doc.descrizione || 'Documento Unilav'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    {doc.data_documento 
-                      ? new Date(doc.data_documento).toLocaleDateString('it-IT')
-                      : new Date(doc.created_date).toLocaleDateString('it-IT')}
+                    {doc.data_documento ?
+                new Date(doc.data_documento).toLocaleDateString('it-IT') :
+                new Date(doc.created_date).toLocaleDateString('it-IT')}
                   </p>
                 </div>
                 <a
-                  href={doc.pdf_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm flex-shrink-0"
-                >
+              href={doc.pdf_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm flex-shrink-0">
+
                   <Download className="w-4 h-4" />
                   Scarica
                 </a>
               </div>
             </NeumorphicCard>
-          ))}
+        )}
         </div>
-      )}
-    </>
-  );
+      }
+    </>);
+
 }
 
 function DipendenteBustePagaSection({ currentUser }) {
   const { data: bustePaga = [], isLoading } = useQuery({
     queryKey: ['buste-paga'],
-    queryFn: () => base44.entities.BustaPaga.list('-created_date'),
+    queryFn: () => base44.entities.BustaPaga.list('-created_date')
   });
 
-  const mieBustePaga = bustePaga
-    .filter(b => b.status === 'completed' && b.pdf_splits?.some(s => s.user_id === currentUser?.id))
-    .map(b => {
-      const mioSplit = b.pdf_splits.find(s => s.user_id === currentUser.id);
-      return {
-        ...b,
-        mio_pdf_url: mioSplit?.pdf_url,
-        page_number: mioSplit?.page_number
-      };
-    });
+  const mieBustePaga = bustePaga.
+  filter((b) => b.status === 'completed' && b.pdf_splits?.some((s) => s.user_id === currentUser?.id)).
+  map((b) => {
+    const mioSplit = b.pdf_splits.find((s) => s.user_id === currentUser.id);
+    return {
+      ...b,
+      mio_pdf_url: mioSplit?.pdf_url,
+      page_number: mioSplit?.page_number
+    };
+  });
 
   if (isLoading) {
     return (
       <NeumorphicCard className="p-8 text-center">
         <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
         <p className="text-slate-500">Caricamento...</p>
-      </NeumorphicCard>
-    );
+      </NeumorphicCard>);
+
   }
 
   return (
     <>
-      {mieBustePaga.length === 0 ? (
-        <NeumorphicCard className="p-8 text-center">
+      {mieBustePaga.length === 0 ?
+      <NeumorphicCard className="p-8 text-center">
           <DollarSign className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">Nessuna busta paga disponibile</p>
-        </NeumorphicCard>
-      ) : (
-        <div className="space-y-3">
-          {mieBustePaga.map(busta => (
-            <NeumorphicCard key={busta.id} className="p-3 lg:p-4">
+        </NeumorphicCard> :
+
+      <div className="space-y-3">
+          {mieBustePaga.map((busta) =>
+        <NeumorphicCard key={busta.id} className="p-3 lg:p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-slate-800 text-sm lg:text-base">
@@ -665,21 +665,21 @@ function DipendenteBustePagaSection({ currentUser }) {
                   </p>
                 </div>
                 <a
-                  href={busta.mio_pdf_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm flex-shrink-0"
-                >
+              href={busta.mio_pdf_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm flex-shrink-0">
+
                   <Download className="w-4 h-4" />
                   Scarica
                 </a>
               </div>
             </NeumorphicCard>
-          ))}
+        )}
         </div>
-      )}
-    </>
-  );
+      }
+    </>);
+
 }
 
 function DipendenteRegolamentoSection({ currentUser }) {
@@ -690,12 +690,12 @@ function DipendenteRegolamentoSection({ currentUser }) {
   const { data: firme = [], isLoading } = useQuery({
     queryKey: ['mie-firme-regolamento', currentUser?.id],
     queryFn: () => base44.entities.RegolamentoFirmato.filter({ user_id: currentUser.id }),
-    enabled: !!currentUser,
+    enabled: !!currentUser
   });
 
   const { data: regolamenti = [] } = useQuery({
     queryKey: ['regolamenti-attivi'],
-    queryFn: () => base44.entities.RegolamentoDipendenti.list('-versione'),
+    queryFn: () => base44.entities.RegolamentoDipendenti.list('-versione')
   });
 
   const signMutation = useMutation({
@@ -704,7 +704,7 @@ function DipendenteRegolamentoSection({ currentUser }) {
       queryClient.invalidateQueries({ queryKey: ['mie-firme-regolamento'] });
       setViewingRegolamento(null);
       alert('Regolamento firmato con successo!');
-    },
+    }
   });
 
   const handleSign = () => {
@@ -713,7 +713,7 @@ function DipendenteRegolamentoSection({ currentUser }) {
       return;
     }
     if (!confirm('Confermi di aver letto e accettato il regolamento?')) return;
-    
+
     signMutation.mutate({
       id: viewingRegolamento.id,
       data: { ...viewingRegolamento, firmato: true, data_firma: new Date().toISOString(), firma_dipendente: signatureName.trim() }
@@ -721,13 +721,13 @@ function DipendenteRegolamentoSection({ currentUser }) {
   };
 
   const getRegolamentoContent = (regolamentoId) => {
-    const reg = regolamenti.find(r => r.id === regolamentoId);
+    const reg = regolamenti.find((r) => r.id === regolamentoId);
     return reg?.contenuto || 'Contenuto non disponibile';
   };
 
-  const toSign = firme.filter(f => !f.firmato);
-  const signed = firme.filter(f => f.firmato).sort((a, b) => (b.versione || 0) - (a.versione || 0));
-  
+  const toSign = firme.filter((f) => !f.firmato);
+  const signed = firme.filter((f) => f.firmato).sort((a, b) => (b.versione || 0) - (a.versione || 0));
+
   // Get the latest signed version
   const latestSigned = signed.length > 0 ? signed[0] : null;
 
@@ -735,14 +735,14 @@ function DipendenteRegolamentoSection({ currentUser }) {
 
   return (
     <>
-      {toSign.length > 0 && (
-        <div>
+      {toSign.length > 0 &&
+      <div>
           <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
             <BookOpen className="w-4 h-4 lg:w-5 lg:h-5 text-orange-600" /> Da Firmare ({toSign.length})
           </h2>
           <div className="space-y-3">
-            {toSign.map(f => (
-              <NeumorphicCard key={f.id} className="p-3 lg:p-4 border-2 border-orange-300">
+            {toSign.map((f) =>
+          <NeumorphicCard key={f.id} className="p-3 lg:p-4 border-2 border-orange-300">
                 <div className="flex flex-col gap-2 mb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -756,14 +756,14 @@ function DipendenteRegolamentoSection({ currentUser }) {
                   <Eye className="w-4 h-4" /> Visualizza e Firma
                 </button>
               </NeumorphicCard>
-            ))}
+          )}
           </div>
         </div>
-      )}
+      }
 
       {/* Latest Signed Regulation - Always visible */}
-      {latestSigned && (
-        <div>
+      {latestSigned &&
+      <div>
           <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-600" /> Regolamento Attuale
           </h2>
@@ -782,17 +782,17 @@ function DipendenteRegolamentoSection({ currentUser }) {
             </button>
           </NeumorphicCard>
         </div>
-      )}
+      }
 
       {/* Previous versions */}
-      {signed.length > 1 && (
-        <div>
+      {signed.length > 1 &&
+      <div>
           <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
             <History className="w-4 h-4 lg:w-5 lg:h-5 text-slate-500" /> Versioni Precedenti ({signed.length - 1})
           </h2>
           <div className="space-y-3">
-            {signed.slice(1).map(f => (
-              <NeumorphicCard key={f.id} className="p-3 lg:p-4 opacity-75">
+            {signed.slice(1).map((f) =>
+          <NeumorphicCard key={f.id} className="p-3 lg:p-4 opacity-75">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-slate-600 text-sm lg:text-base">Regolamento v{f.versione}</h3>
@@ -803,20 +803,20 @@ function DipendenteRegolamentoSection({ currentUser }) {
                   </button>
                 </div>
               </NeumorphicCard>
-            ))}
+          )}
           </div>
         </div>
-      )}
+      }
 
-      {firme.length === 0 && (
-        <NeumorphicCard className="p-8 text-center">
+      {firme.length === 0 &&
+      <NeumorphicCard className="p-8 text-center">
           <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">Nessun regolamento disponibile</p>
         </NeumorphicCard>
-      )}
+      }
 
-      {viewingRegolamento && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+      {viewingRegolamento &&
+      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
           <div className="w-full h-full flex flex-col bg-white">
             <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-800">Regolamento Dipendenti v{viewingRegolamento.versione}</h2>
@@ -829,15 +829,15 @@ function DipendenteRegolamentoSection({ currentUser }) {
             </div>
             <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl">
               <div className="max-w-4xl mx-auto">
-                {!viewingRegolamento.firmato ? (
-                  <div className="space-y-3">
+                {!viewingRegolamento.firmato ?
+              <div className="space-y-3">
                     <input type="text" value={signatureName} onChange={(e) => setSignatureName(e.target.value)} placeholder="Nome e Cognome" className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
                     <button onClick={handleSign} disabled={signMutation.isPending} className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2">
                       <CheckCircle className="w-6 h-6" /> {signMutation.isPending ? 'Firma in corso...' : 'Firma Regolamento'}
                     </button>
-                  </div>
-                ) : (
-                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                  </div> :
+
+              <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
                     <div className="flex items-center gap-3">
                       <CheckCircle className="w-6 h-6 text-green-600" />
                       <div>
@@ -846,14 +846,14 @@ function DipendenteRegolamentoSection({ currentUser }) {
                       </div>
                     </div>
                   </div>
-                )}
+              }
               </div>
             </div>
           </div>
         </div>
-      )}
-    </>
-  );
+      }
+    </>);
+
 }
 
 // ============= ADMIN VIEWS =============
@@ -867,7 +867,7 @@ function ContrattiSection() {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [previewContratto, setPreviewContratto] = useState(null);
   const [templateTextareaRef, setTemplateTextareaRef] = useState(null);
-  
+
   // Drive settings
   const [showDriveSettings, setShowDriveSettings] = useState(false);
   const [loadingFolders, setLoadingFolders] = useState(false);
@@ -889,20 +889,20 @@ function ContrattiSection() {
   const queryClient = useQueryClient();
   const { data: contratti = [] } = useQuery({
     queryKey: ['contratti'],
-    queryFn: () => base44.entities.Contratto.list('-created_date'),
+    queryFn: () => base44.entities.Contratto.list('-created_date')
   });
   const { data: templates = [] } = useQuery({
     queryKey: ['contratto-templates'],
-    queryFn: () => base44.entities.ContrattoTemplate.list(),
+    queryFn: () => base44.entities.ContrattoTemplate.list()
   });
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list()
   });
 
   const { data: driveConfig = [] } = useQuery({
     queryKey: ['drive-config-contratti'],
-    queryFn: () => base44.entities.DriveConfig.filter({ config_type: 'contratti', is_active: true }),
+    queryFn: () => base44.entities.DriveConfig.filter({ config_type: 'contratti', is_active: true })
   });
 
   const createMutation = useMutation({
@@ -910,7 +910,7 @@ function ContrattiSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contratti'] });
       resetForm();
-    },
+    }
   });
 
   const updateMutation = useMutation({
@@ -918,12 +918,12 @@ function ContrattiSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contratti'] });
       resetForm();
-    },
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Contratto.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contratti'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contratti'] })
   });
 
   const createTemplateMutation = useMutation({
@@ -931,7 +931,7 @@ function ContrattiSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contratto-templates'] });
       resetTemplateForm();
-    },
+    }
   });
 
   const updateTemplateMutation = useMutation({
@@ -939,12 +939,12 @@ function ContrattiSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contratto-templates'] });
       resetTemplateForm();
-    },
+    }
   });
 
   const deleteTemplateMutation = useMutation({
     mutationFn: (id) => base44.entities.ContrattoTemplate.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contratto-templates'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contratto-templates'] })
   });
 
   const resetForm = () => {
@@ -977,35 +977,35 @@ function ContrattiSection() {
       dataFine.setMonth(dataFine.getMonth() + parseInt(data.durata_contratto_mesi));
       dataFineContratto = dataFine.toLocaleDateString('it-IT');
     }
-    
+
     // Find first contract date for this user
     let dataInizioPrimoContratto = '';
     if (data.user_id) {
       const tuttiContratti = await base44.entities.Contratto.filter({ user_id: data.user_id, status: 'firmato' });
       if (tuttiContratti.length > 0) {
-        const contrattoPiuVecchio = tuttiContratti.sort((a, b) => 
-          new Date(a.data_inizio_contratto) - new Date(b.data_inizio_contratto)
+        const contrattoPiuVecchio = tuttiContratti.sort((a, b) =>
+        new Date(a.data_inizio_contratto) - new Date(b.data_inizio_contratto)
         )[0];
         if (contrattoPiuVecchio.data_inizio_contratto) {
           dataInizioPrimoContratto = new Date(contrattoPiuVecchio.data_inizio_contratto).toLocaleDateString('it-IT');
         }
       }
     }
-    
+
     const variables = {
-      '{{nome_cognome}}': data.nome_cognome || '', 
+      '{{nome_cognome}}': data.nome_cognome || '',
       '{{phone}}': data.phone || '',
       '{{data_nascita}}': data.data_nascita ? new Date(data.data_nascita).toLocaleDateString('it-IT') : '',
-      '{{citta_nascita}}': data.citta_nascita || '', 
+      '{{citta_nascita}}': data.citta_nascita || '',
       '{{codice_fiscale}}': data.codice_fiscale || '',
-      '{{indirizzo_residenza}}': data.indirizzo_residenza || '', 
+      '{{indirizzo_residenza}}': data.indirizzo_residenza || '',
       '{{iban}}': data.iban || '',
-      '{{employee_group}}': data.employee_group || '', 
+      '{{employee_group}}': data.employee_group || '',
       '{{function_name}}': data.function_name || '',
       '{{ore_settimanali}}': data.ore_settimanali?.toString() || '',
       '{{data_inizio_contratto}}': data.data_inizio_contratto ? new Date(data.data_inizio_contratto).toLocaleDateString('it-IT') : '',
       '{{durata_contratto_mesi}}': data.durata_contratto_mesi?.toString() || '',
-      '{{data_oggi}}': oggi, 
+      '{{data_oggi}}': oggi,
       '{{data_fine_contratto}}': dataFineContratto,
       '{{ruoli}}': (data.ruoli_dipendente || []).join(', '),
       '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali',
@@ -1013,7 +1013,7 @@ function ContrattiSection() {
       '{{ruoli_dipendente}}': (data.ruoli_dipendente || []).join(', ')
     };
 
-    Object.keys(variables).forEach(key => {
+    Object.keys(variables).forEach((key) => {
       const regex = new RegExp(key.replace(/[{}]/g, '\\$&'), 'g');
       result = result.replace(regex, variables[key]);
     });
@@ -1028,7 +1028,7 @@ function ContrattiSection() {
       return;
     }
 
-    const template = templates.find(t => t.id === selectedTemplate);
+    const template = templates.find((t) => t.id === selectedTemplate);
     if (!template) {
       alert('Template non trovato');
       return;
@@ -1068,7 +1068,7 @@ function ContrattiSection() {
   };
 
   const handleUserSelect = (userId) => {
-    const user = users.find(u => u.id === userId);
+    const user = users.find((u) => u.id === userId);
     if (user) {
       setFormData({
         ...formData,
@@ -1097,7 +1097,7 @@ function ContrattiSection() {
 
   const handleTemplateSelect = async (templateId) => {
     setSelectedTemplate(templateId);
-    const template = templates.find(t => t.id === templateId);
+    const template = templates.find((t) => t.id === templateId);
     if (template && formData.nome_cognome) {
       const preview = await replaceVariables(template.contenuto_template, formData);
       setEditablePreview(preview);
@@ -1107,7 +1107,7 @@ function ContrattiSection() {
   const handleFormDataChange = async (newFormData) => {
     setFormData(newFormData);
     if (selectedTemplate && newFormData.nome_cognome) {
-      const template = templates.find(t => t.id === selectedTemplate);
+      const template = templates.find((t) => t.id === selectedTemplate);
       if (template) {
         const preview = await replaceVariables(template.contenuto_template, newFormData);
         setEditablePreview(preview);
@@ -1118,21 +1118,21 @@ function ContrattiSection() {
   const insertVariable = (variable) => {
     const textarea = templateTextareaRef;
     if (!textarea) {
-      setTemplateData(prev => ({
+      setTemplateData((prev) => ({
         ...prev,
         contenuto_template: (prev.contenuto_template || '') + ` {{${variable}}} `
       }));
       return;
     }
-    
+
     const startPos = textarea.selectionStart;
     const endPos = textarea.selectionEnd;
     const textBefore = templateData.contenuto_template.substring(0, startPos);
     const textAfter = templateData.contenuto_template.substring(endPos);
     const variableText = `{{${variable}}}`;
     const newText = textBefore + variableText + textAfter;
-    setTemplateData(prev => ({ ...prev, contenuto_template: newText }));
-    
+    setTemplateData((prev) => ({ ...prev, contenuto_template: newText }));
+
     setTimeout(() => {
       textarea.focus();
       const newCursorPos = startPos + variableText.length;
@@ -1163,7 +1163,7 @@ function ContrattiSection() {
     setDownloadingPdf(contratto.id);
     try {
       const response = await base44.functions.invoke('downloadContrattoPDF', { contrattoId: contratto.id });
-      
+
       if (response.data.success) {
         // Convert base64 to blob
         const byteCharacters = atob(response.data.pdf);
@@ -1173,7 +1173,7 @@ function ContrattiSection() {
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: 'application/pdf' });
-        
+
         // Download
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1198,17 +1198,17 @@ function ContrattiSection() {
     const badges = {
       'bozza': { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Bozza' },
       'inviato': { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Inviato' },
-      'firmato': { bg: 'bg-green-100', text: 'text-green-700', label: 'Firmato ✓' },
+      'firmato': { bg: 'bg-green-100', text: 'text-green-700', label: 'Firmato ✓' }
     };
     const badge = badges[status] || badges.bozza;
     return <span className={`px-3 py-1 rounded-full text-xs font-bold ${badge.bg} ${badge.text}`}>{badge.label}</span>;
   };
 
   const availableVariables = [
-    'nome_cognome', 'phone', 'data_nascita', 'citta_nascita', 'codice_fiscale', 'indirizzo_residenza', 'iban',
-    'employee_group', 'function_name', 'ore_settimanali', 'data_inizio_contratto', 
-    'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali', 'data_inizio_primo_contratto', 'ruoli_dipendente'
-  ];
+  'nome_cognome', 'phone', 'data_nascita', 'citta_nascita', 'codice_fiscale', 'indirizzo_residenza', 'iban',
+  'employee_group', 'function_name', 'ore_settimanali', 'data_inizio_contratto',
+  'durata_contratto_mesi', 'data_oggi', 'data_fine_contratto', 'ruoli', 'locali', 'data_inizio_primo_contratto', 'ruoli_dipendente'];
+
 
   const handleLoadDriveFolders = async () => {
     setLoadingFolders(true);
@@ -1304,21 +1304,21 @@ function ContrattiSection() {
           <Plus className="w-5 h-5" />
           Nuovo Contratto
         </NeumorphicButton>
-        <NeumorphicButton 
+        <NeumorphicButton
           onClick={async () => {
             setShowDriveSettings(true);
             await handleLoadDriveFolders();
-          }} 
-          className="flex items-center gap-2"
-        >
+          }}
+          className="flex items-center gap-2">
+
           <Folder className="w-5 h-5" />
           Impostazioni Drive
         </NeumorphicButton>
       </div>
 
       {/* Drive Settings Section */}
-      {driveConfig.length > 0 && driveConfig[0].folder_id && (
-        <NeumorphicCard className="p-4 bg-green-50 mb-6">
+      {driveConfig.length > 0 && driveConfig[0].folder_id &&
+      <NeumorphicCard className="p-4 bg-green-50 mb-6">
           <div className="flex items-center gap-3">
             <Folder className="w-5 h-5 text-green-600" />
             <div className="flex-1">
@@ -1328,21 +1328,21 @@ function ContrattiSection() {
               <p className="text-xs text-green-600">I contratti firmati verranno salvati automaticamente</p>
             </div>
             <button
-              onClick={async () => {
-                setShowDriveSettings(true);
-                await handleLoadDriveFolders();
-              }}
-              className="nav-button p-2 rounded-lg"
-            >
+            onClick={async () => {
+              setShowDriveSettings(true);
+              await handleLoadDriveFolders();
+            }}
+            className="nav-button p-2 rounded-lg">
+
               <Edit className="w-4 h-4 text-blue-600" />
             </button>
           </div>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Drive Settings Modal */}
-      {showDriveSettings && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showDriveSettings &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
@@ -1352,8 +1352,8 @@ function ContrattiSection() {
               <button onClick={() => setShowDriveSettings(false)}><X className="w-5 h-5" /></button>
             </div>
 
-            {driveConfig.length > 0 && driveConfig[0].folder_id && (
-              <div className="neumorphic-flat p-4 rounded-xl mb-6 bg-green-50">
+            {driveConfig.length > 0 && driveConfig[0].folder_id &&
+          <div className="neumorphic-flat p-4 rounded-xl mb-6 bg-green-50">
                 <div className="flex items-center gap-3">
                   <Folder className="w-6 h-6 text-green-600" />
                   <div>
@@ -1362,7 +1362,7 @@ function ContrattiSection() {
                   </div>
                 </div>
               </div>
-            )}
+          }
 
             <div className="neumorphic-flat p-5 rounded-xl mb-4">
               <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
@@ -1371,23 +1371,23 @@ function ContrattiSection() {
               </h3>
               <div className="flex gap-3">
                 <input
-                  type="text"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  placeholder="Nome cartella (es. Contratti Sa Pizzedda)"
-                  className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                />
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="Nome cartella (es. Contratti Sa Pizzedda)"
+                className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                 <NeumorphicButton
-                  onClick={handleCreateFolder}
-                  disabled={creatingFolder}
-                  variant="primary"
-                  className="flex items-center gap-2"
-                >
-                  {creatingFolder ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <FolderPlus className="w-5 h-5" />
-                  )}
+                onClick={handleCreateFolder}
+                disabled={creatingFolder}
+                variant="primary"
+                className="flex items-center gap-2">
+
+                  {creatingFolder ?
+                <Loader2 className="w-5 h-5 animate-spin" /> :
+
+                <FolderPlus className="w-5 h-5" />
+                }
                   Crea
                 </NeumorphicButton>
               </div>
@@ -1400,31 +1400,31 @@ function ContrattiSection() {
                   Seleziona Cartella Esistente
                 </h3>
                 <NeumorphicButton
-                  onClick={handleLoadDriveFolders}
-                  disabled={loadingFolders}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  {loadingFolders ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    'Carica Cartelle'
-                  )}
+                onClick={handleLoadDriveFolders}
+                disabled={loadingFolders}
+                className="flex items-center gap-2 text-sm">
+
+                  {loadingFolders ?
+                <Loader2 className="w-4 h-4 animate-spin" /> :
+
+                'Carica Cartelle'
+                }
                 </NeumorphicButton>
               </div>
 
-              {loadingFolders ? (
-                <div className="text-center py-8">
+              {loadingFolders ?
+            <div className="text-center py-8">
                   <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
                   <p className="text-sm text-slate-500">Caricamento cartelle...</p>
-                </div>
-              ) : driveFolders.length > 0 ? (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {driveFolders.map(folder => (
-                    <button
-                      key={folder.id}
-                      onClick={() => handleSelectExistingFolder(folder.id, folder.name)}
-                      className="w-full neumorphic-pressed p-3 rounded-xl hover:bg-blue-50 transition-colors text-left flex items-center gap-3"
-                    >
+                </div> :
+            driveFolders.length > 0 ?
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {driveFolders.map((folder) =>
+              <button
+                key={folder.id}
+                onClick={() => handleSelectExistingFolder(folder.id, folder.name)}
+                className="w-full neumorphic-pressed p-3 rounded-xl hover:bg-blue-50 transition-colors text-left flex items-center gap-3">
+
                       <Folder className="w-5 h-5 text-blue-500 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-slate-800 truncate">{folder.name}</p>
@@ -1433,13 +1433,13 @@ function ContrattiSection() {
                         </p>
                       </div>
                     </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-slate-500 py-4 text-sm">
+              )}
+                </div> :
+
+            <p className="text-center text-slate-500 py-4 text-sm">
                   Clicca "Carica Cartelle" per visualizzare le cartelle disponibili
                 </p>
-              )}
+            }
             </div>
 
             <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mt-4">
@@ -1449,36 +1449,36 @@ function ContrattiSection() {
             </div>
           </NeumorphicCard>
         </div>
-      )}
+      }
 
       {/* Contratti in scadenza */}
       {(() => {
         const oggi = new Date();
         const trentaGiorniFuturo = new Date();
         trentaGiorniFuturo.setDate(oggi.getDate() + 30);
-        
-        const contrattiInScadenza = contratti
-          .filter(c => c.status === 'firmato' && c.data_inizio_contratto && c.durata_contratto_mesi)
-          .map(c => {
-            const dataInizio = new Date(c.data_inizio_contratto);
-            const dataFine = new Date(dataInizio);
-            dataFine.setMonth(dataFine.getMonth() + parseInt(c.durata_contratto_mesi));
-            return { ...c, data_scadenza: dataFine };
-          })
-          .filter(c => c.data_scadenza >= oggi && c.data_scadenza <= trentaGiorniFuturo)
-          .sort((a, b) => a.data_scadenza - b.data_scadenza);
-        
-        return contrattiInScadenza.length > 0 && (
-          <NeumorphicCard className="p-6 mb-6 border-2 border-orange-400">
+
+        const contrattiInScadenza = contratti.
+        filter((c) => c.status === 'firmato' && c.data_inizio_contratto && c.durata_contratto_mesi).
+        map((c) => {
+          const dataInizio = new Date(c.data_inizio_contratto);
+          const dataFine = new Date(dataInizio);
+          dataFine.setMonth(dataFine.getMonth() + parseInt(c.durata_contratto_mesi));
+          return { ...c, data_scadenza: dataFine };
+        }).
+        filter((c) => c.data_scadenza >= oggi && c.data_scadenza <= trentaGiorniFuturo).
+        sort((a, b) => a.data_scadenza - b.data_scadenza);
+
+        return contrattiInScadenza.length > 0 &&
+        <NeumorphicCard className="p-6 mb-6 border-2 border-orange-400">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-orange-700">
               <AlertCircle className="w-6 h-6 text-orange-600" />
               Contratti in Scadenza (prossimi 30 giorni)
             </h2>
             <div className="space-y-3">
               {contrattiInScadenza.map((contratto) => {
-                const giorniRimanenti = Math.ceil((contratto.data_scadenza - oggi) / (1000 * 60 * 60 * 24));
-                return (
-                  <NeumorphicCard key={contratto.id} className="p-4 border-2 border-orange-200">
+              const giorniRimanenti = Math.ceil((contratto.data_scadenza - oggi) / (1000 * 60 * 60 * 24));
+              return (
+                <NeumorphicCard key={contratto.id} className="p-4 border-2 border-orange-200">
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="font-bold text-[#6b6b6b]">{contratto.nome_cognome}</p>
@@ -1488,21 +1488,21 @@ function ContrattiSection() {
                         </p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        giorniRimanenti <= 7 
-                          ? 'bg-red-100 text-red-700' 
-                          : giorniRimanenti <= 15
-                          ? 'bg-orange-100 text-orange-700'
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}>
+                    giorniRimanenti <= 7 ?
+                    'bg-red-100 text-red-700' :
+                    giorniRimanenti <= 15 ?
+                    'bg-orange-100 text-orange-700' :
+                    'bg-yellow-100 text-yellow-700'}`
+                    }>
                         {giorniRimanenti} giorni
                       </span>
                     </div>
-                  </NeumorphicCard>
-                );
-              })}
+                  </NeumorphicCard>);
+
+            })}
             </div>
-          </NeumorphicCard>
-        );
+          </NeumorphicCard>;
+
       })()}
 
       {/* Templates Section */}
@@ -1511,12 +1511,12 @@ function ContrattiSection() {
           <FileEdit className="w-5 h-5" />
           Templates Contratti
         </h2>
-        {templates.length === 0 ? (
-          <p className="text-center text-[#9b9b9b] py-4">Nessun template creato</p>
-        ) : (
-          <div className="space-y-3">
-            {templates.map(t => (
-              <NeumorphicCard key={t.id} className="p-4">
+        {templates.length === 0 ?
+        <p className="text-center text-[#9b9b9b] py-4">Nessun template creato</p> :
+
+        <div className="space-y-3">
+            {templates.map((t) =>
+          <NeumorphicCard key={t.id} className="p-4">
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="font-bold text-[#6b6b6b]">{t.nome_template}</p>
@@ -1526,19 +1526,19 @@ function ContrattiSection() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button 
-                      onClick={() => {
-                        setEditingTemplate(t);
-                        setTemplateData({
-                          nome_template: t.nome_template,
-                          contenuto_template: t.contenuto_template,
-                          descrizione: t.descrizione || '',
-                          attivo: t.attivo !== false
-                        });
-                        setShowTemplateForm(true);
-                      }}
-                      className="nav-button p-2 rounded-lg"
-                    >
+                    <button
+                  onClick={() => {
+                    setEditingTemplate(t);
+                    setTemplateData({
+                      nome_template: t.nome_template,
+                      contenuto_template: t.contenuto_template,
+                      descrizione: t.descrizione || '',
+                      attivo: t.attivo !== false
+                    });
+                    setShowTemplateForm(true);
+                  }}
+                  className="nav-button p-2 rounded-lg">
+
                       <Edit className="w-4 h-4 text-blue-600" />
                     </button>
                     <button onClick={() => deleteTemplateMutation.mutate(t.id)} className="nav-button p-2 rounded-lg">
@@ -1547,40 +1547,40 @@ function ContrattiSection() {
                   </div>
                 </div>
               </NeumorphicCard>
-            ))}
+          )}
           </div>
-        )}
+        }
       </NeumorphicCard>
 
       {/* Lista Contratti - Separati da firmare / firmati */}
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Lista Contratti</h2>
-        {contratti.length === 0 ? (
-          <p className="text-center text-[#9b9b9b] py-8">Nessun contratto creato</p>
-        ) : (
-          <>
+        {contratti.length === 0 ?
+        <p className="text-center text-[#9b9b9b] py-8">Nessun contratto creato</p> :
+
+        <>
             {/* Da Firmare */}
             {(() => {
-              const daFirmare = contratti.filter(c => c.status !== 'firmato');
-              return daFirmare.length > 0 && (
-                <div className="mb-6">
+            const daFirmare = contratti.filter((c) => c.status !== 'firmato');
+            return daFirmare.length > 0 &&
+            <div className="mb-6">
                   <h3 className="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
                     <Edit className="w-5 h-5 text-orange-600" />
                     Da Firmare ({daFirmare.length})
                   </h3>
                   <div className="space-y-3">
-                    {daFirmare.map(c => {
-                      const dataFine = c.data_inizio_contratto && c.durata_contratto_mesi
-                        ? (() => {
-                            const dataInizio = new Date(c.data_inizio_contratto);
-                            const fine = new Date(dataInizio);
-                            fine.setMonth(fine.getMonth() + parseInt(c.durata_contratto_mesi));
-                            return fine.toLocaleDateString('it-IT');
-                          })()
-                        : 'N/A';
-                      
-                      return (
-                        <NeumorphicCard key={c.id} className="p-4 border-l-4 border-orange-400">
+                    {daFirmare.map((c) => {
+                  const dataFine = c.data_inizio_contratto && c.durata_contratto_mesi ?
+                  (() => {
+                    const dataInizio = new Date(c.data_inizio_contratto);
+                    const fine = new Date(dataInizio);
+                    fine.setMonth(fine.getMonth() + parseInt(c.durata_contratto_mesi));
+                    return fine.toLocaleDateString('it-IT');
+                  })() :
+                  'N/A';
+
+                  return (
+                    <NeumorphicCard key={c.id} className="p-4 border-l-4 border-orange-400">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <p className="font-bold text-[#6b6b6b]">{c.nome_cognome}</p>
@@ -1599,46 +1599,46 @@ function ContrattiSection() {
                               <button onClick={() => setPreviewContratto(c)} className="nav-button p-2 rounded-lg">
                                 <Eye className="w-4 h-4 text-purple-600" />
                               </button>
-                              {c.status === 'bozza' && (
-                                <button onClick={() => handleSendContract(c)} className="nav-button p-2 rounded-lg">
+                              {c.status === 'bozza' &&
+                          <button onClick={() => handleSendContract(c)} className="nav-button p-2 rounded-lg">
                                   <Send className="w-4 h-4 text-green-600" />
                                 </button>
-                              )}
+                          }
                               <button onClick={() => deleteMutation.mutate(c.id)} className="nav-button p-2 rounded-lg">
                                 <Trash2 className="w-4 h-4 text-red-600" />
                               </button>
                             </div>
                           </div>
-                        </NeumorphicCard>
-                      );
-                    })}
+                        </NeumorphicCard>);
+
+                })}
                   </div>
-                </div>
-              );
-            })()}
+                </div>;
+
+          })()}
 
             {/* Firmati */}
             {(() => {
-              const firmati = contratti.filter(c => c.status === 'firmato');
-              return firmati.length > 0 && (
-                <div>
+            const firmati = contratti.filter((c) => c.status === 'firmato');
+            return firmati.length > 0 &&
+            <div>
                   <h3 className="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-green-600" />
                     Firmati ({firmati.length})
                   </h3>
                   <div className="space-y-3">
-                    {firmati.map(c => {
-                      const dataFine = c.data_inizio_contratto && c.durata_contratto_mesi
-                        ? (() => {
-                            const dataInizio = new Date(c.data_inizio_contratto);
-                            const fine = new Date(dataInizio);
-                            fine.setMonth(fine.getMonth() + parseInt(c.durata_contratto_mesi));
-                            return fine.toLocaleDateString('it-IT');
-                          })()
-                        : 'N/A';
-                      
-                      return (
-                        <NeumorphicCard key={c.id} className="p-4">
+                    {firmati.map((c) => {
+                  const dataFine = c.data_inizio_contratto && c.durata_contratto_mesi ?
+                  (() => {
+                    const dataInizio = new Date(c.data_inizio_contratto);
+                    const fine = new Date(dataInizio);
+                    fine.setMonth(fine.getMonth() + parseInt(c.durata_contratto_mesi));
+                    return fine.toLocaleDateString('it-IT');
+                  })() :
+                  'N/A';
+
+                  return (
+                    <NeumorphicCard key={c.id} className="p-4">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <p className="font-bold text-[#6b6b6b]">{c.nome_cognome}</p>
@@ -1657,36 +1657,36 @@ function ContrattiSection() {
                               <button onClick={() => setPreviewContratto(c)} className="nav-button p-2 rounded-lg">
                                 <Eye className="w-4 h-4 text-purple-600" />
                               </button>
-                              <button 
-                                onClick={() => downloadContrattoFirmato(c)} 
-                                className="nav-button p-2 rounded-lg" 
-                                title="Scarica contratto firmato PDF"
-                                disabled={downloadingPdf === c.id}
-                              >
-                                {downloadingPdf === c.id ? (
-                                  <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-                                ) : (
-                                  <Download className="w-4 h-4 text-blue-600" />
-                                )}
+                              <button
+                            onClick={() => downloadContrattoFirmato(c)}
+                            className="nav-button p-2 rounded-lg"
+                            title="Scarica contratto firmato PDF"
+                            disabled={downloadingPdf === c.id}>
+
+                                {downloadingPdf === c.id ?
+                            <Loader2 className="w-4 h-4 text-blue-600 animate-spin" /> :
+
+                            <Download className="w-4 h-4 text-blue-600" />
+                            }
                               </button>
                               <button onClick={() => deleteMutation.mutate(c.id)} className="nav-button p-2 rounded-lg">
                                 <Trash2 className="w-4 h-4 text-red-600" />
                               </button>
                             </div>
                           </div>
-                        </NeumorphicCard>
-                      );
-                    })}
+                        </NeumorphicCard>);
+
+                })}
                   </div>
-                </div>
-              );
-            })()}
+                </div>;
+
+          })()}
           </>
-        )}
+        }
       </NeumorphicCard>
 
-      {showTemplateForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showTemplateForm &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">{editingTemplate ? 'Modifica Template' : 'Nuovo Template'}</h2>
@@ -1694,59 +1694,59 @@ function ContrattiSection() {
             </div>
             <form onSubmit={handleSubmitTemplate} className="space-y-4">
               <input
-                type="text"
-                placeholder="Nome template"
-                value={templateData.nome_template}
-                onChange={(e) => setTemplateData({ ...templateData, nome_template: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                required
-              />
+              type="text"
+              placeholder="Nome template"
+              value={templateData.nome_template}
+              onChange={(e) => setTemplateData({ ...templateData, nome_template: e.target.value })}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+              required />
+
               <input
-                type="text"
-                placeholder="Descrizione (opzionale)"
-                value={templateData.descrizione}
-                onChange={(e) => setTemplateData({ ...templateData, descrizione: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-              />
+              type="text"
+              placeholder="Descrizione (opzionale)"
+              value={templateData.descrizione}
+              onChange={(e) => setTemplateData({ ...templateData, descrizione: e.target.value })}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
               <div className="flex items-center gap-3">
                 <input
-                  type="checkbox"
-                  id="template-attivo"
-                  checked={templateData.attivo}
-                  onChange={(e) => setTemplateData({ ...templateData, attivo: e.target.checked })}
-                  className="w-5 h-5"
-                />
+                type="checkbox"
+                id="template-attivo"
+                checked={templateData.attivo}
+                onChange={(e) => setTemplateData({ ...templateData, attivo: e.target.checked })}
+                className="w-5 h-5" />
+
                 <label htmlFor="template-attivo" className="text-sm text-slate-700">Template attivo</label>
               </div>
               <div className="neumorphic-pressed p-3 rounded-xl">
                 <p className="text-xs mb-2">Variabili:</p>
                 <div className="flex flex-wrap gap-2">
-                  {availableVariables.map(v => (
-                    <button key={v} type="button" onClick={() => insertVariable(v)}
-                      className="neumorphic-flat px-2 py-1 rounded text-xs">
+                  {availableVariables.map((v) =>
+                <button key={v} type="button" onClick={() => insertVariable(v)}
+                className="neumorphic-flat px-2 py-1 rounded text-xs">
                       {`{{${v}}}`}
                     </button>
-                  ))}
+                )}
                 </div>
               </div>
               <textarea
-                ref={(el) => setTemplateTextareaRef(el)}
-                value={templateData.contenuto_template}
-                onChange={(e) => setTemplateData({ ...templateData, contenuto_template: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-96 resize-none"
-                placeholder="Contenuto del contratto..."
-                required
-              />
+              ref={(el) => setTemplateTextareaRef(el)}
+              value={templateData.contenuto_template}
+              onChange={(e) => setTemplateData({ ...templateData, contenuto_template: e.target.value })}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-96 resize-none"
+              placeholder="Contenuto del contratto..."
+              required />
+
               <NeumorphicButton type="submit" variant="primary" className="w-full">
                 {editingTemplate ? 'Aggiorna Template' : 'Salva Template'}
               </NeumorphicButton>
             </form>
           </NeumorphicCard>
         </div>
-      )}
+      }
 
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showForm &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-6xl w-full max-h-[90vh] flex gap-4">
             {/* Left: Form */}
             <NeumorphicCard className="w-1/2 p-6 overflow-y-auto">
@@ -1758,48 +1758,48 @@ function ContrattiSection() {
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Template *</label>
                   <select value={selectedTemplate} onChange={(e) => handleTemplateSelect(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
                     <option value="">Seleziona template...</option>
-                    {templates.filter(t => t.attivo).map(t => (
-                      <option key={t.id} value={t.id}>{t.nome_template}</option>
-                    ))}
+                    {templates.filter((t) => t.attivo).map((t) =>
+                  <option key={t.id} value={t.id}>{t.nome_template}</option>
+                  )}
                   </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Dipendente</label>
                   <select value={formData.user_id} onChange={(e) => handleUserSelect(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
                     <option value="">Seleziona dipendente...</option>
-                    {users.filter(u => u.user_type === 'dipendente').map(u => (
-                      <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name || u.email}</option>
-                    ))}
+                    {users.filter((u) => u.user_type === 'dipendente').map((u) =>
+                  <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name || u.email}</option>
+                  )}
                   </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Nome Cognome *</label>
                   <input type="text" placeholder="Nome Cognome" value={formData.nome_cognome}
-                    onChange={(e) => handleFormDataChange({ ...formData, nome_cognome: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
+                onChange={(e) => handleFormDataChange({ ...formData, nome_cognome: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">Data Inizio *</label>
                     <input type="date" value={formData.data_inizio_contratto}
-                      onChange={(e) => handleFormDataChange({ ...formData, data_inizio_contratto: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
+                  onChange={(e) => handleFormDataChange({ ...formData, data_inizio_contratto: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">Durata (mesi)</label>
                     <input type="number" placeholder="12" value={formData.durata_contratto_mesi}
-                      onChange={(e) => handleFormDataChange({ ...formData, durata_contratto_mesi: parseInt(e.target.value) || 0, data_fine_contratto: '' })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+                  onChange={(e) => handleFormDataChange({ ...formData, durata_contratto_mesi: parseInt(e.target.value) || 0, data_fine_contratto: '' })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Data Fine (opzionale)</label>
                   <input type="date" value={formData.data_fine_contratto}
-                    onChange={(e) => handleFormDataChange({ ...formData, data_fine_contratto: e.target.value, durata_contratto_mesi: 0 })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+                onChange={(e) => handleFormDataChange({ ...formData, data_fine_contratto: e.target.value, durata_contratto_mesi: 0 })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
                   <p className="text-xs text-slate-500 mt-1">Lascia vuoto per calcolarla automaticamente dalla durata</p>
                 </div>
                 <NeumorphicButton type="submit" variant="primary" className="w-full">Crea Contratto</NeumorphicButton>
@@ -1809,26 +1809,26 @@ function ContrattiSection() {
             {/* Right: Preview */}
             <NeumorphicCard className="w-1/2 p-6 overflow-y-auto">
               <h2 className="text-xl font-bold mb-4">Anteprima Contratto</h2>
-              {editablePreview ? (
-                <textarea
-                  value={editablePreview}
-                  onChange={(e) => setEditablePreview(e.target.value)}
-                  className="w-full h-full neumorphic-pressed px-4 py-3 rounded-xl outline-none resize-none font-mono text-sm"
-                  placeholder="Seleziona un template e compila i dati per vedere l'anteprima..."
-                />
-              ) : (
-                <div className="neumorphic-pressed p-6 rounded-xl bg-slate-50 text-center">
+              {editablePreview ?
+            <textarea
+              value={editablePreview}
+              onChange={(e) => setEditablePreview(e.target.value)}
+              className="w-full h-full neumorphic-pressed px-4 py-3 rounded-xl outline-none resize-none font-mono text-sm"
+              placeholder="Seleziona un template e compila i dati per vedere l'anteprima..." /> :
+
+
+            <div className="neumorphic-pressed p-6 rounded-xl bg-slate-50 text-center">
                   <FileText className="w-16 h-16 text-slate-300 mx-auto mb-3" />
                   <p className="text-slate-500 text-sm">Seleziona un template e compila i dati per vedere l'anteprima</p>
                 </div>
-              )}
+            }
             </NeumorphicCard>
           </div>
         </div>
-      )}
+      }
 
-      {previewContratto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {previewContratto &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Anteprima Contratto</h2>
@@ -1841,9 +1841,9 @@ function ContrattiSection() {
             </div>
           </NeumorphicCard>
         </div>
-      )}
-    </>
-  );
+      }
+    </>);
+
 }
 
 // Lettere Section
@@ -1898,7 +1898,7 @@ function LettereSection() {
     const badges = {
       'bozza': { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Bozza' },
       'inviato': { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Inviato' },
-      'firmato': { bg: 'bg-green-100', text: 'text-green-700', label: 'Firmato ✓' },
+      'firmato': { bg: 'bg-green-100', text: 'text-green-700', label: 'Firmato ✓' }
     };
     const badge = badges[status] || badges.bozza;
     return <span className={`px-3 py-1 rounded-full text-xs font-bold ${badge.bg} ${badge.text}`}>{badge.label}</span>;
@@ -1907,24 +1907,24 @@ function LettereSection() {
   const queryClient = useQueryClient();
   const { data: templates = [] } = useQuery({
     queryKey: ['lettera-templates'],
-    queryFn: () => base44.entities.LetteraRichiamoTemplate.list(),
+    queryFn: () => base44.entities.LetteraRichiamoTemplate.list()
   });
   const { data: lettere = [] } = useQuery({
     queryKey: ['lettere-richiamo'],
     queryFn: async () => {
       const data = await base44.entities.LetteraRichiamo.list('-created_date');
-      base44.functions.invoke('processAutomaticChiusuraProcedura', {}).catch(err => 
-        console.log('Background automation check:', err)
+      base44.functions.invoke('processAutomaticChiusuraProcedura', {}).catch((err) =>
+      console.log('Background automation check:', err)
       );
       return data;
-    },
+    }
   });
   const { data: users = [] } = useQuery({
     queryKey: ['users-dipendenti'],
     queryFn: async () => {
       const allUsers = await base44.entities.User.list();
-      return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
-    },
+      return allUsers.filter((u) => u.user_type === 'dipendente' || u.user_type === 'user');
+    }
   });
 
   const createTemplateMutation = useMutation({
@@ -1932,7 +1932,7 @@ function LettereSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lettera-templates'] });
       resetTemplateForm();
-    },
+    }
   });
 
   const updateTemplateMutation = useMutation({
@@ -1940,17 +1940,17 @@ function LettereSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lettera-templates'] });
       resetTemplateForm();
-    },
+    }
   });
 
   const deleteTemplateMutation = useMutation({
     mutationFn: (id) => base44.entities.LetteraRichiamoTemplate.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lettera-templates'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lettera-templates'] })
   });
 
   const { data: lettereConfig = [] } = useQuery({
     queryKey: ['lettere-config'],
-    queryFn: () => base44.entities.LettereConfig.list(),
+    queryFn: () => base44.entities.LettereConfig.list()
   });
 
   const currentConfig = lettereConfig[0];
@@ -1966,7 +1966,7 @@ function LettereSection() {
       queryClient.invalidateQueries({ queryKey: ['lettere-config'] });
       alert('Configurazione salvata!');
       setShowAutoConfig(false);
-    },
+    }
   });
 
   const deleteLetteraMutation = useMutation({
@@ -1974,18 +1974,18 @@ function LettereSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
       alert('Lettera eliminata');
-    },
+    }
   });
 
   const generateLetteraContent = (templateId, userId, richiamoData = null) => {
-    const template = templates.find(t => t.id === templateId);
-    const user = users.find(u => u.id === userId);
+    const template = templates.find((t) => t.id === templateId);
+    const user = users.find((u) => u.id === userId);
     if (!template || !user) return '';
-    
+
     let contenuto = template.contenuto;
     contenuto = contenuto.replace(/{{nome_dipendente}}/g, user.nome_cognome || user.full_name || user.email);
     contenuto = contenuto.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
-    
+
     if (richiamoData) {
       // Data invio richiamo
       if (richiamoData.data_invio) {
@@ -2031,8 +2031,8 @@ function LettereSection() {
 
   const inviaLetteraMutation = useMutation({
     mutationFn: async (data) => {
-      const user = users.find(u => u.id === data.user_id);
-      
+      const user = users.find((u) => u.id === data.user_id);
+
       return base44.entities.LetteraRichiamo.create({
         user_id: user.id,
         user_email: user.email,
@@ -2050,7 +2050,7 @@ function LettereSection() {
       setShowPreview(false);
       setPreviewContent('');
       resetLetteraForm();
-    },
+    }
   });
 
   const handleSendFromPreview = () => {
@@ -2062,7 +2062,7 @@ function LettereSection() {
   };
 
   const generateChiusuraPreview = (richiamo) => {
-    const chiusuraTemplate = templates.find(t => t.id === currentConfig?.template_chiusura_id);
+    const chiusuraTemplate = templates.find((t) => t.id === currentConfig?.template_chiusura_id);
     if (!chiusuraTemplate) {
       setChiusuraPreviewContent('Nessun template di chiusura configurato');
       return;
@@ -2090,7 +2090,7 @@ function LettereSection() {
     }
   };
 
-  const chiusuraTemplates = templates.filter(t => t.tipo_lettera === 'chiusura_procedura' && t.attivo);
+  const chiusuraTemplates = templates.filter((t) => t.tipo_lettera === 'chiusura_procedura' && t.attivo);
 
   return (
     <>
@@ -2110,8 +2110,8 @@ function LettereSection() {
       </div>
 
       {/* Configurazione Automazione */}
-      {showAutoConfig && (
-        <NeumorphicCard className="p-6 mb-6 border-2 border-blue-300">
+      {showAutoConfig &&
+      <NeumorphicCard className="p-6 mb-6 border-2 border-blue-300">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
               <Settings className="w-5 h-5 text-blue-600" />
@@ -2125,36 +2125,36 @@ function LettereSection() {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <input
-                type="checkbox"
-                id="invio-auto"
-                checked={currentConfig?.invio_automatico_chiusura || false}
-                onChange={(e) => saveConfigMutation.mutate({ 
-                  ...currentConfig, 
-                  invio_automatico_chiusura: e.target.checked 
-                })}
-                className="w-5 h-5"
-              />
+              type="checkbox"
+              id="invio-auto"
+              checked={currentConfig?.invio_automatico_chiusura || false}
+              onChange={(e) => saveConfigMutation.mutate({
+                ...currentConfig,
+                invio_automatico_chiusura: e.target.checked
+              })}
+              className="w-5 h-5" />
+
               <label htmlFor="invio-auto" className="text-sm font-medium text-slate-700">
                 Invia automaticamente chiusura procedura dopo la visualizzazione della lettera di richiamo
               </label>
             </div>
 
-            {(currentConfig?.invio_automatico_chiusura) && (
-              <>
+            {currentConfig?.invio_automatico_chiusura &&
+          <>
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Giorni di attesa dopo la visualizzazione (0 = immediato)
                   </label>
                   <input
-                    type="number"
-                    min="0"
-                    value={currentConfig?.giorni_attesa_chiusura || 0}
-                    onChange={(e) => saveConfigMutation.mutate({ 
-                      ...currentConfig, 
-                      giorni_attesa_chiusura: parseInt(e.target.value) || 0 
-                    })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
+                type="number"
+                min="0"
+                value={currentConfig?.giorni_attesa_chiusura || 0}
+                onChange={(e) => saveConfigMutation.mutate({
+                  ...currentConfig,
+                  giorni_attesa_chiusura: parseInt(e.target.value) || 0
+                })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                 </div>
 
                 <div>
@@ -2162,26 +2162,26 @@ function LettereSection() {
                     Template chiusura procedura da usare
                   </label>
                   <select
-                    value={currentConfig?.template_chiusura_id || ''}
-                    onChange={(e) => saveConfigMutation.mutate({ 
-                      ...currentConfig, 
-                      template_chiusura_id: e.target.value 
-                    })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  >
+                value={currentConfig?.template_chiusura_id || ''}
+                onChange={(e) => saveConfigMutation.mutate({
+                  ...currentConfig,
+                  template_chiusura_id: e.target.value
+                })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+
                     <option value="">-- Seleziona template --</option>
-                    {chiusuraTemplates.map(t => (
-                      <option key={t.id} value={t.id}>{t.nome_template}</option>
-                    ))}
+                    {chiusuraTemplates.map((t) =>
+                <option key={t.id} value={t.id}>{t.nome_template}</option>
+                )}
                   </select>
-                  {chiusuraTemplates.length === 0 && (
-                    <p className="text-xs text-orange-600 mt-1">
+                  {chiusuraTemplates.length === 0 &&
+              <p className="text-xs text-orange-600 mt-1">
                       ⚠️ Nessun template di chiusura procedura disponibile. Creane uno prima.
                     </p>
-                  )}
+              }
                 </div>
               </>
-            )}
+          }
 
             <div className="neumorphic-flat p-3 rounded-lg bg-blue-50">
               <p className="text-xs text-blue-800">
@@ -2191,7 +2191,7 @@ function LettereSection() {
             </div>
           </div>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Templates Section */}
       <NeumorphicCard className="p-6 mb-6">
@@ -2199,12 +2199,12 @@ function LettereSection() {
           <FileEdit className="w-5 h-5" />
           Templates Lettere
         </h2>
-        {templates.length === 0 ? (
-          <p className="text-center text-slate-500 py-4">Nessun template creato</p>
-        ) : (
-          <div className="space-y-3">
-            {templates.map(t => (
-              <NeumorphicCard key={t.id} className="p-4">
+        {templates.length === 0 ?
+        <p className="text-center text-slate-500 py-4">Nessun template creato</p> :
+
+        <div className="space-y-3">
+            {templates.map((t) =>
+          <NeumorphicCard key={t.id} className="p-4">
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="font-bold text-slate-800">{t.nome_template}</p>
@@ -2214,19 +2214,19 @@ function LettereSection() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button 
-                      onClick={() => {
-                        setEditingTemplate(t);
-                        setTemplateForm({
-                          nome_template: t.nome_template,
-                          tipo_lettera: t.tipo_lettera,
-                          contenuto: t.contenuto,
-                          attivo: t.attivo !== false
-                        });
-                        setShowTemplateForm(true);
-                      }}
-                      className="nav-button p-2 rounded-lg"
-                    >
+                    <button
+                  onClick={() => {
+                    setEditingTemplate(t);
+                    setTemplateForm({
+                      nome_template: t.nome_template,
+                      tipo_lettera: t.tipo_lettera,
+                      contenuto: t.contenuto,
+                      attivo: t.attivo !== false
+                    });
+                    setShowTemplateForm(true);
+                  }}
+                  className="nav-button p-2 rounded-lg">
+
                       <Edit className="w-4 h-4 text-blue-600" />
                     </button>
                     <button onClick={() => deleteTemplateMutation.mutate(t.id)} className="nav-button p-2 rounded-lg">
@@ -2235,9 +2235,9 @@ function LettereSection() {
                   </div>
                 </div>
               </NeumorphicCard>
-            ))}
+          )}
           </div>
-        )}
+        }
       </NeumorphicCard>
 
       {/* Lettere di Richiamo */}
@@ -2247,23 +2247,23 @@ function LettereSection() {
           Lettere di Richiamo
         </h2>
         {(() => {
-          const lettereRichiamo = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo');
-          const richiamiInviati = lettereRichiamo.filter(l => l.status === 'inviata' && !l.data_visualizzazione);
-          const richiamiVisualizzati = lettereRichiamo.filter(l => l.data_visualizzazione && l.status !== 'firmata');
-          const richiamiCompleti = lettereRichiamo.filter(l => l.status === 'firmata');
+          const lettereRichiamo = lettere.filter((l) => l.tipo_lettera === 'lettera_richiamo');
+          const richiamiInviati = lettereRichiamo.filter((l) => l.status === 'inviata' && !l.data_visualizzazione);
+          const richiamiVisualizzati = lettereRichiamo.filter((l) => l.data_visualizzazione && l.status !== 'firmata');
+          const richiamiCompleti = lettereRichiamo.filter((l) => l.status === 'firmata');
 
           return (
             <>
               {/* Inviate */}
-              {richiamiInviati.length > 0 && (
-                <div className="mb-6">
+              {richiamiInviati.length > 0 &&
+              <div className="mb-6">
                   <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
                     <Send className="w-4 h-4 text-blue-600" />
                     Inviate - In Attesa Visualizzazione ({richiamiInviati.length})
                   </h3>
                   <div className="space-y-2">
-                    {richiamiInviati.map(richiamo => (
-                      <NeumorphicCard key={richiamo.id} className="p-4 border-l-4 border-blue-400">
+                    {richiamiInviati.map((richiamo) =>
+                  <NeumorphicCard key={richiamo.id} className="p-4 border-l-4 border-blue-400">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p className="font-bold text-slate-800">{richiamo.user_name}</p>
@@ -2273,19 +2273,19 @@ function LettereSection() {
                           </div>
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => setViewingRichiamo(richiamo)}
-                              className="nav-button p-1.5 rounded-lg"
-                            >
+                          onClick={() => setViewingRichiamo(richiamo)}
+                          className="nav-button p-1.5 rounded-lg">
+
                               <Eye className="w-3.5 h-3.5 text-purple-600" />
                             </button>
                             <button
-                              onClick={() => {
-                                if (confirm(`Eliminare la lettera di richiamo per ${richiamo.user_name}?`)) {
-                                  deleteLetteraMutation.mutate(richiamo.id);
-                                }
-                              }}
-                              className="nav-button p-1.5 rounded-lg"
-                            >
+                          onClick={() => {
+                            if (confirm(`Eliminare la lettera di richiamo per ${richiamo.user_name}?`)) {
+                              deleteLetteraMutation.mutate(richiamo.id);
+                            }
+                          }}
+                          className="nav-button p-1.5 rounded-lg">
+
                               <Trash2 className="w-3.5 h-3.5 text-red-600" />
                             </button>
                             <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
@@ -2294,28 +2294,28 @@ function LettereSection() {
                           </div>
                         </div>
                       </NeumorphicCard>
-                    ))}
+                  )}
                   </div>
                 </div>
-              )}
+              }
 
               {/* Visualizzate */}
-              {richiamiVisualizzati.length > 0 && (
-                <div className="mb-6">
+              {richiamiVisualizzati.length > 0 &&
+              <div className="mb-6">
                   <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
                     <Eye className="w-4 h-4 text-purple-600" />
                     Visualizzate - In Attesa Firma ({richiamiVisualizzati.length})
                   </h3>
                   <div className="space-y-2">
-                    {richiamiVisualizzati.map(richiamo => {
-                      const chiusura = lettere.find(l => 
-                        l.tipo_lettera === 'chiusura_procedura' && 
-                        l.user_id === richiamo.user_id &&
-                        new Date(l.data_invio) > new Date(richiamo.data_invio)
-                      );
-                      
-                      return (
-                        <NeumorphicCard key={richiamo.id} className="p-4 border-l-4 border-purple-400">
+                    {richiamiVisualizzati.map((richiamo) => {
+                    const chiusura = lettere.find((l) =>
+                    l.tipo_lettera === 'chiusura_procedura' &&
+                    l.user_id === richiamo.user_id &&
+                    new Date(l.data_invio) > new Date(richiamo.data_invio)
+                    );
+
+                    return (
+                      <NeumorphicCard key={richiamo.id} className="p-4 border-l-4 border-purple-400">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <p className="font-bold text-slate-800">{richiamo.user_name}</p>
@@ -2328,30 +2328,30 @@ function LettereSection() {
                             </div>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => setViewingRichiamo(richiamo)}
-                                className="nav-button p-1.5 rounded-lg"
-                              >
+                              onClick={() => setViewingRichiamo(richiamo)}
+                              className="nav-button p-1.5 rounded-lg">
+
                                 <Eye className="w-3.5 h-3.5 text-purple-600" />
                               </button>
                               <button
-                                onClick={() => downloadLetteraPDFAdmin(richiamo)}
-                                className="nav-button p-1.5 rounded-lg"
-                                disabled={downloadingPdfAdmin === richiamo.id}
-                              >
-                                {downloadingPdfAdmin === richiamo.id ? (
-                                  <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
-                                ) : (
-                                  <Download className="w-3.5 h-3.5 text-blue-600" />
-                                )}
+                              onClick={() => downloadLetteraPDFAdmin(richiamo)}
+                              className="nav-button p-1.5 rounded-lg"
+                              disabled={downloadingPdfAdmin === richiamo.id}>
+
+                                {downloadingPdfAdmin === richiamo.id ?
+                              <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" /> :
+
+                              <Download className="w-3.5 h-3.5 text-blue-600" />
+                              }
                               </button>
                               <button
-                                onClick={() => {
-                                  if (confirm(`Eliminare la lettera di richiamo per ${richiamo.user_name}?`)) {
-                                    deleteLetteraMutation.mutate(richiamo.id);
-                                  }
-                                }}
-                                className="nav-button p-1.5 rounded-lg"
-                              >
+                              onClick={() => {
+                                if (confirm(`Eliminare la lettera di richiamo per ${richiamo.user_name}?`)) {
+                                  deleteLetteraMutation.mutate(richiamo.id);
+                                }
+                              }}
+                              className="nav-button p-1.5 rounded-lg">
+
                                 <Trash2 className="w-3.5 h-3.5 text-red-600" />
                               </button>
                               <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">
@@ -2359,18 +2359,18 @@ function LettereSection() {
                               </span>
                             </div>
                           </div>
-                        </NeumorphicCard>
-                      );
-                    })}
+                        </NeumorphicCard>);
+
+                  })}
                   </div>
                 </div>
-              )}
+              }
 
-              {lettereRichiamo.length === 0 && (
-                <p className="text-center text-slate-500 py-8">Nessuna lettera di richiamo inviata</p>
-              )}
-            </>
-          );
+              {lettereRichiamo.length === 0 &&
+              <p className="text-center text-slate-500 py-8">Nessuna lettera di richiamo inviata</p>
+              }
+            </>);
+
         })()}
       </NeumorphicCard>
 
@@ -2381,66 +2381,66 @@ function LettereSection() {
           Chiusure Procedura
         </h2>
         {(() => {
-          const chiusureProcedura = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura');
-          const chiusureInviate = chiusureProcedura.filter(l => l.status !== 'firmata');
-          const chiusureFirmate = chiusureProcedura.filter(l => l.status === 'firmata');
+          const chiusureProcedura = lettere.filter((l) => l.tipo_lettera === 'chiusura_procedura');
+          const chiusureInviate = chiusureProcedura.filter((l) => l.status !== 'firmata');
+          const chiusureFirmate = chiusureProcedura.filter((l) => l.status === 'firmata');
 
           return (
             <>
               {/* Inviate - Da Firmare */}
-              {chiusureInviate.length > 0 && (
-                <div className="mb-6">
+              {chiusureInviate.length > 0 &&
+              <div className="mb-6">
                   <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
                     <Send className="w-4 h-4 text-green-600" />
                     Inviate - In Attesa Firma ({chiusureInviate.length})
                   </h3>
                   <div className="space-y-2">
-                    {chiusureInviate.map(chiusura => {
-                      const richiamo = lettere.find(l => 
-                        l.tipo_lettera === 'lettera_richiamo' && 
-                        l.user_id === chiusura.user_id
-                      );
-                      
-                      return (
-                        <NeumorphicCard key={chiusura.id} className="p-4 border-l-4 border-green-400">
+                    {chiusureInviate.map((chiusura) => {
+                    const richiamo = lettere.find((l) =>
+                    l.tipo_lettera === 'lettera_richiamo' &&
+                    l.user_id === chiusura.user_id
+                    );
+
+                    return (
+                      <NeumorphicCard key={chiusura.id} className="p-4 border-l-4 border-green-400">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <p className="font-bold text-slate-800">{chiusura.user_name}</p>
                               <div className="text-xs text-slate-500 mt-1 space-y-0.5">
                                 <p>Inviata: {chiusura.data_invio ? new Date(chiusura.data_invio).toLocaleDateString('it-IT') : 'N/A'}</p>
-                                {richiamo && (
-                                  <p className="text-orange-600">
+                                {richiamo &&
+                              <p className="text-orange-600">
                                     Richiamo firmato: {richiamo.data_firma ? new Date(richiamo.data_firma).toLocaleDateString('it-IT') : 'N/A'}
                                   </p>
-                                )}
+                              }
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => setViewingChiusura({ tipo: 'inviata', chiusura })}
-                                className="nav-button p-1.5 rounded-lg"
-                              >
+                              onClick={() => setViewingChiusura({ tipo: 'inviata', chiusura })}
+                              className="nav-button p-1.5 rounded-lg">
+
                                 <Eye className="w-3.5 h-3.5 text-blue-600" />
                               </button>
                               <button
-                                onClick={() => downloadLetteraPDFAdmin(chiusura)}
-                                className="nav-button p-1.5 rounded-lg"
-                                disabled={downloadingPdfAdmin === chiusura.id}
-                              >
-                                {downloadingPdfAdmin === chiusura.id ? (
-                                  <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
-                                ) : (
-                                  <Download className="w-3.5 h-3.5 text-blue-600" />
-                                )}
+                              onClick={() => downloadLetteraPDFAdmin(chiusura)}
+                              className="nav-button p-1.5 rounded-lg"
+                              disabled={downloadingPdfAdmin === chiusura.id}>
+
+                                {downloadingPdfAdmin === chiusura.id ?
+                              <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" /> :
+
+                              <Download className="w-3.5 h-3.5 text-blue-600" />
+                              }
                               </button>
                               <button
-                                onClick={() => {
-                                  if (confirm(`Eliminare la chiusura procedura per ${chiusura.user_name}?`)) {
-                                    deleteLetteraMutation.mutate(chiusura.id);
-                                  }
-                                }}
-                                className="nav-button p-1.5 rounded-lg"
-                              >
+                              onClick={() => {
+                                if (confirm(`Eliminare la chiusura procedura per ${chiusura.user_name}?`)) {
+                                  deleteLetteraMutation.mutate(chiusura.id);
+                                }
+                              }}
+                              className="nav-button p-1.5 rounded-lg">
+
                                 <Trash2 className="w-3.5 h-3.5 text-red-600" />
                               </button>
                               <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
@@ -2448,29 +2448,29 @@ function LettereSection() {
                               </span>
                             </div>
                           </div>
-                        </NeumorphicCard>
-                      );
-                    })}
+                        </NeumorphicCard>);
+
+                  })}
                   </div>
                 </div>
-              )}
+              }
 
               {/* Firmate */}
-              {chiusureFirmate.length > 0 && (
-                <div>
+              {chiusureFirmate.length > 0 &&
+              <div>
                   <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-600" />
                     Firmate - Procedura Chiusa ({chiusureFirmate.length})
                   </h3>
                   <div className="space-y-2">
-                    {chiusureFirmate.map(chiusura => {
-                      const richiamo = lettere.find(l => 
-                        l.tipo_lettera === 'lettera_richiamo' && 
-                        l.user_id === chiusura.user_id
-                      );
-                      
-                      return (
-                        <NeumorphicCard key={chiusura.id} className="p-4 border-l-4 border-green-600 bg-green-50">
+                    {chiusureFirmate.map((chiusura) => {
+                    const richiamo = lettere.find((l) =>
+                    l.tipo_lettera === 'lettera_richiamo' &&
+                    l.user_id === chiusura.user_id
+                    );
+
+                    return (
+                      <NeumorphicCard key={chiusura.id} className="p-4 border-l-4 border-green-600 bg-green-50">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <p className="font-bold text-slate-800">{chiusura.user_name}</p>
@@ -2479,39 +2479,39 @@ function LettereSection() {
                                 <p className="text-green-700 font-medium">
                                   Firmata: {chiusura.data_firma ? new Date(chiusura.data_firma).toLocaleDateString('it-IT') : 'N/A'}
                                 </p>
-                                {richiamo && (
-                                  <p className="text-orange-600">
+                                {richiamo &&
+                              <p className="text-orange-600">
                                     Richiamo firmato: {richiamo.data_firma ? new Date(richiamo.data_firma).toLocaleDateString('it-IT') : 'N/A'}
                                   </p>
-                                )}
+                              }
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => setViewingChiusura({ tipo: 'inviata', chiusura })}
-                                className="nav-button p-1.5 rounded-lg"
-                              >
+                              onClick={() => setViewingChiusura({ tipo: 'inviata', chiusura })}
+                              className="nav-button p-1.5 rounded-lg">
+
                                 <Eye className="w-3.5 h-3.5 text-blue-600" />
                               </button>
                               <button
-                                onClick={() => downloadLetteraPDFAdmin(chiusura)}
-                                className="nav-button p-1.5 rounded-lg"
-                                disabled={downloadingPdfAdmin === chiusura.id}
-                              >
-                                {downloadingPdfAdmin === chiusura.id ? (
-                                  <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
-                                ) : (
-                                  <Download className="w-3.5 h-3.5 text-blue-600" />
-                                )}
+                              onClick={() => downloadLetteraPDFAdmin(chiusura)}
+                              className="nav-button p-1.5 rounded-lg"
+                              disabled={downloadingPdfAdmin === chiusura.id}>
+
+                                {downloadingPdfAdmin === chiusura.id ?
+                              <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" /> :
+
+                              <Download className="w-3.5 h-3.5 text-blue-600" />
+                              }
                               </button>
                               <button
-                                onClick={() => {
-                                  if (confirm(`Eliminare la chiusura procedura per ${chiusura.user_name}?`)) {
-                                    deleteLetteraMutation.mutate(chiusura.id);
-                                  }
-                                }}
-                                className="nav-button p-1.5 rounded-lg"
-                              >
+                              onClick={() => {
+                                if (confirm(`Eliminare la chiusura procedura per ${chiusura.user_name}?`)) {
+                                  deleteLetteraMutation.mutate(chiusura.id);
+                                }
+                              }}
+                              className="nav-button p-1.5 rounded-lg">
+
                                 <Trash2 className="w-3.5 h-3.5 text-red-600" />
                               </button>
                               <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
@@ -2519,23 +2519,23 @@ function LettereSection() {
                               </span>
                             </div>
                           </div>
-                        </NeumorphicCard>
-                      );
-                    })}
+                        </NeumorphicCard>);
+
+                  })}
                   </div>
                 </div>
-              )}
+              }
 
-              {chiusureProcedura.length === 0 && (
-                <p className="text-center text-slate-500 py-8">Nessuna chiusura procedura inviata</p>
-              )}
-            </>
-          );
+              {chiusureProcedura.length === 0 &&
+              <p className="text-center text-slate-500 py-8">Nessuna chiusura procedura inviata</p>
+              }
+            </>);
+
         })()}
       </NeumorphicCard>
 
-      {showTemplateForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showTemplateForm &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">{editingTemplate ? 'Modifica Template' : 'Nuovo Template'}</h2>
@@ -2543,74 +2543,74 @@ function LettereSection() {
             </div>
             <form onSubmit={handleSubmitTemplate} className="space-y-4">
               <input type="text" placeholder="Nome template" value={templateForm.nome_template}
-                onChange={(e) => setTemplateForm({ ...templateForm, nome_template: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
+            onChange={(e) => setTemplateForm({ ...templateForm, nome_template: e.target.value })}
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required />
               <select value={templateForm.tipo_lettera}
-                onChange={(e) => setTemplateForm({ ...templateForm, tipo_lettera: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+            onChange={(e) => setTemplateForm({ ...templateForm, tipo_lettera: e.target.value })}
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
                 <option value="lettera_richiamo">Lettera di Richiamo</option>
                 <option value="chiusura_procedura">Chiusura Procedura</option>
               </select>
               <div className="flex items-center gap-3">
                 <input
-                  type="checkbox"
-                  id="lettera-template-attivo"
-                  checked={templateForm.attivo}
-                  onChange={(e) => setTemplateForm({ ...templateForm, attivo: e.target.checked })}
-                  className="w-5 h-5"
-                />
+                type="checkbox"
+                id="lettera-template-attivo"
+                checked={templateForm.attivo}
+                onChange={(e) => setTemplateForm({ ...templateForm, attivo: e.target.checked })}
+                className="w-5 h-5" />
+
                 <label htmlFor="lettera-template-attivo" className="text-sm text-slate-700">Template attivo</label>
               </div>
               <div className="neumorphic-pressed p-3 rounded-xl mb-2">
                 <p className="text-xs text-slate-600 mb-2">Variabili disponibili:</p>
                 <div className="flex flex-wrap gap-2">
-                  {['nome_dipendente', 'data_oggi', ...(templateForm.tipo_lettera === 'chiusura_procedura' ? ['data_invio_richiamo', 'data_firma_richiamo', 'data_visualizzazione_richiamo', 'mese_firma_richiamo', 'testo_lettera_richiamo'] : [])].map(v => (
-                    <button key={v} type="button" 
-                      onClick={() => setTemplateForm({ ...templateForm, contenuto: (templateForm.contenuto || '') + ` {{${v}}} ` })}
-                      className="neumorphic-flat px-2 py-1 rounded text-xs hover:bg-blue-50">
+                  {['nome_dipendente', 'data_oggi', ...(templateForm.tipo_lettera === 'chiusura_procedura' ? ['data_invio_richiamo', 'data_firma_richiamo', 'data_visualizzazione_richiamo', 'mese_firma_richiamo', 'testo_lettera_richiamo'] : [])].map((v) =>
+                <button key={v} type="button"
+                onClick={() => setTemplateForm({ ...templateForm, contenuto: (templateForm.contenuto || '') + ` {{${v}}} ` })}
+                className="neumorphic-flat px-2 py-1 rounded text-xs hover:bg-blue-50">
                       {`{{${v}}}`}
                     </button>
-                  ))}
+                )}
                 </div>
               </div>
               <textarea value={templateForm.contenuto}
-                onChange={(e) => setTemplateForm({ ...templateForm, contenuto: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-64 resize-none"
-                placeholder="Usa {{nome_dipendente}}, {{data_oggi}}, {{data_invio_richiamo}}, {{data_firma_richiamo}}, {{mese_firma_richiamo}}, {{testo_lettera_richiamo}} (solo chiusura)" required />
+            onChange={(e) => setTemplateForm({ ...templateForm, contenuto: e.target.value })}
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-64 resize-none"
+            placeholder="Usa {{nome_dipendente}}, {{data_oggi}}, {{data_invio_richiamo}}, {{data_firma_richiamo}}, {{mese_firma_richiamo}}, {{testo_lettera_richiamo}} (solo chiusura)" required />
               <NeumorphicButton type="submit" variant="primary" className="w-full">
                 {editingTemplate ? 'Aggiorna Template' : 'Salva Template'}
               </NeumorphicButton>
             </form>
           </NeumorphicCard>
         </div>
-      )}
+      }
 
-      {showLetteraForm && !showPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showLetteraForm && !showPreview &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-2xl w-full p-6">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Invia Lettera</h2>
               <button onClick={() => setShowLetteraForm(false)}><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); handlePreviewLettera(); }} className="space-y-4">
+            <form onSubmit={(e) => {e.preventDefault();handlePreviewLettera();}} className="space-y-4">
               <select value={letteraForm.user_id} onChange={(e) => setLetteraForm({ ...letteraForm, user_id: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
                 <option value="">Seleziona dipendente...</option>
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name || u.email}</option>
-                ))}
+                {users.map((u) =>
+              <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name || u.email}</option>
+              )}
               </select>
               <select value={letteraForm.tipo_lettera} onChange={(e) => setLetteraForm({ ...letteraForm, tipo_lettera: e.target.value, template_id: '' })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
                 <option value="lettera_richiamo">Lettera di Richiamo</option>
                 <option value="chiusura_procedura">Chiusura Procedura</option>
               </select>
               <select value={letteraForm.template_id} onChange={(e) => setLetteraForm({ ...letteraForm, template_id: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" required>
                 <option value="">Seleziona template...</option>
-                {templates.filter(t => t.tipo_lettera === letteraForm.tipo_lettera && t.attivo).map(t => (
-                  <option key={t.id} value={t.id}>{t.nome_template}</option>
-                ))}
+                {templates.filter((t) => t.tipo_lettera === letteraForm.tipo_lettera && t.attivo).map((t) =>
+              <option key={t.id} value={t.id}>{t.nome_template}</option>
+              )}
               </select>
               <NeumorphicButton type="submit" variant="primary" className="w-full flex items-center justify-center gap-2">
                 <Eye className="w-4 h-4" /> Anteprima
@@ -2618,10 +2618,10 @@ function LettereSection() {
             </form>
           </NeumorphicCard>
         </div>
-      )}
+      }
 
-      {showPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showPreview &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Anteprima Lettera</h2>
@@ -2630,10 +2630,10 @@ function LettereSection() {
             <div className="mb-4">
               <label className="text-sm font-medium text-slate-700 mb-2 block">Modifica contenuto prima dell'invio:</label>
               <textarea
-                value={previewContent}
-                onChange={(e) => setPreviewContent(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-80 resize-none font-mono text-sm"
-              />
+              value={previewContent}
+              onChange={(e) => setPreviewContent(e.target.value)}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-80 resize-none font-mono text-sm" />
+
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowPreview(false)} className="flex-1 nav-button px-4 py-3 rounded-xl font-medium">
@@ -2645,103 +2645,103 @@ function LettereSection() {
             </div>
           </NeumorphicCard>
         </div>
-      )}
+      }
 
-      {viewingChiusura && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {viewingChiusura &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">
-                {viewingChiusura.tipo === 'preview' ? 'Anteprima Chiusura Procedura' : 
-                 viewingChiusura.tipo === 'edit' ? 'Modifica Chiusura Procedura' : 
-                 'Chiusura Procedura Inviata'}
+                {viewingChiusura.tipo === 'preview' ? 'Anteprima Chiusura Procedura' :
+              viewingChiusura.tipo === 'edit' ? 'Modifica Chiusura Procedura' :
+              'Chiusura Procedura Inviata'}
               </h2>
               <button onClick={() => setViewingChiusura(null)}><X className="w-5 h-5" /></button>
             </div>
             
-            {viewingChiusura.tipo === 'edit' ? (
-              <>
+            {viewingChiusura.tipo === 'edit' ?
+          <>
                 <div className="mb-4">
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Template:</label>
                   <select
-                    value={viewingChiusura.selectedTemplateId || ''}
-                    onChange={(e) => {
-                      const newTemplateId = e.target.value;
-                      const content = generateLetteraContent(newTemplateId, viewingChiusura.richiamo.user_id, viewingChiusura.richiamo);
-                      setViewingChiusura({
-                        ...viewingChiusura,
-                        selectedTemplateId: newTemplateId,
-                        editableContent: content
-                      });
-                    }}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  >
-                    {chiusuraTemplates.map(t => (
-                      <option key={t.id} value={t.id}>{t.nome_template}</option>
-                    ))}
+                value={viewingChiusura.selectedTemplateId || ''}
+                onChange={(e) => {
+                  const newTemplateId = e.target.value;
+                  const content = generateLetteraContent(newTemplateId, viewingChiusura.richiamo.user_id, viewingChiusura.richiamo);
+                  setViewingChiusura({
+                    ...viewingChiusura,
+                    selectedTemplateId: newTemplateId,
+                    editableContent: content
+                  });
+                }}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+
+                    {chiusuraTemplates.map((t) =>
+                <option key={t.id} value={t.id}>{t.nome_template}</option>
+                )}
                   </select>
                 </div>
                 <div className="mb-4">
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Contenuto:</label>
                   <textarea
-                    value={viewingChiusura.editableContent || ''}
-                    onChange={(e) => setViewingChiusura({
-                      ...viewingChiusura,
-                      editableContent: e.target.value
-                    })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-80 resize-none font-mono text-sm"
-                  />
+                value={viewingChiusura.editableContent || ''}
+                onChange={(e) => setViewingChiusura({
+                  ...viewingChiusura,
+                  editableContent: e.target.value
+                })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-80 resize-none font-mono text-sm" />
+
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setViewingChiusura(null)} className="flex-1 nav-button px-4 py-3 rounded-xl font-medium">
                     Annulla
                   </button>
-                  <NeumorphicButton 
-                    onClick={async () => {
-                      if (!confirm('Confermi l\'invio della chiusura procedura?')) return;
-                      const user = users.find(u => u.id === viewingChiusura.richiamo.user_id);
-                      await base44.entities.LetteraRichiamo.create({
-                        user_id: user.id,
-                        user_email: user.email,
-                        user_name: user.nome_cognome || user.full_name || user.email,
-                        tipo_lettera: 'chiusura_procedura',
-                        contenuto_lettera: viewingChiusura.editableContent,
-                        data_invio: new Date().toISOString(),
-                        status: 'inviata'
-                      });
-                      queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
-                      setViewingChiusura(null);
-                      alert('Chiusura procedura inviata!');
-                    }}
-                    variant="primary" 
-                    className="flex-1 flex items-center justify-center gap-2"
-                  >
+                  <NeumorphicButton
+                onClick={async () => {
+                  if (!confirm('Confermi l\'invio della chiusura procedura?')) return;
+                  const user = users.find((u) => u.id === viewingChiusura.richiamo.user_id);
+                  await base44.entities.LetteraRichiamo.create({
+                    user_id: user.id,
+                    user_email: user.email,
+                    user_name: user.nome_cognome || user.full_name || user.email,
+                    tipo_lettera: 'chiusura_procedura',
+                    contenuto_lettera: viewingChiusura.editableContent,
+                    data_invio: new Date().toISOString(),
+                    status: 'inviata'
+                  });
+                  queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
+                  setViewingChiusura(null);
+                  alert('Chiusura procedura inviata!');
+                }}
+                variant="primary"
+                className="flex-1 flex items-center justify-center gap-2">
+
                     <Send className="w-4 h-4" /> Invia Chiusura
                   </NeumorphicButton>
                 </div>
-              </>
-            ) : (
-              <>
+              </> :
+
+          <>
                 <div className="neumorphic-pressed p-6 rounded-xl bg-white">
                   <pre className="whitespace-pre-wrap text-sm font-sans text-slate-700">
                     {viewingChiusura.tipo === 'preview' ? chiusuraPreviewContent : viewingChiusura.chiusura?.contenuto_lettera}
                   </pre>
                 </div>
-                {viewingChiusura.tipo === 'preview' && (
-                  <div className="mt-4 neumorphic-flat p-3 rounded-lg bg-blue-50">
+                {viewingChiusura.tipo === 'preview' &&
+            <div className="mt-4 neumorphic-flat p-3 rounded-lg bg-blue-50">
                     <p className="text-xs text-blue-700">
                       ℹ️ Questa è un'anteprima. La chiusura verrà inviata automaticamente secondo la configurazione.
                     </p>
                   </div>
-                )}
+            }
               </>
-            )}
+          }
           </NeumorphicCard>
         </div>
-      )}
+      }
 
-      {viewingRichiamo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {viewingRichiamo &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Lettera di Richiamo - {viewingRichiamo.user_name}</h2>
@@ -2754,9 +2754,9 @@ function LettereSection() {
             </div>
           </NeumorphicCard>
         </div>
-      )}
-    </>
-  );
+      }
+    </>);
+
 }
 
 // Buste Paga Section (Admin)
@@ -2772,21 +2772,21 @@ function BustePagaSection() {
 
   const { data: bustePaga = [], isLoading } = useQuery({
     queryKey: ['buste-paga'],
-    queryFn: () => base44.entities.BustaPaga.list('-created_date'),
+    queryFn: () => base44.entities.BustaPaga.list('-created_date')
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-all'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list()
   });
 
   const uploadMutation = useMutation({
     mutationFn: async ({ file, mese }) => {
       setUploadingFile(true);
-      
+
       // Upload PDF
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
+
       // Create record
       const busta = await base44.entities.BustaPaga.create({
         mese,
@@ -2864,11 +2864,11 @@ function BustePagaSection() {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-            >
-              {monthOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+
+              {monthOptions.map((opt) =>
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              )}
             </select>
           </div>
 
@@ -2880,30 +2880,30 @@ function BustePagaSection() {
               type="file"
               accept="application/pdf"
               onChange={handleFileSelect}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-            />
-            {selectedFile && (
-              <p className="text-xs text-green-600 mt-2">✓ {selectedFile.name}</p>
-            )}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
+            {selectedFile &&
+            <p className="text-xs text-green-600 mt-2">✓ {selectedFile.name}</p>
+            }
           </div>
 
           <NeumorphicButton
             onClick={handleUpload}
             variant="primary"
             disabled={!selectedFile || uploadingFile}
-            className="w-full flex items-center justify-center gap-2"
-          >
-            {uploadingFile ? (
-              <>
+            className="w-full flex items-center justify-center gap-2">
+
+            {uploadingFile ?
+            <>
                 <Loader2 className="w-5 h-5 animate-spin" />
                 Elaborazione in corso...
-              </>
-            ) : (
-              <>
+              </> :
+
+            <>
                 <Upload className="w-5 h-5" />
                 Carica e Splitta PDF
               </>
-            )}
+            }
           </NeumorphicButton>
 
           <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
@@ -2918,16 +2918,16 @@ function BustePagaSection() {
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-slate-800 mb-4">Storico Buste Paga</h2>
         
-        {isLoading ? (
-          <div className="text-center py-8">
+        {isLoading ?
+        <div className="text-center py-8">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
-          </div>
-        ) : bustePaga.length === 0 ? (
-          <p className="text-center text-slate-500 py-8">Nessuna busta paga caricata</p>
-        ) : (
-          <div className="space-y-3">
-            {bustePaga.map(busta => (
-              <NeumorphicCard key={busta.id} className="p-4">
+          </div> :
+        bustePaga.length === 0 ?
+        <p className="text-center text-slate-500 py-8">Nessuna busta paga caricata</p> :
+
+        <div className="space-y-3">
+            {bustePaga.map((busta) =>
+          <NeumorphicCard key={busta.id} className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-800">
@@ -2937,59 +2937,59 @@ function BustePagaSection() {
                       Caricato: {new Date(busta.created_date).toLocaleDateString('it-IT')}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
-                      {busta.status === 'completed' && (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                      {busta.status === 'completed' &&
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
                           ✓ {busta.pdf_splits?.length || 0} dipendenti
                         </span>
-                      )}
-                      {busta.status === 'processing' && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                  }
+                      {busta.status === 'processing' &&
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
                           <Loader2 className="w-3 h-3 inline animate-spin mr-1" />
                           Elaborazione...
                         </span>
-                      )}
-                      {busta.status === 'failed' && (
-                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
+                  }
+                      {busta.status === 'failed' &&
+                  <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
                           ✗ Errore
                         </span>
-                      )}
+                  }
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <a
-                      href={busta.pdf_completo_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="nav-button p-2 rounded-lg"
-                      title="Scarica PDF completo"
-                    >
+                  href={busta.pdf_completo_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="nav-button p-2 rounded-lg"
+                  title="Scarica PDF completo">
+
                       <Download className="w-4 h-4 text-blue-600" />
                     </a>
                     <button
-                      onClick={() => {
-                        if (confirm('Eliminare questa busta paga?')) {
-                          deleteMutation.mutate(busta.id);
-                        }
-                      }}
-                      className="nav-button p-2 rounded-lg"
-                    >
+                  onClick={() => {
+                    if (confirm('Eliminare questa busta paga?')) {
+                      deleteMutation.mutate(busta.id);
+                    }
+                  }}
+                  className="nav-button p-2 rounded-lg">
+
                       <Trash2 className="w-4 h-4 text-red-600" />
                     </button>
                   </div>
                 </div>
                 
-                {busta.error_message && (
-                  <div className="mt-3 p-3 bg-red-50 rounded-lg">
+                {busta.error_message &&
+            <div className="mt-3 p-3 bg-red-50 rounded-lg">
                     <p className="text-xs text-red-700">{busta.error_message}</p>
                   </div>
-                )}
+            }
 
-                {busta.status === 'completed' && busta.pdf_splits?.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-slate-200">
+                {busta.status === 'completed' && busta.pdf_splits?.length > 0 &&
+            <div className="mt-4 pt-4 border-t border-slate-200">
                     <h4 className="text-sm font-bold text-slate-700 mb-3">File Splittati per Dipendente:</h4>
                     <div className="space-y-2">
-                      {busta.pdf_splits.map((split, idx) => (
-                        <div key={idx} className="neumorphic-pressed p-3 rounded-lg flex items-center justify-between">
+                      {busta.pdf_splits.map((split, idx) =>
+                <div key={idx} className="neumorphic-pressed p-3 rounded-lg flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                               <span className="text-xs font-bold text-white">
@@ -3002,26 +3002,26 @@ function BustePagaSection() {
                             </div>
                           </div>
                           <a
-                            href={split.pdf_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="nav-button p-2 rounded-lg"
-                            title="Visualizza PDF"
-                          >
+                    href={split.pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="nav-button p-2 rounded-lg"
+                    title="Visualizza PDF">
+
                             <Eye className="w-4 h-4 text-blue-600" />
                           </a>
                         </div>
-                      ))}
+                )}
                     </div>
                   </div>
-                )}
+            }
               </NeumorphicCard>
-            ))}
+          )}
           </div>
-        )}
+        }
       </NeumorphicCard>
-    </>
-  );
+    </>);
+
 }
 
 // Unilav Section (Admin)
@@ -3036,23 +3036,23 @@ function UnilavSection() {
 
   const { data: unilavDocs = [], isLoading } = useQuery({
     queryKey: ['unilav-docs-admin'],
-    queryFn: () => base44.entities.Unilav.list('-created_date'),
+    queryFn: () => base44.entities.Unilav.list('-created_date')
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-dipendenti-unilav'],
     queryFn: async () => {
       const allUsers = await base44.entities.User.list();
-      return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
-    },
+      return allUsers.filter((u) => u.user_type === 'dipendente' || u.user_type === 'user');
+    }
   });
 
   const uploadMutation = useMutation({
     mutationFn: async ({ file, userId, descrizione, dataDocumento }) => {
       setUploadingFile(true);
-      const user = users.find(u => u.id === userId);
+      const user = users.find((u) => u.id === userId);
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
+
       return base44.entities.Unilav.create({
         user_id: userId,
         user_name: user?.nome_cognome || user?.full_name || user?.email,
@@ -3096,11 +3096,11 @@ function UnilavSection() {
       alert('Seleziona file e dipendente');
       return;
     }
-    uploadMutation.mutate({ 
-      file: selectedFile, 
-      userId: selectedUserId, 
-      descrizione, 
-      dataDocumento 
+    uploadMutation.mutate({
+      file: selectedFile,
+      userId: selectedUserId,
+      descrizione,
+      dataDocumento
     });
   };
 
@@ -3118,14 +3118,14 @@ function UnilavSection() {
             <select
               value={selectedUserId}
               onChange={(e) => setSelectedUserId(e.target.value)}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-            >
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+
               <option value="">Seleziona dipendente...</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>
+              {users.map((u) =>
+              <option key={u.id} value={u.id}>
                   {u.nome_cognome || u.full_name || u.email}
                 </option>
-              ))}
+              )}
             </select>
           </div>
 
@@ -3136,8 +3136,8 @@ function UnilavSection() {
               value={descrizione}
               onChange={(e) => setDescrizione(e.target.value)}
               placeholder="Es: Unilav Assunzione"
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-            />
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
           </div>
 
           <div>
@@ -3146,8 +3146,8 @@ function UnilavSection() {
               type="date"
               value={dataDocumento}
               onChange={(e) => setDataDocumento(e.target.value)}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-            />
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
           </div>
 
           <div>
@@ -3156,30 +3156,30 @@ function UnilavSection() {
               type="file"
               accept="application/pdf"
               onChange={handleFileSelect}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-            />
-            {selectedFile && (
-              <p className="text-xs text-green-600 mt-2">✓ {selectedFile.name}</p>
-            )}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
+            {selectedFile &&
+            <p className="text-xs text-green-600 mt-2">✓ {selectedFile.name}</p>
+            }
           </div>
 
           <NeumorphicButton
             onClick={handleUpload}
             variant="primary"
             disabled={!selectedFile || !selectedUserId || uploadingFile}
-            className="w-full flex items-center justify-center gap-2"
-          >
-            {uploadingFile ? (
-              <>
+            className="w-full flex items-center justify-center gap-2">
+
+            {uploadingFile ?
+            <>
                 <Loader2 className="w-5 h-5 animate-spin" />
                 Caricamento...
-              </>
-            ) : (
-              <>
+              </> :
+
+            <>
                 <Upload className="w-5 h-5" />
                 Carica Documento
               </>
-            )}
+            }
           </NeumorphicButton>
         </div>
       </NeumorphicCard>
@@ -3187,54 +3187,54 @@ function UnilavSection() {
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-slate-800 mb-4">Documenti Unilav Caricati</h2>
 
-        {isLoading ? (
-          <div className="text-center py-8">
+        {isLoading ?
+        <div className="text-center py-8">
             <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
-          </div>
-        ) : unilavDocs.length === 0 ? (
-          <p className="text-center text-slate-500 py-8">Nessun documento caricato</p>
-        ) : (
-          <div className="space-y-3">
-            {unilavDocs.map(doc => (
-              <NeumorphicCard key={doc.id} className="p-4">
+          </div> :
+        unilavDocs.length === 0 ?
+        <p className="text-center text-slate-500 py-8">Nessun documento caricato</p> :
+
+        <div className="space-y-3">
+            {unilavDocs.map((doc) =>
+          <NeumorphicCard key={doc.id} className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-800">{doc.user_name}</h3>
                     <p className="text-sm text-slate-600">{doc.descrizione || 'Documento Unilav'}</p>
                     <p className="text-xs text-slate-500 mt-1">
-                      Data: {doc.data_documento 
-                        ? new Date(doc.data_documento).toLocaleDateString('it-IT')
-                        : new Date(doc.created_date).toLocaleDateString('it-IT')}
+                      Data: {doc.data_documento ?
+                  new Date(doc.data_documento).toLocaleDateString('it-IT') :
+                  new Date(doc.created_date).toLocaleDateString('it-IT')}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <a
-                      href={doc.pdf_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="nav-button p-2 rounded-lg"
-                    >
+                  href={doc.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="nav-button p-2 rounded-lg">
+
                       <Download className="w-4 h-4 text-blue-600" />
                     </a>
                     <button
-                      onClick={() => {
-                        if (confirm('Eliminare questo documento?')) {
-                          deleteMutation.mutate(doc.id);
-                        }
-                      }}
-                      className="nav-button p-2 rounded-lg"
-                    >
+                  onClick={() => {
+                    if (confirm('Eliminare questo documento?')) {
+                      deleteMutation.mutate(doc.id);
+                    }
+                  }}
+                  className="nav-button p-2 rounded-lg">
+
                       <Trash2 className="w-4 h-4 text-red-600" />
                     </button>
                   </div>
                 </div>
               </NeumorphicCard>
-            ))}
+          )}
           </div>
-        )}
+        }
       </NeumorphicCard>
-    </>
-  );
+    </>);
+
 }
 
 // Google Drive Settings Section (OBSOLETE - now in Contratti tab)
@@ -3249,7 +3249,7 @@ function DriveSettingsSection() {
 
   const { data: driveConfigs = [] } = useQuery({
     queryKey: ['drive-configs-all'],
-    queryFn: () => base44.entities.DriveConfig.filter({ is_active: true }),
+    queryFn: () => base44.entities.DriveConfig.filter({ is_active: true })
   });
 
   const handleLoadDriveFolders = async () => {
@@ -3278,7 +3278,7 @@ function DriveSettingsSection() {
         folder_name: newFolderName
       });
 
-      const existing = driveConfigs.find(c => c.config_type === selectedConfigType);
+      const existing = driveConfigs.find((c) => c.config_type === selectedConfigType);
       if (existing) {
         await base44.entities.DriveConfig.update(existing.id, {
           folder_id: response.data.folder_id,
@@ -3309,8 +3309,8 @@ function DriveSettingsSection() {
   const handleSelectExistingFolder = async (folderId, folderName) => {
     try {
       const currentUserData = await base44.auth.me();
-      const existing = driveConfigs.find(c => c.config_type === selectedConfigType);
-      
+      const existing = driveConfigs.find((c) => c.config_type === selectedConfigType);
+
       if (existing) {
         await base44.entities.DriveConfig.update(existing.id, {
           folder_id: folderId,
@@ -3334,7 +3334,7 @@ function DriveSettingsSection() {
     }
   };
 
-  const currentConfig = driveConfigs.find(c => c.config_type === selectedConfigType);
+  const currentConfig = driveConfigs.find((c) => c.config_type === selectedConfigType);
 
   return (
     <div className="space-y-6">
@@ -3351,16 +3351,16 @@ function DriveSettingsSection() {
           <select
             value={selectedConfigType}
             onChange={(e) => setSelectedConfigType(e.target.value)}
-            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-          >
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
             <option value="contratti">Contratti</option>
           </select>
         </div>
 
         <div className="neumorphic-flat p-5 rounded-xl mb-6">
           <h3 className="font-bold text-[#6b6b6b] mb-3">Cartella di Salvataggio per {selectedConfigType}</h3>
-          {currentConfig?.folder_id ? (
-            <div className="flex items-center justify-between gap-3 neumorphic-pressed p-4 rounded-xl">
+          {currentConfig?.folder_id ?
+          <div className="flex items-center justify-between gap-3 neumorphic-pressed p-4 rounded-xl">
               <div className="flex items-center gap-3">
                 <Folder className="w-6 h-6 text-blue-600" />
                 <div>
@@ -3368,13 +3368,13 @@ function DriveSettingsSection() {
                   <p className="text-xs text-[#9b9b9b]">Cartella configurata</p>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="text-center py-6">
+            </div> :
+
+          <div className="text-center py-6">
               <Folder className="w-12 h-12 text-[#9b9b9b] opacity-50 mx-auto mb-3" />
               <p className="text-[#9b9b9b] text-sm">Nessuna cartella configurata - i file andranno nella root</p>
             </div>
-          )}
+          }
         </div>
 
         <div className="neumorphic-flat p-5 rounded-xl mb-4">
@@ -3388,19 +3388,19 @@ function DriveSettingsSection() {
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder="Nome cartella (es. Contratti Sa Pizzedda)"
-              className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-            />
+              className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
+
             <NeumorphicButton
               onClick={handleCreateFolder}
               disabled={creatingFolder}
               variant="primary"
-              className="flex items-center gap-2"
-            >
-              {creatingFolder ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <FolderPlus className="w-5 h-5" />
-              )}
+              className="flex items-center gap-2">
+
+              {creatingFolder ?
+              <Loader2 className="w-5 h-5 animate-spin" /> :
+
+              <FolderPlus className="w-5 h-5" />
+              }
               Crea
             </NeumorphicButton>
           </div>
@@ -3415,29 +3415,29 @@ function DriveSettingsSection() {
             <NeumorphicButton
               onClick={handleLoadDriveFolders}
               disabled={loadingFolders}
-              className="flex items-center gap-2 text-sm"
-            >
-              {loadingFolders ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                'Carica Cartelle'
-              )}
+              className="flex items-center gap-2 text-sm">
+
+              {loadingFolders ?
+              <Loader2 className="w-4 h-4 animate-spin" /> :
+
+              'Carica Cartelle'
+              }
             </NeumorphicButton>
           </div>
 
-          {loadingFolders ? (
-            <div className="text-center py-8">
+          {loadingFolders ?
+          <div className="text-center py-8">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-2" />
               <p className="text-sm text-[#9b9b9b]">Caricamento cartelle...</p>
-            </div>
-          ) : driveFolders.length > 0 ? (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {driveFolders.map(folder => (
-                <button
-                  key={folder.id}
-                  onClick={() => handleSelectExistingFolder(folder.id, folder.name)}
-                  className="w-full neumorphic-pressed p-3 rounded-xl hover:bg-blue-50 transition-colors text-left flex items-center gap-3"
-                >
+            </div> :
+          driveFolders.length > 0 ?
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+              {driveFolders.map((folder) =>
+            <button
+              key={folder.id}
+              onClick={() => handleSelectExistingFolder(folder.id, folder.name)}
+              className="w-full neumorphic-pressed p-3 rounded-xl hover:bg-blue-50 transition-colors text-left flex items-center gap-3">
+
                   <Folder className="w-5 h-5 text-blue-500 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-[#6b6b6b] truncate">{folder.name}</p>
@@ -3446,13 +3446,13 @@ function DriveSettingsSection() {
                     </p>
                   </div>
                 </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-4 text-sm">
+            )}
+            </div> :
+
+          <p className="text-center text-[#9b9b9b] py-4 text-sm">
               Clicca "Carica Cartelle" per visualizzare le cartelle disponibili
             </p>
-          )}
+          }
         </div>
 
         <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mt-4">
@@ -3461,8 +3461,8 @@ function DriveSettingsSection() {
           </p>
         </div>
       </NeumorphicCard>
-    </div>
-  );
+    </div>);
+
 }
 
 // Regolamento Section
@@ -3476,23 +3476,23 @@ function RegolamentoSection() {
   const queryClient = useQueryClient();
   const { data: regolamenti = [] } = useQuery({
     queryKey: ['regolamenti'],
-    queryFn: () => base44.entities.RegolamentoDipendenti.list('-versione'),
+    queryFn: () => base44.entities.RegolamentoDipendenti.list('-versione')
   });
   const { data: firme = [] } = useQuery({
     queryKey: ['regolamenti-firmati'],
-    queryFn: () => base44.entities.RegolamentoFirmato.list('-data_firma'),
+    queryFn: () => base44.entities.RegolamentoFirmato.list('-data_firma')
   });
   const { data: users = [] } = useQuery({
     queryKey: ['users-dip'],
     queryFn: async () => {
       const allUsers = await base44.entities.User.list();
-      return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
-    },
+      return allUsers.filter((u) => u.user_type === 'dipendente' || u.user_type === 'user');
+    }
   });
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      const regolamentoAttivo = regolamenti.find(r => r.attivo);
+      const regolamentoAttivo = regolamenti.find((r) => r.attivo);
       if (regolamentoAttivo) {
         await base44.entities.RegolamentoDipendenti.update(regolamentoAttivo.id, { attivo: false });
       }
@@ -3502,15 +3502,15 @@ function RegolamentoSection() {
       queryClient.invalidateQueries({ queryKey: ['regolamenti'] });
       setShowForm(false);
       setContenuto('');
-    },
+    }
   });
 
   const sendToEmployeesMutation = useMutation({
     mutationFn: async ({ regolamentoId, userIds }) => {
-      const regolamento = regolamenti.find(r => r.id === regolamentoId);
+      const regolamento = regolamenti.find((r) => r.id === regolamentoId);
       const firme = [];
       for (const userId of userIds) {
-        const user = users.find(u => u.id === userId);
+        const user = users.find((u) => u.id === userId);
         firme.push({
           user_id: userId,
           user_email: user.email,
@@ -3520,17 +3520,17 @@ function RegolamentoSection() {
           firmato: false
         });
       }
-      return Promise.all(firme.map(f => base44.entities.RegolamentoFirmato.create(f)));
+      return Promise.all(firme.map((f) => base44.entities.RegolamentoFirmato.create(f)));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['regolamenti-firmati'] });
       setShowSendModal(false);
       setSelectedUsers([]);
       alert('Regolamento inviato con successo!');
-    },
+    }
   });
 
-  const regolamentoAttivo = regolamenti.find(r => r.attivo);
+  const regolamentoAttivo = regolamenti.find((r) => r.attivo);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -3544,8 +3544,8 @@ function RegolamentoSection() {
   };
 
   const toggleUser = (userId) => {
-    setSelectedUsers(prev =>
-      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    setSelectedUsers((prev) =>
+    prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
     );
   };
 
@@ -3556,8 +3556,8 @@ function RegolamentoSection() {
           <Plus className="w-5 h-5" />
           Nuova Versione
         </NeumorphicButton>
-        {regolamentoAttivo && (
-          <>
+        {regolamentoAttivo &&
+        <>
             <NeumorphicButton onClick={() => setShowSendModal(true)} className="flex items-center gap-2">
               <Send className="w-5 h-5" />
               Invia ai Dipendenti
@@ -3567,11 +3567,11 @@ function RegolamentoSection() {
               Storico
             </NeumorphicButton>
           </>
-        )}
+        }
       </div>
 
-      {regolamentoAttivo ? (
-        <>
+      {regolamentoAttivo ?
+      <>
           <NeumorphicCard className="p-6 mb-6">
             <h2 className="text-xl font-bold mb-4">Regolamento Attivo (v{regolamentoAttivo.versione})</h2>
             <div className="neumorphic-pressed p-6 rounded-xl">
@@ -3583,23 +3583,23 @@ function RegolamentoSection() {
           <NeumorphicCard className="p-6">
             <h3 className="text-lg font-bold text-slate-800 mb-4">Stato Firme (v{regolamentoAttivo.versione})</h3>
             {(() => {
-              const firmeVersAttiva = firme.filter(f => f.versione === regolamentoAttivo.versione);
-              const firmati = firmeVersAttiva.filter(f => f.firmato);
-              const nonFirmati = firmeVersAttiva.filter(f => !f.firmato);
-              const utentiConFirma = firmeVersAttiva.map(f => f.user_id);
-              const nonInviati = users.filter(u => !utentiConFirma.includes(u.id));
+            const firmeVersAttiva = firme.filter((f) => f.versione === regolamentoAttivo.versione);
+            const firmati = firmeVersAttiva.filter((f) => f.firmato);
+            const nonFirmati = firmeVersAttiva.filter((f) => !f.firmato);
+            const utentiConFirma = firmeVersAttiva.map((f) => f.user_id);
+            const nonInviati = users.filter((u) => !utentiConFirma.includes(u.id));
 
-              return (
-                <div className="space-y-6">
+            return (
+              <div className="space-y-6">
                   {/* Firmati */}
-                  {firmati.length > 0 && (
-                    <div>
+                  {firmati.length > 0 &&
+                <div>
                       <h4 className="text-sm font-bold text-green-700 mb-2 flex items-center gap-2">
                         <CheckCircle className="w-4 h-4" /> Firmati ({firmati.length})
                       </h4>
                       <div className="space-y-2">
-                        {firmati.map(f => (
-                          <div key={f.id} className="neumorphic-flat p-3 rounded-lg bg-green-50 flex items-center justify-between">
+                        {firmati.map((f) =>
+                    <div key={f.id} className="neumorphic-flat p-3 rounded-lg bg-green-50 flex items-center justify-between">
                             <div>
                               <p className="text-sm font-medium text-slate-800">{f.user_name}</p>
                               <p className="text-xs text-green-600">
@@ -3608,20 +3608,20 @@ function RegolamentoSection() {
                             </div>
                             <CheckCircle className="w-5 h-5 text-green-600" />
                           </div>
-                        ))}
+                    )}
                       </div>
                     </div>
-                  )}
+                }
 
                   {/* Non Firmati (Inviati) */}
-                  {nonFirmati.length > 0 && (
-                    <div>
+                  {nonFirmati.length > 0 &&
+                <div>
                       <h4 className="text-sm font-bold text-orange-700 mb-2 flex items-center gap-2">
                         <Clock className="w-4 h-4" /> In Attesa Firma ({nonFirmati.length})
                       </h4>
                       <div className="space-y-2">
-                        {nonFirmati.map(f => (
-                          <div key={f.id} className="neumorphic-flat p-3 rounded-lg bg-orange-50 flex items-center justify-between">
+                        {nonFirmati.map((f) =>
+                    <div key={f.id} className="neumorphic-flat p-3 rounded-lg bg-orange-50 flex items-center justify-between">
                             <div>
                               <p className="text-sm font-medium text-slate-800">{f.user_name}</p>
                               <p className="text-xs text-slate-500">
@@ -3630,69 +3630,69 @@ function RegolamentoSection() {
                             </div>
                             <Clock className="w-5 h-5 text-orange-600" />
                           </div>
-                        ))}
+                    )}
                       </div>
                     </div>
-                  )}
+                }
 
                   {/* Non Inviati */}
-                  {nonInviati.length > 0 && (
-                    <div>
+                  {nonInviati.length > 0 &&
+                <div>
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="text-sm font-bold text-slate-500 flex items-center gap-2">
                           <AlertCircle className="w-4 h-4" /> Non Inviato ({nonInviati.length})
                         </h4>
                         <button
-                          onClick={async () => {
-                            if (!confirm(`Inviare il regolamento a ${nonInviati.length} dipendenti?`)) return;
-                            await sendToEmployeesMutation.mutateAsync({ 
-                              regolamentoId: regolamentoAttivo.id, 
-                              userIds: nonInviati.map(u => u.id)
-                            });
-                          }}
-                          className="nav-button px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 bg-blue-50 hover:bg-blue-100"
-                        >
+                      onClick={async () => {
+                        if (!confirm(`Inviare il regolamento a ${nonInviati.length} dipendenti?`)) return;
+                        await sendToEmployeesMutation.mutateAsync({
+                          regolamentoId: regolamentoAttivo.id,
+                          userIds: nonInviati.map((u) => u.id)
+                        });
+                      }}
+                      className="nav-button px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 bg-blue-50 hover:bg-blue-100">
+
                           <Send className="w-3.5 h-3.5 text-blue-600" />
                           Invia a Tutti
                         </button>
                       </div>
                       <div className="space-y-2">
-                        {nonInviati.map(u => (
-                          <div key={u.id} className="neumorphic-flat p-3 rounded-lg bg-slate-50 flex items-center justify-between">
+                        {nonInviati.map((u) =>
+                    <div key={u.id} className="neumorphic-flat p-3 rounded-lg bg-slate-50 flex items-center justify-between">
                             <p className="text-sm font-medium text-slate-700">
                               {u.nome_cognome || u.full_name || u.email}
                             </p>
                             <button
-                              onClick={async () => {
-                                if (!confirm(`Inviare il regolamento a ${u.nome_cognome || u.full_name || u.email}?`)) return;
-                                await sendToEmployeesMutation.mutateAsync({ 
-                                  regolamentoId: regolamentoAttivo.id, 
-                                  userIds: [u.id]
-                                });
-                              }}
-                              className="nav-button p-1.5 rounded-lg hover:bg-blue-50"
-                            >
+                        onClick={async () => {
+                          if (!confirm(`Inviare il regolamento a ${u.nome_cognome || u.full_name || u.email}?`)) return;
+                          await sendToEmployeesMutation.mutateAsync({
+                            regolamentoId: regolamentoAttivo.id,
+                            userIds: [u.id]
+                          });
+                        }}
+                        className="nav-button p-1.5 rounded-lg hover:bg-blue-50">
+
                               <Send className="w-4 h-4 text-blue-600" />
                             </button>
                           </div>
-                        ))}
+                    )}
                       </div>
                     </div>
-                  )}
-                </div>
-              );
-            })()}
+                }
+                </div>);
+
+          })()}
           </NeumorphicCard>
-        </>
-      ) : (
-        <NeumorphicCard className="p-12 text-center">
+        </> :
+
+      <NeumorphicCard className="p-12 text-center">
           <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">Nessun regolamento attivo</p>
         </NeumorphicCard>
-      )}
+      }
 
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showForm &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Nuovo Regolamento</h2>
@@ -3700,58 +3700,58 @@ function RegolamentoSection() {
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <textarea value={contenuto} onChange={(e) => setContenuto(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-96 resize-none"
-                placeholder="Inserisci il testo del regolamento..." required />
+            className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-96 resize-none"
+            placeholder="Inserisci il testo del regolamento..." required />
               <NeumorphicButton type="submit" variant="primary" className="w-full">
                 Salva Versione {(regolamentoAttivo?.versione || 0) + 1}
               </NeumorphicButton>
             </form>
           </NeumorphicCard>
         </div>
-      )}
+      }
 
-      {showSendModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showSendModal &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Seleziona Dipendenti</h2>
               <button onClick={() => setShowSendModal(false)}><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-2 mb-4">
-              {users.map(u => (
-                <button key={u.id} type="button" onClick={() => toggleUser(u.id)}
-                  className={`w-full p-3 rounded-xl text-left transition-all ${
-                    selectedUsers.includes(u.id) ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'nav-button'
-                  }`}>
+              {users.map((u) =>
+            <button key={u.id} type="button" onClick={() => toggleUser(u.id)}
+            className={`w-full p-3 rounded-xl text-left transition-all ${
+            selectedUsers.includes(u.id) ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'nav-button'}`
+            }>
                   {u.nome_cognome || u.full_name || u.email}
                 </button>
-              ))}
+            )}
             </div>
             <NeumorphicButton onClick={() => sendToEmployeesMutation.mutate({ regolamentoId: regolamentoAttivo.id, userIds: selectedUsers })}
-              variant="primary" className="w-full">
+          variant="primary" className="w-full">
               Invia a {selectedUsers.length} dipendenti
             </NeumorphicButton>
           </NeumorphicCard>
         </div>
-      )}
+      }
 
-      {showHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showHistory &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-6xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-bold">Storico Versioni</h2>
               <button onClick={() => setShowHistory(false)}><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-6">
-              {regolamenti.map(r => {
-                const firmeVers = firme.filter(f => f.versione === r.versione);
-                const firmati = firmeVers.filter(f => f.firmato);
-                const nonFirmati = firmeVers.filter(f => !f.firmato);
-                const utentiConFirma = firmeVers.map(f => f.user_id);
-                const nonInviati = users.filter(u => !utentiConFirma.includes(u.id));
+              {regolamenti.map((r) => {
+              const firmeVers = firme.filter((f) => f.versione === r.versione);
+              const firmati = firmeVers.filter((f) => f.firmato);
+              const nonFirmati = firmeVers.filter((f) => !f.firmato);
+              const utentiConFirma = firmeVers.map((f) => f.user_id);
+              const nonInviati = users.filter((u) => !utentiConFirma.includes(u.id));
 
-                return (
-                  <NeumorphicCard key={r.id} className="p-4">
+              return (
+                <NeumorphicCard key={r.id} className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <p className="font-bold text-slate-800">Versione {r.versione}</p>
                       {r.attivo && <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Attivo</span>}
@@ -3779,45 +3779,45 @@ function RegolamentoSection() {
                         Dettaglio Dipendenti
                       </summary>
                       <div className="mt-3 space-y-3">
-                        {firmati.length > 0 && (
-                          <div>
+                        {firmati.length > 0 &&
+                      <div>
                             <p className="text-xs font-bold text-green-700 mb-1">✓ Firmati:</p>
                             <div className="space-y-1">
-                              {firmati.map(f => (
-                                <p key={f.id} className="text-xs text-slate-600 pl-2">• {f.user_name}</p>
-                              ))}
+                              {firmati.map((f) =>
+                          <p key={f.id} className="text-xs text-slate-600 pl-2">• {f.user_name}</p>
+                          )}
                             </div>
                           </div>
-                        )}
-                        {nonFirmati.length > 0 && (
-                          <div>
+                      }
+                        {nonFirmati.length > 0 &&
+                      <div>
                             <p className="text-xs font-bold text-orange-700 mb-1">⏱ In Attesa:</p>
                             <div className="space-y-1">
-                              {nonFirmati.map(f => (
-                                <p key={f.id} className="text-xs text-slate-600 pl-2">• {f.user_name}</p>
-                              ))}
+                              {nonFirmati.map((f) =>
+                          <p key={f.id} className="text-xs text-slate-600 pl-2">• {f.user_name}</p>
+                          )}
                             </div>
                           </div>
-                        )}
-                        {nonInviati.length > 0 && (
-                          <div>
+                      }
+                        {nonInviati.length > 0 &&
+                      <div>
                             <p className="text-xs font-bold text-slate-500 mb-1">✗ Non Inviato:</p>
                             <div className="space-y-1">
-                              {nonInviati.map(u => (
-                                <p key={u.id} className="text-xs text-slate-600 pl-2">• {u.nome_cognome || u.full_name || u.email}</p>
-                              ))}
+                              {nonInviati.map((u) =>
+                          <p key={u.id} className="text-xs text-slate-600 pl-2">• {u.nome_cognome || u.full_name || u.email}</p>
+                          )}
                             </div>
                           </div>
-                        )}
+                      }
                       </div>
                     </details>
-                  </NeumorphicCard>
-                );
-              })}
+                  </NeumorphicCard>);
+
+            })}
             </div>
           </NeumorphicCard>
         </div>
-      )}
-    </>
-  );
+      }
+    </>);
+
 }
