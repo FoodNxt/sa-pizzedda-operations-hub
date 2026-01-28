@@ -15,8 +15,8 @@ import {
   Upload,
   FileText,
   X,
-  CreditCard
-} from 'lucide-react';
+  CreditCard } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function ProfiloDipendente() {
@@ -34,14 +34,14 @@ export default function ProfiloDipendente() {
     taglia_maglietta: '',
     cittadinanza_italiana: true
   });
-  
+
   const [documentFiles, setDocumentFiles] = useState({
     documento_identita: null,
     codice_fiscale_documento: null,
     permesso_soggiorno: null
   });
   const [uploadingDocs, setUploadingDocs] = useState(false);
-  
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -65,7 +65,7 @@ export default function ProfiloDipendente() {
         cittadinanza_italiana: u.cittadinanza_italiana !== false
       });
       return u;
-    },
+    }
   });
 
   const updateProfileMutation = useMutation({
@@ -77,7 +77,7 @@ export default function ProfiloDipendente() {
       setSuccess('Profilo aggiornato! ✅');
       setError('');
       setEditing(false);
-      
+
       setTimeout(() => setSuccess(''), 3000);
     },
     onError: (error) => {
@@ -129,7 +129,7 @@ export default function ProfiloDipendente() {
 
   const handleDocumentChange = (docType, file) => {
     if (file) {
-      setDocumentFiles(prev => ({ ...prev, [docType]: file }));
+      setDocumentFiles((prev) => ({ ...prev, [docType]: file }));
     }
   };
 
@@ -150,7 +150,7 @@ export default function ProfiloDipendente() {
       await base44.auth.updateMe({ [fieldName]: file_url });
 
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      setDocumentFiles(prev => ({ ...prev, [docType]: null }));
+      setDocumentFiles((prev) => ({ ...prev, [docType]: null }));
       setSuccess(`Documento caricato! ✅`);
       setTimeout(() => setSuccess(''), 3000);
 
@@ -183,21 +183,21 @@ export default function ProfiloDipendente() {
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-600">Caricamento...</p>
         </NeumorphicCard>
-      </div>
-    );
+      </div>);
+
   }
 
   // Check if profile is complete
-  const isProfileComplete = user?.nome_cognome && user?.phone && user?.data_nascita && 
-    user?.citta_nascita && user?.codice_fiscale && user?.indirizzo_residenza && user?.citta_residenza && user?.iban &&
-    user?.documento_identita_url && user?.codice_fiscale_documento_url &&
-    (user?.cittadinanza_italiana !== false || user?.permesso_soggiorno_url);
+  const isProfileComplete = user?.nome_cognome && user?.phone && user?.data_nascita &&
+  user?.citta_nascita && user?.codice_fiscale && user?.indirizzo_residenza && user?.citta_residenza && user?.iban &&
+  user?.documento_identita_url && user?.codice_fiscale_documento_url && (
+  user?.cittadinanza_italiana !== false || user?.permesso_soggiorno_url);
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       {/* Banner after complete profile */}
-      {isProfileComplete && (!user?.ruoli_dipendente || user.ruoli_dipendente.length === 0) && (
-        <NeumorphicCard className="p-4 bg-blue-50 border-2 border-blue-300">
+      {isProfileComplete && (!user?.ruoli_dipendente || user.ruoli_dipendente.length === 0) &&
+      <NeumorphicCard className="p-4 bg-blue-50 border-2 border-blue-300">
           <div className="flex items-start gap-3">
             <CheckCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
@@ -208,25 +208,25 @@ export default function ProfiloDipendente() {
             </div>
           </div>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Header */}
       <div className="mb-4">
-        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-          Il Mio Profilo
+        <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Il Mio Profilo
+
         </h1>
-        <p className="text-sm text-slate-500">Gestisci le tue informazioni</p>
+        <p className="text-slate-50 text-sm">Gestisci le tue informazioni</p>
       </div>
 
       {/* Success Message */}
-      {success && (
-        <NeumorphicCard className="p-3 bg-green-50 border-2 border-green-400">
+      {success &&
+      <NeumorphicCard className="p-3 bg-green-50 border-2 border-green-400">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
             <p className="text-sm text-green-800 font-medium">{success}</p>
           </div>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Profile Header */}
       <NeumorphicCard className="p-4 lg:p-6">
@@ -242,22 +242,22 @@ export default function ProfiloDipendente() {
                 {user?.nome_cognome || user?.full_name || 'Nome non impostato'}
               </h2>
               <p className="text-sm text-slate-500 truncate">
-                {user?.ruoli_dipendente && user.ruoli_dipendente.length > 0
-                  ? user.ruoli_dipendente.join(', ')
-                  : 'Dipendente'}
+                {user?.ruoli_dipendente && user.ruoli_dipendente.length > 0 ?
+                user.ruoli_dipendente.join(', ') :
+                'Dipendente'}
               </p>
             </div>
           </div>
 
-          {!editing && (
-            <button
-              onClick={() => setEditing(true)}
-              className="nav-button px-4 py-2 rounded-xl text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap"
-            >
+          {!editing &&
+          <button
+            onClick={() => setEditing(true)}
+            className="nav-button px-4 py-2 rounded-xl text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap">
+
               <Edit className="w-4 h-4" />
               <span className="text-sm font-medium">Modifica</span>
             </button>
-          )}
+          }
         </div>
 
         {/* Email (Read-only) */}
@@ -277,41 +277,41 @@ export default function ProfiloDipendente() {
           Dati Anagrafici
         </h3>
 
-        {editing ? (
-          <div className="space-y-3">
+        {editing ?
+        <div className="space-y-3">
             <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
                 Nome Cognome <span className="text-red-600">*</span>
               </label>
               <input
-                type="text"
-                value={formData.nome_cognome}
-                onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })}
-                placeholder="Mario Rossi"
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-              />
+              type="text"
+              value={formData.nome_cognome}
+              onChange={(e) => setFormData({ ...formData, nome_cognome: e.target.value })}
+              placeholder="Mario Rossi"
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
             </div>
 
-            {user?.user_type === 'dipendente' && (
-              <div>
+            {user?.user_type === 'dipendente' &&
+          <div>
                 <label className="text-sm font-medium text-slate-700 mb-2 block">
                   Ruoli
                 </label>
                 <div className="w-full neumorphic-pressed px-4 py-3 rounded-xl bg-slate-50">
                   <div className="flex flex-wrap gap-2">
-                    {user.ruoli_dipendente && user.ruoli_dipendente.length > 0 ? (
-                      user.ruoli_dipendente.map((role, idx) => (
-                        <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
+                    {user.ruoli_dipendente && user.ruoli_dipendente.length > 0 ?
+                user.ruoli_dipendente.map((role, idx) =>
+                <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
                           {role}
                         </span>
-                      ))
-                    ) : (
-                      <span className="text-sm text-slate-500">Nessun ruolo</span>
-                    )}
+                ) :
+
+                <span className="text-sm text-slate-500">Nessun ruolo</span>
+                }
                   </div>
                 </div>
               </div>
-            )}
+          }
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -320,11 +320,11 @@ export default function ProfiloDipendente() {
                   Data di Nascita
                 </label>
                 <input
-                  type="date"
-                  value={formData.data_nascita}
-                  onChange={(e) => setFormData({ ...formData, data_nascita: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                />
+                type="date"
+                value={formData.data_nascita}
+                onChange={(e) => setFormData({ ...formData, data_nascita: e.target.value })}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
               </div>
 
               <div>
@@ -333,12 +333,12 @@ export default function ProfiloDipendente() {
                   Città di Nascita
                 </label>
                 <input
-                  type="text"
-                  value={formData.citta_nascita}
-                  onChange={(e) => setFormData({ ...formData, citta_nascita: e.target.value })}
-                  placeholder="Milano"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                />
+                type="text"
+                value={formData.citta_nascita}
+                onChange={(e) => setFormData({ ...formData, citta_nascita: e.target.value })}
+                placeholder="Milano"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
               </div>
 
               <div>
@@ -346,13 +346,13 @@ export default function ProfiloDipendente() {
                   Codice Fiscale
                 </label>
                 <input
-                  type="text"
-                  value={formData.codice_fiscale}
-                  onChange={(e) => setFormData({ ...formData, codice_fiscale: e.target.value.toUpperCase() })}
-                  placeholder="RSSMRA80A01H501Z"
-                  maxLength={16}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none uppercase text-sm"
-                />
+                type="text"
+                value={formData.codice_fiscale}
+                onChange={(e) => setFormData({ ...formData, codice_fiscale: e.target.value.toUpperCase() })}
+                placeholder="RSSMRA80A01H501Z"
+                maxLength={16}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none uppercase text-sm" />
+
               </div>
 
               <div>
@@ -361,12 +361,12 @@ export default function ProfiloDipendente() {
                   Cellulare
                 </label>
                 <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+39 333 1234567"
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                />
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+39 333 1234567"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
               </div>
             </div>
 
@@ -376,12 +376,12 @@ export default function ProfiloDipendente() {
                 Indirizzo di Residenza
               </label>
               <input
-                type="text"
-                value={formData.indirizzo_residenza}
-                onChange={(e) => setFormData({ ...formData, indirizzo_residenza: e.target.value })}
-                placeholder="Via Roma 123"
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-              />
+              type="text"
+              value={formData.indirizzo_residenza}
+              onChange={(e) => setFormData({ ...formData, indirizzo_residenza: e.target.value })}
+              placeholder="Via Roma 123"
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
             </div>
 
             <div>
@@ -390,12 +390,12 @@ export default function ProfiloDipendente() {
                 Città di Residenza
               </label>
               <input
-                type="text"
-                value={formData.citta_residenza}
-                onChange={(e) => setFormData({ ...formData, citta_residenza: e.target.value })}
-                placeholder="Milano"
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-              />
+              type="text"
+              value={formData.citta_residenza}
+              onChange={(e) => setFormData({ ...formData, citta_residenza: e.target.value })}
+              placeholder="Milano"
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
             </div>
 
             <div>
@@ -404,13 +404,13 @@ export default function ProfiloDipendente() {
                 IBAN
               </label>
               <input
-                type="text"
-                value={formData.iban}
-                onChange={(e) => setFormData({ ...formData, iban: e.target.value.toUpperCase() })}
-                placeholder="IT60 X054 2811 1010 0000 0123 456"
-                maxLength={34}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none uppercase text-sm"
-              />
+              type="text"
+              value={formData.iban}
+              onChange={(e) => setFormData({ ...formData, iban: e.target.value.toUpperCase() })}
+              placeholder="IT60 X054 2811 1010 0000 0123 456"
+              maxLength={34}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none uppercase text-sm" />
+
             </div>
 
             <div>
@@ -419,10 +419,10 @@ export default function ProfiloDipendente() {
                 Taglia Maglietta
               </label>
               <select
-                value={formData.taglia_maglietta}
-                onChange={(e) => setFormData({ ...formData, taglia_maglietta: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-              >
+              value={formData.taglia_maglietta}
+              onChange={(e) => setFormData({ ...formData, taglia_maglietta: e.target.value })}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
                 <option value="">-- Seleziona --</option>
                 <option value="XS">XS</option>
                 <option value="S">S</option>
@@ -440,78 +440,78 @@ export default function ProfiloDipendente() {
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
-                    type="radio"
-                    checked={formData.cittadinanza_italiana === true}
-                    onChange={() => setFormData({ ...formData, cittadinanza_italiana: true })}
-                    className="w-4 h-4"
-                  />
+                  type="radio"
+                  checked={formData.cittadinanza_italiana === true}
+                  onChange={() => setFormData({ ...formData, cittadinanza_italiana: true })}
+                  className="w-4 h-4" />
+
                   <span className="text-sm text-slate-700">Sì</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
-                    type="radio"
-                    checked={formData.cittadinanza_italiana === false}
-                    onChange={() => setFormData({ ...formData, cittadinanza_italiana: false })}
-                    className="w-4 h-4"
-                  />
+                  type="radio"
+                  checked={formData.cittadinanza_italiana === false}
+                  onChange={() => setFormData({ ...formData, cittadinanza_italiana: false })}
+                  className="w-4 h-4" />
+
                   <span className="text-sm text-slate-700">No</span>
                 </label>
               </div>
             </div>
 
-            {error && (
-              <div className="neumorphic-pressed p-3 rounded-lg bg-red-50">
+            {error &&
+          <div className="neumorphic-pressed p-3 rounded-lg bg-red-50">
                 <div className="flex items-center gap-2 text-red-700 text-sm">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   <p>{error}</p>
                 </div>
               </div>
-            )}
+          }
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
-                onClick={handleCancel}
-                className="flex-1 nav-button px-6 py-3 rounded-xl text-slate-700 hover:text-slate-900 transition-colors font-medium text-sm"
-              >
+              onClick={handleCancel}
+              className="flex-1 nav-button px-6 py-3 rounded-xl text-slate-700 hover:text-slate-900 transition-colors font-medium text-sm">
+
                 Annulla
               </button>
               <button
-                onClick={handleSave}
-                disabled={updateProfileMutation.isPending}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg text-sm"
-              >
-                {updateProfileMutation.isPending ? (
-                  <>
+              onClick={handleSave}
+              disabled={updateProfileMutation.isPending}
+              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg text-sm">
+
+                {updateProfileMutation.isPending ?
+              <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Salvataggio...
-                  </>
-                ) : (
-                  <>
+                  </> :
+
+              <>
                     <Save className="w-5 h-5" />
                     Salva
                   </>
-                )}
+              }
               </button>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {user?.user_type === 'dipendente' && (
-              <div className="neumorphic-pressed p-3 rounded-xl sm:col-span-2">
+          </div> :
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {user?.user_type === 'dipendente' &&
+          <div className="neumorphic-pressed p-3 rounded-xl sm:col-span-2">
                 <p className="text-xs text-slate-500 mb-2">Ruoli</p>
                 <div className="flex flex-wrap gap-2">
-                  {user?.ruoli_dipendente && user.ruoli_dipendente.length > 0 ? (
-                    user.ruoli_dipendente.map((role, idx) => (
-                      <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
+                  {user?.ruoli_dipendente && user.ruoli_dipendente.length > 0 ?
+              user.ruoli_dipendente.map((role, idx) =>
+              <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">
                         {role}
                       </span>
-                    ))
-                  ) : (
-                    <span className="text-sm text-slate-600">Nessun ruolo</span>
-                  )}
+              ) :
+
+              <span className="text-sm text-slate-600">Nessun ruolo</span>
+              }
                 </div>
               </div>
-            )}
+          }
 
             <div className="neumorphic-pressed p-3 rounded-xl">
               <p className="text-xs text-slate-500 mb-1">Data di Nascita</p>
@@ -555,7 +555,7 @@ export default function ProfiloDipendente() {
               <p className="text-sm text-slate-700 font-medium">{user?.taglia_maglietta || '-'}</p>
             </div>
           </div>
-        )}
+        }
       </NeumorphicCard>
 
       {/* Documenti Section */}
@@ -566,8 +566,8 @@ export default function ProfiloDipendente() {
         </h3>
 
         {/* Check if anagrafica is complete */}
-        {(!user?.nome_cognome || !user?.phone || !user?.data_nascita || !user?.citta_nascita || !user?.codice_fiscale || !user?.indirizzo_residenza || !user?.citta_residenza || !user?.iban) ? (
-          <div className="neumorphic-pressed p-4 rounded-xl bg-yellow-50">
+        {!user?.nome_cognome || !user?.phone || !user?.data_nascita || !user?.citta_nascita || !user?.codice_fiscale || !user?.indirizzo_residenza || !user?.citta_residenza || !user?.iban ?
+        <div className="neumorphic-pressed p-4 rounded-xl bg-yellow-50">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
               <div>
@@ -579,195 +579,195 @@ export default function ProfiloDipendente() {
                 </p>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
+          </div> :
+
+        <div className="space-y-4">
           {/* Documento d'Identità */}
           <div className="neumorphic-pressed p-4 rounded-xl">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-medium text-slate-700">Documento d'Identità</h4>
-              {user?.documento_identita_url && (
-                <button
-                  onClick={() => handleDocumentDelete('documento_identita')}
-                  className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                  title="Elimina"
-                >
+              {user?.documento_identita_url &&
+              <button
+                onClick={() => handleDocumentDelete('documento_identita')}
+                className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                title="Elimina">
+
                   <X className="w-4 h-4 text-red-600" />
                 </button>
-              )}
+              }
             </div>
             
-            {user?.documento_identita_url ? (
-              <div className="flex items-center gap-3">
+            {user?.documento_identita_url ?
+            <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-green-700 font-medium">Caricato</p>
-                  <a 
-                    href={user.documento_identita_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline truncate block"
-                  >
+                  <a
+                  href={user.documento_identita_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline truncate block">
+
                     Visualizza
                   </a>
                 </div>
-              </div>
-            ) : (
-              <div>
+              </div> :
+
+            <div>
                 <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => handleDocumentChange('documento_identita', e.target.files[0])}
-                  className="hidden"
-                  id="doc-identita"
-                />
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => handleDocumentChange('documento_identita', e.target.files[0])}
+                className="hidden"
+                id="doc-identita" />
+
                 <label
-                  htmlFor="doc-identita"
-                  className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
-                >
+                htmlFor="doc-identita"
+                className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full">
+
                   <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
                   <span className="text-sm text-slate-700 truncate">
                     {documentFiles.documento_identita ? documentFiles.documento_identita.name : 'Seleziona file'}
                   </span>
                 </label>
-                {documentFiles.documento_identita && (
-                  <button
-                    onClick={() => handleDocumentUpload('documento_identita')}
-                    disabled={uploadingDocs}
-                    className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50"
-                  >
+                {documentFiles.documento_identita &&
+              <button
+                onClick={() => handleDocumentUpload('documento_identita')}
+                disabled={uploadingDocs}
+                className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50">
+
                     {uploadingDocs ? 'Caricamento...' : 'Carica'}
                   </button>
-                )}
+              }
               </div>
-            )}
+            }
           </div>
 
           {/* Codice Fiscale Documento */}
           <div className="neumorphic-pressed p-4 rounded-xl">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-medium text-slate-700">Codice Fiscale</h4>
-              {user?.codice_fiscale_documento_url && (
-                <button
-                  onClick={() => handleDocumentDelete('codice_fiscale_documento')}
-                  className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                  title="Elimina"
-                >
+              {user?.codice_fiscale_documento_url &&
+              <button
+                onClick={() => handleDocumentDelete('codice_fiscale_documento')}
+                className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                title="Elimina">
+
                   <X className="w-4 h-4 text-red-600" />
                 </button>
-              )}
+              }
             </div>
             
-            {user?.codice_fiscale_documento_url ? (
-              <div className="flex items-center gap-3">
+            {user?.codice_fiscale_documento_url ?
+            <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-green-700 font-medium">Caricato</p>
-                  <a 
-                    href={user.codice_fiscale_documento_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline truncate block"
-                  >
+                  <a
+                  href={user.codice_fiscale_documento_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline truncate block">
+
                     Visualizza
                   </a>
                 </div>
-              </div>
-            ) : (
-              <div>
+              </div> :
+
+            <div>
                 <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => handleDocumentChange('codice_fiscale_documento', e.target.files[0])}
-                  className="hidden"
-                  id="doc-cf"
-                />
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => handleDocumentChange('codice_fiscale_documento', e.target.files[0])}
+                className="hidden"
+                id="doc-cf" />
+
                 <label
-                  htmlFor="doc-cf"
-                  className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
-                >
+                htmlFor="doc-cf"
+                className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full">
+
                   <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
                   <span className="text-sm text-slate-700 truncate">
                     {documentFiles.codice_fiscale_documento ? documentFiles.codice_fiscale_documento.name : 'Seleziona file'}
                   </span>
                 </label>
-                {documentFiles.codice_fiscale_documento && (
-                  <button
-                    onClick={() => handleDocumentUpload('codice_fiscale_documento')}
-                    disabled={uploadingDocs}
-                    className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50"
-                  >
+                {documentFiles.codice_fiscale_documento &&
+              <button
+                onClick={() => handleDocumentUpload('codice_fiscale_documento')}
+                disabled={uploadingDocs}
+                className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50">
+
                     {uploadingDocs ? 'Caricamento...' : 'Carica'}
                   </button>
-                )}
+              }
               </div>
-            )}
+            }
           </div>
 
           {/* Permesso di Soggiorno - Only if NOT Italian citizen */}
-          {user?.cittadinanza_italiana === false && (
-            <div className="neumorphic-pressed p-4 rounded-xl">
+          {user?.cittadinanza_italiana === false &&
+          <div className="neumorphic-pressed p-4 rounded-xl">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-medium text-slate-700">Permesso di Soggiorno</h4>
-                {user?.permesso_soggiorno_url && (
-                  <button
-                    onClick={() => handleDocumentDelete('permesso_soggiorno')}
-                    className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                    title="Elimina"
-                  >
+                {user?.permesso_soggiorno_url &&
+              <button
+                onClick={() => handleDocumentDelete('permesso_soggiorno')}
+                className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                title="Elimina">
+
                     <X className="w-4 h-4 text-red-600" />
                   </button>
-                )}
+              }
               </div>
               
-              {user?.permesso_soggiorno_url ? (
-                <div className="flex items-center gap-3">
+              {user?.permesso_soggiorno_url ?
+            <div className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-green-700 font-medium">Caricato</p>
-                    <a 
-                      href={user.permesso_soggiorno_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:underline truncate block"
-                    >
+                    <a
+                  href={user.permesso_soggiorno_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline truncate block">
+
                       Visualizza
                     </a>
                   </div>
-                </div>
-              ) : (
-                <div>
+                </div> :
+
+            <div>
                   <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => handleDocumentChange('permesso_soggiorno', e.target.files[0])}
-                    className="hidden"
-                    id="doc-permesso"
-                  />
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => handleDocumentChange('permesso_soggiorno', e.target.files[0])}
+                className="hidden"
+                id="doc-permesso" />
+
                   <label
-                    htmlFor="doc-permesso"
-                    className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
-                  >
+                htmlFor="doc-permesso"
+                className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full">
+
                     <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
                     <span className="text-sm text-slate-700 truncate">
                       {documentFiles.permesso_soggiorno ? documentFiles.permesso_soggiorno.name : 'Seleziona file'}
                     </span>
                   </label>
-                  {documentFiles.permesso_soggiorno && (
-                    <button
-                      onClick={() => handleDocumentUpload('permesso_soggiorno')}
-                      disabled={uploadingDocs}
-                      className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50"
-                    >
+                  {documentFiles.permesso_soggiorno &&
+              <button
+                onClick={() => handleDocumentUpload('permesso_soggiorno')}
+                disabled={uploadingDocs}
+                className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50">
+
                       {uploadingDocs ? 'Caricamento...' : 'Carica'}
                     </button>
-                  )}
+              }
                 </div>
-              )}
+            }
             </div>
-          )}
+          }
         </div>
-        )}
+        }
       </NeumorphicCard>
 
       {/* Info Box */}
@@ -784,6 +784,6 @@ export default function ProfiloDipendente() {
           </div>
         </div>
       </NeumorphicCard>
-    </div>
-  );
+    </div>);
+
 }
