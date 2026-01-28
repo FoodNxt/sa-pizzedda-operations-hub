@@ -219,6 +219,7 @@ export default function OrdiniAdmin() {
       }
     });
 
+    // FASE 1: Controlla prodotti rilevati nell'inventario
     Object.values(latestByProduct).forEach((reading) => {
       const product = products.find((p) => p.id === reading.prodotto_id);
       if (!product) return;
@@ -253,6 +254,52 @@ export default function OrdiniAdmin() {
           quantita_critica: quantitaCritica,
           quantita_ordine: quantitaOrdine,
           fornitore: product.fornitore || 'Non specificato'
+        });
+      }
+    });
+
+    // FASE 2: Controlla materie prime che hanno ricevuto somme da semilavorati ma non sono in latestByProduct
+    // (es. patate a rondelle che non vengono mai rilevate direttamente ma solo come patate cotte)
+    Object.entries(aggregatedQuantities).forEach(([key, quantitaAggregata]) => {
+      const [storeId, prodottoId] = key.split('-');
+      
+      // Salta se questo prodotto è già stato controllato nella FASE 1
+      if (latestByProduct[key]) return;
+      
+      const product = products.find((p) => p.id === prodottoId);
+      if (!product) return;
+
+      const store = stores.find((s) => s.id === storeId);
+      if (!store) return;
+
+      // Verifica se il prodotto è assegnato a questo store
+      const isAssignedToStore = !product.assigned_stores ||
+      product.assigned_stores.length === 0 ||
+      product.assigned_stores.includes(storeId);
+      if (!isAssignedToStore) return;
+
+      // Verifica se il prodotto è in uso per questo store
+      const isInUsoForStore = product.in_uso_per_store?.[storeId] === true ||
+      !product.in_uso_per_store?.[storeId] && product.in_uso === true;
+      if (!isInUsoForStore) return;
+
+      const quantitaCritica = product.store_specific_quantita_critica?.[storeId] || product.quantita_critica || product.quantita_minima || 0;
+      const quantitaOrdine = product.store_specific_quantita_ordine?.[storeId] || product.quantita_ordine || 0;
+
+      if (quantitaAggregata <= quantitaCritica && quantitaOrdine > 0) {
+        orders.push({
+          store_id: storeId,
+          prodotto_id: prodottoId,
+          nome_prodotto: product.nome_prodotto,
+          quantita_rilevata: quantitaAggregata,
+          unita_misura: product.unita_misura,
+          data_rilevazione: new Date().toISOString(),
+          product,
+          store,
+          quantita_critica: quantitaCritica,
+          quantita_ordine: quantitaOrdine,
+          fornitore: product.fornitore || 'Non specificato',
+          is_from_semilavorato: true
         });
       }
     });
