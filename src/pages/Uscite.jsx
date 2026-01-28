@@ -74,16 +74,16 @@ export default function Uscite() {
   });
 
   const dipendenteAttivi = useMemo(() => {
-    return allUsers
-      .filter(u => u.user_type === 'dipendente' || u.user_type === 'user')
-      .filter(u => !uscite.some(usc => usc.dipendente_id === u.id))
-      .sort((a, b) => (a.nome_cognome || a.full_name).localeCompare(b.nome_cognome || b.full_name));
+    return allUsers.
+    filter((u) => u.user_type === 'dipendente' || u.user_type === 'user').
+    filter((u) => !uscite.some((usc) => usc.dipendente_id === u.id)).
+    sort((a, b) => (a.nome_cognome || a.full_name).localeCompare(b.nome_cognome || b.full_name));
   }, [allUsers, uscite]);
 
   const handleSelectDipendente = (userId) => {
-    const dipendente = allUsers.find(u => u.id === userId);
+    const dipendente = allUsers.find((u) => u.id === userId);
     if (dipendente) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         dipendente_id: dipendente.id,
         dipendente_nome: dipendente.nome_cognome || dipendente.full_name
@@ -115,7 +115,7 @@ export default function Uscite() {
     if (!uscita.turni_futuri_liberi) return 0;
     const dataUscita = moment(uscita.data_uscita);
     const turniDopo = turni.filter(
-      t => t.dipendente_id === uscita.dipendente_id && moment(t.data).isSameOrAfter(dataUscita)
+      (t) => t.dipendente_id === uscita.dipendente_id && moment(t.data).isSameOrAfter(dataUscita)
     );
     return turniDopo.length;
   };
@@ -125,23 +125,23 @@ export default function Uscite() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-2">
-              Gestione Uscite Dipendenti
+            <h1 className="bg-clip-text text-slate-50 mb-2 text-3xl font-bold from-slate-700 to-slate-900">Gestione Uscite Dipendenti
+
             </h1>
-            <p className="text-slate-500">Registra licenziamenti e dimissioni</p>
+            <p className="text-slate-50">Registra licenziamenti e dimissioni</p>
           </div>
           <NeumorphicButton
             onClick={() => setShowForm(true)}
             variant="primary"
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <Plus className="w-5 h-5" />
             Registra Uscita
           </NeumorphicButton>
         </div>
 
-        {showForm && (
-          <NeumorphicCard className="p-6 border-2 border-blue-200">
+        {showForm &&
+        <NeumorphicCard className="p-6 border-2 border-blue-200">
             <h2 className="text-xl font-bold text-slate-800 mb-4">Nuova Uscita</h2>
             <div className="space-y-4">
               <div>
@@ -153,11 +153,11 @@ export default function Uscite() {
                     <SelectValue placeholder="Seleziona dipendente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {dipendenteAttivi.map(dip => (
-                      <SelectItem key={dip.id} value={dip.id}>
+                    {dipendenteAttivi.map((dip) =>
+                  <SelectItem key={dip.id} value={dip.id}>
                         {dip.nome_cognome || dip.full_name}
                       </SelectItem>
-                    ))}
+                  )}
                   </SelectContent>
                 </Select>
               </div>
@@ -168,11 +168,11 @@ export default function Uscite() {
                     Tipo di Uscita
                   </label>
                   <Select
-                    value={formData.tipo_uscita}
-                    onValueChange={(value) =>
-                      setFormData(prev => ({ ...prev, tipo_uscita: value }))
-                    }
-                  >
+                  value={formData.tipo_uscita}
+                  onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, tipo_uscita: value }))
+                  }>
+
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -188,13 +188,13 @@ export default function Uscite() {
                     Data Uscita
                   </label>
                   <Input
-                    type="date"
-                    value={formData.data_uscita}
-                    onChange={(e) =>
-                      setFormData(prev => ({ ...prev, data_uscita: e.target.value }))
-                    }
-                    className="w-full"
-                  />
+                  type="date"
+                  value={formData.data_uscita}
+                  onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, data_uscita: e.target.value }))
+                  }
+                  className="w-full" />
+
                 </div>
               </div>
 
@@ -203,22 +203,22 @@ export default function Uscite() {
                   Note
                 </label>
                 <Input
-                  placeholder="Note sulla motivazione..."
-                  value={formData.note}
-                  onChange={(e) =>
-                    setFormData(prev => ({ ...prev, note: e.target.value }))
-                  }
-                  className="w-full"
-                />
+                placeholder="Note sulla motivazione..."
+                value={formData.note}
+                onChange={(e) =>
+                setFormData((prev) => ({ ...prev, note: e.target.value }))
+                }
+                className="w-full" />
+
               </div>
 
               <div className="flex items-center gap-3 p-4 rounded-lg bg-yellow-50 border border-yellow-200">
                 <Checkbox
-                  checked={formData.turni_futuri_liberi}
-                  onCheckedChange={(checked) =>
-                    setFormData(prev => ({ ...prev, turni_futuri_liberi: checked }))
-                  }
-                />
+                checked={formData.turni_futuri_liberi}
+                onCheckedChange={(checked) =>
+                setFormData((prev) => ({ ...prev, turni_futuri_liberi: checked }))
+                } />
+
                 <div>
                   <label className="text-sm font-medium text-slate-700 cursor-pointer">
                     Libera tutti i turni futuri
@@ -231,43 +231,43 @@ export default function Uscite() {
 
               <div className="flex gap-3 justify-end">
                 <Button
-                  variant="outline"
-                  onClick={handleCancelForm}
-                  className="px-6"
-                >
+                variant="outline"
+                onClick={handleCancelForm}
+                className="px-6">
+
                   Annulla
                 </Button>
                 <NeumorphicButton
-                  onClick={handleSubmit}
-                  variant="primary"
-                  disabled={createUscitaMutation.isPending}
-                  className="px-6"
-                >
+                onClick={handleSubmit}
+                variant="primary"
+                disabled={createUscitaMutation.isPending}
+                className="px-6">
+
                   {createUscitaMutation.isPending ? "Registrando..." : "Registra"}
                 </NeumorphicButton>
               </div>
             </div>
           </NeumorphicCard>
-        )}
+        }
 
         <div className="grid gap-4">
-          {uscite.length === 0 ? (
-            <NeumorphicCard className="p-8 text-center">
+          {uscite.length === 0 ?
+          <NeumorphicCard className="p-8 text-center">
               <p className="text-slate-500">Nessuna uscita registrata</p>
-            </NeumorphicCard>
-          ) : (
-            uscite.map(uscita => {
-              const dipendente = allUsers.find(u => u.id === uscita.dipendente_id);
-              return (
-                <NeumorphicCard key={uscita.id} className="p-4 hover:shadow-lg transition-all">
+            </NeumorphicCard> :
+
+          uscite.map((uscita) => {
+            const dipendente = allUsers.find((u) => u.id === uscita.dipendente_id);
+            return (
+              <NeumorphicCard key={uscita.id} className="p-4 hover:shadow-lg transition-all">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        {uscita.tipo_uscita === "licenziamento" ? (
-                          <AlertTriangle className="w-5 h-5 text-red-600" />
-                        ) : (
-                          <CheckCircle className="w-5 h-5 text-blue-600" />
-                        )}
+                        {uscita.tipo_uscita === "licenziamento" ?
+                      <AlertTriangle className="w-5 h-5 text-red-600" /> :
+
+                      <CheckCircle className="w-5 h-5 text-blue-600" />
+                      }
                         <h3 className="text-lg font-bold text-slate-800">
                           {uscita.dipendente_nome}
                         </h3>
@@ -298,25 +298,25 @@ export default function Uscite() {
                           </p>
                         </div>
                       </div>
-                      {uscita.note && (
-                        <p className="text-sm text-slate-600 mt-3 p-2 bg-slate-50 rounded">
+                      {uscita.note &&
+                    <p className="text-sm text-slate-600 mt-3 p-2 bg-slate-50 rounded">
                           {uscita.note}
                         </p>
-                      )}
+                    }
                     </div>
                     <button
-                      onClick={() => deleteUscitaMutation.mutate(uscita.id)}
-                      className="nav-button p-2 hover:bg-red-50 text-red-600"
-                    >
+                    onClick={() => deleteUscitaMutation.mutate(uscita.id)}
+                    className="nav-button p-2 hover:bg-red-50 text-red-600">
+
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
-                </NeumorphicCard>
-              );
-            })
-          )}
+                </NeumorphicCard>);
+
+          })
+          }
         </div>
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
