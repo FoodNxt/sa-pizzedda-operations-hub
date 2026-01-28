@@ -20,7 +20,9 @@ import {
   Camera,
   Image as ImageIcon,
   Plus,
-  Search } from
+  Search,
+  Volume2,
+  Upload } from
 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
@@ -58,6 +60,12 @@ export default function OrdiniAdmin() {
   const [addProductEmailModal, setAddProductEmailModal] = useState({ open: false, availableProducts: [] });
   const [selectedProductToAddEmail, setSelectedProductToAddEmail] = useState('');
   const [productQuantityEmail, setProductQuantityEmail] = useState(0);
+  const [confirmingOrder, setConfirmingOrder] = useState(null);
+  const [receivedQuantities, setReceivedQuantities] = useState({});
+  const [confirmedProducts, setConfirmedProducts] = useState({});
+  const [ddtPhotos, setDdtPhotos] = useState([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [playingAudio, setPlayingAudio] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -154,6 +162,19 @@ export default function OrdiniAdmin() {
     mutationFn: ({ id, data }) => base44.entities.OrdineFornitore.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ordini-completati'] });
+    }
+  });
+
+  const completeOrderMutation = useMutation({
+    mutationFn: ({ orderId, data }) => base44.entities.OrdineFornitore.update(orderId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ordini-inviati'] });
+      queryClient.invalidateQueries({ queryKey: ['ordini-completati'] });
+      setConfirmingOrder(null);
+      setReceivedQuantities({});
+      setConfirmedProducts({});
+      setDdtPhotos([]);
+      alert('✅ Ordine completato!');
     }
   });
 
@@ -271,6 +292,99 @@ export default function OrdiniAdmin() {
     name?.toLowerCase().includes(f.ragione_sociale?.toLowerCase())
     );
   };
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me()
+  });
+
+  const openConfirmOrder = (ordine) => {
+    setConfirmingOrder(ordine);
+    const initialQuantities = {};
+    const initialConfirmed = {};
+    ordine.prodotti.forEach((prod) => {
+      initialQuantities[prod.prodotto_id] = prod.quantita_ordinata;
+      initialConfirmed[prod.prodotto_id] = false;
+    });
+    setReceivedQuantities(initialQuantities);
+    setConfirmedProducts(initialConfirmed);
+    setDdtPhotos([]);
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setUploadingPhoto(true);
+    try {
+      const uploadedUrls = [];
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        uploadedUrls.push(file_url);
+      }
+      setDdtPhotos((prev) => [...prev, ...uploadedUrls]);
+    } catch (error) {
+      alert('Errore nel caricamento delle foto: ' + error.message);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const removePhoto = (index) => {
+    setDdtPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCompleteOrder = async () => {
+    if (!confirmingOrder) return;
+
+    const allMatch = confirmingOrder.prodotti.every((prod) =>
+      receivedQuantities[prod.prodotto_id] === prod.quantita_ordinata
+    );
+
+    if (!allMatch) {
+      alert('ATTENZIONE: Le quantità ricevute non corrispondono a quelle ordinate.');
+    }
+
+    const updatedProdotti = confirmingOrder.prodotti.map((prod) => ({
+      ...prod,
+      quantita_ricevuta: receivedQuantities[prod.prodotto_id] || 0
+    }));
+
+    await completeOrderMutation.mutateAsync({
+      orderId: confirmingOrder.id,
+      data: {
+        status: 'completato',
+        data_completamento: new Date().toISOString(),
+        completato_da: currentUser.email,
+        prodotti: updatedProdotti,
+        foto_ddt: ddtPhotos
+      }
+    });
+  };
+
+  const speakProductName = async (productName) => {
+    if (!productName) return;
+
+    setPlayingAudio(productName);
+    try {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(productName);
+        utterance.lang = 'it-IT';
+        utterance.rate = 0.9;
+        utterance.onend = () => setPlayingAudio(null);
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch (error) {
+      console.error('Error speaking:', error);
+      setPlayingAudio(null);
+    }
+  };
+
+  const allProductsConfirmed = confirmingOrder ?
+    confirmingOrder.prodotti
+      .filter((p) => p.quantita_ordinata > 0)
+      .every((prod) => confirmedProducts[prod.prodotto_id]) :
+    false;
 
   const openOrderEditor = (storeName, storeId, supplierName, orders) => {
     const fornitore = getFornitoreByName(supplierName);
@@ -965,6 +1079,16 @@ Sa Pizzedda`,
 
                             })()}
                                   </div>
+                                  <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openConfirmOrder(ordine);
+                            }}
+                            className="nav-button px-3 py-2 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 transition-all flex items-center gap-1">
+
+                                    <CheckCircle className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Conferma Arrivo</span>
+                                  </button>
                                   <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -2663,6 +2787,175 @@ Sa Pizzedda`,
                   </NeumorphicButton>
                 </div>
               </div>
+            </NeumorphicCard>
+          </div>
+        }
+
+        {/* Modal Conferma Ricezione Ordine */}
+        {confirmingOrder &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">Conferma Ricezione</h2>
+                  <p className="text-sm text-slate-500">{confirmingOrder.store_name} - {confirmingOrder.fornitore}</p>
+                </div>
+                <button onClick={() => {
+                  setConfirmingOrder(null);
+                  setReceivedQuantities({});
+                  setConfirmedProducts({});
+                  setDdtPhotos([]);
+                }} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-yellow-800 text-sm">Importante!</p>
+                    <p className="text-xs text-yellow-700">
+                      Verifica che le quantità ricevute corrispondano a quelle ordinate prima di completare.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* DDT Photo Upload */}
+              <div className="mb-6">
+                <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  Foto DDT (opzionale)
+                </label>
+                <div className="space-y-3">
+                  <label className="neumorphic-pressed p-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-50 transition-colors">
+                    <Upload className="w-5 h-5 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-600">
+                      {uploadingPhoto ? 'Caricamento...' : 'Carica Foto DDT'}
+                    </span>
+                    <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handlePhotoUpload}
+                    disabled={uploadingPhoto}
+                    className="hidden" />
+                  </label>
+
+                  {ddtPhotos.length > 0 &&
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {ddtPhotos.map((url, idx) =>
+                      <div key={idx} className="relative neumorphic-flat rounded-xl overflow-hidden group">
+                          <img src={url} alt={`DDT ${idx + 1}`} className="w-full h-32 object-cover" />
+                          <button
+                          onClick={() => removePhoto(idx)}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-6">
+                {confirmingOrder.prodotti.filter((p) => p.quantita_ordinata > 0).map((prod) => {
+                  const receivedQty = receivedQuantities[prod.prodotto_id] || 0;
+                  const isMatch = receivedQty === prod.quantita_ordinata;
+                  const isConfirmed = confirmedProducts[prod.prodotto_id];
+                  const materiaPrima = products.find((m) => m.id === prod.prodotto_id);
+
+                  return (
+                    <div key={prod.prodotto_id} className={`neumorphic-pressed p-4 rounded-xl transition-all ${
+                      isConfirmed ? 'border-2 border-green-500' : ''}`}>
+                      {materiaPrima?.foto_url &&
+                        <div className="mb-3">
+                          <img
+                            src={materiaPrima.foto_url}
+                            alt={prod.nome_prodotto}
+                            className="w-full h-32 object-cover rounded-lg" />
+                        </div>
+                      }
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-slate-800">{prod.nome_prodotto}</p>
+                            <button
+                              type="button"
+                              onClick={() => speakProductName(prod.nome_prodotto)}
+                              disabled={playingAudio === prod.nome_prodotto}
+                              className="nav-button p-1.5 rounded-lg hover:bg-blue-50"
+                              title="Ascolta il nome">
+                              <Volume2 className={`w-4 h-4 ${playingAudio === prod.nome_prodotto ? 'text-blue-600 animate-pulse' : 'text-slate-600'}`} />
+                            </button>
+                          </div>
+                          <p className="text-sm text-slate-500">
+                            Ordinato: {prod.quantita_ordinata} {prod.unita_misura}
+                          </p>
+                        </div>
+                        {isMatch ?
+                          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" /> :
+                          <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                        }
+                      </div>
+                      
+                      <div className="mb-3">
+                        <label className="text-xs text-slate-500 mb-1 block">Quantità Ricevuta</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={receivedQty}
+                          onChange={(e) => setReceivedQuantities({
+                            ...receivedQuantities,
+                            [prod.prodotto_id]: parseFloat(e.target.value) || 0
+                          })}
+                          className={`w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none ${
+                            !isMatch ? 'border-2 border-orange-300' : ''}`} />
+                      </div>
+
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+                        <input
+                          type="checkbox"
+                          checked={isConfirmed}
+                          onChange={(e) => setConfirmedProducts({
+                            ...confirmedProducts,
+                            [prod.prodotto_id]: e.target.checked
+                          })}
+                          className="w-5 h-5" />
+                        <label className="text-sm font-medium text-blue-800 cursor-pointer">
+                          Ho verificato questo prodotto
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-3">
+                <NeumorphicButton onClick={() => {
+                  setConfirmingOrder(null);
+                  setReceivedQuantities({});
+                  setConfirmedProducts({});
+                  setDdtPhotos([]);
+                }} className="flex-1">
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={handleCompleteOrder}
+                  variant="primary"
+                  disabled={!allProductsConfirmed}
+                  className="flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <CheckCircle className="w-5 h-5" />
+                  Completa Ordine
+                </NeumorphicButton>
+              </div>
+              {!allProductsConfirmed &&
+                <p className="text-center text-sm text-orange-600 mt-2">
+                  ⚠️ Devi confermare tutti i prodotti prima di completare l'ordine
+                </p>
+              }
             </NeumorphicCard>
           </div>
         }
