@@ -228,7 +228,14 @@ export default function OrdiniAdmin() {
           // Calculate proportion: how much raw ingredient is needed per unit of finished product
           const materiaPrimaTarget = products.find((p) => p.id === ricetta.somma_a_materia_prima_id);
           
-          if (!materiaPrimaTarget) return;
+          if (!materiaPrimaTarget) {
+            console.log(`⚠️ MATERIA PRIMA TARGET NON TROVATA:`, {
+              semilavorato: reading.nome_prodotto,
+              somma_a_materia_prima_id: ricetta.somma_a_materia_prima_id,
+              products_ids: products.map(p => p.id)
+            });
+            return;
+          }
           
           // Convert all quantities to grams for calculation
           let quantitaSemilavoratoInGrammi = reading.quantita_rilevata || 0;
@@ -266,18 +273,29 @@ export default function OrdiniAdmin() {
             quantita_semilavorato: reading.quantita_rilevata,
             unita_semilavorato: reading.unita_misura,
             materia_prima_target: ricetta.somma_a_materia_prima_nome,
+            materia_prima_target_id: ricetta.somma_a_materia_prima_id,
             unita_materia_prima: materiaPrimaTarget.unita_misura,
             peso_per_unita: materiaPrimaTarget.peso_dimensione_unita,
             ingrediente_quantita: ingrediente.quantita,
             ingrediente_unita: ingrediente.unita_misura,
             quantita_prodotta: ricetta.quantita_prodotta,
             unita_prodotta: ricetta.unita_misura_prodotta,
+            quantita_semilavorato_grammi: quantitaSemilavoratoInGrammi,
+            quantita_ingrediente_grammi: quantitaIngredienteInGrammi,
+            quantita_prodotta_grammi: quantitaProdottaInGrammi,
             moltiplicatore,
+            quantita_materia_prima_grammi: quantitaMateriaPrimaNecessariaInGrammi,
             quantita_da_sommare: quantitaDaSommare,
-            targetKey
+            targetKey,
+            valore_prima_della_somma: aggregatedQuantities[targetKey] || 0
           });
           
           aggregatedQuantities[targetKey] = (aggregatedQuantities[targetKey] || 0) + quantitaDaSommare;
+          
+          console.log(`✅ DOPO SOMMA:`, {
+            targetKey,
+            nuovo_valore: aggregatedQuantities[targetKey]
+          });
         }
       }
     });
