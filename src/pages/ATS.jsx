@@ -7,7 +7,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import {
   UserPlus, Users, Phone, Edit, Trash2, Save, X, Loader2, Store, Briefcase,
   Calendar, Clock, User, CheckCircle, XCircle, Plus, Link as LinkIcon,
-  ClipboardList, ChevronDown, ChevronRight, Eye } from
+  ClipboardList, ChevronDown, ChevronRight, Eye, MessageCircle } from
 "lucide-react";
 import moment from "moment";
 
@@ -305,14 +305,24 @@ export default function ATS() {
             </h1>
             <p className="text-slate-50 mt-1">Gestione candidati per turni di prova</p>
           </div>
-          <NeumorphicButton
-            onClick={() => setShowForm(true)}
-            variant="primary"
-            className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <a
+              href={base44.agents.getWhatsAppConnectURL('assistente_dipendenti')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="neumorphic-flat px-4 py-2 rounded-xl font-medium text-slate-700 hover:shadow-lg transition-all flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-green-600" />
+              WhatsApp Bot
+            </a>
+            <NeumorphicButton
+              onClick={() => setShowForm(true)}
+              variant="primary"
+              className="flex items-center gap-2">
 
-            <UserPlus className="w-5 h-5" />
-            Nuovo Candidato
-          </NeumorphicButton>
+              <UserPlus className="w-5 h-5" />
+              Nuovo Candidato
+            </NeumorphicButton>
+          </div>
         </div>
 
         {/* Tabs */}
