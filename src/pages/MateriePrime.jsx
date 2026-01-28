@@ -20,8 +20,8 @@ import {
   ArrowUp,
   ArrowDown,
   Upload,
-  Camera
-} from 'lucide-react';
+  Camera } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -34,18 +34,18 @@ export default function MateriePrime() {
   const [storeQuantities, setStoreQuantities] = useState({});
   const [showStorePositions, setShowStorePositions] = useState(false);
   const [storePositions, setStorePositions] = useState({});
-  
+
   const CATEGORIE = [
-    'Angolo di Sardegna',
-    'Bevande',
-    'Consumabili',
-    'Dolci',
-    'Ingredienti base',
-    'Ingredienti pronti',
-    'Ortofrutta',
-    'Packaging',
-    'Pulizia'
-  ];
+  'Angolo di Sardegna',
+  'Bevande',
+  'Consumabili',
+  'Dolci',
+  'Ingredienti base',
+  'Ingredienti pronti',
+  'Ortofrutta',
+  'Packaging',
+  'Pulizia'];
+
 
   const [formData, setFormData] = useState({
     nome_prodotto: '',
@@ -80,7 +80,7 @@ export default function MateriePrime() {
   const [collapsedCategories, setCollapsedCategories] = useState(() => {
     // Default: tutte le categorie collassate
     const initial = {};
-    CATEGORIE.forEach(cat => {
+    CATEGORIE.forEach((cat) => {
       initial[cat] = true;
     });
     return initial;
@@ -90,22 +90,22 @@ export default function MateriePrime() {
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['materie-prime'],
-    queryFn: () => base44.entities.MateriePrime.list(),
+    queryFn: () => base44.entities.MateriePrime.list()
   });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: suppliers = [] } = useQuery({
     queryKey: ['fornitori'],
-    queryFn: () => base44.entities.Fornitore.filter({ attivo: true }),
+    queryFn: () => base44.entities.Fornitore.filter({ attivo: true })
   });
 
   const { data: prodottiVenduti = [] } = useQuery({
     queryKey: ['prodotti-venduti'],
-    queryFn: () => base44.entities.ProdottiVenduti.list(),
+    queryFn: () => base44.entities.ProdottiVenduti.list()
   });
 
   const createMutation = useMutation({
@@ -113,7 +113,7 @@ export default function MateriePrime() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materie-prime'] });
       resetForm();
-    },
+    }
   });
 
   const updateMutation = useMutation({
@@ -121,14 +121,14 @@ export default function MateriePrime() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materie-prime'] });
       resetForm();
-    },
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.MateriePrime.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['materie-prime'] });
-    },
+    }
   });
 
   const resetForm = () => {
@@ -221,7 +221,7 @@ export default function MateriePrime() {
       prezzo_unitario: product.prezzo_unitario || '',
       iva_percentuale: product.iva_percentuale || 22,
       fornitore: product.fornitore || '',
-      categoria: product.categoria === 'Condimenti' ? 'Ingredienti pronti' : (product.categoria || 'Ingredienti base'),
+      categoria: product.categoria === 'Condimenti' ? 'Ingredienti pronti' : product.categoria || 'Ingredienti base',
       note: product.note || '',
       attivo: product.attivo !== false,
       posizione: product.posizione || 'negozio',
@@ -241,32 +241,32 @@ export default function MateriePrime() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Pulisci store_specific_min_quantities rimuovendo valori null/undefined
     const cleanedStoreQuantities = {};
-    Object.keys(storeQuantities).forEach(storeId => {
+    Object.keys(storeQuantities).forEach((storeId) => {
       if (storeQuantities[storeId] !== null && storeQuantities[storeId] !== undefined && storeQuantities[storeId] !== '') {
         cleanedStoreQuantities[storeId] = parseFloat(storeQuantities[storeId]);
       }
     });
 
     const cleanedStorePositions = {};
-    Object.keys(storePositions).forEach(storeId => {
+    Object.keys(storePositions).forEach((storeId) => {
       if (storePositions[storeId]) {
         cleanedStorePositions[storeId] = storePositions[storeId];
       }
     });
-    
+
     // Clean store-specific quantities
     const cleanedStoreQuantitaCritica = {};
-    Object.keys(storeQuantitaCritica).forEach(storeId => {
+    Object.keys(storeQuantitaCritica).forEach((storeId) => {
       if (storeQuantitaCritica[storeId] !== null && storeQuantitaCritica[storeId] !== undefined && storeQuantitaCritica[storeId] !== '') {
         cleanedStoreQuantitaCritica[storeId] = Math.round(parseFloat(storeQuantitaCritica[storeId]));
       }
     });
 
     const cleanedStoreQuantitaOrdine = {};
-    Object.keys(storeQuantitaOrdine).forEach(storeId => {
+    Object.keys(storeQuantitaOrdine).forEach((storeId) => {
       if (storeQuantitaOrdine[storeId] !== null && storeQuantitaOrdine[storeId] !== undefined && storeQuantitaOrdine[storeId] !== '') {
         cleanedStoreQuantitaOrdine[storeId] = Math.round(parseFloat(storeQuantitaOrdine[storeId]));
       }
@@ -305,34 +305,34 @@ export default function MateriePrime() {
   };
 
   const handleStoreToggle = (storeId) => {
-    setFormData(prev => {
-      const assigned = prev.assigned_stores.includes(storeId)
-        ? prev.assigned_stores.filter(id => id !== storeId)
-        : [...prev.assigned_stores, storeId];
+    setFormData((prev) => {
+      const assigned = prev.assigned_stores.includes(storeId) ?
+      prev.assigned_stores.filter((id) => id !== storeId) :
+      [...prev.assigned_stores, storeId];
       return { ...prev, assigned_stores: assigned };
     });
   };
 
   const handleStoreQuantityChange = (storeId, value) => {
-    setStoreQuantities(prev => ({
+    setStoreQuantities((prev) => ({
       ...prev,
       [storeId]: value ? parseFloat(value) : null
     }));
   };
 
-  const filteredProducts = products.filter(p =>
-    p.nome_prodotto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.fornitore?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProducts = products.filter((p) =>
+  p.nome_prodotto?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  p.fornitore?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  p.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Nomi interni unici e ordinati (da MateriePrime + flavor da ProdottiVenduti)
   const nomiInterniUnici = [
-    ...new Set([
-      ...products.map(p => p.nome_interno).filter(Boolean),
-      ...prodottiVenduti.map(p => p.flavor).filter(Boolean)
-    ])
-  ].sort((a, b) => a.localeCompare(b, 'it'));
+  ...new Set([
+  ...products.map((p) => p.nome_interno).filter(Boolean),
+  ...prodottiVenduti.map((p) => p.flavor).filter(Boolean)]
+  )].
+  sort((a, b) => a.localeCompare(b, 'it'));
 
   // Fornitori ordinati alfabeticamente
   const suppliersOrdered = [...suppliers].sort((a, b) => (a.ragione_sociale || '').localeCompare(b.ragione_sociale || '', 'it'));
@@ -351,7 +351,7 @@ export default function MateriePrime() {
 
   // Funzione per ordinare i prodotti
   const handleSort = (key) => {
-    setSortConfig(prev => ({
+    setSortConfig((prev) => ({
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
@@ -359,13 +359,13 @@ export default function MateriePrime() {
 
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) return <ArrowUpDown className="w-3 h-3 text-slate-400" />;
-    return sortConfig.direction === 'asc' 
-      ? <ArrowUp className="w-3 h-3 text-blue-600" /> 
-      : <ArrowDown className="w-3 h-3 text-blue-600" />;
+    return sortConfig.direction === 'asc' ?
+    <ArrowUp className="w-3 h-3 text-blue-600" /> :
+    <ArrowDown className="w-3 h-3 text-blue-600" />;
   };
 
   const toggleCategory = (categoria) => {
-    setCollapsedCategories(prev => ({
+    setCollapsedCategories((prev) => ({
       ...prev,
       [categoria]: !prev[categoria]
     }));
@@ -373,10 +373,10 @@ export default function MateriePrime() {
 
   const sortProducts = (products) => {
     if (!sortConfig.key) return products;
-    
+
     return [...products].sort((a, b) => {
       let aVal, bVal;
-      
+
       switch (sortConfig.key) {
         case 'nome_prodotto':
           aVal = (a.nome_prodotto || '').toLowerCase();
@@ -405,12 +405,12 @@ export default function MateriePrime() {
         default:
           return 0;
       }
-      
+
       if (typeof aVal === 'string') {
         const cmp = aVal.localeCompare(bVal, 'it');
         return sortConfig.direction === 'asc' ? cmp : -cmp;
       }
-      
+
       return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
     });
   };
@@ -421,16 +421,16 @@ export default function MateriePrime() {
         <div className="mb-4 lg:mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-                Materie Prime
+              <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Materie Prime
+
               </h1>
-              <p className="text-sm text-slate-500">Gestisci le materie prime e le scorte minime</p>
+              <p className="text-slate-50 text-sm">Gestisci le materie prime e le scorte minime</p>
             </div>
             <NeumorphicButton
               onClick={() => setShowForm(true)}
               variant="primary"
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Plus className="w-5 h-5" />
               <span className="hidden sm:inline">Aggiungi</span>
             </NeumorphicButton>
@@ -454,7 +454,7 @@ export default function MateriePrime() {
                 <CheckCircle className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
               </div>
               <h3 className="text-xl lg:text-2xl font-bold text-green-600 mb-1">
-                {products.filter(p => p.attivo !== false).length}
+                {products.filter((p) => p.attivo !== false).length}
               </h3>
               <p className="text-xs text-slate-500">Attivi</p>
             </div>
@@ -493,22 +493,22 @@ export default function MateriePrime() {
               placeholder="Cerca prodotto..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-            />
+              className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
           </div>
         </NeumorphicCard>
 
-        {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
+        {showForm &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
             <NeumorphicCard className="w-full lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
               <div className="flex items-center justify-between mb-4 sticky top-0 bg-gradient-to-br from-slate-50 to-slate-100 pb-4 -mt-4 pt-4 -mx-4 px-4 z-10">
                 <h2 className="text-xl lg:text-2xl font-bold text-slate-800">
                   {editingProduct ? 'Modifica' : 'Nuovo'}
                 </h2>
                 <button
-                  onClick={resetForm}
-                  className="nav-button p-2 rounded-lg"
-                >
+                onClick={resetForm}
+                className="nav-button p-2 rounded-lg">
+
                   <X className="w-5 h-5 text-slate-700" />
                 </button>
               </div>
@@ -524,13 +524,13 @@ export default function MateriePrime() {
                         Nome Prodotto <span className="text-red-600">*</span>
                       </label>
                       <input
-                        type="text"
-                        value={formData.nome_prodotto}
-                        onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
-                        placeholder="es. Farina di Semola"
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                        required
-                      />
+                      type="text"
+                      value={formData.nome_prodotto}
+                      onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
+                      placeholder="es. Farina di Semola"
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      required />
+
                     </div>
 
                     <div>
@@ -538,27 +538,27 @@ export default function MateriePrime() {
                         Nome Interno <span className="text-red-600">*</span>
                       </label>
                       <select
-                        value={nomiInterniUnici.includes(formData.nome_interno) ? formData.nome_interno : '__custom__'}
-                        onChange={(e) => {
-                          if (e.target.value !== '__custom__') {
-                            setFormData({ ...formData, nome_interno: e.target.value });
-                          }
-                        }}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm mb-2"
-                      >
+                      value={nomiInterniUnici.includes(formData.nome_interno) ? formData.nome_interno : '__custom__'}
+                      onChange={(e) => {
+                        if (e.target.value !== '__custom__') {
+                          setFormData({ ...formData, nome_interno: e.target.value });
+                        }
+                      }}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm mb-2">
+
                         <option value="__custom__">-- Nuovo nome interno --</option>
-                        {nomiInterniUnici.map(nome => (
-                          <option key={nome} value={nome}>{nome}</option>
-                        ))}
+                        {nomiInterniUnici.map((nome) =>
+                      <option key={nome} value={nome}>{nome}</option>
+                      )}
                       </select>
                       <input
-                        type="text"
-                        value={formData.nome_interno}
-                        onChange={(e) => setFormData({ ...formData, nome_interno: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                        placeholder="es. Farina Tipo 00"
-                        required
-                      />
+                      type="text"
+                      value={formData.nome_interno}
+                      onChange={(e) => setFormData({ ...formData, nome_interno: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      placeholder="es. Farina Tipo 00"
+                      required />
+
                       <p className="text-xs text-slate-500 mt-1">
                         💡 Seleziona un nome esistente o inseriscine uno nuovo
                       </p>
@@ -570,12 +570,12 @@ export default function MateriePrime() {
                           Marca
                         </label>
                         <input
-                          type="text"
-                          value={formData.marca}
-                          onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                          placeholder="es. Mulino Bianco"
-                        />
+                        type="text"
+                        value={formData.marca}
+                        onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        placeholder="es. Mulino Bianco" />
+
                       </div>
 
                       <div>
@@ -583,14 +583,14 @@ export default function MateriePrime() {
                           Categoria <span className="text-red-600">*</span>
                         </label>
                         <select
-                          value={formData.categoria}
-                          onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                          required
-                        >
-                          {CATEGORIE.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                          ))}
+                        value={formData.categoria}
+                        onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        required>
+
+                          {CATEGORIE.map((cat) =>
+                        <option key={cat} value={cat}>{cat}</option>
+                        )}
                         </select>
                       </div>
                     </div>
@@ -601,16 +601,16 @@ export default function MateriePrime() {
                           Fornitore
                         </label>
                         <select
-                          value={formData.fornitore}
-                          onChange={(e) => setFormData({ ...formData, fornitore: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                        >
+                        value={formData.fornitore}
+                        onChange={(e) => setFormData({ ...formData, fornitore: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
                           <option value="">-- Seleziona fornitore --</option>
-                          {suppliersOrdered.map(supplier => (
-                            <option key={supplier.id} value={supplier.ragione_sociale}>
+                          {suppliersOrdered.map((supplier) =>
+                        <option key={supplier.id} value={supplier.ragione_sociale}>
                               {supplier.ragione_sociale}
                             </option>
-                          ))}
+                        )}
                         </select>
                       </div>
                       <div>
@@ -618,12 +618,12 @@ export default function MateriePrime() {
                           Codice Fornitore
                         </label>
                         <input
-                          type="text"
-                          value={formData.codice_fornitore}
-                          onChange={(e) => setFormData({ ...formData, codice_fornitore: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                          placeholder="es. SKU-12345"
-                        />
+                        type="text"
+                        value={formData.codice_fornitore}
+                        onChange={(e) => setFormData({ ...formData, codice_fornitore: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                        placeholder="es. SKU-12345" />
+
                       </div>
                     </div>
 
@@ -632,47 +632,47 @@ export default function MateriePrime() {
                         <Camera className="w-4 h-4" />
                         Foto Prodotto
                       </label>
-                      {formData.foto_url && (
-                        <div className="mb-3 relative">
-                          <img 
-                            src={formData.foto_url} 
-                            alt={formData.nome_prodotto}
-                            className="w-full h-40 object-cover rounded-xl"
-                          />
+                      {formData.foto_url &&
+                    <div className="mb-3 relative">
+                          <img
+                        src={formData.foto_url}
+                        alt={formData.nome_prodotto}
+                        className="w-full h-40 object-cover rounded-xl" />
+
                           <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, foto_url: '' })}
-                            className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
-                          >
+                        type="button"
+                        onClick={() => setFormData({ ...formData, foto_url: '' })}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600">
+
                             <X className="w-4 h-4" />
                           </button>
                         </div>
-                      )}
+                    }
                       <label className="neumorphic-pressed p-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-50 transition-colors">
                         <Upload className="w-4 h-4 text-blue-600" />
                         <span className="text-sm font-medium text-blue-600">
                           {uploadingPhoto ? 'Caricamento...' : formData.foto_url ? 'Cambia Foto' : 'Carica Foto'}
                         </span>
                         <input
-                          type="file"
-                          accept="image/*"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setUploadingPhoto(true);
-                              try {
-                                const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                                setFormData({ ...formData, foto_url: file_url });
-                              } catch (error) {
-                                alert('Errore nel caricamento: ' + error.message);
-                              } finally {
-                                setUploadingPhoto(false);
-                              }
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setUploadingPhoto(true);
+                            try {
+                              const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                              setFormData({ ...formData, foto_url: file_url });
+                            } catch (error) {
+                              alert('Errore nel caricamento: ' + error.message);
+                            } finally {
+                              setUploadingPhoto(false);
                             }
-                          }}
-                          disabled={uploadingPhoto}
-                          className="hidden"
-                        />
+                          }
+                        }}
+                        disabled={uploadingPhoto}
+                        className="hidden" />
+
                       </label>
                     </div>
                   </div>
@@ -688,11 +688,11 @@ export default function MateriePrime() {
                         Unità <span className="text-red-600">*</span>
                       </label>
                       <select
-                        value={formData.unita_misura}
-                        onChange={(e) => setFormData({ ...formData, unita_misura: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                        required
-                      >
+                      value={formData.unita_misura}
+                      onChange={(e) => setFormData({ ...formData, unita_misura: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      required>
+
                         <option value="kg">Kg</option>
                         <option value="grammi">Grammi</option>
                         <option value="litri">Litri</option>
@@ -708,25 +708,25 @@ export default function MateriePrime() {
                       </select>
                     </div>
 
-                    {['kg', 'grammi', 'litri', 'ml'].includes(formData.unita_misura) && (
-                          <div>
+                    {['kg', 'grammi', 'litri', 'ml'].includes(formData.unita_misura) &&
+                  <div>
                             <label className="text-sm font-medium text-slate-700 mb-2 block">
                               Peso/Dimensione per Unità (es. 25 per 25kg)
                             </label>
                             <div className="grid grid-cols-2 gap-3">
                               <input
-                                type="number"
-                                step="0.01"
-                                value={formData.peso_dimensione_unita}
-                                onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
-                                placeholder="25"
-                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                              />
+                        type="number"
+                        step="0.01"
+                        value={formData.peso_dimensione_unita}
+                        onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
+                        placeholder="25"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
                               <select
-                                value={formData.unita_misura_peso}
-                                onChange={(e) => setFormData({ ...formData, unita_misura_peso: e.target.value })}
-                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                              >
+                        value={formData.unita_misura_peso}
+                        onChange={(e) => setFormData({ ...formData, unita_misura_peso: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
                                 <option value="kg">kg</option>
                                 <option value="g">g</option>
                                 <option value="litri">litri</option>
@@ -734,22 +734,22 @@ export default function MateriePrime() {
                               </select>
                             </div>
                           </div>
-                        )}
+                  }
 
-                        {['casse', 'confezioni'].includes(formData.unita_misura) && (
-                          <div className="space-y-3">
+                        {['casse', 'confezioni'].includes(formData.unita_misura) &&
+                  <div className="space-y-3">
                             <div>
                               <label className="text-sm font-medium text-slate-700 mb-2 block">
                                 Quante unità per {formData.unita_misura === 'casse' ? 'cassa' : 'confezione'}?
                               </label>
                               <input
-                                type="number"
-                                step="1"
-                                value={formData.unita_per_confezione}
-                                onChange={(e) => setFormData({ ...formData, unita_per_confezione: e.target.value })}
-                                placeholder="es. 24 (bottiglie) o 8 (rotoli)"
-                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                              />
+                        type="number"
+                        step="1"
+                        value={formData.unita_per_confezione}
+                        onChange={(e) => setFormData({ ...formData, unita_per_confezione: e.target.value })}
+                        placeholder="es. 24 (bottiglie) o 8 (rotoli)"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
                               <p className="text-xs text-slate-500 mt-1">
                                 💡 Es: Cassa di 24 bottiglie = 24, Confezione di 8 rotoli = 8
                               </p>
@@ -761,18 +761,18 @@ export default function MateriePrime() {
                               </label>
                               <div className="grid grid-cols-2 gap-3">
                                 <input
-                                  type="number"
-                                  step="0.01"
-                                  value={formData.peso_unita_interna}
-                                  onChange={(e) => setFormData({ ...formData, peso_unita_interna: e.target.value })}
-                                  placeholder="Lascia vuoto se non applicabile"
-                                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                                />
+                          type="number"
+                          step="0.01"
+                          value={formData.peso_unita_interna}
+                          onChange={(e) => setFormData({ ...formData, peso_unita_interna: e.target.value })}
+                          placeholder="Lascia vuoto se non applicabile"
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
                                 <select
-                                  value={formData.unita_misura_interna}
-                                  onChange={(e) => setFormData({ ...formData, unita_misura_interna: e.target.value })}
-                                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                                >
+                          value={formData.unita_misura_interna}
+                          onChange={(e) => setFormData({ ...formData, unita_misura_interna: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
                                   <option value="kg">kg</option>
                                   <option value="g">g</option>
                                   <option value="litri">litri</option>
@@ -784,27 +784,27 @@ export default function MateriePrime() {
                               </p>
                             </div>
                           </div>
-                        )}
+                  }
 
-                        {!['kg', 'grammi', 'litri', 'ml', 'casse', 'confezioni'].includes(formData.unita_misura) && (
-                          <div>
+                        {!['kg', 'grammi', 'litri', 'ml', 'casse', 'confezioni'].includes(formData.unita_misura) &&
+                  <div>
                             <label className="text-sm font-medium text-slate-700 mb-2 block">
                               Peso per {formData.unita_misura === 'sacchi' ? 'Sacco' : 'Unità'} (opzionale)
                             </label>
                             <div className="grid grid-cols-2 gap-3">
                               <input
-                                type="number"
-                                step="0.01"
-                                value={formData.peso_dimensione_unita}
-                                onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
-                                placeholder="Lascia vuoto se non applicabile"
-                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                              />
+                        type="number"
+                        step="0.01"
+                        value={formData.peso_dimensione_unita}
+                        onChange={(e) => setFormData({ ...formData, peso_dimensione_unita: e.target.value })}
+                        placeholder="Lascia vuoto se non applicabile"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
                               <select
-                                value={formData.unita_misura_peso}
-                                onChange={(e) => setFormData({ ...formData, unita_misura_peso: e.target.value })}
-                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                              >
+                        value={formData.unita_misura_peso}
+                        onChange={(e) => setFormData({ ...formData, unita_misura_peso: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
                                 <option value="kg">kg</option>
                                 <option value="g">g</option>
                                 <option value="litri">litri</option>
@@ -815,7 +815,7 @@ export default function MateriePrime() {
                               💡 Lascia vuoto per prodotti venduti a pezzo senza peso
                             </p>
                           </div>
-                        )}
+                  }
                   </div>
                 </div>
 
@@ -829,14 +829,14 @@ export default function MateriePrime() {
                         Qtà Critica <span className="text-red-600">*</span>
                       </label>
                       <input
-                        type="number"
-                        step="1"
-                        value={formData.quantita_critica}
-                        onChange={(e) => setFormData({ ...formData, quantita_critica: e.target.value })}
-                        placeholder="5"
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                        required
-                      />
+                      type="number"
+                      step="1"
+                      value={formData.quantita_critica}
+                      onChange={(e) => setFormData({ ...formData, quantita_critica: e.target.value })}
+                      placeholder="5"
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      required />
+
                       <p className="text-xs text-slate-500 mt-1">
                         💡 Sotto questa soglia: ordinare
                       </p>
@@ -847,14 +847,14 @@ export default function MateriePrime() {
                         Qtà Ordine <span className="text-red-600">*</span>
                       </label>
                       <input
-                        type="number"
-                        step="1"
-                        value={formData.quantita_ordine}
-                        onChange={(e) => setFormData({ ...formData, quantita_ordine: e.target.value })}
-                        placeholder="10"
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                        required
-                      />
+                      type="number"
+                      step="1"
+                      value={formData.quantita_ordine}
+                      onChange={(e) => setFormData({ ...formData, quantita_ordine: e.target.value })}
+                      placeholder="10"
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      required />
+
                       <p className="text-xs text-slate-500 mt-1">
                         💡 Quantità da ordinare
                       </p>
@@ -866,13 +866,13 @@ export default function MateriePrime() {
                         Prezzo netto IVA
                       </label>
                       <input
-                        type="number"
-                        step="0.01"
-                        value={formData.prezzo_unitario}
-                        onChange={(e) => setFormData({ ...formData, prezzo_unitario: e.target.value })}
-                        placeholder="15.50"
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                      />
+                      type="number"
+                      step="0.01"
+                      value={formData.prezzo_unitario}
+                      onChange={(e) => setFormData({ ...formData, prezzo_unitario: e.target.value })}
+                      placeholder="15.50"
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
                       <p className="text-xs text-slate-500 mt-1">
                         💡 Per confezione/cassa
                       </p>
@@ -885,16 +885,16 @@ export default function MateriePrime() {
                         IVA
                       </label>
                       <select
-                        value={[4, 10, 22].includes(formData.iva_percentuale) ? formData.iva_percentuale : 'custom'}
-                        onChange={(e) => {
-                          if (e.target.value === 'custom') {
-                            setFormData({ ...formData, iva_percentuale: '' });
-                          } else {
-                            setFormData({ ...formData, iva_percentuale: parseFloat(e.target.value) });
-                          }
-                        }}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                      >
+                      value={[4, 10, 22].includes(formData.iva_percentuale) ? formData.iva_percentuale : 'custom'}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setFormData({ ...formData, iva_percentuale: '' });
+                        } else {
+                          setFormData({ ...formData, iva_percentuale: parseFloat(e.target.value) });
+                        }
+                      }}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
                         <option value="4">4%</option>
                         <option value="10">10%</option>
                         <option value="22">22%</option>
@@ -902,36 +902,36 @@ export default function MateriePrime() {
                       </select>
                     </div>
                     
-                    {![4, 10, 22].includes(formData.iva_percentuale) && (
-                      <div>
+                    {![4, 10, 22].includes(formData.iva_percentuale) &&
+                  <div>
                         <label className="text-sm font-medium text-slate-700 mb-2 block">
                           IVA Custom (%)
                         </label>
                         <input
-                          type="number"
-                          step="0.01"
-                          value={formData.iva_percentuale}
-                          onChange={(e) => setFormData({ ...formData, iva_percentuale: parseFloat(e.target.value) || 0 })}
-                          placeholder="es. 5"
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                        />
+                      type="number"
+                      step="0.01"
+                      value={formData.iva_percentuale}
+                      onChange={(e) => setFormData({ ...formData, iva_percentuale: parseFloat(e.target.value) || 0 })}
+                      placeholder="es. 5"
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
                       </div>
-                    )}
+                  }
                   </div>
 
                   <button
-                    type="button"
-                    onClick={() => setShowStoreQuantities(!showStoreQuantities)}
-                    className="mt-3 w-full neumorphic-flat px-4 py-3 rounded-xl text-sm font-medium text-slate-700 flex items-center justify-between"
-                  >
+                  type="button"
+                  onClick={() => setShowStoreQuantities(!showStoreQuantities)}
+                  className="mt-3 w-full neumorphic-flat px-4 py-3 rounded-xl text-sm font-medium text-slate-700 flex items-center justify-between">
+
                     <span>⚙️ Quantità Specifiche per Negozio</span>
                     {showStoreQuantities ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
 
-                  {showStoreQuantities && (
-                    <div className="mt-3 space-y-2">
-                      {stores.map(store => (
-                        <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
+                  {showStoreQuantities &&
+                <div className="mt-3 space-y-2">
+                      {stores.map((store) =>
+                  <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-slate-700">{store.name}</span>
                           </div>
@@ -939,33 +939,33 @@ export default function MateriePrime() {
                             <div>
                               <label className="text-xs text-slate-500">Qtà Critica</label>
                               <input
-                                type="number"
-                                step="1"
-                                value={storeQuantitaCritica[store.id] || ''}
-                                onChange={(e) => setStoreQuantitaCritica(prev => ({...prev, [store.id]: e.target.value}))}
-                                placeholder={`Default: ${formData.quantita_critica || '0'}`}
-                                className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
-                              />
+                          type="number"
+                          step="1"
+                          value={storeQuantitaCritica[store.id] || ''}
+                          onChange={(e) => setStoreQuantitaCritica((prev) => ({ ...prev, [store.id]: e.target.value }))}
+                          placeholder={`Default: ${formData.quantita_critica || '0'}`}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+
                             </div>
                             <div>
                               <label className="text-xs text-slate-500">Qtà Ordine</label>
                               <input
-                                type="number"
-                                step="1"
-                                value={storeQuantitaOrdine[store.id] || ''}
-                                onChange={(e) => setStoreQuantitaOrdine(prev => ({...prev, [store.id]: e.target.value}))}
-                                placeholder={`Default: ${formData.quantita_ordine || '0'}`}
-                                className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
-                              />
+                          type="number"
+                          step="1"
+                          value={storeQuantitaOrdine[store.id] || ''}
+                          onChange={(e) => setStoreQuantitaOrdine((prev) => ({ ...prev, [store.id]: e.target.value }))}
+                          placeholder={`Default: ${formData.quantita_ordine || '0'}`}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+
                             </div>
                           </div>
                         </div>
-                      ))}
+                  )}
                       <p className="text-xs text-slate-500 mt-2">
                         ℹ️ Lascia vuoto per usare i valori di default
                       </p>
                     </div>
-                  )}
+                }
                 </div>
 
                 {/* Posizione e Note */}
@@ -974,25 +974,25 @@ export default function MateriePrime() {
                   
                   <div className="flex items-center gap-3 mb-3">
                     <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, posizione: 'negozio' })}
-                      className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
-                        formData.posizione === 'negozio'
-                          ? 'neumorphic-pressed text-blue-600'
-                          : 'neumorphic-flat text-slate-500'
-                      }`}
-                    >
+                    type="button"
+                    onClick={() => setFormData({ ...formData, posizione: 'negozio' })}
+                    className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+                    formData.posizione === 'negozio' ?
+                    'neumorphic-pressed text-blue-600' :
+                    'neumorphic-flat text-slate-500'}`
+                    }>
+
                       🏪 Negozio
                     </button>
                     <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, posizione: 'cantina' })}
-                      className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
-                        formData.posizione === 'cantina'
-                          ? 'neumorphic-pressed text-purple-600'
-                          : 'neumorphic-flat text-slate-500'
-                      }`}
-                    >
+                    type="button"
+                    onClick={() => setFormData({ ...formData, posizione: 'cantina' })}
+                    className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+                    formData.posizione === 'cantina' ?
+                    'neumorphic-pressed text-purple-600' :
+                    'neumorphic-flat text-slate-500'}`
+                    }>
+
                       📦 Cantina
                     </button>
                   </div>
@@ -1002,34 +1002,34 @@ export default function MateriePrime() {
                       Note
                     </label>
                     <textarea
-                      value={formData.note}
-                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                      placeholder="Note aggiuntive..."
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm h-20 resize-none"
-                    />
+                    value={formData.note}
+                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                    placeholder="Note aggiuntive..."
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm h-20 resize-none" />
+
                   </div>
 
                   <div className="flex flex-col gap-2 mt-3">
                     <div className="flex items-center gap-2">
                       <input
-                        type="checkbox"
-                        id="attivo"
-                        checked={formData.attivo}
-                        onChange={(e) => setFormData({ ...formData, attivo: e.target.checked })}
-                        className="w-4 h-4"
-                      />
+                      type="checkbox"
+                      id="attivo"
+                      checked={formData.attivo}
+                      onChange={(e) => setFormData({ ...formData, attivo: e.target.checked })}
+                      className="w-4 h-4" />
+
                       <label htmlFor="attivo" className="text-sm font-medium text-slate-700">
                         Prodotto Attivo
                       </label>
                     </div>
                     <div className="flex items-center gap-2">
                       <input
-                        type="checkbox"
-                        id="trasportabile"
-                        checked={formData.trasportabile}
-                        onChange={(e) => setFormData({ ...formData, trasportabile: e.target.checked })}
-                        className="w-4 h-4"
-                      />
+                      type="checkbox"
+                      id="trasportabile"
+                      checked={formData.trasportabile}
+                      onChange={(e) => setFormData({ ...formData, trasportabile: e.target.checked })}
+                      className="w-4 h-4" />
+
                       <label htmlFor="trasportabile" className="text-sm font-medium text-slate-700">
                         Trasportabile tra Negozi
                       </label>
@@ -1047,90 +1047,90 @@ export default function MateriePrime() {
                   {/* Seleziona/Deseleziona Tutti */}
                   <div className="flex gap-2 mb-3">
                     <button
-                      type="button"
-                      onClick={() => {
-                        const allStoreIds = {};
-                        stores.forEach(store => {
-                          const otherProductInUse = products.find(p => 
-                            p.id !== editingProduct?.id && 
-                            p.nome_interno === formData.nome_interno && 
-                            p.in_uso_per_store?.[store.id] === true
-                          );
-                          if (!otherProductInUse) {
-                            allStoreIds[store.id] = true;
-                          }
-                        });
-                        setInUsoPerStore(allStoreIds);
-                      }}
-                      className="px-3 py-2 text-xs font-medium rounded-lg bg-green-100 text-green-700 hover:bg-green-200"
-                    >
+                    type="button"
+                    onClick={() => {
+                      const allStoreIds = {};
+                      stores.forEach((store) => {
+                        const otherProductInUse = products.find((p) =>
+                        p.id !== editingProduct?.id &&
+                        p.nome_interno === formData.nome_interno &&
+                        p.in_uso_per_store?.[store.id] === true
+                        );
+                        if (!otherProductInUse) {
+                          allStoreIds[store.id] = true;
+                        }
+                      });
+                      setInUsoPerStore(allStoreIds);
+                    }}
+                    className="px-3 py-2 text-xs font-medium rounded-lg bg-green-100 text-green-700 hover:bg-green-200">
+
                       ✓ Seleziona Tutti
                     </button>
                     <button
-                      type="button"
-                      onClick={() => setInUsoPerStore({})}
-                      className="px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    >
+                    type="button"
+                    onClick={() => setInUsoPerStore({})}
+                    className="px-3 py-2 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200">
+
                       ✗ Deseleziona Tutti
                     </button>
                   </div>
                   
                   <div className="space-y-2">
-                    {stores.map(store => {
-                      // Check if another product with same nome_interno is already in use for this store
-                      const otherProductInUse = products.find(p => 
-                        p.id !== editingProduct?.id && 
-                        p.nome_interno === formData.nome_interno && 
-                        p.in_uso_per_store?.[store.id] === true
-                      );
-                      
-                      return (
-                        <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
+                    {stores.map((store) => {
+                    // Check if another product with same nome_interno is already in use for this store
+                    const otherProductInUse = products.find((p) =>
+                    p.id !== editingProduct?.id &&
+                    p.nome_interno === formData.nome_interno &&
+                    p.in_uso_per_store?.[store.id] === true
+                    );
+
+                    return (
+                      <div key={store.id} className="neumorphic-pressed p-3 rounded-lg">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <input
-                                type="checkbox"
-                                id={`in-uso-${store.id}`}
-                                checked={inUsoPerStore[store.id] || false}
-                                onChange={(e) => {
-                                  setInUsoPerStore(prev => ({
-                                    ...prev,
-                                    [store.id]: e.target.checked
-                                  }));
-                                }}
-                                disabled={otherProductInUse && !inUsoPerStore[store.id]}
-                                className="w-4 h-4"
-                              />
+                              type="checkbox"
+                              id={`in-uso-${store.id}`}
+                              checked={inUsoPerStore[store.id] || false}
+                              onChange={(e) => {
+                                setInUsoPerStore((prev) => ({
+                                  ...prev,
+                                  [store.id]: e.target.checked
+                                }));
+                              }}
+                              disabled={otherProductInUse && !inUsoPerStore[store.id]}
+                              className="w-4 h-4" />
+
                               <label htmlFor={`in-uso-${store.id}`} className="text-sm text-slate-700">
                                 {store.name}
                               </label>
                             </div>
-                            {otherProductInUse && !inUsoPerStore[store.id] && (
-                              <span className="text-xs text-orange-600">
+                            {otherProductInUse && !inUsoPerStore[store.id] &&
+                          <span className="text-xs text-orange-600">
                                 In uso: {otherProductInUse.fornitore || otherProductInUse.nome_prodotto}
                               </span>
-                            )}
+                          }
                           </div>
-                        </div>
-                      );
-                    })}
+                        </div>);
+
+                  })}
                   </div>
                 </div>
 
                 <div className="flex gap-3">
                   <NeumorphicButton
-                    type="button"
-                    onClick={resetForm}
-                    className="flex-1"
-                  >
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1">
+
                     Annulla
                   </NeumorphicButton>
                   <NeumorphicButton
-                    type="submit"
-                    variant="primary"
-                    className="flex-1 flex items-center justify-center gap-2"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                  >
+                  type="submit"
+                  variant="primary"
+                  className="flex-1 flex items-center justify-center gap-2"
+                  disabled={createMutation.isPending || updateMutation.isPending}>
+
                     <Save className="w-5 h-5" />
                     Salva
                   </NeumorphicButton>
@@ -1138,43 +1138,43 @@ export default function MateriePrime() {
               </form>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
-        {isLoading ? (
-          <NeumorphicCard className="p-12 text-center">
+        {isLoading ?
+        <NeumorphicCard className="p-12 text-center">
             <p className="text-slate-500">Caricamento...</p>
-          </NeumorphicCard>
-        ) : filteredProducts.length === 0 ? (
-          <NeumorphicCard className="p-12 text-center">
+          </NeumorphicCard> :
+        filteredProducts.length === 0 ?
+        <NeumorphicCard className="p-12 text-center">
             <Package className="w-16 h-16 text-slate-300 mx-auto mb-4 opacity-50" />
             <h3 className="text-xl font-bold text-slate-800 mb-2">
               {searchTerm ? 'Nessun prodotto trovato' : 'Nessun prodotto'}
             </h3>
-          </NeumorphicCard>
-        ) : (
-          sortedCategories.map(categoria => {
-            const categoryProducts = productsByCategory[categoria];
-            const isCollapsed = collapsedCategories[categoria];
-            return (
+          </NeumorphicCard> :
+
+        sortedCategories.map((categoria) => {
+          const categoryProducts = productsByCategory[categoria];
+          const isCollapsed = collapsedCategories[categoria];
+          return (
             <NeumorphicCard key={categoria} className="p-4 lg:p-6">
               <button
                 onClick={() => toggleCategory(categoria)}
-                className="w-full flex items-center justify-between text-left"
-              >
+                className="w-full flex items-center justify-between text-left">
+
                 <h2 className="text-lg font-bold text-slate-800">
                   {categoria}
                   <span className="ml-2 text-sm font-normal text-slate-500">
                     ({categoryProducts.length})
                   </span>
                 </h2>
-                {isCollapsed ? (
-                  <ChevronDown className="w-5 h-5 text-slate-500" />
-                ) : (
-                  <ChevronUp className="w-5 h-5 text-slate-500" />
-                )}
+                {isCollapsed ?
+                <ChevronDown className="w-5 h-5 text-slate-500" /> :
+
+                <ChevronUp className="w-5 h-5 text-slate-500" />
+                }
               </button>
 
-              {!isCollapsed && (
+              {!isCollapsed &&
               <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 mt-4">
                 <table className="w-full min-w-[700px]">
                   <thead>
@@ -1219,26 +1219,26 @@ export default function MateriePrime() {
                   </thead>
                   <tbody>
                     {sortProducts(categoryProducts).map((product) => {
-                      const assignedStoresCount = !product.assigned_stores || product.assigned_stores.length === 0 
-                        ? stores.length 
-                        : product.assigned_stores.length;
+                      const assignedStoresCount = !product.assigned_stores || product.assigned_stores.length === 0 ?
+                      stores.length :
+                      product.assigned_stores.length;
 
                       return (
                         <tr key={product.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                           <td className="p-2 lg:p-3">
                             <p className="font-medium text-slate-700 text-sm">{product.nome_prodotto}</p>
-                            {product.note && (
-                              <p className="text-xs text-slate-500 mt-1 truncate">{product.note}</p>
-                            )}
+                            {product.note &&
+                            <p className="text-xs text-slate-500 mt-1 truncate">{product.note}</p>
+                            }
                           </td>
                           <td className="p-2 lg:p-3 text-slate-700 text-sm">{product.fornitore || '-'}</td>
                           <td className="p-2 lg:p-3 text-slate-700 text-sm">{product.unita_misura}</td>
                           <td className="p-2 lg:p-3">
                             <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                              product.posizione === 'cantina' 
-                                ? 'bg-purple-100 text-purple-700' 
-                                : 'bg-blue-100 text-blue-700'
-                            }`}>
+                            product.posizione === 'cantina' ?
+                            'bg-purple-100 text-purple-700' :
+                            'bg-blue-100 text-blue-700'}`
+                            }>
                               {product.posizione === 'cantina' ? '📦' : '🏪'}
                             </span>
                           </td>
@@ -1273,22 +1273,22 @@ export default function MateriePrime() {
                           </td>
                           <td className="p-2 lg:p-3">
                             <div className="flex justify-center">
-                              {product.attivo !== false ? (
-                                <CheckCircle className="w-5 h-5 text-green-600" />
-                              ) : (
-                                <X className="w-5 h-5 text-gray-400" />
-                              )}
+                              {product.attivo !== false ?
+                              <CheckCircle className="w-5 h-5 text-green-600" /> :
+
+                              <X className="w-5 h-5 text-gray-400" />
+                              }
                             </div>
                           </td>
                           <td className="p-2 lg:p-3">
                             <div className="flex justify-center">
-                              {product.in_uso_per_store && Object.values(product.in_uso_per_store).some(v => v) ? (
-                                <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                              {product.in_uso_per_store && Object.values(product.in_uso_per_store).some((v) => v) ?
+                              <span className="px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
                                   ✓ In uso
-                                </span>
-                              ) : (
-                                <span className="text-xs text-slate-400">-</span>
-                              )}
+                                </span> :
+
+                              <span className="text-xs text-slate-400">-</span>
+                              }
                             </div>
                           </td>
                           <td className="p-2 lg:p-3">
@@ -1296,38 +1296,38 @@ export default function MateriePrime() {
                               <button
                                 onClick={() => handleCopyTemplate(product)}
                                 className="nav-button p-2 rounded-lg hover:bg-green-50 transition-colors"
-                                title="Copia come template"
-                              >
+                                title="Copia come template">
+
                                 <Copy className="w-4 h-4 text-green-600" />
                               </button>
                               <button
                                 onClick={() => handleEdit(product)}
                                 className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                                title="Modifica"
-                              >
+                                title="Modifica">
+
                                 <Edit className="w-4 h-4 text-blue-600" />
                               </button>
                               <button
                                 onClick={() => handleDelete(product.id)}
                                 className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                                title="Elimina"
-                              >
+                                title="Elimina">
+
                                 <Trash2 className="w-4 h-4 text-red-600" />
                               </button>
                             </div>
                           </td>
-                        </tr>
-                      );
+                        </tr>);
+
                     })}
                   </tbody>
                 </table>
               </div>
-              )}
-            </NeumorphicCard>
-          );
-          })
-        )}
+              }
+            </NeumorphicCard>);
+
+        })
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
