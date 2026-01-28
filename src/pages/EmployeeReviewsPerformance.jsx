@@ -14,40 +14,40 @@ export default function EmployeeReviewsPerformance() {
 
   const { data: reviews = [] } = useQuery({
     queryKey: ['reviews'],
-    queryFn: () => base44.entities.Review.list('-review_date'),
+    queryFn: () => base44.entities.Review.list('-review_date')
   });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-dipendenti'],
     queryFn: async () => {
       const allUsers = await base44.entities.User.list();
-      return allUsers.filter(u => u.user_type === 'user' || u.user_type === 'dipendente');
-    },
+      return allUsers.filter((u) => u.user_type === 'user' || u.user_type === 'dipendente');
+    }
   });
 
   const { data: turniPlanday = [] } = useQuery({
     queryKey: ['turni-planday'],
-    queryFn: () => base44.entities.TurnoPlanday.list(),
+    queryFn: () => base44.entities.TurnoPlanday.list()
   });
 
   // Process employee performance data - Only users with Planday shifts
   const employeePerformance = useMemo(() => {
     // Get unique dipendenti IDs from Planday shifts
     const dipendenteIdsWithShifts = new Set(
-      turniPlanday.filter(t => t.dipendente_id).map(t => t.dipendente_id)
+      turniPlanday.filter((t) => t.dipendente_id).map((t) => t.dipendente_id)
     );
 
     // Filter users to only those with Planday shifts
-    const validUsers = users.filter(u => dipendenteIdsWithShifts.has(u.id));
+    const validUsers = users.filter((u) => dipendenteIdsWithShifts.has(u.id));
 
     // Create a map of normalized names to user IDs for matching
     const nameToUserMap = new Map();
-    validUsers.forEach(user => {
+    validUsers.forEach((user) => {
       const displayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
       if (displayName) {
         nameToUserMap.set(displayName, user);
@@ -55,17 +55,17 @@ export default function EmployeeReviewsPerformance() {
     });
 
     // Filter reviews by date and store
-    let filteredReviews = reviews.filter(r => r.employee_assigned_name);
+    let filteredReviews = reviews.filter((r) => r.employee_assigned_name);
 
     // Date filter
     if (startDate || endDate) {
-      filteredReviews = filteredReviews.filter(review => {
+      filteredReviews = filteredReviews.filter((review) => {
         if (!review.review_date) return false;
-        
+
         try {
           const reviewDate = parseISO(review.review_date);
           if (isNaN(reviewDate.getTime())) return false;
-          
+
           const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
           const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
 
@@ -85,31 +85,31 @@ export default function EmployeeReviewsPerformance() {
 
     // Store filter
     if (selectedStore !== 'all') {
-      filteredReviews = filteredReviews.filter(r => r.store_id === selectedStore);
+      filteredReviews = filteredReviews.filter((r) => r.store_id === selectedStore);
     }
 
     // Group by employee - ONLY valid users with Planday shifts
     const employeeMap = new Map();
 
-    filteredReviews.forEach(review => {
-      const employeeNames = (review.employee_assigned_name || '')
-        .split(',')
-        .map(n => n.trim())
-        .filter(n => n.length > 0);
-      
+    filteredReviews.forEach((review) => {
+      const employeeNames = (review.employee_assigned_name || '').
+      split(',').
+      map((n) => n.trim()).
+      filter((n) => n.length > 0);
+
       const uniqueNamesThisReview = [...new Set(
-        employeeNames.map(name => name.toLowerCase())
-      )].map(lowerName => {
-        return employeeNames.find(n => n.toLowerCase() === lowerName) || lowerName;
+        employeeNames.map((name) => name.toLowerCase())
+      )].map((lowerName) => {
+        return employeeNames.find((n) => n.toLowerCase() === lowerName) || lowerName;
       });
 
-      uniqueNamesThisReview.forEach(employeeName => {
+      uniqueNamesThisReview.forEach((employeeName) => {
         const mapKey = employeeName.toLowerCase();
-        
+
         // ONLY process if this name matches a valid user with Planday shifts
         const matchedUser = nameToUserMap.get(mapKey);
         if (!matchedUser) return; // Skip if no matching user
-        
+
         if (!employeeMap.has(mapKey)) {
           employeeMap.set(mapKey, {
             name: matchedUser.nome_cognome || matchedUser.full_name,
@@ -126,14 +126,14 @@ export default function EmployeeReviewsPerformance() {
         }
 
         const emp = employeeMap.get(mapKey);
-        
+
         if (!emp.reviewIds.has(review.id)) {
           emp.reviewIds.add(review.id);
           emp.reviews.push(review);
           emp.totalReviews++;
           emp.ratings[review.rating]++;
           emp.stores.add(review.store_id);
-          
+
           if (review.rating >= 4) emp.positiveReviews++;
           if (review.rating < 3) emp.negativeReviews++;
         }
@@ -141,10 +141,10 @@ export default function EmployeeReviewsPerformance() {
     });
 
     // Calculate averages and convert to array
-    const employeeArray = Array.from(employeeMap.values()).map(emp => {
+    const employeeArray = Array.from(employeeMap.values()).map((emp) => {
       const totalRating = emp.reviews.reduce((sum, r) => sum + r.rating, 0);
       emp.avgRating = emp.totalReviews > 0 ? totalRating / emp.totalReviews : 0;
-      emp.positiveRate = emp.totalReviews > 0 ? (emp.positiveReviews / emp.totalReviews) * 100 : 0;
+      emp.positiveRate = emp.totalReviews > 0 ? emp.positiveReviews / emp.totalReviews * 100 : 0;
       emp.storeCount = emp.stores.size;
       delete emp.reviewIds;
       return emp;
@@ -160,7 +160,7 @@ export default function EmployeeReviewsPerformance() {
   }, [reviews, selectedStore, startDate, endDate, users, turniPlanday, sortBy]);
 
   const getStoreName = (storeId) => {
-    const store = stores.find(s => s.id === storeId);
+    const store = stores.find((s) => s.id === storeId);
     return store?.name || 'Sconosciuto';
   };
 
@@ -182,18 +182,18 @@ export default function EmployeeReviewsPerformance() {
   const stats = {
     totalEmployees: employeePerformance.length,
     totalReviews: employeePerformance.reduce((sum, e) => sum + e.totalReviews, 0),
-    avgRating: employeePerformance.length > 0
-      ? employeePerformance.reduce((sum, e) => sum + e.avgRating, 0) / employeePerformance.length
-      : 0,
-    topPerformers: employeePerformance.filter(e => e.avgRating >= 4.5).length
+    avgRating: employeePerformance.length > 0 ?
+    employeePerformance.reduce((sum, e) => sum + e.avgRating, 0) / employeePerformance.length :
+    0,
+    topPerformers: employeePerformance.filter((e) => e.avgRating >= 4.5).length
   };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Performance Recensioni Dipendenti</h1>
-        <p className="text-[#9b9b9b]">Analisi delle recensioni assegnate ai dipendenti</p>
+        <h1 className="text-slate-50 mb-2 text-3xl font-bold">Performance Recensioni Dipendenti</h1>
+        <p className="text-slate-50">Analisi delle recensioni assegnate ai dipendenti</p>
       </div>
 
       {/* Info about deduplication */}
@@ -220,12 +220,12 @@ export default function EmployeeReviewsPerformance() {
           <select
             value={selectedStore}
             onChange={(e) => setSelectedStore(e.target.value)}
-            className="bg-transparent text-[#6b6b6b] outline-none"
-          >
+            className="bg-transparent text-[#6b6b6b] outline-none">
+
             <option value="all">Tutti i Locali</option>
-            {stores.map(store => (
-              <option key={store.id} value={store.id}>{store.name}</option>
-            ))}
+            {stores.map((store) =>
+            <option key={store.id} value={store.id}>{store.name}</option>
+            )}
           </select>
         </NeumorphicCard>
 
@@ -233,8 +233,8 @@ export default function EmployeeReviewsPerformance() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-transparent text-[#6b6b6b] outline-none"
-          >
+            className="bg-transparent text-[#6b6b6b] outline-none">
+
             <option value="rating">Ordina per Punteggio</option>
             <option value="reviews">Ordina per N° Recensioni</option>
           </select>
@@ -247,8 +247,8 @@ export default function EmployeeReviewsPerformance() {
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             className="bg-transparent text-[#6b6b6b] outline-none text-sm"
-            placeholder="Data inizio"
-          />
+            placeholder="Data inizio" />
+
         </NeumorphicCard>
 
         <NeumorphicCard className="px-4 py-2 flex items-center gap-2">
@@ -258,21 +258,21 @@ export default function EmployeeReviewsPerformance() {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             className="bg-transparent text-[#6b6b6b] outline-none text-sm"
-            placeholder="Data fine"
-          />
+            placeholder="Data fine" />
+
         </NeumorphicCard>
 
-        {(startDate || endDate) && (
-          <button
-            onClick={() => {
-              setStartDate('');
-              setEndDate('');
-            }}
-            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#9b9b9b] hover:text-[#6b6b6b]"
-          >
+        {(startDate || endDate) &&
+        <button
+          onClick={() => {
+            setStartDate('');
+            setEndDate('');
+          }}
+          className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#9b9b9b] hover:text-[#6b6b6b]">
+
             Rimuovi filtro data
           </button>
-        )}
+        }
       </div>
 
       {/* Overall Stats */}
@@ -316,17 +316,17 @@ export default function EmployeeReviewsPerformance() {
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Classifica Dipendenti</h2>
         
-        {employeePerformance.length > 0 ? (
-          <div className="space-y-4">
+        {employeePerformance.length > 0 ?
+        <div className="space-y-4">
             {employeePerformance.map((employee, index) => {
-              const badge = getPerformanceBadge(employee.avgRating);
-              
-              return (
-                <div
-                  key={employee.name}
-                  onClick={() => setSelectedEmployee(employee)}
-                  className="neumorphic-flat p-5 rounded-xl cursor-pointer hover:shadow-lg transition-all"
-                >
+            const badge = getPerformanceBadge(employee.avgRating);
+
+            return (
+              <div
+                key={employee.name}
+                onClick={() => setSelectedEmployee(employee)}
+                className="neumorphic-flat p-5 rounded-xl cursor-pointer hover:shadow-lg transition-all">
+
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-4">
                       {/* Rank */}
@@ -367,7 +367,7 @@ export default function EmployeeReviewsPerformance() {
                       <p className="text-xs text-[#9b9b9b] mb-1">Negative</p>
                       <p className="text-lg font-bold text-red-600">{employee.negativeReviews}</p>
                       <p className="text-xs text-[#9b9b9b]">
-                        {employee.totalReviews > 0 ? ((employee.negativeReviews / employee.totalReviews) * 100).toFixed(0) : 0}%
+                        {employee.totalReviews > 0 ? (employee.negativeReviews / employee.totalReviews * 100).toFixed(0) : 0}%
                       </p>
                     </div>
 
@@ -379,46 +379,46 @@ export default function EmployeeReviewsPerformance() {
 
                   {/* Rating Distribution */}
                   <div className="mt-4 space-y-2">
-                    {[5, 4, 3, 2, 1].map(rating => {
-                      const count = employee.ratings[rating];
-                      const percentage = employee.totalReviews > 0 
-                        ? (count / employee.totalReviews) * 100 
-                        : 0;
-                      
-                      return (
-                        <div key={rating} className="flex items-center gap-2">
+                    {[5, 4, 3, 2, 1].map((rating) => {
+                    const count = employee.ratings[rating];
+                    const percentage = employee.totalReviews > 0 ?
+                    count / employee.totalReviews * 100 :
+                    0;
+
+                    return (
+                      <div key={rating} className="flex items-center gap-2">
                           <div className="flex items-center gap-1 w-12">
                             <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                             <span className="text-xs text-[#6b6b6b]">{rating}</span>
                           </div>
                           <div className="flex-1 neumorphic-pressed rounded-full h-2 overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-[#8b7355] to-[#a68a6a]"
-                              style={{ width: `${percentage}%` }}
-                            />
+                            className="h-full bg-gradient-to-r from-[#8b7355] to-[#a68a6a]"
+                            style={{ width: `${percentage}%` }} />
+
                           </div>
                           <span className="text-xs text-[#9b9b9b] w-12 text-right">
                             {count} ({percentage.toFixed(0)}%)
                           </span>
-                        </div>
-                      );
-                    })}
+                        </div>);
+
+                  })}
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-12">
+                </div>);
+
+          })}
+          </div> :
+
+        <div className="text-center py-12">
             <Users className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
             <p className="text-[#9b9b9b]">Nessuna recensione assegnata ai dipendenti nel periodo selezionato</p>
           </div>
-        )}
+        }
       </NeumorphicCard>
 
       {/* Employee Detail Modal */}
-      {selectedEmployee && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
+      {selectedEmployee &&
+      <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-start justify-between mb-6">
               <div>
@@ -435,9 +435,9 @@ export default function EmployeeReviewsPerformance() {
                 </div>
               </div>
               <button
-                onClick={() => setSelectedEmployee(null)}
-                className="neumorphic-flat px-4 py-2 rounded-lg text-[#6b6b6b]"
-              >
+              onClick={() => setSelectedEmployee(null)}
+              className="neumorphic-flat px-4 py-2 rounded-lg text-[#6b6b6b]">
+
                 Chiudi
               </button>
             </div>
@@ -465,22 +465,22 @@ export default function EmployeeReviewsPerformance() {
             {/* Recent Reviews */}
             <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Recensioni Recenti</h3>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {selectedEmployee.reviews.slice(0, 20).map((review, idx) => (
-                <div key={idx} className="neumorphic-flat p-4 rounded-xl">
+              {selectedEmployee.reviews.slice(0, 20).map((review, idx) =>
+            <div key={idx} className="neumorphic-flat p-4 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-[#6b6b6b]">{review.customer_name || 'Anonimo'}</span>
                       <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < review.rating
-                                ? 'text-yellow-500 fill-yellow-500'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
+                        {[...Array(5)].map((_, i) =>
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${
+                      i < review.rating ?
+                      'text-yellow-500 fill-yellow-500' :
+                      'text-gray-300'}`
+                      } />
+
+                    )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-[#9b9b9b]">
@@ -490,15 +490,15 @@ export default function EmployeeReviewsPerformance() {
                       <span>{format(parseISO(review.review_date), 'dd/MM/yyyy')}</span>
                     </div>
                   </div>
-                  {review.comment && (
-                    <p className="text-sm text-[#6b6b6b]">{review.comment}</p>
-                  )}
+                  {review.comment &&
+              <p className="text-sm text-[#6b6b6b]">{review.comment}</p>
+              }
                 </div>
-              ))}
+            )}
             </div>
           </NeumorphicCard>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
