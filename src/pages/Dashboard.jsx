@@ -867,32 +867,34 @@ export default function Dashboard() {
 
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    let cutoffDateStr, endDateStr;
+    let currentStart, currentEnd;
 
     // Calcola periodo corrente
     if (startDate || endDate) {
-      cutoffDateStr = startDate || '1900-01-01';
-      endDateStr = endDate || today.toISOString().split('T')[0];
+      currentStart = startDate ? new Date(startDate) : new Date(0);
+      currentEnd = endDate ? new Date(endDate) : today;
     } else {
       const days = parseInt(dateRange);
-      const cutoff = new Date(today.getTime() - days * 24 * 60 * 60 * 1000);
-      cutoffDateStr = cutoff.toISOString().split('T')[0];
-      endDateStr = today.toISOString().split('T')[0];
+      currentStart = new Date(today.getTime() - days * 24 * 60 * 60 * 1000);
+      currentEnd = today;
     }
+
+    const currentStartStr = currentStart.toISOString().split('T')[0];
+    const currentEndStr = currentEnd.toISOString().split('T')[0];
+
+    // Calcola periodo precedente (stessa lunghezza del periodo corrente)
+    const daysDiff = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
+    const comparisonDays = comparisonMode === 'weekly' ? 7 : 30;
+    const previousEnd = new Date(currentStart.getTime() - 24 * 60 * 60 * 1000);
+    const previousStart = new Date(previousEnd.getTime() - comparisonDays * 24 * 60 * 60 * 1000);
+    const previousStartStr = previousStart.toISOString().split('T')[0];
+    const previousEndStr = previousEnd.toISOString().split('T')[0];
 
     // Filtra dati periodo corrente
     const filteredCurrent = prodottiVenduti.filter((p) => {
       const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
-      return dataStr >= cutoffDateStr && dataStr <= endDateStr;
+      return dataStr >= currentStartStr && dataStr <= currentEndStr;
     });
-
-    // Calcola periodo precedente per confronto
-    const comparisonDays = comparisonMode === 'weekly' ? 7 : 30;
-    const previousEnd = new Date(cutoffDateStr);
-    previousEnd.setDate(previousEnd.getDate() - 1);
-    const previousStart = new Date(previousEnd.getTime() - comparisonDays * 24 * 60 * 60 * 1000);
-    const previousStartStr = previousStart.toISOString().split('T')[0];
-    const previousEndStr = previousEnd.toISOString().split('T')[0];
 
     // Filtra dati periodo precedente
     const filteredPrevious = prodottiVenduti.filter((p) => {
@@ -901,28 +903,39 @@ export default function Dashboard() {
     });
 
     // Aggrega per flavor (come in ProdottiVenduti)
-    const productMap = {};
-    const previousProductMap = {};
+    const currentTotals = {};
+    const previousTotals = {};
 
     filteredCurrent.forEach((record) => {
       const flavor = record.flavor;
       if (!flavor) return;
-      if (!productMap[flavor]) productMap[flavor] = 0;
-      productMap[flavor] += record.total_pizzas_sold || 0;
+      if (!currentTotals[flavor]) {
+        currentTotals[flavor] = { name: flavor, total: 0, category: record.category || 'altro' };
+      }
+      currentTotals[flavor].total += record.total_pizzas_sold || 0;
     });
 
     filteredPrevious.forEach((record) => {
       const flavor = record.flavor;
       if (!flavor) return;
-      if (!previousProductMap[flavor]) previousProductMap[flavor] = 0;
-      previousProductMap[flavor] += record.total_pizzas_sold || 0;
+      if (!previousTotals[flavor]) {
+        previousTotals[flavor] = { name: flavor, total: 0 };
+      }
+      previousTotals[flavor].total += record.total_pizzas_sold || 0;
     });
 
-    // Calcola variazioni percentuali
-    const productsWithChange = Object.entries(productMap).map(([nome, qty]) => {
-      const previousQty = previousProductMap[nome] || 0;
-      const change = previousQty > 0 ? ((qty - previousQty) / previousQty * 100) : (qty > 0 ? 100 : 0);
-      return { nome, quantita: qty, change };
+    // Calcola variazioni percentuali (come in ProdottiVenduti)
+    const productsWithChange = Object.keys(currentTotals).map((flavor) => {
+      const current = currentTotals[flavor].total;
+      const previous = previousTotals[flavor]?.total || 0;
+      const delta = current - previous;
+      const percentChange = previous > 0 ? ((delta / previous) * 100) : (current > 0 ? 100 : 0);
+      
+      return {
+        nome: flavor,
+        quantita: current,
+        change: percentChange
+      };
     });
 
     if (productsWithChange.length === 0) {
