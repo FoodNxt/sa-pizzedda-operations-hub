@@ -10,11 +10,11 @@ import PlandayStoreView from "../components/planday/PlandayStoreView";
 import PlandayEmployeeView from "../components/planday/PlandayEmployeeView";
 import DisponibilitaCalendar from "../components/disponibilita/DisponibilitaCalendar";
 import DisponibilitaRicorrenti from "../components/disponibilita/DisponibilitaRicorrenti";
-import { 
-  Calendar, ChevronLeft, ChevronRight, Plus, X, Save, Clock, 
+import {
+  Calendar, ChevronLeft, ChevronRight, Plus, X, Save, Clock,
   User, Store as StoreIcon, Trash2, Edit, Settings, Loader2, MapPin, Users, LayoutGrid,
-  CheckCircle, XCircle, AlertTriangle, CalendarClock
-} from "lucide-react";
+  CheckCircle, XCircle, AlertTriangle, CalendarClock } from
+"lucide-react";
 import moment from "moment";
 import "moment/locale/it";
 
@@ -46,11 +46,11 @@ export default function Planday() {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [viewMode, setViewMode] = useState('calendario'); // calendario, dipendenti, singolo
   const [selectedDipendente, setSelectedDipendente] = useState(null);
-  
+
   // Disponibilità
   const [showDisponibilitaModal, setShowDisponibilitaModal] = useState(false);
   const [selectedDipendenteDisp, setSelectedDipendenteDisp] = useState(null);
-  
+
   // Timbrature states
   const [selectedDipendenteTimbr, setSelectedDipendenteTimbr] = useState('all');
   const [selectedRuolo, setSelectedRuolo] = useState('all');
@@ -80,12 +80,12 @@ export default function Planday() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list()
   });
 
   const { data: turni = [], isLoading } = useQuery({
@@ -93,7 +93,7 @@ export default function Planday() {
     queryFn: async () => {
       const startDate = weekStart.format('YYYY-MM-DD');
       const endDate = weekStart.clone().add(6, 'days').format('YYYY-MM-DD');
-      
+
       const filters = {
         data: { $gte: startDate, $lte: endDate }
       };
@@ -102,7 +102,7 @@ export default function Planday() {
       }
       return base44.entities.TurnoPlanday.filter(filters);
     },
-    enabled: true,
+    enabled: true
   });
 
   // Turni per dipendente specifico (per la vista singolo dipendente)
@@ -118,7 +118,7 @@ export default function Planday() {
         data: { $gte: startDate, $lte: endDate }
       });
     },
-    enabled: !!selectedDipendente && viewMode === 'singolo',
+    enabled: !!selectedDipendente && viewMode === 'singolo'
   });
 
   const { data: config = null } = useQuery({
@@ -134,7 +134,7 @@ export default function Planday() {
         });
       }
       return configs[0] || { distanza_massima_metri: 100, tolleranza_ritardo_minuti: 5, abilita_timbratura_gps: true };
-    },
+    }
   });
 
   const { data: turniTimbrature = [] } = useQuery({
@@ -144,49 +144,49 @@ export default function Planday() {
       const turniRange = await base44.entities.TurnoPlanday.filter({
         data: { $gte: dateFrom, $lte: dateTo }
       });
-      
+
       const turniAttivi = await base44.entities.TurnoPlanday.filter({
         timbratura_entrata: { $ne: null },
         timbratura_uscita: null
       });
-      
+
       // Combina ed elimina duplicati
       const allShifts = [...turniRange];
-      turniAttivi.forEach(t => {
-        if (!allShifts.find(s => s.id === t.id)) {
+      turniAttivi.forEach((t) => {
+        if (!allShifts.find((s) => s.id === t.id)) {
           allShifts.push(t);
         }
       });
-      
+
       return allShifts;
     },
-    enabled: mainView === 'timbrature',
+    enabled: mainView === 'timbrature'
   });
 
   const { data: allInspections = [] } = useQuery({
     queryKey: ['all-cleaning-inspections'],
     queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
-    enabled: mainView === 'timbrature',
+    enabled: mainView === 'timbrature'
   });
 
   const { data: formTrackerConfigs = [] } = useQuery({
     queryKey: ['form-tracker-configs'],
     queryFn: () => base44.entities.FormTrackerConfig.list(),
-    enabled: mainView === 'timbrature',
+    enabled: mainView === 'timbrature'
   });
 
   const { data: allFormData = {} } = useQuery({
     queryKey: ['all-form-data'],
     queryFn: async () => {
       const [inventario, cantina, cassa, teglie, prep, impasti, precotture] = await Promise.all([
-        base44.entities.RilevazioneInventario.list('-data_rilevazione'),
-        base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione'),
-        base44.entities.ConteggioCassa.list('-data_conteggio'),
-        base44.entities.TeglieButtate.list('-data_rilevazione'),
-        base44.entities.Preparazioni.list('-data_rilevazione'),
-        base44.entities.GestioneImpasti.list('-data_creazione'),
-        base44.entities.CalcoloImpastoLog.list('-data_calcolo')
-      ]);
+      base44.entities.RilevazioneInventario.list('-data_rilevazione'),
+      base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione'),
+      base44.entities.ConteggioCassa.list('-data_conteggio'),
+      base44.entities.TeglieButtate.list('-data_rilevazione'),
+      base44.entities.Preparazioni.list('-data_rilevazione'),
+      base44.entities.GestioneImpasti.list('-data_creazione'),
+      base44.entities.CalcoloImpastoLog.list('-data_calcolo')]
+      );
       return {
         FormInventario: inventario,
         FormCantina: cantina,
@@ -195,64 +195,64 @@ export default function Planday() {
         FormPreparazioni: prep,
         Impasto: impasti,
         Precotture: precotture,
-        ControlloPuliziaCassiere: allInspections.filter(i => i.inspector_role === 'Cassiere'),
-        ControlloPuliziaPizzaiolo: allInspections.filter(i => i.inspector_role === 'Pizzaiolo'),
-        ControlloPuliziaStoreManager: allInspections.filter(i => i.inspector_role === 'Store Manager')
+        ControlloPuliziaCassiere: allInspections.filter((i) => i.inspector_role === 'Cassiere'),
+        ControlloPuliziaPizzaiolo: allInspections.filter((i) => i.inspector_role === 'Pizzaiolo'),
+        ControlloPuliziaStoreManager: allInspections.filter((i) => i.inspector_role === 'Store Manager')
       };
     },
-    enabled: mainView === 'timbrature',
+    enabled: mainView === 'timbrature'
   });
 
   const { data: turniModello = [] } = useQuery({
     queryKey: ['turni-modello'],
-    queryFn: () => base44.entities.TurnoModello.list(),
+    queryFn: () => base44.entities.TurnoModello.list()
   });
 
   const { data: tipoTurnoConfigs = [] } = useQuery({
     queryKey: ['tipo-turno-configs'],
-    queryFn: () => base44.entities.TipoTurnoConfig.list(),
+    queryFn: () => base44.entities.TipoTurnoConfig.list()
   });
 
   const { data: settimaneModello = [] } = useQuery({
     queryKey: ['settimane-modello'],
-    queryFn: () => base44.entities.SettimanaModello.list(),
+    queryFn: () => base44.entities.SettimanaModello.list()
   });
 
   const { data: struttureTurno = [] } = useQuery({
     queryKey: ['strutture-turno'],
-    queryFn: () => base44.entities.StrutturaTurno.list(),
+    queryFn: () => base44.entities.StrutturaTurno.list()
   });
 
   const { data: candidati = [] } = useQuery({
     queryKey: ['candidati-planday'],
-    queryFn: () => base44.entities.Candidato.filter({ stato: { $in: ['nuovo', 'in_valutazione', 'prova_programmata'] } }),
+    queryFn: () => base44.entities.Candidato.filter({ stato: { $in: ['nuovo', 'in_valutazione', 'prova_programmata'] } })
   });
 
   const { data: uscite = [] } = useQuery({
     queryKey: ['uscite'],
-    queryFn: () => base44.entities.Uscita.list(),
+    queryFn: () => base44.entities.Uscita.list()
   });
 
   // Carica TUTTE le disponibilità (non filtrate) per verifiche nel form
   const { data: tutteDisponibilita = [] } = useQuery({
     queryKey: ['tutte-disponibilita'],
-    queryFn: () => base44.entities.Disponibilita.list(),
+    queryFn: () => base44.entities.Disponibilita.list()
   });
 
   const { data: disponibilita = [] } = useQuery({
     queryKey: ['disponibilita', selectedDipendenteDisp],
     queryFn: () => base44.entities.Disponibilita.filter({ dipendente_id: selectedDipendenteDisp }),
-    enabled: !!selectedDipendenteDisp,
+    enabled: !!selectedDipendenteDisp
   });
 
   // Listen for changes in trial shifts to update candidati
   const updateCandidatoFromTrialShift = useMutation({
     mutationFn: async ({ turno }) => {
       if (!turno.is_prova || !turno.candidato_id) return;
-      
-      const candidato = candidati.find(c => c.id === turno.candidato_id);
+
+      const candidato = candidati.find((c) => c.id === turno.candidato_id);
       if (!candidato) return;
-      
+
       // Update candidato with trial details
       return base44.entities.Candidato.update(candidato.id, {
         stato: 'prova_programmata',
@@ -273,7 +273,7 @@ export default function Planday() {
   const { data: richiesteTurniLiberi = [] } = useQuery({
     queryKey: ['richieste-turni-liberi'],
     queryFn: () => base44.entities.RichiestaTurnoLibero.list('-created_date'),
-    enabled: mainView === 'approvazione',
+    enabled: mainView === 'approvazione'
   });
 
   const approvaRichiestaTurnoMutation = useMutation({
@@ -328,13 +328,13 @@ export default function Planday() {
   const [dragEnd, setDragEnd] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [quickTurnoPopup, setQuickTurnoPopup] = useState(null);
-  
+
   // Stato per drag and drop turni esistenti
   const [draggingTurno, setDraggingTurno] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
   const [editingStore, setEditingStore] = useState(null);
   const [storeCoords, setStoreCoords] = useState({ latitude: '', longitude: '', address: '' });
-  
+
   // Turni modello
   const [showModelliModal, setShowModelliModal] = useState(false);
   const [modelloForm, setModelloForm] = useState({
@@ -345,17 +345,17 @@ export default function Planday() {
     tipo_turno: 'Normale'
   });
   const [selectedModello, setSelectedModello] = useState('');
-  
+
   // Tipi turno personalizzati - caricati dal database
   const tipiTurno = useMemo(() => {
-    const tipiFromConfigs = tipoTurnoConfigs.map(c => c.tipo_turno);
+    const tipiFromConfigs = tipoTurnoConfigs.map((c) => c.tipo_turno);
     const allTipi = [...new Set([...DEFAULT_TIPI_TURNO, ...tipiFromConfigs])];
     return allTipi;
   }, [tipoTurnoConfigs]);
-  
+
   const [newTipoTurno, setNewTipoTurno] = useState('');
   const [showTipiTurnoSection, setShowTipiTurnoSection] = useState(false);
-  
+
   // Colori per tipo turno
   const [coloriTipoTurno, setColoriTipoTurno] = useState(() => {
     const saved = localStorage.getItem('colori_tipo_turno');
@@ -369,7 +369,7 @@ export default function Planday() {
     };
   });
   const [showColoriSection, setShowColoriSection] = useState(false);
-  
+
   // Colori per ruolo
   const [coloriRuolo, setColoriRuolo] = useState(() => {
     const saved = localStorage.getItem('colori_ruolo');
@@ -380,7 +380,7 @@ export default function Planday() {
     };
   });
   const [showColoriRuoloSection, setShowColoriRuoloSection] = useState(false);
-  
+
   // Settimana modello
   const [showSettimanaModelloModal, setShowSettimanaModelloModal] = useState(false);
   const [settimanaModelloRange, setSettimanaModelloRange] = useState({
@@ -399,15 +399,15 @@ export default function Planday() {
     applicaSenzaFine: false,
     includiDipendenti: true
   });
-  
+
   // Modal per gestione turni
   const [showGestioneTurniModal, setShowGestioneTurniModal] = useState(false);
-  
-  const [tipoConfigForm, setTipoConfigForm] = useState({ 
-    tipo_turno: '', 
-    mostra_attivita: true, 
-    richiede_timbratura: true, 
-    richiede_form: true 
+
+  const [tipoConfigForm, setTipoConfigForm] = useState({
+    tipo_turno: '',
+    mostra_attivita: true,
+    richiede_timbratura: true,
+    richiede_form: true
   });
   const [editingTipoConfig, setEditingTipoConfig] = useState(null);
 
@@ -431,13 +431,13 @@ export default function Planday() {
     mutationFn: (data) => base44.entities.TurnoPlanday.create(data),
     onSuccess: async (newTurno, variables) => {
       queryClient.invalidateQueries({ queryKey: ['turni-planday'] });
-      
+
       // Invia email di notifica al dipendente se assegnato
       if (variables.dipendente_id && variables.dipendente_nome) {
         try {
           const currentUser = await base44.auth.me();
-          const dipendente = users.find(u => u.id === variables.dipendente_id);
-          
+          const dipendente = users.find((u) => u.id === variables.dipendente_id);
+
           if (dipendente?.email) {
             const emailTemplates = await base44.entities.EmailNotificationTemplate.filter({
               tipo_notifica: 'turno',
@@ -447,19 +447,19 @@ export default function Planday() {
             if (emailTemplates.length > 0) {
               const emailTemplate = emailTemplates[0];
               const storeName = getStoreName(variables.store_id);
-              
-              let emailBody = emailTemplate.corpo
-                .replace(/\{\{nome_dipendente\}\}/g, variables.dipendente_nome)
-                .replace(/\{\{data\}\}/g, variables.data && moment(variables.data).isValid() ? moment(variables.data).format('DD/MM/YYYY') : 'N/A')
-                .replace(/\{\{ora_inizio\}\}/g, variables.ora_inizio)
-                .replace(/\{\{ora_fine\}\}/g, variables.ora_fine)
-                .replace(/\{\{ruolo\}\}/g, variables.ruolo)
-                .replace(/\{\{store\}\}/g, storeName)
-                .replace(/\{\{tipo_turno\}\}/g, variables.tipo_turno || 'Normale');
 
-              let emailSubject = emailTemplate.oggetto
-                .replace(/\{\{nome_dipendente\}\}/g, variables.dipendente_nome)
-                .replace(/\{\{data\}\}/g, variables.data && moment(variables.data).isValid() ? moment(variables.data).format('DD/MM/YYYY') : 'N/A');
+              let emailBody = emailTemplate.corpo.
+              replace(/\{\{nome_dipendente\}\}/g, variables.dipendente_nome).
+              replace(/\{\{data\}\}/g, variables.data && moment(variables.data).isValid() ? moment(variables.data).format('DD/MM/YYYY') : 'N/A').
+              replace(/\{\{ora_inizio\}\}/g, variables.ora_inizio).
+              replace(/\{\{ora_fine\}\}/g, variables.ora_fine).
+              replace(/\{\{ruolo\}\}/g, variables.ruolo).
+              replace(/\{\{store\}\}/g, storeName).
+              replace(/\{\{tipo_turno\}\}/g, variables.tipo_turno || 'Normale');
+
+              let emailSubject = emailTemplate.oggetto.
+              replace(/\{\{nome_dipendente\}\}/g, variables.dipendente_nome).
+              replace(/\{\{data\}\}/g, variables.data && moment(variables.data).isValid() ? moment(variables.data).format('DD/MM/YYYY') : 'N/A');
 
               await base44.integrations.Core.SendEmail({
                 to: dipendente.email,
@@ -484,9 +484,9 @@ export default function Planday() {
           console.error('Errore invio email turno:', emailError);
         }
       }
-      
+
       resetForm();
-    },
+    }
   });
 
   const updateMutation = useMutation({
@@ -494,14 +494,14 @@ export default function Planday() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-planday'] });
       resetForm();
-    },
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.TurnoPlanday.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-planday'] });
-    },
+    }
   });
 
   const deleteWeekTurniMutation = useMutation({
@@ -512,7 +512,7 @@ export default function Planday() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-planday'] });
-    },
+    }
   });
 
   const saveConfigMutation = useMutation({
@@ -527,7 +527,7 @@ export default function Planday() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timbratura-config'] });
       setShowConfigModal(false);
-    },
+    }
   });
 
   const saveAlertMutation = useMutation({
@@ -548,7 +548,7 @@ export default function Planday() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timbratura-config'] });
       setShowAlertSettings(false);
-    },
+    }
   });
 
   const updateStoreMutation = useMutation({
@@ -556,7 +556,7 @@ export default function Planday() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stores'] });
       setEditingStore(null);
-    },
+    }
   });
 
   const updateTimbraturaMutation = useMutation({
@@ -564,7 +564,7 @@ export default function Planday() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-timbrature'] });
       setEditingTimbratura(null);
-    },
+    }
   });
 
   const resetForm = () => {
@@ -603,17 +603,17 @@ export default function Planday() {
   };
 
   const handleSaveTurno = async () => {
-    const dipendente = users.find(u => u.id === turnoForm.dipendente_id);
-    const candidato = candidati.find(c => c.id === turnoForm.candidato_id);
+    const dipendente = users.find((u) => u.id === turnoForm.dipendente_id);
+    const candidato = candidati.find((c) => c.id === turnoForm.candidato_id);
     const momento = getTurnoTipo({ ora_inizio: turnoForm.ora_inizio });
     const sequence = momento === 'Mattina' ? 'first' : 'second';
-    
+
     const dataToSave = {
       ...turnoForm,
-      dipendente_nome: turnoForm.is_prova && candidato 
-        ? `${candidato.nome} ${candidato.cognome}`
-        : (dipendente?.nome_cognome || dipendente?.full_name || ''),
-      tipo_turno: turnoForm.is_prova ? 'Prova' : (turnoForm.tipo_turno || 'Normale'),
+      dipendente_nome: turnoForm.is_prova && candidato ?
+      `${candidato.nome} ${candidato.cognome}` :
+      dipendente?.nome_cognome || dipendente?.full_name || '',
+      tipo_turno: turnoForm.is_prova ? 'Prova' : turnoForm.tipo_turno || 'Normale',
       momento_turno: momento,
       turno_sequence: sequence,
       is_prova: turnoForm.is_prova,
@@ -643,7 +643,7 @@ export default function Planday() {
 
   const handleCellClick = (date, hour) => {
     setTurnoForm({
-      store_id: selectedStore || (stores[0]?.id || ''),
+      store_id: selectedStore || stores[0]?.id || '',
       data: date.format('YYYY-MM-DD'),
       ora_inizio: `${hour.toString().padStart(2, '0')}:00`,
       ora_fine: `${(hour + 4).toString().padStart(2, '0')}:00`,
@@ -674,21 +674,21 @@ export default function Planday() {
       const slotValue = slot.hour + slot.minute / 60;
       const startSlot = Math.min(dragStart.slot, dragEnd?.slot || slotValue);
       const endSlot = Math.max(dragStart.slot, dragEnd?.slot || slotValue) + 0.5;
-      
+
       const startHour = Math.floor(startSlot);
-      const startMin = (startSlot % 1) * 60;
+      const startMin = startSlot % 1 * 60;
       const endHour = Math.floor(endSlot);
-      const endMin = (endSlot % 1) * 60;
-      
+      const endMin = endSlot % 1 * 60;
+
       // Mostra popup per completare il turno
       setQuickTurnoPopup({
         day: dragStart.day,
         startSlot,
         endSlot
       });
-      
+
       setTurnoForm({
-        store_id: selectedStore || (stores[0]?.id || ''),
+        store_id: selectedStore || stores[0]?.id || '',
         data: dragStart.day,
         ora_inizio: `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`,
         ora_fine: `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`,
@@ -716,15 +716,15 @@ export default function Planday() {
   const getTurnoStyle = (turno, index, total) => {
     const [startH, startM] = turno.ora_inizio.split(':').map(Number);
     const [endH, endM] = turno.ora_fine.split(':').map(Number);
-    
+
     const startSlot = (startH - 8) * 2 + (startM >= 30 ? 1 : 0);
     const endSlot = (endH - 8) * 2 + (endM >= 30 ? 1 : 0);
     const duration = endSlot - startSlot;
-    
+
     // Calcola larghezza e posizione per turni sovrapposti
     const width = total > 1 ? `${100 / total}%` : '100%';
-    const left = total > 1 ? `${(index * 100) / total}%` : '0';
-    
+    const left = total > 1 ? `${index * 100 / total}%` : '0';
+
     return {
       top: `${startSlot * 25}px`,
       height: `${Math.max(duration * 25, 25)}px`,
@@ -739,22 +739,22 @@ export default function Planday() {
     // Ordina per ora inizio
     const sorted = [...dayTurni].sort((a, b) => a.ora_inizio.localeCompare(b.ora_inizio));
     const groups = [];
-    
-    sorted.forEach(turno => {
+
+    sorted.forEach((turno) => {
       const [startH, startM] = turno.ora_inizio.split(':').map(Number);
       const [endH, endM] = turno.ora_fine.split(':').map(Number);
       const start = startH * 60 + startM;
       const end = endH * 60 + endM;
-      
+
       // Trova gruppo esistente che si sovrappone
       let foundGroup = false;
       for (const group of groups) {
-        const overlaps = group.some(t => {
+        const overlaps = group.some((t) => {
           const [tStartH, tStartM] = t.ora_inizio.split(':').map(Number);
           const [tEndH, tEndM] = t.ora_fine.split(':').map(Number);
           const tStart = tStartH * 60 + tStartM;
           const tEnd = tEndH * 60 + tEndM;
-          return (start < tEnd && end > tStart);
+          return start < tEnd && end > tStart;
         });
         if (overlaps) {
           group.push(turno);
@@ -766,15 +766,15 @@ export default function Planday() {
         groups.push([turno]);
       }
     });
-    
+
     return groups;
   };
 
   // Funzione per aggiungere turno da vista dipendenti
   const handleAddTurnoFromStoreView = (day, dipendenteId) => {
-    const dipendente = users.find(u => u.id === dipendenteId);
+    const dipendente = users.find((u) => u.id === dipendenteId);
     setTurnoForm({
-      store_id: selectedStore || (stores[0]?.id || ''),
+      store_id: selectedStore || stores[0]?.id || '',
       data: day.format('YYYY-MM-DD'),
       ora_inizio: '09:00',
       ora_fine: '17:00',
@@ -825,14 +825,14 @@ export default function Planday() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-modello'] });
       setModelloForm({ nome: '', ruolo: 'Pizzaiolo', ora_inizio: '09:00', ora_fine: '17:00', tipo_turno: 'Normale' });
-    },
+    }
   });
 
   const deleteModelloMutation = useMutation({
     mutationFn: (id) => base44.entities.TurnoModello.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-modello'] });
-    },
+    }
   });
 
   const createSettimanaModelloMutation = useMutation({
@@ -842,14 +842,14 @@ export default function Planday() {
       setShowSalvaSettimanaModelloModal(false);
       setNomeSettimanaModello('');
       setDescrizioneSettimanaModello('');
-    },
+    }
   });
 
   const deleteSettimanaModelloMutation = useMutation({
     mutationFn: (id) => base44.entities.SettimanaModello.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settimane-modello'] });
-    },
+    }
   });
 
   const saveTipoConfigMutation = useMutation({
@@ -863,14 +863,14 @@ export default function Planday() {
       queryClient.invalidateQueries({ queryKey: ['tipo-turno-configs'] });
       setTipoConfigForm({ tipo_turno: '', mostra_attivita: true, richiede_timbratura: true, richiede_form: true });
       setEditingTipoConfig(null);
-    },
+    }
   });
 
   const deleteTipoConfigMutation = useMutation({
     mutationFn: (id) => base44.entities.TipoTurnoConfig.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tipo-turno-configs'] });
-    },
+    }
   });
 
   const saveModello = () => {
@@ -885,9 +885,9 @@ export default function Planday() {
   };
 
   const applyModello = (modelloId) => {
-    const modello = turniModello.find(m => m.id === modelloId);
+    const modello = turniModello.find((m) => m.id === modelloId);
     if (modello) {
-      setTurnoForm(prev => ({
+      setTurnoForm((prev) => ({
         ...prev,
         ruolo: modello.ruolo,
         ora_inizio: modello.ora_inizio,
@@ -902,7 +902,7 @@ export default function Planday() {
   // Gestione tipi turno - salvati nel database
   const addTipoTurno = async () => {
     if (!newTipoTurno.trim() || tipiTurno.includes(newTipoTurno.trim())) return;
-    
+
     // Crea configurazione nel database per questo tipo turno
     await saveTipoConfigMutation.mutateAsync({
       tipo_turno: newTipoTurno.trim(),
@@ -910,7 +910,7 @@ export default function Planday() {
       richiede_timbratura: true,
       richiede_form: true
     });
-    
+
     setNewTipoTurno('');
   };
 
@@ -920,9 +920,9 @@ export default function Planday() {
       alert('Non puoi eliminare i tipi turno predefiniti');
       return;
     }
-    
+
     // Trova e elimina la configurazione per questo tipo
-    const configToDelete = tipoTurnoConfigs.find(c => c.tipo_turno === tipo);
+    const configToDelete = tipoTurnoConfigs.find((c) => c.tipo_turno === tipo);
     if (configToDelete) {
       await deleteTipoConfigMutation.mutateAsync(configToDelete.id);
     }
@@ -951,10 +951,10 @@ export default function Planday() {
 
   // Funzione per salvare turno da componenti figli
   const handleSaveTurnoFromChild = (turnoData, existingId = null) => {
-    const dipendente = users.find(u => u.id === turnoData.dipendente_id);
+    const dipendente = users.find((u) => u.id === turnoData.dipendente_id);
     const momento = getTurnoTipo({ ora_inizio: turnoData.ora_inizio });
     const sequence = momento === 'Mattina' ? 'first' : 'second';
-    
+
     const dataToSave = {
       ...turnoData,
       dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || '',
@@ -962,7 +962,7 @@ export default function Planday() {
       momento_turno: momento,
       turno_sequence: sequence
     };
-    
+
     if (existingId) {
       updateMutation.mutate({ id: existingId, data: dataToSave });
     } else {
@@ -978,9 +978,9 @@ export default function Planday() {
     }
 
     const startApply = moment(settimanaModelloRange.dataInizio);
-    const endApply = settimanaModelloRange.applicaSenzaFine 
-      ? moment(settimanaModelloRange.dataInizio).add(52, 'weeks') // Max 1 anno
-      : moment(settimanaModelloRange.dataFine);
+    const endApply = settimanaModelloRange.applicaSenzaFine ?
+    moment(settimanaModelloRange.dataInizio).add(52, 'weeks') // Max 1 anno
+    : moment(settimanaModelloRange.dataFine);
 
     if (!settimanaModelloRange.applicaSenzaFine && !settimanaModelloRange.dataFine) {
       alert('Seleziona una data di fine o attiva "Applica senza fine"');
@@ -988,7 +988,7 @@ export default function Planday() {
     }
 
     // Ottieni tutti i turni della settimana corrente come modello
-    const turniSettimana = turni.filter(t => {
+    const turniSettimana = turni.filter((t) => {
       const turnoDate = moment(t.data);
       return turnoDate.isSameOrAfter(weekStart) && turnoDate.isSameOrBefore(weekStart.clone().add(6, 'days'));
     });
@@ -1008,7 +1008,7 @@ export default function Planday() {
           if (!turno.data || !moment(turno.data).isValid()) continue;
           const turnoDay = moment(turno.data).isoWeekday(); // 1=Lun, 7=Dom
           const newDate = currentWeekStart.clone().isoWeekday(turnoDay);
-          
+
           if (newDate.isSameOrAfter(startApply) && newDate.isSameOrBefore(endApply)) {
             turniDaCreare.push({
               store_id: turno.store_id,
@@ -1048,16 +1048,16 @@ export default function Planday() {
   };
 
   const handleQuickSave = () => {
-    const dipendente = users.find(u => u.id === turnoForm.dipendente_id);
-    const candidato = candidati.find(c => c.id === turnoForm.candidato_id);
+    const dipendente = users.find((u) => u.id === turnoForm.dipendente_id);
+    const candidato = candidati.find((c) => c.id === turnoForm.candidato_id);
     const momento = getTurnoTipo({ ora_inizio: turnoForm.ora_inizio });
     const sequence = momento === 'Mattina' ? 'first' : 'second';
-    
+
     const dataToSave = {
       ...turnoForm,
-      dipendente_nome: turnoForm.is_prova && candidato 
-        ? `${candidato.nome} ${candidato.cognome} (PROVA)`
-        : (dipendente?.nome_cognome || dipendente?.full_name || ''),
+      dipendente_nome: turnoForm.is_prova && candidato ?
+      `${candidato.nome} ${candidato.cognome} (PROVA)` :
+      dipendente?.nome_cognome || dipendente?.full_name || '',
       momento_turno: momento,
       turno_sequence: sequence,
       is_prova: turnoForm.is_prova,
@@ -1089,22 +1089,22 @@ export default function Planday() {
 
   // Tutti i dipendenti assegnati allo store selezionato, escludendo quelli con uscita
   const dipendentiPerStore = useMemo(() => {
-    const baseFilter = turnoForm.store_id 
-      ? users.filter(u => {
-          const assignedStores = u.assigned_stores || [];
-          if (assignedStores.length === 0) return u.ruoli_dipendente?.length > 0;
-          return assignedStores.includes(turnoForm.store_id) && u.ruoli_dipendente?.length > 0;
-        })
-      : users.filter(u => u.ruoli_dipendente?.length > 0);
-    
+    const baseFilter = turnoForm.store_id ?
+    users.filter((u) => {
+      const assignedStores = u.assigned_stores || [];
+      if (assignedStores.length === 0) return u.ruoli_dipendente?.length > 0;
+      return assignedStores.includes(turnoForm.store_id) && u.ruoli_dipendente?.length > 0;
+    }) :
+    users.filter((u) => u.ruoli_dipendente?.length > 0);
+
     // Escludi dipendenti con uscita registrata PRIMA o NELLA data del turno
-    return baseFilter.filter(u => {
-      const uscita = uscite.find(usc => usc.dipendente_id === u.id);
+    return baseFilter.filter((u) => {
+      const uscita = uscite.find((usc) => usc.dipendente_id === u.id);
       if (!uscita || !turnoForm.data) return true;
-      
+
       const dataUscita = moment(uscita.data_uscita);
       const dataTurno = moment(turnoForm.data);
-      
+
       // Escludi se la data turno è uguale o dopo la data uscita
       return dataTurno.isBefore(dataUscita);
     });
@@ -1119,60 +1119,60 @@ export default function Planday() {
   // Verifica disponibilità dipendente per il giorno/orario del turno
   const getDipendenteDisponibilita = (dipendenteId) => {
     if (!turnoForm.data || !dipendenteId) return { disponibile: true, turniGiorno: [], sovrapposizione: false, nonDisponibile: false };
-    
+
     // Trova tutti i turni del dipendente in quel giorno
-    const turniGiorno = turni.filter(t => 
-      t.dipendente_id === dipendenteId && 
-      t.data === turnoForm.data &&
-      (editingTurno ? t.id !== editingTurno.id : true) // Escludi il turno che stiamo modificando
+    const turniGiorno = turni.filter((t) =>
+    t.dipendente_id === dipendenteId &&
+    t.data === turnoForm.data && (
+    editingTurno ? t.id !== editingTurno.id : true) // Escludi il turno che stiamo modificando
     );
-    
+
     // Verifica sovrapposizione oraria
     const [newStartH, newStartM] = turnoForm.ora_inizio.split(':').map(Number);
     const [newEndH, newEndM] = turnoForm.ora_fine.split(':').map(Number);
     const newStart = newStartH * 60 + newStartM;
     const newEnd = newEndH * 60 + newEndM;
-    
-    const sovrapposizione = turniGiorno.some(t => {
+
+    const sovrapposizione = turniGiorno.some((t) => {
       const [tStartH, tStartM] = t.ora_inizio.split(':').map(Number);
       const [tEndH, tEndM] = t.ora_fine.split(':').map(Number);
       const tStart = tStartH * 60 + tStartM;
       const tEnd = tEndH * 60 + tEndM;
-      
+
       // Verifica sovrapposizione
-      return (newStart < tEnd && newEnd > tStart);
+      return newStart < tEnd && newEnd > tStart;
     });
-    
+
     // NUOVO: Verifica disponibilità dal sistema Disponibilita
     // Recupera tutte le disponibilità del dipendente
-    const allDisp = tutteDisponibilita.filter(d => d.dipendente_id === dipendenteId);
+    const allDisp = tutteDisponibilita.filter((d) => d.dipendente_id === dipendenteId);
     const dayOfWeek = moment(turnoForm.data).day();
-    
+
     // Filtra disponibilità applicabili (specifiche o ricorrenti)
-    const dispApplicabili = allDisp.filter(d => {
+    const dispApplicabili = allDisp.filter((d) => {
       if (d.ricorrente) {
         return d.giorno_settimana === dayOfWeek;
       } else {
         return d.data_specifica === turnoForm.data;
       }
     });
-    
+
     // Verifica se c'è una non-disponibilità in questo slot
-    const nonDisponibile = dispApplicabili.some(d => {
+    const nonDisponibile = dispApplicabili.some((d) => {
       if (d.tipo !== 'non_disponibile') return false;
-      
+
       const [dStartH, dStartM] = d.ora_inizio.split(':').map(Number);
       const [dEndH, dEndM] = d.ora_fine.split(':').map(Number);
       const dStart = dStartH * 60 + dStartM;
       const dEnd = dEndH * 60 + dEndM;
-      
+
       // Verifica sovrapposizione tra turno e slot di non-disponibilità
-      return (newStart < dEnd && newEnd > dStart);
+      return newStart < dEnd && newEnd > dStart;
     });
-    
-    return { 
-      disponibile: !sovrapposizione && !nonDisponibile, 
-      turniGiorno, 
+
+    return {
+      disponibile: !sovrapposizione && !nonDisponibile,
+      turniGiorno,
       sovrapposizione,
       nonDisponibile
     };
@@ -1200,7 +1200,7 @@ export default function Planday() {
   // Raggruppa turni per giorno e ora
   const turniByDayHour = useMemo(() => {
     const grouped = {};
-    turni.forEach(turno => {
+    turni.forEach((turno) => {
       const key = `${turno.data}`;
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(turno);
@@ -1208,9 +1208,9 @@ export default function Planday() {
     return grouped;
   }, [turni]);
 
-  const getStoreName = (storeId) => stores.find(s => s.id === storeId)?.name || '';
+  const getStoreName = (storeId) => stores.find((s) => s.id === storeId)?.name || '';
   const getDipendenteName = (dipId) => {
-    const user = users.find(u => u.id === dipId);
+    const user = users.find((u) => u.id === dipId);
     return user?.nome_cognome || user?.full_name || '';
   };
 
@@ -1219,10 +1219,10 @@ export default function Planday() {
     if (!config?.arrotonda_ritardo) {
       return minutiRitardo; // Nessun arrotondamento
     }
-    
+
     const incremento = config.arrotondamento_minuti || 15;
     const tipo = config.arrotondamento_tipo || 'eccesso';
-    
+
     if (tipo === 'eccesso') {
       // Arrotonda per eccesso (es: 4 min → 15 min, 16 min → 30 min)
       return Math.ceil(minutiRitardo / incremento) * incremento;
@@ -1251,12 +1251,12 @@ export default function Planday() {
   const calcolaOreEffettive = (turno) => {
     // Se non c'è timbro entrata, non possiamo calcolare
     if (!turno.timbratura_entrata) return null;
-    
+
     const stato = getTimbraturaTipo(turno);
     const entrata = moment(turno.timbratura_entrata);
-    
+
     let minutiEffettivi = 0;
-    
+
     if (turno.timbratura_uscita) {
       // Se c'è uscita, calcola normalmente
       const uscita = moment(turno.timbratura_uscita);
@@ -1272,59 +1272,59 @@ export default function Planday() {
       // Turno ancora in corso, non mostrare nulla
       return null;
     }
-    
+
     // Sottrai anche il ritardo conteggiato se presente
     if (stato.ritardoConteggiato > 0) {
       minutiEffettivi = Math.max(0, minutiEffettivi - stato.ritardoConteggiato);
     }
-    
+
     const ore = Math.floor(minutiEffettivi / 60);
     const minuti = minutiEffettivi % 60;
-    
+
     return `${ore}h ${minuti}m`;
   };
 
   const getTimbraturaTipo = (turno) => {
     // VERIFICA SE IL TURNO RICHIEDE TIMBRATURA
     const tipoTurno = turno.tipo_turno || 'Normale';
-    const tipoConfig = tipoTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
-    
+    const tipoConfig = tipoTurnoConfigs.find((tc) => tc.tipo_turno === tipoTurno);
+
     // Se esiste una configurazione esplicita, usa quella
     // Altrimenti usa i default: certi tipi non richiedono timbratura
-    const richiedeTimbratura = tipoConfig 
-      ? tipoConfig.richiede_timbratura !== false 
-      : !TIPI_SENZA_TIMBRATURA_DEFAULT.includes(tipoTurno);
-    
+    const richiedeTimbratura = tipoConfig ?
+    tipoConfig.richiede_timbratura !== false :
+    !TIPI_SENZA_TIMBRATURA_DEFAULT.includes(tipoTurno);
+
     // Se il turno non richiede timbratura, ignora completamente i controlli
     if (!richiedeTimbratura) {
       return { tipo: 'non_richiesto', color: 'text-slate-400', bg: 'bg-slate-50', label: 'Non Richiesto', ritardoReale: 0, ritardoConteggiato: 0 };
     }
-    
+
     const now = moment();
     const turnoEnd = moment(`${turno.data} ${turno.ora_fine}`);
     const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
     const oreMancataUscita = config?.ore_mancata_uscita || 2;
     const limiteUscitaMancata = turnoEnd.clone().add(oreMancataUscita, 'hours');
-    
+
     // Turno futuro
     if (turnoStart.isAfter(now)) {
       return { tipo: 'programmato', color: 'text-slate-500', bg: 'bg-slate-100', label: 'Programmato', ritardoReale: 0, ritardoConteggiato: 0 };
     }
-    
+
     // Mancata timbratura entrata (se il turno è finito)
     if (!turno.timbratura_entrata && turnoEnd.isBefore(now)) {
       const penalita = calcolaPenalitaMancata();
-      return { 
-        tipo: 'mancata', 
-        color: 'text-red-600', 
-        bg: 'bg-red-100', 
+      return {
+        tipo: 'mancata',
+        color: 'text-red-600',
+        bg: 'bg-red-100',
         label: penalita > 0 ? `Mancata (-${penalita}min)` : 'Non Timbrato',
         ritardoReale: 0,
         ritardoConteggiato: penalita,
         penalita
       };
     }
-    
+
     // Mancata timbratura uscita (se sono passate X ore dalla fine turno)
     if (turno.timbratura_entrata && !turno.timbratura_uscita && now.isAfter(limiteUscitaMancata)) {
       const penalita = calcolaPenalitaMancata();
@@ -1338,25 +1338,25 @@ export default function Planday() {
         penalita
       };
     }
-    
+
     // Turno in corso
     if (!turno.timbratura_entrata) {
       return { tipo: 'in_corso', color: 'text-yellow-600', bg: 'bg-yellow-100', label: 'In attesa', ritardoReale: 0, ritardoConteggiato: 0 };
     }
-    
+
     const timbrataEntrata = moment(turno.timbratura_entrata);
     const ritardoReale = timbrataEntrata.diff(turnoStart, 'minutes');
-    
+
     if (ritardoReale <= 0) {
       return { tipo: 'puntuale', color: 'text-green-600', bg: 'bg-green-100', label: 'Puntuale', ritardoReale: 0, ritardoConteggiato: 0 };
     }
-    
+
     const ritardoConteggiato = calcolaRitardoEffettivo(ritardoReale);
-    
-    return { 
-      tipo: 'ritardo', 
-      color: 'text-orange-600', 
-      bg: 'bg-orange-100', 
+
+    return {
+      tipo: 'ritardo',
+      color: 'text-orange-600',
+      bg: 'bg-orange-100',
       label: ritardoConteggiato > 0 ? `+${ritardoConteggiato} min` : 'Tollerato',
       ritardoReale,
       ritardoConteggiato
@@ -1364,7 +1364,7 @@ export default function Planday() {
   };
 
   const filteredTurniTimbrature = useMemo(() => {
-    return turniTimbrature.filter(t => {
+    return turniTimbrature.filter((t) => {
       if (selectedStore !== 'all' && selectedStore !== '' && t.store_id !== selectedStore) return false;
       if (selectedDipendenteTimbr !== 'all' && t.dipendente_id !== selectedDipendenteTimbr) return false;
       if (selectedRuolo !== 'all' && t.ruolo !== selectedRuolo) return false;
@@ -1385,192 +1385,192 @@ export default function Planday() {
   // Helper per ottenere i form dovuti per un turno specifico (usato nella vista calendario)
   const getFormDovutiPerTurno = (turno, allTurniDay) => {
     if (!turno.dipendente_nome) return [];
-    
+
     const turnoRuolo = turno.ruolo;
     const turnoStoreId = turno.store_id;
-    
+
     // Determina se questo turno è mattina o sera BASANDOSI SUL MOMENTO
     const turnoSequence = getTurnoSequenceFromMomento(turno);
-    
+
     // Determina il giorno della settimana del turno
     const turnoDayOfWeek = new Date(turno.data).getDay();
-    
-    const activeConfigs = formTrackerConfigs.filter(c => c.is_active);
+
+    const activeConfigs = formTrackerConfigs.filter((c) => c.is_active);
     const formDovuti = [];
-    
-    activeConfigs.forEach(config => {
+
+    activeConfigs.forEach((config) => {
       const configRoles = config.assigned_roles || [];
-      
+
       // Check if this config applies to this specific shift's role
       if (configRoles.length > 0 && !configRoles.includes(turnoRuolo)) {
         return;
       }
-      
+
       // Check if config applies to this store
       const configStores = config.assigned_stores || [];
       if (configStores.length > 0 && !configStores.includes(turnoStoreId)) {
         return;
       }
-      
+
       // Check if config applies to this day of week
       const daysOfWeek = config.days_of_week || [];
       if (daysOfWeek.length > 0 && !daysOfWeek.includes(turnoDayOfWeek)) {
         return;
       }
-      
+
       // Check if config applies to this shift sequence (mattina/sera)
       const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
       if (!configSequences.includes(turnoSequence)) {
         return;
       }
-      
+
       formDovuti.push(config.form_name);
     });
-    
+
     return formDovuti;
   };
 
   // Helper per ottenere attività da Struttura Turno
   const getAttivitaTurno = (turno) => {
     if (!turno.ruolo || !turno.store_id) return [];
-    
+
     const momento = getTurnoTipo(turno);
     const dayOfWeek = new Date(turno.data).getDay();
-    
-    const schemasApplicabili = struttureTurno.filter(st => {
+
+    const schemasApplicabili = struttureTurno.filter((st) => {
       const stRoles = st.ruoli || [];
       if (stRoles.length > 0 && !stRoles.includes(turno.ruolo)) return false;
-      
+
       const stStores = st.stores || [];
       if (stStores.length > 0 && !stStores.includes(turno.store_id)) return false;
-      
+
       const stDays = st.giorni_settimana || [];
       if (stDays.length > 0 && !stDays.includes(dayOfWeek)) return false;
-      
+
       const stMomento = st.momento_turno;
       if (stMomento && stMomento !== momento) return false;
-      
+
       return true;
     });
-    
+
     // Estrai attività uniche da tutti gli schemi applicabili
     const attivitaSet = new Set();
-    schemasApplicabili.forEach(st => {
+    schemasApplicabili.forEach((st) => {
       // Nuovo formato: attivita array diretto
       if (st.attivita && Array.isArray(st.attivita)) {
-        st.attivita.forEach(a => attivitaSet.add(a));
+        st.attivita.forEach((a) => attivitaSet.add(a));
       }
       // Vecchio formato: slots con attivita
       if (st.slots && Array.isArray(st.slots)) {
-        st.slots.forEach(slot => {
+        st.slots.forEach((slot) => {
           if (slot.attivita) attivitaSet.add(slot.attivita);
         });
       }
     });
-    
+
     return Array.from(attivitaSet);
   };
 
   // Verifica form compilati usando logica FormTracker
   const getFormCompilati = (turno) => {
     if (!turno.dipendente_nome) return { dovuti: [], compilati: [] };
-    
+
     const storeName = getStoreName(turno.store_id);
     const turnoRuolo = turno.ruolo; // Usa il ruolo del turno specifico
     const turnoStoreId = turno.store_id;
-    
+
     // Determina tutti i turni dello stesso giorno, stesso store, stesso ruolo
-    const turniStessoGiornoRuoloStore = turniTimbrature.filter(t => 
-      t.data === turno.data && 
-      t.store_id === turnoStoreId &&
-      t.ruolo === turnoRuolo
+    const turniStessoGiornoRuoloStore = turniTimbrature.filter((t) =>
+    t.data === turno.data &&
+    t.store_id === turnoStoreId &&
+    t.ruolo === turnoRuolo
     );
-    
+
     // Determina se questo turno è mattina o sera
     const turnoSequence = getTurnoSequence(turno, turniStessoGiornoRuoloStore);
-    
+
     // Usa la logica di FormTracker
     const dateStart = new Date(turno.data);
     dateStart.setHours(0, 0, 0, 0);
     const nextDayEnd = new Date(turno.data);
     nextDayEnd.setDate(nextDayEnd.getDate() + 1);
     nextDayEnd.setHours(6, 0, 0, 0);
-    
+
     // Determina il giorno della settimana del turno
     const turnoDayOfWeek = new Date(turno.data).getDay();
-    
-    const activeConfigs = formTrackerConfigs.filter(c => c.is_active);
+
+    const activeConfigs = formTrackerConfigs.filter((c) => c.is_active);
     const dovuti = [];
     const compilati = [];
-    
-    activeConfigs.forEach(config => {
+
+    activeConfigs.forEach((config) => {
       const configRoles = config.assigned_roles || [];
-      
+
       // Check if this config applies to this specific shift's role
       if (configRoles.length > 0 && !configRoles.includes(turnoRuolo)) {
         return;
       }
-      
+
       // Check if config applies to this store
       const configStores = config.assigned_stores || [];
       if (configStores.length > 0 && !configStores.includes(turnoStoreId)) {
         return;
       }
-      
+
       // Check if config applies to this day of week
       const daysOfWeek = config.days_of_week || [];
       if (daysOfWeek.length > 0 && !daysOfWeek.includes(turnoDayOfWeek)) {
         return;
       }
-      
+
       // Check if config applies to this shift sequence (mattina/sera)
       const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
       if (!configSequences.includes(turnoSequence)) {
         return;
       }
-      
+
       // IMPORTANTE: il form è dovuto indipendentemente dalle timbrature
       // L'assegnazione è basata solo su: ruolo, store, giorno settimana, sequenza turno
       dovuti.push(config.form_name);
-      
+
       // Check if form was completed
       const formData = allFormData[config.form_page] || [];
-      const completed = formData.some(item => {
+      const completed = formData.some((item) => {
         const itemDate = new Date(item.inspection_date || item.data_rilevazione || item.data_conteggio || item.data_creazione || item.data_calcolo);
-        return (item.store_name === storeName || item.store_id === turnoStoreId) &&
-               (item.inspector_name === turno.dipendente_nome || item.rilevato_da === turno.dipendente_nome) &&
-               itemDate >= dateStart && itemDate <= nextDayEnd;
+        return (item.store_name === storeName || item.store_id === turnoStoreId) && (
+        item.inspector_name === turno.dipendente_nome || item.rilevato_da === turno.dipendente_nome) &&
+        itemDate >= dateStart && itemDate <= nextDayEnd;
       });
-      
+
       if (completed) {
         compilati.push(config.form_name);
       }
     });
-    
+
     return { dovuti, compilati };
   };
 
   const timbratureStats = useMemo(() => {
     // Filtra solo turni che richiedono timbratura
-    const turniCheRichiedonoTimbratura = filteredTurniTimbrature.filter(t => {
+    const turniCheRichiedonoTimbratura = filteredTurniTimbrature.filter((t) => {
       const tipoTurno = t.tipo_turno || 'Normale';
-      const tipoConfig = tipoTurnoConfigs.find(tc => tc.tipo_turno === tipoTurno);
+      const tipoConfig = tipoTurnoConfigs.find((tc) => tc.tipo_turno === tipoTurno);
       const richiedeTimbratura = !tipoConfig || tipoConfig.richiede_timbratura !== false;
       return richiedeTimbratura;
     });
-    
-    const turniConTimbratura = turniCheRichiedonoTimbratura.filter(t => t.timbratura_entrata);
-    const turniSenzaTimbratura = turniCheRichiedonoTimbratura.filter(t => {
+
+    const turniConTimbratura = turniCheRichiedonoTimbratura.filter((t) => t.timbratura_entrata);
+    const turniSenzaTimbratura = turniCheRichiedonoTimbratura.filter((t) => {
       const stato = getTimbraturaTipo(t);
       return stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita';
     });
-    const turniInRitardo = turniConTimbratura.filter(t => {
-    if (!t.timbratura_entrata) return false;
-    const oraInizio = moment(`${t.data} ${t.ora_inizio}`);
-    const timbrataEntrata = moment(t.timbratura_entrata);
+    const turniInRitardo = turniConTimbratura.filter((t) => {
+      if (!t.timbratura_entrata) return false;
+      const oraInizio = moment(`${t.data} ${t.ora_inizio}`);
+      const timbrataEntrata = moment(t.timbratura_entrata);
       return timbrataEntrata.isAfter(oraInizio);
     });
-    
+
     const totaleMinutiRitardo = turniInRitardo.reduce((sum, t) => {
       const oraInizio = moment(`${t.data} ${t.ora_inizio}`);
       const timbrataEntrata = moment(t.timbratura_entrata);
@@ -1592,35 +1592,35 @@ export default function Planday() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-              Planday
+            <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Planday
+
             </h1>
-            <p className="text-slate-500 mt-1">Gestione turni e timbrature</p>
+            <p className="text-slate-50 mt-1">Gestione turni e timbrature</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <NeumorphicButton 
+            <NeumorphicButton
               onClick={() => setMainView('turni')}
               variant={mainView === 'turni' ? 'primary' : 'default'}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Calendar className="w-4 h-4" />
               Gestione Turni
             </NeumorphicButton>
-            <NeumorphicButton 
+            <NeumorphicButton
               onClick={() => setMainView('timbrature')}
               variant={mainView === 'timbrature' ? 'primary' : 'default'}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Clock className="w-4 h-4" />
               Timbrature
             </NeumorphicButton>
-            <NeumorphicButton 
+            <NeumorphicButton
               onClick={() => {
                 setShowDisponibilitaModal(true);
                 setSelectedDipendenteDisp(null);
               }}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <CalendarClock className="w-4 h-4" />
               Disponibilità
             </NeumorphicButton>
@@ -1628,8 +1628,8 @@ export default function Planday() {
             </div>
 
         {/* Main Content - Gestione Turni */}
-        {mainView === 'turni' && (
-          <>
+        {mainView === 'turni' &&
+        <>
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <NeumorphicCard className="p-4 text-center">
@@ -1640,7 +1640,7 @@ export default function Planday() {
           <NeumorphicCard className="p-4 text-center">
             <Users className="w-8 h-8 text-green-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-green-600">
-              {new Set(turni.map(t => t.dipendente_id).filter(Boolean)).size}
+              {new Set(turni.map((t) => t.dipendente_id).filter(Boolean)).size}
             </p>
             <p className="text-xs text-slate-500">Dipendenti Attivi</p>
           </NeumorphicCard>
@@ -1653,10 +1653,10 @@ export default function Planday() {
             <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-orange-600">
               {Math.round(turni.reduce((sum, t) => {
-                const [sh, sm] = t.ora_inizio.split(':').map(Number);
-                const [eh, em] = t.ora_fine.split(':').map(Number);
-                return sum + (eh - sh) + (em - sm) / 60;
-              }, 0))}h
+                  const [sh, sm] = t.ora_inizio.split(':').map(Number);
+                  const [eh, em] = t.ora_fine.split(':').map(Number);
+                  return sum + (eh - sh) + (em - sm) / 60;
+                }, 0))}h
             </p>
             <p className="text-xs text-slate-500">Ore Totali</p>
           </NeumorphicCard>
@@ -1667,33 +1667,33 @@ export default function Planday() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-              >
+                  value={selectedStore}
+                  onChange={(e) => setSelectedStore(e.target.value)}
+                  className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none">
+
                 <option value="">Tutti i locali</option>
-                {stores.map(store => (
+                {stores.map((store) =>
                   <option key={store.id} value={store.id}>{store.name}</option>
-                ))}
+                  )}
               </select>
               
               <div className="flex rounded-xl overflow-hidden neumorphic-pressed">
                 <button
-                  onClick={() => setViewMode('calendario')}
-                  className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'calendario' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
-                >
+                    onClick={() => setViewMode('calendario')}
+                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'calendario' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}>
+
                   <LayoutGrid className="w-4 h-4" /> Calendario
                 </button>
                 <button
-                  onClick={() => setViewMode('dipendenti')}
-                  className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'dipendenti' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
-                >
+                    onClick={() => setViewMode('dipendenti')}
+                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'dipendenti' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}>
+
                   <StoreIcon className="w-4 h-4" /> Store
                 </button>
                 <button
-                  onClick={() => setViewMode('singolo')}
-                  className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'singolo' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}
-                >
+                    onClick={() => setViewMode('singolo')}
+                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'singolo' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}>
+
                   <User className="w-4 h-4" /> Singolo
                 </button>
               </div>
@@ -1731,23 +1731,23 @@ export default function Planday() {
                 <Calendar className="w-4 h-4" />
                 Applica Modello
               </NeumorphicButton>
-              <NeumorphicButton 
-                onClick={() => {
-                  setTurnoForm({ 
-                    store_id: selectedStore || (stores[0]?.id || ''),
-                    data: moment().format('YYYY-MM-DD'),
-                    ora_inizio: '09:00',
-                    ora_fine: '17:00',
-                    ruolo: 'Pizzaiolo',
-                    dipendente_id: '',
-                    tipo_turno: 'Normale',
-                    note: ''
-                  });
-                  setShowForm(true);
-                }} 
-                variant="primary" 
-                className="flex items-center gap-2"
-              >
+              <NeumorphicButton
+                  onClick={() => {
+                    setTurnoForm({
+                      store_id: selectedStore || stores[0]?.id || '',
+                      data: moment().format('YYYY-MM-DD'),
+                      ora_inizio: '09:00',
+                      ora_fine: '17:00',
+                      ruolo: 'Pizzaiolo',
+                      dipendente_id: '',
+                      tipo_turno: 'Normale',
+                      note: ''
+                    });
+                    setShowForm(true);
+                  }}
+                  variant="primary"
+                  className="flex items-center gap-2">
+
                 <Plus className="w-4 h-4" />
                 Nuovo Turno
               </NeumorphicButton>
@@ -1756,7 +1756,7 @@ export default function Planday() {
         </NeumorphicCard>
 
         {/* Form Turno */}
-        {showForm && (
+        {showForm &&
           <NeumorphicCard className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-slate-800">
@@ -1773,12 +1773,12 @@ export default function Planday() {
                 <select
                   value={turnoForm.store_id}
                   onChange={(e) => setTurnoForm({ ...turnoForm, store_id: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                >
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                   <option value="">Seleziona locale</option>
-                  {stores.map(store => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
-                  ))}
+                  {stores.map((store) =>
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                  )}
                 </select>
               </div>
               <div>
@@ -1787,44 +1787,44 @@ export default function Planday() {
                   type="date"
                   value={turnoForm.data}
                   onChange={(e) => setTurnoForm({ ...turnoForm, data: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                />
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">Ruolo *</label>
                 <select
                   value={turnoForm.ruolo}
                   onChange={(e) => setTurnoForm({ ...turnoForm, ruolo: e.target.value, dipendente_id: '' })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                >
-                  {RUOLI.map(ruolo => (
-                    <option key={ruolo} value={ruolo}>{ruolo}</option>
-                  ))}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
+                  {RUOLI.map((ruolo) =>
+                  <option key={ruolo} value={ruolo}>{ruolo}</option>
+                  )}
                 </select>
               </div>
             </div>
 
             {/* Modello Turno Selector */}
-            {turniModello.length > 0 && (
-              <div className="mb-4">
+            {turniModello.length > 0 &&
+            <div className="mb-4">
                 <label className="text-sm font-medium text-slate-700 mb-1 block">Usa Turno Modello</label>
                 <select
-                  value={selectedModello}
-                  onChange={(e) => {
-                    applyModello(e.target.value);
-                    setSelectedModello(e.target.value);
-                  }}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                >
+                value={selectedModello}
+                onChange={(e) => {
+                  applyModello(e.target.value);
+                  setSelectedModello(e.target.value);
+                }}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                   <option value="">-- Seleziona modello --</option>
-                  {turniModello.map(m => (
-                    <option key={m.id} value={m.id}>
+                  {turniModello.map((m) =>
+                <option key={m.id} value={m.id}>
                       {m.nome} ({m.ruolo}, {m.ora_inizio}-{m.ora_fine}, {m.tipo_turno})
                     </option>
-                  ))}
+                )}
                 </select>
               </div>
-            )}
+            }
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
               <div>
@@ -1833,8 +1833,8 @@ export default function Planday() {
                   type="time"
                   value={turnoForm.ora_inizio}
                   onChange={(e) => setTurnoForm({ ...turnoForm, ora_inizio: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                />
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Fine *</label>
@@ -1842,94 +1842,94 @@ export default function Planday() {
                   type="time"
                   value={turnoForm.ora_fine}
                   onChange={(e) => setTurnoForm({ ...turnoForm, ora_fine: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                />
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
               </div>
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-1 block">Tipo Turno</label>
                 <select
                   value={turnoForm.tipo_turno}
                   onChange={(e) => setTurnoForm({ ...turnoForm, tipo_turno: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                >
-                  {tipiTurno.map(tipo => (
-                    <option key={tipo} value={tipo}>{tipo}</option>
-                  ))}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
+                  {tipiTurno.map((tipo) =>
+                  <option key={tipo} value={tipo}>{tipo}</option>
+                  )}
                 </select>
               </div>
               <div className="md:col-span-2">
               <label className="text-sm font-medium text-slate-700 mb-1 block">Dipendente</label>
               <select
-                value={turnoForm.dipendente_id}
-                onChange={(e) => setTurnoForm({ ...turnoForm, dipendente_id: e.target.value })}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              >
+                  value={turnoForm.dipendente_id}
+                  onChange={(e) => setTurnoForm({ ...turnoForm, dipendente_id: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                 <option value="">Non assegnato</option>
-                {dipendentiPerStore.map(u => {
-                  const canAssign = canAssignToRole(u, turnoForm.ruolo);
-                  const disponibilita = getDipendenteDisponibilita(u.id);
-                  const nome = u.nome_cognome || u.full_name;
+                {dipendentiPerStore.map((u) => {
+                    const canAssign = canAssignToRole(u, turnoForm.ruolo);
+                    const disponibilita = getDipendenteDisponibilita(u.id);
+                    const nome = u.nome_cognome || u.full_name;
 
-                  let label = nome;
-                  let statusEmoji = '';
+                    let label = nome;
+                    let statusEmoji = '';
 
-                  if (!canAssign) {
-                    statusEmoji = '🚫';
-                    label = `${nome} (non è ${turnoForm.ruolo})`;
-                  } else if (disponibilita.nonDisponibile) {
-                    statusEmoji = '🚫';
-                    label = `${nome} (NON DISPONIBILE in questo orario)`;
-                  } else if (disponibilita.sovrapposizione) {
-                    statusEmoji = '⚠️';
-                    label = `${nome} (OCCUPATO - sovrapposizione orario)`;
-                  } else if (disponibilita.turniGiorno.length > 0) {
-                    statusEmoji = '📅';
-                    const turniInfo = disponibilita.turniGiorno.map(t => `${t.ora_inizio}-${t.ora_fine}`).join(', ');
-                    label = `${nome} (ha già turni: ${turniInfo})`;
-                  } else {
-                    statusEmoji = '✅';
-                    label = `${nome} (libero)`;
-                  }
+                    if (!canAssign) {
+                      statusEmoji = '🚫';
+                      label = `${nome} (non è ${turnoForm.ruolo})`;
+                    } else if (disponibilita.nonDisponibile) {
+                      statusEmoji = '🚫';
+                      label = `${nome} (NON DISPONIBILE in questo orario)`;
+                    } else if (disponibilita.sovrapposizione) {
+                      statusEmoji = '⚠️';
+                      label = `${nome} (OCCUPATO - sovrapposizione orario)`;
+                    } else if (disponibilita.turniGiorno.length > 0) {
+                      statusEmoji = '📅';
+                      const turniInfo = disponibilita.turniGiorno.map((t) => `${t.ora_inizio}-${t.ora_fine}`).join(', ');
+                      label = `${nome} (ha già turni: ${turniInfo})`;
+                    } else {
+                      statusEmoji = '✅';
+                      label = `${nome} (libero)`;
+                    }
 
-                  return (
-                    <option 
-                      key={u.id} 
-                      value={u.id}
-                      disabled={!canAssign}
-                      style={{ color: !canAssign ? '#999' : disponibilita.sovrapposizione ? '#dc2626' : 'inherit' }}
-                    >
+                    return (
+                      <option
+                        key={u.id}
+                        value={u.id}
+                        disabled={!canAssign}
+                        style={{ color: !canAssign ? '#999' : disponibilita.sovrapposizione ? '#dc2626' : 'inherit' }}>
+
                       {statusEmoji} {label}
-                    </option>
-                  );
-                })}
+                    </option>);
+
+                  })}
               </select>
               {turnoForm.dipendente_id && (() => {
-                const disponibilita = getDipendenteDisponibilita(turnoForm.dipendente_id);
-                if (disponibilita.nonDisponibile) {
-                  return (
-                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1 font-bold">
+                  const disponibilita = getDipendenteDisponibilita(turnoForm.dipendente_id);
+                  if (disponibilita.nonDisponibile) {
+                    return (
+                      <p className="text-xs text-red-600 mt-1 flex items-center gap-1 font-bold">
                       <AlertTriangle className="w-3 h-3" />
                       ⚠️ ATTENZIONE: Il dipendente ha segnalato NON DISPONIBILITÀ in questo orario!
-                    </p>
-                  );
-                }
-                if (disponibilita.sovrapposizione) {
-                  return (
-                    <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                    </p>);
+
+                  }
+                  if (disponibilita.sovrapposizione) {
+                    return (
+                      <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                       <AlertTriangle className="w-3 h-3" />
                       Attenzione: il dipendente ha già un turno che si sovrappone!
-                    </p>
-                  );
-                }
-                if (disponibilita.turniGiorno.length > 0) {
-                  return (
-                    <p className="text-xs text-orange-600 mt-1">
-                      ℹ️ Altri turni oggi: {disponibilita.turniGiorno.map(t => `${t.ora_inizio}-${t.ora_fine}`).join(', ')}
-                    </p>
-                  );
-                }
-                return null;
-              })()}
+                    </p>);
+
+                  }
+                  if (disponibilita.turniGiorno.length > 0) {
+                    return (
+                      <p className="text-xs text-orange-600 mt-1">
+                      ℹ️ Altri turni oggi: {disponibilita.turniGiorno.map((t) => `${t.ora_inizio}-${t.ora_fine}`).join(', ')}
+                    </p>);
+
+                  }
+                  return null;
+                })()}
               </div>
             </div>
 
@@ -1940,8 +1940,8 @@ export default function Planday() {
                 value={turnoForm.note}
                 onChange={(e) => setTurnoForm({ ...turnoForm, note: e.target.value })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                placeholder="Note opzionali..."
-              />
+                placeholder="Note opzionali..." />
+
             </div>
 
             {/* Turno di Prova */}
@@ -1951,263 +1951,263 @@ export default function Planday() {
                   type="checkbox"
                   id="is-prova"
                   checked={turnoForm.is_prova}
-                  onChange={(e) => setTurnoForm({ 
-                    ...turnoForm, 
+                  onChange={(e) => setTurnoForm({
+                    ...turnoForm,
                     is_prova: e.target.checked,
                     dipendente_id: e.target.checked ? '' : turnoForm.dipendente_id,
                     candidato_id: ''
                   })}
-                  className="w-5 h-5"
-                />
+                  className="w-5 h-5" />
+
                 <label htmlFor="is-prova" className="text-sm font-medium text-purple-800">
                   🧪 Questo è un turno di PROVA (candidato)
                 </label>
               </div>
               
-              {turnoForm.is_prova && (
-                <div>
+              {turnoForm.is_prova &&
+              <div>
                   <label className="text-sm font-medium text-purple-700 mb-1 block">Seleziona Candidato (da ATS)</label>
                   <select
-                    value={turnoForm.candidato_id}
-                    onChange={(e) => setTurnoForm({ ...turnoForm, candidato_id: e.target.value })}
-                    className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  >
+                  value={turnoForm.candidato_id}
+                  onChange={(e) => setTurnoForm({ ...turnoForm, candidato_id: e.target.value })}
+                  className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                     <option value="">Seleziona candidato...</option>
-                    {candidati.map(c => (
-                      <option key={c.id} value={c.id}>
+                    {candidati.map((c) =>
+                  <option key={c.id} value={c.id}>
                         {c.nome} {c.cognome} {c.posizione ? `(${c.posizione})` : ''} - {c.telefono}
                       </option>
-                    ))}
+                  )}
                   </select>
-                  {candidati.length === 0 && (
-                    <p className="text-xs text-purple-600 mt-1">
+                  {candidati.length === 0 &&
+                <p className="text-xs text-purple-600 mt-1">
                       Nessun candidato disponibile. Aggiungi candidati dalla pagina ATS.
                     </p>
-                  )}
+                }
                 </div>
-              )}
+              }
             </div>
 
             <div className="flex gap-3 pt-2">
               <NeumorphicButton onClick={resetForm} className="flex-1">Annulla</NeumorphicButton>
-              <NeumorphicButton 
-                onClick={handleSaveTurno} 
-                variant="primary" 
+              <NeumorphicButton
+                onClick={handleSaveTurno}
+                variant="primary"
                 className="flex-1 flex items-center justify-center gap-2"
-                disabled={!turnoForm.store_id || !turnoForm.data || !turnoForm.ora_inizio || !turnoForm.ora_fine}
-              >
+                disabled={!turnoForm.store_id || !turnoForm.data || !turnoForm.ora_inizio || !turnoForm.ora_fine}>
+
                 <Save className="w-4 h-4" />
                 Salva
               </NeumorphicButton>
             </div>
           </NeumorphicCard>
-        )}
+          }
 
         {/* Vista Calendario */}
-        {viewMode === 'calendario' && (
+        {viewMode === 'calendario' &&
           <NeumorphicCard className="p-4 overflow-x-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
+            {isLoading ?
+            <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-              </div>
-            ) : (
-              <div className="min-w-[900px]">
+              </div> :
+
+            <div className="min-w-[900px]">
                 {/* Header giorni */}
                 <div className="grid grid-cols-8 gap-1 mb-2">
                   <div className="p-2 text-center font-medium text-slate-500 text-sm">Ora</div>
-                  {weekDays.map(day => (
-                    <div 
-                      key={day.format('YYYY-MM-DD')} 
-                      className={`p-2 text-center rounded-lg ${
-                        day.isSame(moment(), 'day') ? 'bg-blue-100' : ''
-                      }`}
-                    >
+                  {weekDays.map((day) =>
+                <div
+                  key={day.format('YYYY-MM-DD')}
+                  className={`p-2 text-center rounded-lg ${
+                  day.isSame(moment(), 'day') ? 'bg-blue-100' : ''}`
+                  }>
+
                       <div className="font-medium text-slate-700">{day.format('ddd')}</div>
                       <div className="text-lg font-bold text-slate-800">{day.format('DD')}</div>
                     </div>
-                  ))}
+                )}
                 </div>
 
                 {/* Griglia oraria con slot 30 min */}
                 <div className="relative">
-                  {timeSlots.map((slot, idx) => (
-                    <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '25px' }}>
+                  {timeSlots.map((slot, idx) =>
+                <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '25px' }}>
                       <div className="text-center text-xs text-slate-500 font-medium flex items-center justify-center">
                         {slot.minute === 0 ? slot.label : ''}
                       </div>
-                      {weekDays.map(day => {
-                        const dayKey = day.format('YYYY-MM-DD');
-                        const inDragRange = isInDragRange(day, slot);
-                        return (
-                          <div 
-                            key={`${dayKey}-${slot.hour}-${slot.minute}`}
-                            className={`border-t border-slate-100 cursor-pointer select-none transition-colors ${
-                              inDragRange ? 'bg-blue-200' : 'hover:bg-blue-50'
-                            } ${slot.minute === 0 ? 'border-slate-200' : 'border-slate-100'}`}
-                            onMouseDown={(e) => { e.preventDefault(); handleMouseDown(day, slot); }}
-                            onMouseEnter={() => handleMouseEnter(day, slot)}
-                            onMouseUp={() => handleMouseUp(day, slot)}
-                            onClick={(e) => {
-                              if (!isDragging) {
-                                e.stopPropagation();
-                                setQuickTurnoPopup({
-                                  day: day.format('YYYY-MM-DD'),
-                                  startSlot: slot.hour + slot.minute / 60,
-                                  endSlot: slot.hour + slot.minute / 60 + 0.5
-                                });
-                                setTurnoForm({
-                                  store_id: selectedStore || (stores[0]?.id || ''),
-                                  data: day.format('YYYY-MM-DD'),
-                                  ora_inizio: `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`,
-                                  ora_fine: `${(slot.hour + (slot.minute === 30 ? 1 : 0)).toString().padStart(2, '0')}:${slot.minute === 30 ? '00' : '30'}`,
-                                  ruolo: 'Pizzaiolo',
-                                  dipendente_id: '',
-                                  tipo_turno: 'Normale',
-                                  note: '',
-                                  is_prova: false,
-                                  candidato_id: ''
-                                });
-                              }
-                            }}
-                          />
-                        );
-                      })}
+                      {weekDays.map((day) => {
+                    const dayKey = day.format('YYYY-MM-DD');
+                    const inDragRange = isInDragRange(day, slot);
+                    return (
+                      <div
+                        key={`${dayKey}-${slot.hour}-${slot.minute}`}
+                        className={`border-t border-slate-100 cursor-pointer select-none transition-colors ${
+                        inDragRange ? 'bg-blue-200' : 'hover:bg-blue-50'} ${
+                        slot.minute === 0 ? 'border-slate-200' : 'border-slate-100'}`}
+                        onMouseDown={(e) => {e.preventDefault();handleMouseDown(day, slot);}}
+                        onMouseEnter={() => handleMouseEnter(day, slot)}
+                        onMouseUp={() => handleMouseUp(day, slot)}
+                        onClick={(e) => {
+                          if (!isDragging) {
+                            e.stopPropagation();
+                            setQuickTurnoPopup({
+                              day: day.format('YYYY-MM-DD'),
+                              startSlot: slot.hour + slot.minute / 60,
+                              endSlot: slot.hour + slot.minute / 60 + 0.5
+                            });
+                            setTurnoForm({
+                              store_id: selectedStore || stores[0]?.id || '',
+                              data: day.format('YYYY-MM-DD'),
+                              ora_inizio: `${slot.hour.toString().padStart(2, '0')}:${slot.minute.toString().padStart(2, '0')}`,
+                              ora_fine: `${(slot.hour + (slot.minute === 30 ? 1 : 0)).toString().padStart(2, '0')}:${slot.minute === 30 ? '00' : '30'}`,
+                              ruolo: 'Pizzaiolo',
+                              dipendente_id: '',
+                              tipo_turno: 'Normale',
+                              note: '',
+                              is_prova: false,
+                              candidato_id: ''
+                            });
+                          }
+                        }} />);
+
+
+                  })}
                     </div>
-                  ))}
+                )}
 
                   {/* Turni posizionati in overlay */}
                   <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 25}px` }}>
                     <div />
-                    {weekDays.map(day => {
-                      const dayKey = day.format('YYYY-MM-DD');
-                      const dayTurni = turniByDayHour[dayKey] || [];
-                      const overlappingGroups = getOverlappingTurni(dayTurni);
-                      const isDropTargetDay = dropTarget === dayKey;
+                    {weekDays.map((day) => {
+                    const dayKey = day.format('YYYY-MM-DD');
+                    const dayTurni = turniByDayHour[dayKey] || [];
+                    const overlappingGroups = getOverlappingTurni(dayTurni);
+                    const isDropTargetDay = dropTarget === dayKey;
 
-                      return (
-                        <div 
-                          key={dayKey} 
-                          className={`relative pointer-events-auto ${isDropTargetDay ? 'bg-blue-100 bg-opacity-50' : ''}`}
-                          onDragOver={(e) => handleDayDragOver(e, day)}
-                          onDrop={(e) => handleDayDrop(e, day)}
-                        >
-                          {overlappingGroups.map((group, groupIdx) => 
-                            group.map((turno, idx) => {
-                              const style = getTurnoStyle(turno, idx, group.length);
-                              return (
-                                <div 
-                                  key={turno.id}
-                                  draggable
-                                  onDragStart={(e) => handleTurnoDragStart(e, turno)}
-                                  onDragEnd={handleTurnoDragEnd}
-                                  className={`absolute p-1 rounded-lg border-2 text-xs cursor-grab pointer-events-auto overflow-hidden shadow-md text-white ${draggingTurno?.id === turno.id ? 'opacity-50' : ''}`}
-                                  style={{
-                                    ...style,
-                                    marginLeft: '1px',
-                                    marginRight: '1px',
-                                    ...getRuoloStyle(turno.ruolo)
-                                  }}
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    setEditingTurno(turno);
-                                    setTurnoForm({
-                                      store_id: turno.store_id,
-                                      data: turno.data,
-                                      ora_inizio: turno.ora_inizio,
-                                      ora_fine: turno.ora_fine,
-                                      ruolo: turno.ruolo,
-                                      dipendente_id: turno.dipendente_id || '',
-                                      tipo_turno: turno.tipo_turno || 'Normale',
-                                      note: turno.note || ''
-                                    });
-                                    setShowForm(true);
-                                  }}
-                                >
+                    return (
+                      <div
+                        key={dayKey}
+                        className={`relative pointer-events-auto ${isDropTargetDay ? 'bg-blue-100 bg-opacity-50' : ''}`}
+                        onDragOver={(e) => handleDayDragOver(e, day)}
+                        onDrop={(e) => handleDayDrop(e, day)}>
+
+                          {overlappingGroups.map((group, groupIdx) =>
+                        group.map((turno, idx) => {
+                          const style = getTurnoStyle(turno, idx, group.length);
+                          return (
+                            <div
+                              key={turno.id}
+                              draggable
+                              onDragStart={(e) => handleTurnoDragStart(e, turno)}
+                              onDragEnd={handleTurnoDragEnd}
+                              className={`absolute p-1 rounded-lg border-2 text-xs cursor-grab pointer-events-auto overflow-hidden shadow-md text-white ${draggingTurno?.id === turno.id ? 'opacity-50' : ''}`}
+                              style={{
+                                ...style,
+                                marginLeft: '1px',
+                                marginRight: '1px',
+                                ...getRuoloStyle(turno.ruolo)
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingTurno(turno);
+                                setTurnoForm({
+                                  store_id: turno.store_id,
+                                  data: turno.data,
+                                  ora_inizio: turno.ora_inizio,
+                                  ora_fine: turno.ora_fine,
+                                  ruolo: turno.ruolo,
+                                  dipendente_id: turno.dipendente_id || '',
+                                  tipo_turno: turno.tipo_turno || 'Normale',
+                                  note: turno.note || ''
+                                });
+                                setShowForm(true);
+                              }}>
+
                                   <div className="flex items-center justify-between">
                                     <span className="font-bold text-[10px]">{turno.ora_inizio}-{turno.ora_fine}</span>
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (confirm('Eliminare questo turno?')) {
-                                          deleteMutation.mutate(turno.id);
-                                        }
-                                      }}
-                                      className="hover:text-red-200"
-                                    >
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('Eliminare questo turno?')) {
+                                      deleteMutation.mutate(turno.id);
+                                    }
+                                  }}
+                                  className="hover:text-red-200">
+
                                       <Trash2 className="w-3 h-3" />
                                     </button>
                                   </div>
                                   {/* Tipo turno badge più visibile */}
-                                  {turno.is_prova && (
-                                   <div className="absolute top-0 left-0 px-1 py-0.5 text-[8px] font-bold text-white rounded-br bg-purple-600">
+                                  {turno.is_prova &&
+                              <div className="absolute top-0 left-0 px-1 py-0.5 text-[8px] font-bold text-white rounded-br bg-purple-600">
                                      🧪 PROVA
                                    </div>
-                                  )}
-                                  {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
-                                   <div 
-                                     className="absolute top-0 right-5 px-1 py-0.5 text-[8px] font-bold text-white rounded-b"
-                                     style={{ backgroundColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}
-                                   >
+                              }
+                                  {turno.tipo_turno && turno.tipo_turno !== 'Normale' &&
+                              <div
+                                className="absolute top-0 right-5 px-1 py-0.5 text-[8px] font-bold text-white rounded-b"
+                                style={{ backgroundColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}>
+
                                      {turno.tipo_turno.slice(0, 3).toUpperCase()}
                                    </div>
-                                  )}
+                              }
                                   <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
-                                  {turno.dipendente_nome && (
-                                    <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
-                                  )}
-                                  {turno.is_prova && (
-                                    <div className="text-[8px] px-1 bg-purple-500 bg-opacity-60 rounded mt-0.5">
+                                  {turno.dipendente_nome &&
+                              <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
+                              }
+                                  {turno.is_prova &&
+                              <div className="text-[8px] px-1 bg-purple-500 bg-opacity-60 rounded mt-0.5">
                                       🧪 PROVA
                                     </div>
-                                  )}
-                                  {!selectedStore && (
-                                    <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
-                                  )}
+                              }
+                                  {!selectedStore &&
+                              <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
+                              }
                                   {/* Form + Attività per questo turno */}
                                   {(() => {
-                                    const formDovuti = getFormDovutiPerTurno(turno, turniByDayHour[turno.data] || []);
-                                    const attivita = getAttivitaTurno(turno);
-                                    const totalItems = formDovuti.length + attivita.length;
-                                    
-                                    if (totalItems > 0) {
-                                      return (
-                                        <div className="mt-0.5 flex flex-wrap gap-0.5">
-                                          {formDovuti.slice(0, 2).map((form, idx) => (
-                                            <span key={`f-${idx}`} className="text-[8px] px-1 bg-green-500 bg-opacity-40 rounded">
+                                const formDovuti = getFormDovutiPerTurno(turno, turniByDayHour[turno.data] || []);
+                                const attivita = getAttivitaTurno(turno);
+                                const totalItems = formDovuti.length + attivita.length;
+
+                                if (totalItems > 0) {
+                                  return (
+                                    <div className="mt-0.5 flex flex-wrap gap-0.5">
+                                          {formDovuti.slice(0, 2).map((form, idx) =>
+                                      <span key={`f-${idx}`} className="text-[8px] px-1 bg-green-500 bg-opacity-40 rounded">
                                               📋 {form.slice(0, 3)}
                                             </span>
-                                          ))}
-                                          {attivita.slice(0, 1).map((att, idx) => (
-                                            <span key={`a-${idx}`} className="text-[8px] px-1 bg-blue-500 bg-opacity-40 rounded">
+                                      )}
+                                          {attivita.slice(0, 1).map((att, idx) =>
+                                      <span key={`a-${idx}`} className="text-[8px] px-1 bg-blue-500 bg-opacity-40 rounded">
                                               ✓ {att.slice(0, 3)}
                                             </span>
-                                          ))}
-                                          {totalItems > 3 && (
-                                            <span className="text-[8px] px-1 bg-white bg-opacity-30 rounded">
+                                      )}
+                                          {totalItems > 3 &&
+                                      <span className="text-[8px] px-1 bg-white bg-opacity-30 rounded">
                                               +{totalItems - 3}
                                             </span>
-                                          )}
-                                        </div>
-                                      );
-                                    }
-                                    return null;
-                                  })()}
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      );
-                    })}
+                                      }
+                                        </div>);
+
+                                }
+                                return null;
+                              })()}
+                                </div>);
+
+                        })
+                        )}
+                        </div>);
+
+                  })}
                   </div>
                 </div>
               </div>
-            )}
+            }
           </NeumorphicCard>
-        )}
+          }
 
         {/* Vista Store */}
-        {viewMode === 'dipendenti' && (
+        {viewMode === 'dipendenti' &&
           <PlandayStoreView
             turni={turni}
             users={users}
@@ -2230,12 +2230,12 @@ export default function Planday() {
             getFormDovutiPerTurno={getFormDovutiPerTurno}
             getAttivitaTurno={getAttivitaTurno}
             getTurnoSequenceFromMomento={getTurnoSequenceFromMomento}
-            candidati={candidati}
-          />
-        )}
+            candidati={candidati} />
+
+          }
 
         {/* Vista Singolo Dipendente */}
-        {viewMode === 'singolo' && (
+        {viewMode === 'singolo' &&
           <PlandayEmployeeView
             selectedDipendente={selectedDipendente}
             setSelectedDipendente={setSelectedDipendente}
@@ -2255,20 +2255,20 @@ export default function Planday() {
             getAttivitaTurno={getAttivitaTurno}
             getTurnoSequenceFromMomento={getTurnoSequenceFromMomento}
             candidati={candidati}
-            tutteDisponibilita={tutteDisponibilita}
-          />
-        )}
+            tutteDisponibilita={tutteDisponibilita} />
+
+          }
 
         {/* Legenda con editor colori */}
         <NeumorphicCard className="p-4">
           <div className="flex flex-wrap items-center gap-4 mb-3">
             <span className="text-sm font-medium text-slate-700">Ruoli:</span>
-            {RUOLI.map(ruolo => (
+            {RUOLI.map((ruolo) =>
               <div key={ruolo} className="flex items-center gap-1">
-                <div 
+                <div
                   className="px-3 py-1 rounded-lg border-2 text-sm font-medium text-white"
-                  style={{ backgroundColor: coloriRuolo[ruolo], borderColor: coloriRuolo[ruolo] }}
-                >
+                  style={{ backgroundColor: coloriRuolo[ruolo], borderColor: coloriRuolo[ruolo] }}>
+
                   {ruolo}
                 </div>
                 <input
@@ -2276,19 +2276,19 @@ export default function Planday() {
                   value={coloriRuolo[ruolo]}
                   onChange={(e) => updateColoreRuolo(ruolo, e.target.value)}
                   className="w-6 h-6 cursor-pointer rounded border-0"
-                  title={`Cambia colore ${ruolo}`}
-                />
+                  title={`Cambia colore ${ruolo}`} />
+
               </div>
-            ))}
+              )}
           </div>
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm font-medium text-slate-700">Tipi Turno:</span>
-            {tipiTurno.map(tipo => (
+            {tipiTurno.map((tipo) =>
               <div key={tipo} className="flex items-center gap-1">
-                <div 
+                <div
                   className="px-3 py-1 rounded-lg text-sm font-medium text-white"
-                  style={{ backgroundColor: coloriTipoTurno[tipo] || '#94a3b8' }}
-                >
+                  style={{ backgroundColor: coloriTipoTurno[tipo] || '#94a3b8' }}>
+
                   {tipo}
                 </div>
                 <input
@@ -2296,10 +2296,10 @@ export default function Planday() {
                   value={coloriTipoTurno[tipo] || '#94a3b8'}
                   onChange={(e) => updateColoreTipoTurno(tipo, e.target.value)}
                   className="w-6 h-6 cursor-pointer rounded border-0"
-                  title={`Cambia colore ${tipo}`}
-                />
+                  title={`Cambia colore ${tipo}`} />
+
               </div>
-            ))}
+              )}
             <span className="text-xs text-slate-500 ml-4">💡 Trascina per spostare • Clicca per modificare</span>
           </div>
         </NeumorphicCard>
@@ -2322,10 +2322,10 @@ export default function Planday() {
                 </tr>
               </thead>
               <tbody>
-                {users
-                  .filter(u => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0)
-                  .map(dipendente => {
-                    const turniSettimana = turni.filter(t => t.dipendente_id === dipendente.id);
+                {users.
+                  filter((u) => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0).
+                  map((dipendente) => {
+                    const turniSettimana = turni.filter((t) => t.dipendente_id === dipendente.id);
                     const orePianificate = turniSettimana.reduce((sum, t) => {
                       const [sh, sm] = t.ora_inizio.split(':').map(Number);
                       const [eh, em] = t.ora_fine.split(':').map(Number);
@@ -2345,33 +2345,33 @@ export default function Planday() {
                         <td className="p-3 text-center font-bold text-blue-700">{orePianificate.toFixed(1)}h</td>
                         <td className="p-3 text-center">
                           <span className={`font-bold ${
-                            differenza > 0.5 ? 'text-red-600' : 
-                            differenza < -0.5 ? 'text-orange-600' : 
-                            'text-green-600'
-                          }`}>
+                          differenza > 0.5 ? 'text-red-600' :
+                          differenza < -0.5 ? 'text-orange-600' :
+                          'text-green-600'}`
+                          }>
                             {differenza > 0 ? '+' : ''}{differenza.toFixed(1)}h
                           </span>
                         </td>
                         <td className="p-3 text-center">
-                          {differenza > 0.5 ? (
-                            <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center gap-1 justify-center">
+                          {differenza > 0.5 ?
+                          <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center gap-1 justify-center">
                               <AlertTriangle className="w-3 h-3" />
                               Troppe ore
-                            </span>
-                          ) : differenza < -0.5 ? (
-                            <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium flex items-center gap-1 justify-center">
+                            </span> :
+                          differenza < -0.5 ?
+                          <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium flex items-center gap-1 justify-center">
                               <AlertTriangle className="w-3 h-3" />
                               Poche ore
-                            </span>
-                          ) : (
-                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1 justify-center">
+                            </span> :
+
+                          <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1 justify-center">
                               <CheckCircle className="w-3 h-3" />
                               OK
                             </span>
-                          )}
+                          }
                         </td>
-                      </tr>
-                    );
+                      </tr>);
+
                   })}
               </tbody>
             </table>
@@ -2383,7 +2383,7 @@ export default function Planday() {
 
 
         {/* Modal Turni Modello */}
-        {showModelliModal && (
+        {showModelliModal &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
@@ -2399,37 +2399,37 @@ export default function Planday() {
                   <Calendar className="w-4 h-4" />
                   Modelli Settimana
                 </h3>
-                {settimaneModello.length > 0 ? (
-                  <div className="space-y-2 mb-4">
-                    {settimaneModello.map(m => (
-                      <div key={m.id} className="neumorphic-pressed p-3 rounded-xl">
+                {settimaneModello.length > 0 ?
+                <div className="space-y-2 mb-4">
+                    {settimaneModello.map((m) =>
+                  <div key={m.id} className="neumorphic-pressed p-3 rounded-xl">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="font-medium text-slate-800">{m.nome}</div>
-                            {m.descrizione && (
-                              <div className="text-xs text-slate-500 mt-0.5">{m.descrizione}</div>
-                            )}
+                            {m.descrizione &&
+                        <div className="text-xs text-slate-500 mt-0.5">{m.descrizione}</div>
+                        }
                             <div className="text-xs text-slate-500 mt-1">
                               {m.turni_modello?.length || 0} turni
                             </div>
                           </div>
                           <button
-                            onClick={() => {
-                              if (confirm('Eliminare questo modello settimana?')) {
-                                deleteSettimanaModelloMutation.mutate(m.id);
-                              }
-                            }}
-                            className="text-red-500 hover:text-red-700 p-1"
-                          >
+                        onClick={() => {
+                          if (confirm('Eliminare questo modello settimana?')) {
+                            deleteSettimanaModelloMutation.mutate(m.id);
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1">
+
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-500 mb-4">Nessun modello settimana salvato</p>
-                )}
+                  )}
+                  </div> :
+
+                <p className="text-sm text-slate-500 mb-4">Nessun modello settimana salvato</p>
+                }
               </div>
 
               <div className="border-t border-slate-200 pt-4 mb-4" />
@@ -2444,10 +2444,10 @@ export default function Planday() {
               {/* Lista modelli turno singoli esistenti */}
               <div>
                 
-                {turniModello.length > 0 ? (
+                {turniModello.length > 0 ?
                   <div className="space-y-2 mb-4">
-                    {turniModello.map(m => (
-                      <div key={m.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+                    {turniModello.map((m) =>
+                    <div key={m.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
                         <div>
                           <div className="font-medium text-slate-800">{m.nome}</div>
                           <div className="text-xs text-slate-500">
@@ -2455,69 +2455,69 @@ export default function Planday() {
                           </div>
                         </div>
                         <button
-                          onClick={() => deleteModello(m.id)}
-                          className="text-red-500 hover:text-red-700 p-1"
-                        >
+                        onClick={() => deleteModello(m.id)}
+                        className="text-red-500 hover:text-red-700 p-1">
+
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    ))}
-                  </div>
-                ) : (
+                    )}
+                  </div> :
+
                   <p className="text-sm text-slate-500 mb-4">Nessun modello turno singolo</p>
-                )}
+                  }
 
                 {/* Form nuovo modello */}
                 <div className="neumorphic-flat p-4 rounded-xl">
                   <h4 className="font-medium text-slate-700 mb-3 text-sm">Crea Nuovo Modello Turno</h4>
                   <div className="space-y-3">
                     <input
-                      type="text"
-                      value={modelloForm.nome}
-                      onChange={(e) => setModelloForm({ ...modelloForm, nome: e.target.value })}
-                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                      placeholder="Nome modello (es: Turno Mattina)"
-                    />
+                        type="text"
+                        value={modelloForm.nome}
+                        onChange={(e) => setModelloForm({ ...modelloForm, nome: e.target.value })}
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
+                        placeholder="Nome modello (es: Turno Mattina)" />
+
                     <div className="grid grid-cols-2 gap-2">
                       <select
-                        value={modelloForm.ruolo}
-                        onChange={(e) => setModelloForm({ ...modelloForm, ruolo: e.target.value })}
-                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                      >
-                        {RUOLI.map(ruolo => (
+                          value={modelloForm.ruolo}
+                          onChange={(e) => setModelloForm({ ...modelloForm, ruolo: e.target.value })}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none">
+
+                        {RUOLI.map((ruolo) =>
                           <option key={ruolo} value={ruolo}>{ruolo}</option>
-                        ))}
+                          )}
                       </select>
                       <select
-                        value={modelloForm.tipo_turno}
-                        onChange={(e) => setModelloForm({ ...modelloForm, tipo_turno: e.target.value })}
-                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                      >
-                        {tipiTurno.map(tipo => (
+                          value={modelloForm.tipo_turno}
+                          onChange={(e) => setModelloForm({ ...modelloForm, tipo_turno: e.target.value })}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none">
+
+                        {tipiTurno.map((tipo) =>
                           <option key={tipo} value={tipo}>{tipo}</option>
-                        ))}
+                          )}
                       </select>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <input
-                        type="time"
-                        value={modelloForm.ora_inizio}
-                        onChange={(e) => setModelloForm({ ...modelloForm, ora_inizio: e.target.value })}
-                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                      />
+                          type="time"
+                          value={modelloForm.ora_inizio}
+                          onChange={(e) => setModelloForm({ ...modelloForm, ora_inizio: e.target.value })}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none" />
+
                       <input
-                        type="time"
-                        value={modelloForm.ora_fine}
-                        onChange={(e) => setModelloForm({ ...modelloForm, ora_fine: e.target.value })}
-                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                      />
+                          type="time"
+                          value={modelloForm.ora_fine}
+                          onChange={(e) => setModelloForm({ ...modelloForm, ora_fine: e.target.value })}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none" />
+
                     </div>
-                    <NeumorphicButton 
-                      onClick={saveModello} 
-                      variant="primary" 
-                      className="w-full text-sm"
-                      disabled={!modelloForm.nome}
-                    >
+                    <NeumorphicButton
+                        onClick={saveModello}
+                        variant="primary"
+                        className="w-full text-sm"
+                        disabled={!modelloForm.nome}>
+
                       <Plus className="w-4 h-4 inline mr-1" /> Salva Modello
                     </NeumorphicButton>
                   </div>
@@ -2526,10 +2526,10 @@ export default function Planday() {
               </div>
             </NeumorphicCard>
           </div>
-        )}
+          }
 
         {/* Quick Turno Popup */}
-        {quickTurnoPopup && (
+        {quickTurnoPopup &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-4">
@@ -2550,33 +2550,33 @@ export default function Planday() {
 
               <div className="space-y-3">
                 {/* Turni Modello */}
-                {turniModello.length > 0 && (
-                  <div>
+                {turniModello.length > 0 &&
+                <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Usa Turno Modello</label>
                     <select
-                      value={selectedModello}
-                      onChange={(e) => applyModello(e.target.value)}
-                      className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                    >
+                    value={selectedModello}
+                    onChange={(e) => applyModello(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none">
+
                       <option value="">-- Seleziona modello --</option>
-                      {turniModello.map(m => (
-                        <option key={m.id} value={m.id}>{m.nome} ({m.ruolo}, {m.ora_inizio}-{m.ora_fine})</option>
-                      ))}
+                      {turniModello.map((m) =>
+                    <option key={m.id} value={m.id}>{m.nome} ({m.ruolo}, {m.ora_inizio}-{m.ora_fine})</option>
+                    )}
                     </select>
                   </div>
-                )}
+                }
 
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-1 block">Locale *</label>
                   <select
                     value={turnoForm.store_id}
                     onChange={(e) => setTurnoForm({ ...turnoForm, store_id: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                  >
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none">
+
                     <option value="">Seleziona locale</option>
-                    {stores.map(store => (
-                      <option key={store.id} value={store.id}>{store.name}</option>
-                    ))}
+                    {stores.map((store) =>
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                    )}
                   </select>
                 </div>
 
@@ -2587,8 +2587,8 @@ export default function Planday() {
                       type="time"
                       value={turnoForm.ora_inizio}
                       onChange={(e) => setTurnoForm({ ...turnoForm, ora_inizio: e.target.value })}
-                      className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none"
-                    />
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none" />
+
                   </div>
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Ora Fine</label>
@@ -2596,8 +2596,8 @@ export default function Planday() {
                       type="time"
                       value={turnoForm.ora_fine}
                       onChange={(e) => setTurnoForm({ ...turnoForm, ora_fine: e.target.value })}
-                      className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none"
-                    />
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none" />
+
                   </div>
                 </div>
 
@@ -2606,11 +2606,11 @@ export default function Planday() {
                   <select
                     value={turnoForm.ruolo}
                     onChange={(e) => setTurnoForm({ ...turnoForm, ruolo: e.target.value, dipendente_id: '' })}
-                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                  >
-                    {RUOLI.map(ruolo => (
-                      <option key={ruolo} value={ruolo}>{ruolo}</option>
-                    ))}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none">
+
+                    {RUOLI.map((ruolo) =>
+                    <option key={ruolo} value={ruolo}>{ruolo}</option>
+                    )}
                   </select>
                 </div>
 
@@ -2619,11 +2619,11 @@ export default function Planday() {
                   <select
                     value={turnoForm.tipo_turno}
                     onChange={(e) => setTurnoForm({ ...turnoForm, tipo_turno: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                  >
-                    {tipiTurno.map(tipo => (
-                      <option key={tipo} value={tipo}>{tipo}</option>
-                    ))}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none">
+
+                    {tipiTurno.map((tipo) =>
+                    <option key={tipo} value={tipo}>{tipo}</option>
+                    )}
                   </select>
                 </div>
 
@@ -2632,17 +2632,17 @@ export default function Planday() {
                   <select
                     value={turnoForm.dipendente_id}
                     onChange={(e) => setTurnoForm({ ...turnoForm, dipendente_id: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                  >
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none">
+
                     <option value="">Non assegnato</option>
-                    {dipendentiPerStore.map(u => {
+                    {dipendentiPerStore.map((u) => {
                       const canAssign = canAssignToRole(u, turnoForm.ruolo);
                       const disponibilita = getDipendenteDisponibilita(u.id);
                       const nome = u.nome_cognome || u.full_name;
-                      
+
                       let statusEmoji = '';
                       let label = nome;
-                      
+
                       if (!canAssign) {
                         statusEmoji = '🚫';
                         label = `${nome} (non ${turnoForm.ruolo})`;
@@ -2659,12 +2659,12 @@ export default function Planday() {
                         statusEmoji = '✅';
                         label = `${nome}`;
                       }
-                      
+
                       return (
                         <option key={u.id} value={u.id} disabled={!canAssign}>
                           {statusEmoji} {label}
-                        </option>
-                      );
+                        </option>);
+
                     })}
                   </select>
                 </div>
@@ -2676,8 +2676,8 @@ export default function Planday() {
                     value={turnoForm.note}
                     onChange={(e) => setTurnoForm({ ...turnoForm, note: e.target.value })}
                     className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                    placeholder="Note opzionali..."
-                  />
+                    placeholder="Note opzionali..." />
+
                 </div>
 
                 {/* Turno di Prova in Quick Popup */}
@@ -2687,32 +2687,32 @@ export default function Planday() {
                       type="checkbox"
                       id="quick-is-prova"
                       checked={turnoForm.is_prova}
-                      onChange={(e) => setTurnoForm({ 
-                        ...turnoForm, 
+                      onChange={(e) => setTurnoForm({
+                        ...turnoForm,
                         is_prova: e.target.checked,
                         dipendente_id: e.target.checked ? '' : turnoForm.dipendente_id,
                         candidato_id: ''
                       })}
-                      className="w-4 h-4"
-                    />
+                      className="w-4 h-4" />
+
                     <label htmlFor="quick-is-prova" className="text-xs font-medium text-purple-800">
                       🧪 Turno di PROVA
                     </label>
                   </div>
-                  {turnoForm.is_prova && (
-                    <select
-                      value={turnoForm.candidato_id}
-                      onChange={(e) => setTurnoForm({ ...turnoForm, candidato_id: e.target.value })}
-                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                    >
+                  {turnoForm.is_prova &&
+                  <select
+                    value={turnoForm.candidato_id}
+                    onChange={(e) => setTurnoForm({ ...turnoForm, candidato_id: e.target.value })}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none">
+
                       <option value="">Seleziona candidato...</option>
-                      {candidati.map(c => (
-                        <option key={c.id} value={c.id}>
+                      {candidati.map((c) =>
+                    <option key={c.id} value={c.id}>
                           {c.nome} {c.cognome} - {c.telefono}
                         </option>
-                      ))}
+                    )}
                     </select>
-                  )}
+                  }
                 </div>
               </div>
 
@@ -2720,22 +2720,22 @@ export default function Planday() {
                 <NeumorphicButton onClick={() => setQuickTurnoPopup(null)} className="flex-1">
                   Annulla
                 </NeumorphicButton>
-                <NeumorphicButton 
-                  onClick={handleQuickSave} 
-                  variant="primary" 
+                <NeumorphicButton
+                  onClick={handleQuickSave}
+                  variant="primary"
                   className="flex-1 flex items-center justify-center gap-2"
-                  disabled={!turnoForm.store_id}
-                >
+                  disabled={!turnoForm.store_id}>
+
                   <Save className="w-4 h-4" />
                   Salva Turno
                 </NeumorphicButton>
               </div>
             </NeumorphicCard>
           </div>
-        )}
+          }
 
         {/* Modal Salva Settimana Modello */}
-        {showSalvaSettimanaModelloModal && (
+        {showSalvaSettimanaModelloModal &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-4">
@@ -2747,7 +2747,7 @@ export default function Planday() {
 
               <div className="mb-4 p-3 bg-blue-50 rounded-xl">
                 <p className="text-sm text-blue-800">
-                  <strong>Settimana Corrente:</strong><br/>
+                  <strong>Settimana Corrente:</strong><br />
                   {weekStart.format('DD MMM')} - {weekStart.clone().add(6, 'days').format('DD MMM YYYY')}
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
@@ -2763,8 +2763,8 @@ export default function Planday() {
                     value={nomeSettimanaModello}
                     onChange={(e) => setNomeSettimanaModello(e.target.value)}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                    placeholder="Es: Settimana Standard Gennaio"
-                  />
+                    placeholder="Es: Settimana Standard Gennaio" />
+
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-1 block">Descrizione</label>
@@ -2772,8 +2772,8 @@ export default function Planday() {
                     value={descrizioneSettimanaModello}
                     onChange={(e) => setDescrizioneSettimanaModello(e.target.value)}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-20 resize-none"
-                    placeholder="Descrizione opzionale..."
-                  />
+                    placeholder="Descrizione opzionale..." />
+
                 </div>
               </div>
 
@@ -2781,7 +2781,7 @@ export default function Planday() {
                 <NeumorphicButton onClick={() => setShowSalvaSettimanaModelloModal(false)} className="flex-1">
                   Annulla
                 </NeumorphicButton>
-                <NeumorphicButton 
+                <NeumorphicButton
                   onClick={() => {
                     if (!nomeSettimanaModello.trim()) {
                       alert('Inserisci un nome per il modello');
@@ -2792,7 +2792,7 @@ export default function Planday() {
                       return;
                     }
 
-                    const turniModello = turni.filter(t => t.data && moment(t.data).isValid()).map(t => ({
+                    const turniModello = turni.filter((t) => t.data && moment(t.data).isValid()).map((t) => ({
                       giorno_settimana: moment(t.data).isoWeekday(),
                       store_id: t.store_id,
                       ora_inizio: t.ora_inizio,
@@ -2808,20 +2808,20 @@ export default function Planday() {
                       descrizione: descrizioneSettimanaModello.trim(),
                       turni_modello: turniModello
                     });
-                  }} 
-                  variant="primary" 
+                  }}
+                  variant="primary"
                   className="flex-1"
-                  disabled={turni.length === 0 || createSettimanaModelloMutation.isPending}
-                >
+                  disabled={turni.length === 0 || createSettimanaModelloMutation.isPending}>
+
                   {createSettimanaModelloMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salva Modello'}
                 </NeumorphicButton>
               </div>
             </NeumorphicCard>
           </div>
-        )}
+          }
 
         {/* Modal Applica Settimana Modello */}
-        {showApplicaModelloModal && (
+        {showApplicaModelloModal &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-4">
@@ -2837,17 +2837,17 @@ export default function Planday() {
                   <select
                     value={selectedSettimanaModello}
                     onChange={(e) => setSelectedSettimanaModello(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  >
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+
                     <option value="">-- Seleziona modello --</option>
-                    {settimaneModello.map(m => (
-                      <option key={m.id} value={m.id}>
+                    {settimaneModello.map((m) =>
+                    <option key={m.id} value={m.id}>
                         {m.nome} ({m.turni_modello?.length || 0} turni)
                       </option>
-                    ))}
+                    )}
                   </select>
                   {selectedSettimanaModello && (() => {
-                    const modello = settimaneModello.find(m => m.id === selectedSettimanaModello);
+                    const modello = settimaneModello.find((m) => m.id === selectedSettimanaModello);
                     if (modello?.descrizione) {
                       return <p className="text-xs text-slate-500 mt-1">{modello.descrizione}</p>;
                     }
@@ -2861,8 +2861,8 @@ export default function Planday() {
                     type="date"
                     value={applicaModelloRange.dataInizio}
                     onChange={(e) => setApplicaModelloRange({ ...applicaModelloRange, dataInizio: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                 </div>
 
                 <div>
@@ -2872,22 +2872,22 @@ export default function Planday() {
                       type="button"
                       onClick={() => setApplicaModelloRange({ ...applicaModelloRange, includiDipendenti: true })}
                       className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                        applicaModelloRange.includiDipendenti !== false
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                          : 'nav-button text-slate-700'
-                      }`}
-                    >
+                      applicaModelloRange.includiDipendenti !== false ?
+                      'bg-gradient-to-r from-blue-500 to-blue-600 text-white' :
+                      'nav-button text-slate-700'}`
+                      }>
+
                       Con dipendenti assegnati
                     </button>
                     <button
                       type="button"
                       onClick={() => setApplicaModelloRange({ ...applicaModelloRange, includiDipendenti: false })}
                       className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-                        applicaModelloRange.includiDipendenti === false
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                          : 'nav-button text-slate-700'
-                      }`}
-                    >
+                      applicaModelloRange.includiDipendenti === false ?
+                      'bg-gradient-to-r from-blue-500 to-blue-600 text-white' :
+                      'nav-button text-slate-700'}`
+                      }>
+
                       Solo turni liberi
                     </button>
                   </div>
@@ -2899,31 +2899,31 @@ export default function Planday() {
                     id="applica-senza-fine"
                     checked={applicaModelloRange.applicaSenzaFine}
                     onChange={(e) => setApplicaModelloRange({ ...applicaModelloRange, applicaSenzaFine: e.target.checked })}
-                    className="w-5 h-5"
-                  />
+                    className="w-5 h-5" />
+
                   <label htmlFor="applica-senza-fine" className="text-sm font-medium text-slate-700">
                     Applica indefinitamente (max 1 anno)
                   </label>
                 </div>
 
-                {!applicaModelloRange.applicaSenzaFine && (
-                  <div>
+                {!applicaModelloRange.applicaSenzaFine &&
+                <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Fino a *</label>
                     <input
-                      type="date"
-                      value={applicaModelloRange.dataFine}
-                      onChange={(e) => setApplicaModelloRange({ ...applicaModelloRange, dataFine: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                    />
+                    type="date"
+                    value={applicaModelloRange.dataFine}
+                    onChange={(e) => setApplicaModelloRange({ ...applicaModelloRange, dataFine: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                   </div>
-                )}
+                }
               </div>
 
               <div className="flex gap-3 mt-6">
                 <NeumorphicButton onClick={() => setShowApplicaModelloModal(false)} className="flex-1">
                   Annulla
                 </NeumorphicButton>
-                <NeumorphicButton 
+                <NeumorphicButton
                   onClick={async () => {
                     if (!selectedSettimanaModello || !applicaModelloRange.dataInizio) {
                       alert('Seleziona un modello e una data di inizio');
@@ -2935,13 +2935,13 @@ export default function Planday() {
                       return;
                     }
 
-                    const modello = settimaneModello.find(m => m.id === selectedSettimanaModello);
+                    const modello = settimaneModello.find((m) => m.id === selectedSettimanaModello);
                     if (!modello) return;
 
                     const startApply = moment(applicaModelloRange.dataInizio);
-                    const endApply = applicaModelloRange.applicaSenzaFine 
-                      ? moment(applicaModelloRange.dataInizio).add(52, 'weeks')
-                      : moment(applicaModelloRange.dataFine);
+                    const endApply = applicaModelloRange.applicaSenzaFine ?
+                    moment(applicaModelloRange.dataInizio).add(52, 'weeks') :
+                    moment(applicaModelloRange.dataFine);
 
                     const turniDaCreare = [];
                     let currentWeekStart = startApply.clone().startOf('isoWeek');
@@ -2950,19 +2950,19 @@ export default function Planday() {
                       for (const turnoModello of modello.turni_modello) {
                         if (!turnoModello.giorno_settimana || turnoModello.giorno_settimana < 1 || turnoModello.giorno_settimana > 7) continue;
                         const newDate = currentWeekStart.clone().isoWeekday(turnoModello.giorno_settimana);
-                        
+
                         if (newDate.isSameOrAfter(startApply) && newDate.isSameOrBefore(endApply)) {
-                          const dipendente = users.find(u => u.id === turnoModello.dipendente_id);
+                          const dipendente = users.find((u) => u.id === turnoModello.dipendente_id);
                           const includiDipendente = applicaModelloRange.includiDipendenti !== false;
-                          
+
                           turniDaCreare.push({
                             store_id: turnoModello.store_id,
                             data: newDate.format('YYYY-MM-DD'),
                             ora_inizio: turnoModello.ora_inizio,
                             ora_fine: turnoModello.ora_fine,
                             ruolo: turnoModello.ruolo,
-                            dipendente_id: includiDipendente ? (turnoModello.dipendente_id || '') : '',
-                            dipendente_nome: includiDipendente ? (dipendente?.nome_cognome || dipendente?.full_name || '') : '',
+                            dipendente_id: includiDipendente ? turnoModello.dipendente_id || '' : '',
+                            dipendente_nome: includiDipendente ? dipendente?.nome_cognome || dipendente?.full_name || '' : '',
                             tipo_turno: turnoModello.tipo_turno || 'Normale',
                             note: turnoModello.note || '',
                             stato: 'programmato'
@@ -2988,20 +2988,20 @@ export default function Planday() {
                     queryClient.invalidateQueries({ queryKey: ['turni-planday'] });
                     setShowApplicaModelloModal(false);
                     alert(`Creati ${turniDaCreare.length} turni con successo!`);
-                  }} 
-                  variant="primary" 
+                  }}
+                  variant="primary"
                   className="flex-1"
-                  disabled={!selectedSettimanaModello}
-                >
+                  disabled={!selectedSettimanaModello}>
+
                   Applica Modello
                 </NeumorphicButton>
               </div>
             </NeumorphicCard>
           </div>
-        )}
+          }
 
         {/* Modal Settimana Modello (backward compatibility - legacy) */}
-        {showSettimanaModelloModal && (
+        {showSettimanaModelloModal &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-4">
@@ -3013,7 +3013,7 @@ export default function Planday() {
 
               <div className="mb-4 p-3 bg-blue-50 rounded-xl">
                 <p className="text-sm text-blue-800">
-                  <strong>Settimana Modello:</strong><br/>
+                  <strong>Settimana Modello:</strong><br />
                   {weekStart.format('DD MMM')} - {weekStart.clone().add(6, 'days').format('DD MMM YYYY')}
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
@@ -3028,8 +3028,8 @@ export default function Planday() {
                     type="date"
                     value={settimanaModelloRange.dataInizio}
                     onChange={(e) => setSettimanaModelloRange({ ...settimanaModelloRange, dataInizio: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  />
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -3038,24 +3038,24 @@ export default function Planday() {
                     id="senza-fine"
                     checked={settimanaModelloRange.applicaSenzaFine}
                     onChange={(e) => setSettimanaModelloRange({ ...settimanaModelloRange, applicaSenzaFine: e.target.checked })}
-                    className="w-5 h-5"
-                  />
+                    className="w-5 h-5" />
+
                   <label htmlFor="senza-fine" className="text-sm font-medium text-slate-700">
                     Applica indefinitamente (max 1 anno)
                   </label>
                 </div>
 
-                {!settimanaModelloRange.applicaSenzaFine && (
-                  <div>
+                {!settimanaModelloRange.applicaSenzaFine &&
+                <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Fino a *</label>
                     <input
-                      type="date"
-                      value={settimanaModelloRange.dataFine}
-                      onChange={(e) => setSettimanaModelloRange({ ...settimanaModelloRange, dataFine: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    />
+                    type="date"
+                    value={settimanaModelloRange.dataFine}
+                    onChange={(e) => setSettimanaModelloRange({ ...settimanaModelloRange, dataFine: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                   </div>
-                )}
+                }
 
                 <p className="text-xs text-slate-500">
                   I turni della settimana corrente verranno replicati per ogni settimana nel periodo selezionato.
@@ -3066,52 +3066,52 @@ export default function Planday() {
                 <NeumorphicButton onClick={() => setShowSettimanaModelloModal(false)} className="flex-1">
                   Annulla
                 </NeumorphicButton>
-                <NeumorphicButton 
-                  onClick={applySettimanaModello} 
-                  variant="primary" 
+                <NeumorphicButton
+                  onClick={applySettimanaModello}
+                  variant="primary"
                   className="flex-1"
-                  disabled={turni.length === 0}
-                >
+                  disabled={turni.length === 0}>
+
                   Applica Modello
                 </NeumorphicButton>
               </div>
             </NeumorphicCard>
           </div>
-        )}
+          }
           </>
-        )}
+        }
 
         {/* Main Content - Timbrature */}
-        {mainView === 'timbrature' && (
-          <>
+        {mainView === 'timbrature' &&
+        <>
             {/* Settings Buttons */}
             <div className="flex justify-end gap-2">
-              <NeumorphicButton 
-                onClick={() => {
-                  if (config) {
-                    setConfigForm({
-                      distanza_massima_metri: config.distanza_massima_metri || 100,
-                      tolleranza_ritardo_minuti: config.tolleranza_ritardo_minuti ?? 0,
-                      abilita_timbratura_gps: config.abilita_timbratura_gps !== false,
-                      ruoli_gps_abilitati: config.ruoli_gps_abilitati || [],
-                      arrotonda_ritardo: config.arrotonda_ritardo || false,
-                      arrotondamento_tipo: config.arrotondamento_tipo || 'eccesso',
-                      arrotondamento_minuti: config.arrotondamento_minuti || 15,
-                      penalita_timbratura_mancata: config.penalita_timbratura_mancata || 0,
-                      ore_mancata_uscita: config.ore_mancata_uscita || 2
-                    });
-                  }
-                  setShowConfigModal(true);
-                }}
-                className="flex items-center gap-2"
-              >
+              <NeumorphicButton
+              onClick={() => {
+                if (config) {
+                  setConfigForm({
+                    distanza_massima_metri: config.distanza_massima_metri || 100,
+                    tolleranza_ritardo_minuti: config.tolleranza_ritardo_minuti ?? 0,
+                    abilita_timbratura_gps: config.abilita_timbratura_gps !== false,
+                    ruoli_gps_abilitati: config.ruoli_gps_abilitati || [],
+                    arrotonda_ritardo: config.arrotonda_ritardo || false,
+                    arrotondamento_tipo: config.arrotondamento_tipo || 'eccesso',
+                    arrotondamento_minuti: config.arrotondamento_minuti || 15,
+                    penalita_timbratura_mancata: config.penalita_timbratura_mancata || 0,
+                    ore_mancata_uscita: config.ore_mancata_uscita || 2
+                  });
+                }
+                setShowConfigModal(true);
+              }}
+              className="flex items-center gap-2">
+
                 <Settings className="w-4 h-4" />
                 Impostazioni Timbratura
               </NeumorphicButton>
-              <NeumorphicButton 
-                onClick={() => setShowAlertSettings(true)}
-                className="flex items-center gap-2"
-              >
+              <NeumorphicButton
+              onClick={() => setShowAlertSettings(true)}
+              className="flex items-center gap-2">
+
                 <AlertTriangle className="w-4 h-4" />
                 Alert WhatsApp
               </NeumorphicButton>
@@ -3127,36 +3127,36 @@ export default function Planday() {
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Store</label>
                   <select
-                    value={selectedStore}
-                    onChange={(e) => setSelectedStore(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none"
-                  >
+                  value={selectedStore}
+                  onChange={(e) => setSelectedStore(e.target.value)}
+                  className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none">
+
                     <option value="all">Tutti gli store</option>
-                    {stores.map(store => (
-                      <option key={store.id} value={store.id}>{store.name}</option>
-                    ))}
+                    {stores.map((store) =>
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                  )}
                   </select>
                 </div>
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Dipendente</label>
                   <select
-                    value={selectedDipendenteTimbr}
-                    onChange={(e) => setSelectedDipendenteTimbr(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none"
-                  >
+                  value={selectedDipendenteTimbr}
+                  onChange={(e) => setSelectedDipendenteTimbr(e.target.value)}
+                  className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none">
+
                     <option value="all">Tutti</option>
-                    {users.filter(u => u.user_type === 'dipendente' || u.user_type === 'user').map(u => (
-                      <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name}</option>
-                    ))}
+                    {users.filter((u) => u.user_type === 'dipendente' || u.user_type === 'user').map((u) =>
+                  <option key={u.id} value={u.id}>{u.nome_cognome || u.full_name}</option>
+                  )}
                   </select>
                 </div>
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Ruolo</label>
                   <select
-                    value={selectedRuolo}
-                    onChange={(e) => setSelectedRuolo(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none"
-                  >
+                  value={selectedRuolo}
+                  onChange={(e) => setSelectedRuolo(e.target.value)}
+                  className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none">
+
                     <option value="all">Tutti</option>
                     <option value="Pizzaiolo">Pizzaiolo</option>
                     <option value="Cassiere">Cassiere</option>
@@ -3166,20 +3166,20 @@ export default function Planday() {
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Da</label>
                   <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none"
-                  />
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none" />
+
                 </div>
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">A</label>
                   <input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none"
-                  />
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none" />
+
                 </div>
               </div>
             </NeumorphicCard>
@@ -3214,8 +3214,8 @@ export default function Planday() {
             </div>
 
             {/* Modal Edit Timbratura */}
-            {editingTimbratura && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            {editingTimbratura &&
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                 <NeumorphicCard className="p-6 max-w-md w-full">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold text-slate-800">Modifica Timbratura</h2>
@@ -3237,20 +3237,20 @@ export default function Planday() {
                     <div>
                       <label className="text-sm font-medium text-slate-700 mb-1 block">Timbratura Entrata</label>
                       <input
-                        type="datetime-local"
-                        value={timbrForm.timbrata_entrata}
-                        onChange={(e) => setTimbrForm({ ...timbrForm, timbrata_entrata: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                      />
+                    type="datetime-local"
+                    value={timbrForm.timbrata_entrata}
+                    onChange={(e) => setTimbrForm({ ...timbrForm, timbrata_entrata: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                     </div>
                     <div>
                       <label className="text-sm font-medium text-slate-700 mb-1 block">Timbratura Uscita</label>
                       <input
-                        type="datetime-local"
-                        value={timbrForm.timbrata_uscita}
-                        onChange={(e) => setTimbrForm({ ...timbrForm, timbrata_uscita: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                      />
+                    type="datetime-local"
+                    value={timbrForm.timbrata_uscita}
+                    onChange={(e) => setTimbrForm({ ...timbrForm, timbrata_uscita: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                     </div>
                   </div>
 
@@ -3258,46 +3258,46 @@ export default function Planday() {
                     <NeumorphicButton onClick={() => setEditingTimbratura(null)} className="flex-1">
                       Annulla
                     </NeumorphicButton>
-                    <NeumorphicButton 
-                      onClick={() => {
-                        const updateData = {};
-                        if (timbrForm.timbrata_entrata) {
-                          updateData.timbratura_entrata = new Date(timbrForm.timbrata_entrata).toISOString();
-                        } else {
-                          updateData.timbratura_entrata = null;
-                        }
-                        if (timbrForm.timbrata_uscita) {
-                          updateData.timbratura_uscita = new Date(timbrForm.timbrata_uscita).toISOString();
-                        } else {
-                          updateData.timbratura_uscita = null;
-                        }
-                        updateTimbraturaMutation.mutate({
-                          id: editingTimbratura.id,
-                          data: updateData
-                        });
-                      }}
-                      variant="primary"
-                      className="flex-1"
-                      disabled={updateTimbraturaMutation.isPending}
-                    >
+                    <NeumorphicButton
+                  onClick={() => {
+                    const updateData = {};
+                    if (timbrForm.timbrata_entrata) {
+                      updateData.timbratura_entrata = new Date(timbrForm.timbrata_entrata).toISOString();
+                    } else {
+                      updateData.timbratura_entrata = null;
+                    }
+                    if (timbrForm.timbrata_uscita) {
+                      updateData.timbratura_uscita = new Date(timbrForm.timbrata_uscita).toISOString();
+                    } else {
+                      updateData.timbratura_uscita = null;
+                    }
+                    updateTimbraturaMutation.mutate({
+                      id: editingTimbratura.id,
+                      data: updateData
+                    });
+                  }}
+                  variant="primary"
+                  className="flex-1"
+                  disabled={updateTimbraturaMutation.isPending}>
+
                       {updateTimbraturaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salva'}
                     </NeumorphicButton>
                   </div>
                 </NeumorphicCard>
               </div>
-            )}
+          }
 
             {/* Lista Timbrature */}
             <NeumorphicCard className="p-6">
               <h2 className="text-xl font-bold text-slate-800 mb-4">Lista Timbrature</h2>
               
-              {filteredTurniTimbrature.length === 0 ? (
-                <div className="text-center py-12">
+              {filteredTurniTimbrature.length === 0 ?
+            <div className="text-center py-12">
                   <Clock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                   <p className="text-slate-500">Nessuna timbratura trovata</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
+                </div> :
+
+            <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b-2 border-slate-200">
@@ -3319,12 +3319,12 @@ export default function Planday() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredTurniTimbrature.slice(0, 100).map(turno => {
-                        const stato = getTimbraturaTipo(turno);
-                        const turnoTipo = getTurnoTipo(turno);
-                        const formStatus = getFormCompilati(turno);
-                        return (
-                          <tr key={turno.id} className={`border-b border-slate-100 hover:bg-slate-50 ${stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita' ? 'bg-red-50' : ''}`}>
+                      {filteredTurniTimbrature.slice(0, 100).map((turno) => {
+                    const stato = getTimbraturaTipo(turno);
+                    const turnoTipo = getTurnoTipo(turno);
+                    const formStatus = getFormCompilati(turno);
+                    return (
+                      <tr key={turno.id} className={`border-b border-slate-100 hover:bg-slate-50 ${stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita' ? 'bg-red-50' : ''}`}>
                             <td className="p-2">
                               <div className="text-xs font-medium text-slate-800 whitespace-nowrap">
                                 {turno.data && moment(turno.data).isValid() ? moment(turno.data).format('DD/MM/YY') : 'N/A'}
@@ -3343,10 +3343,10 @@ export default function Planday() {
                             </td>
                             <td className="p-2">
                               <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${
-                                turno.ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
-                                turno.ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
-                                'bg-purple-100 text-purple-700'
-                              }`}>
+                          turno.ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
+                          turno.ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
+                          'bg-purple-100 text-purple-700'}`
+                          }>
                                 {turno.ruolo}
                               </span>
                             </td>
@@ -3357,8 +3357,8 @@ export default function Planday() {
                             </td>
                             <td className="p-2">
                               <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${
-                                turnoTipo === 'Mattina' ? 'bg-yellow-100 text-yellow-700' : 'bg-indigo-100 text-indigo-700'
-                              }`}>
+                          turnoTipo === 'Mattina' ? 'bg-yellow-100 text-yellow-700' : 'bg-indigo-100 text-indigo-700'}`
+                          }>
                                 {turnoTipo}
                               </span>
                             </td>
@@ -3366,75 +3366,75 @@ export default function Planday() {
                               {turno.ora_inizio}-{turno.ora_fine}
                             </td>
                             <td className="p-2 text-xs">
-                              {turno.timbratura_entrata ? (
-                                <div className="whitespace-nowrap">
+                              {turno.timbratura_entrata ?
+                          <div className="whitespace-nowrap">
                                   <div className="font-medium text-slate-800">
                                     {turno.timbratura_entrata && moment(turno.timbratura_entrata).isValid() ? moment(turno.timbratura_entrata).format('HH:mm') : 'N/A'}
                                   </div>
-                                  {turno.posizione_entrata && (
-                                    <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                                  {turno.posizione_entrata &&
+                            <div className="text-[10px] text-slate-400 flex items-center gap-1">
                                       <MapPin className="w-2 h-2" />
                                       GPS
                                     </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className={`whitespace-nowrap ${stato.tipo === 'mancata' ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
+                            }
+                                </div> :
+
+                          <span className={`whitespace-nowrap ${stato.tipo === 'mancata' ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
                                   {stato.tipo === 'mancata' ? 'MANCATA' : '-'}
                                 </span>
-                              )}
+                          }
                             </td>
                             <td className="p-2 text-xs whitespace-nowrap">
-                              {turno.timbratura_uscita ? (
-                                <div className="font-medium text-slate-800">
+                              {turno.timbratura_uscita ?
+                          <div className="font-medium text-slate-800">
                                   {turno.timbratura_uscita && moment(turno.timbratura_uscita).isValid() ? moment(turno.timbratura_uscita).format('HH:mm') : 'N/A'}
-                                </div>
-                              ) : (
-                                <span className="text-slate-400">-</span>
-                              )}
+                                </div> :
+
+                          <span className="text-slate-400">-</span>
+                          }
                             </td>
                             <td className="p-2 text-center text-xs whitespace-nowrap font-medium text-blue-700">
                               {calcolaOreEffettive(turno) || '-'}
                             </td>
                             <td className="p-2 text-center text-xs whitespace-nowrap">
-                              {stato.ritardoReale > 0 ? (
-                                <span className="text-orange-600 font-medium">{stato.ritardoReale}m</span>
-                              ) : stato.tipo === 'mancata' ? (
-                                <span className="text-red-600 font-medium">-</span>
-                              ) : (
-                                <span className="text-green-600">0</span>
-                              )}
+                              {stato.ritardoReale > 0 ?
+                          <span className="text-orange-600 font-medium">{stato.ritardoReale}m</span> :
+                          stato.tipo === 'mancata' ?
+                          <span className="text-red-600 font-medium">-</span> :
+
+                          <span className="text-green-600">0</span>
+                          }
                             </td>
                             <td className="p-2 text-center text-xs whitespace-nowrap">
-                              {stato.ritardoConteggiato > 0 ? (
-                                <span className={`font-bold ${stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita' ? 'text-red-600' : 'text-orange-600'}`}>
+                              {stato.ritardoConteggiato > 0 ?
+                          <span className={`font-bold ${stato.tipo === 'mancata' || stato.tipo === 'mancata_uscita' ? 'text-red-600' : 'text-orange-600'}`}>
                                   {stato.ritardoConteggiato}m
-                                </span>
-                              ) : stato.tipo === 'ritardo' ? (
-                                <span className="text-green-600 text-[10px]">OK</span>
-                              ) : (
-                                <span className="text-green-600">0</span>
-                              )}
+                                </span> :
+                          stato.tipo === 'ritardo' ?
+                          <span className="text-green-600 text-[10px]">OK</span> :
+
+                          <span className="text-green-600">0</span>
+                          }
                             </td>
                             <td className="p-2 text-center">
-                              {formStatus.dovuti.length > 0 ? (
-                                <div className="text-[10px] space-y-0.5">
+                              {formStatus.dovuti.length > 0 ?
+                          <div className="text-[10px] space-y-0.5">
                                   {formStatus.dovuti.map((formName, idx) => {
-                                    const compilato = formStatus.compilati.includes(formName);
-                                    return (
-                                      <button 
-                                        key={idx} 
-                                        onClick={() => setShowFormAssignmentDetails({ formName, turno, formStatus })}
-                                        className={`px-1.5 py-0.5 rounded whitespace-nowrap cursor-pointer hover:opacity-80 ${compilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}
-                                      >
+                              const compilato = formStatus.compilati.includes(formName);
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => setShowFormAssignmentDetails({ formName, turno, formStatus })}
+                                  className={`px-1.5 py-0.5 rounded whitespace-nowrap cursor-pointer hover:opacity-80 ${compilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+
                                         {formName} {compilato ? '✓' : '✗'}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <span className="text-xs text-slate-400">Nessuno</span>
-                              )}
+                                      </button>);
+
+                            })}
+                                </div> :
+
+                          <span className="text-xs text-slate-400">Nessuno</span>
+                          }
                             </td>
                             <td className="p-2 text-center">
                               <span className={`text-[10px] px-2 py-1 rounded-full font-medium whitespace-nowrap ${stato.bg} ${stato.color}`}>
@@ -3443,32 +3443,32 @@ export default function Planday() {
                             </td>
                             <td className="p-2 text-center">
                               <button
-                                onClick={() => {
-                                  setEditingTimbratura(turno);
-                                  setTimbrForm({
-                                   timbrata_entrata: turno.timbratura_entrata && moment(turno.timbratura_entrata).isValid() ? moment(turno.timbratura_entrata).format('YYYY-MM-DDTHH:mm') : '',
-                                   timbrata_uscita: turno.timbratura_uscita && moment(turno.timbratura_uscita).isValid() ? moment(turno.timbratura_uscita).format('YYYY-MM-DDTHH:mm') : ''
-                                  });
-                                }}
-                                className="nav-button p-1.5 rounded-lg hover:bg-blue-50"
-                              >
+                            onClick={() => {
+                              setEditingTimbratura(turno);
+                              setTimbrForm({
+                                timbrata_entrata: turno.timbratura_entrata && moment(turno.timbratura_entrata).isValid() ? moment(turno.timbratura_entrata).format('YYYY-MM-DDTHH:mm') : '',
+                                timbrata_uscita: turno.timbratura_uscita && moment(turno.timbratura_uscita).isValid() ? moment(turno.timbratura_uscita).format('YYYY-MM-DDTHH:mm') : ''
+                              });
+                            }}
+                            className="nav-button p-1.5 rounded-lg hover:bg-blue-50">
+
                                 <Edit className="w-3.5 h-3.5 text-blue-600" />
                               </button>
                             </td>
-                          </tr>
-                        );
-                      })}
+                          </tr>);
+
+                  })}
                     </tbody>
                   </table>
                 </div>
-              )}
+            }
             </NeumorphicCard>
           </>
-        )}
+        }
 
         {/* Modal Impostazioni Timbratura */}
-        {showConfigModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showConfigModal &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
               <NeumorphicCard className="p-6 my-8">
               <div className="flex items-center justify-between mb-4">
@@ -3494,8 +3494,8 @@ export default function Planday() {
                         type="number"
                         value={configForm.distanza_massima_metri}
                         onChange={(e) => setConfigForm({ ...configForm, distanza_massima_metri: parseInt(e.target.value) || 100 })}
-                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      />
+                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                     </div>
                     <div className="flex items-center gap-2">
                       <input
@@ -3503,51 +3503,51 @@ export default function Planday() {
                         id="gps-check"
                         checked={configForm.abilita_timbratura_gps}
                         onChange={(e) => setConfigForm({ ...configForm, abilita_timbratura_gps: e.target.checked })}
-                        className="w-5 h-5"
-                      />
+                        className="w-5 h-5" />
+
                       <label htmlFor="gps-check" className="text-sm font-medium text-slate-700">
                         Abilita verifica GPS per timbratura
                       </label>
                     </div>
 
-                    {configForm.abilita_timbratura_gps && (
-                      <div className="ml-7 neumorphic-flat p-3 rounded-xl">
+                    {configForm.abilita_timbratura_gps &&
+                    <div className="ml-7 neumorphic-flat p-3 rounded-xl">
                         <label className="text-sm font-medium text-slate-700 mb-2 block">
                           Ruoli con verifica GPS obbligatoria
                         </label>
                         <div className="space-y-2">
-                          {RUOLI.map(ruolo => (
-                            <label key={ruolo} className="flex items-center gap-2 cursor-pointer">
+                          {RUOLI.map((ruolo) =>
+                        <label key={ruolo} className="flex items-center gap-2 cursor-pointer">
                               <input
-                                type="checkbox"
-                                checked={configForm.ruoli_gps_abilitati.includes(ruolo)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setConfigForm({
-                                      ...configForm,
-                                      ruoli_gps_abilitati: [...configForm.ruoli_gps_abilitati, ruolo]
-                                    });
-                                  } else {
-                                    setConfigForm({
-                                      ...configForm,
-                                      ruoli_gps_abilitati: configForm.ruoli_gps_abilitati.filter(r => r !== ruolo)
-                                    });
-                                  }
-                                }}
-                                className="w-4 h-4"
-                              />
+                            type="checkbox"
+                            checked={configForm.ruoli_gps_abilitati.includes(ruolo)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setConfigForm({
+                                  ...configForm,
+                                  ruoli_gps_abilitati: [...configForm.ruoli_gps_abilitati, ruolo]
+                                });
+                              } else {
+                                setConfigForm({
+                                  ...configForm,
+                                  ruoli_gps_abilitati: configForm.ruoli_gps_abilitati.filter((r) => r !== ruolo)
+                                });
+                              }
+                            }}
+                            className="w-4 h-4" />
+
                               <span className="text-sm text-slate-700">{ruolo}</span>
                             </label>
-                          ))}
+                        )}
                         </div>
                         <p className="text-xs text-slate-500 mt-2">
-                          {configForm.ruoli_gps_abilitati.length === 0 
-                            ? 'Nessun ruolo selezionato = GPS richiesto per tutti i ruoli'
-                            : `GPS richiesto solo per: ${configForm.ruoli_gps_abilitati.join(', ')}`
-                          }
+                          {configForm.ruoli_gps_abilitati.length === 0 ?
+                        'Nessun ruolo selezionato = GPS richiesto per tutti i ruoli' :
+                        `GPS richiesto solo per: ${configForm.ruoli_gps_abilitati.join(', ')}`
+                        }
                         </p>
                       </div>
-                    )}
+                    }
                   </div>
                 </div>
 
@@ -3564,38 +3564,38 @@ export default function Planday() {
                       id="arrotonda-check"
                       checked={configForm.arrotonda_ritardo}
                       onChange={(e) => setConfigForm({ ...configForm, arrotonda_ritardo: e.target.checked })}
-                      className="w-5 h-5"
-                    />
+                      className="w-5 h-5" />
+
                     <label htmlFor="arrotonda-check" className="text-sm font-medium text-slate-700">
                       Abilita arrotondamento ritardi
                     </label>
                   </div>
 
-                  {configForm.arrotonda_ritardo && (
-                    <div className="space-y-3 ml-7">
+                  {configForm.arrotonda_ritardo &&
+                  <div className="space-y-3 ml-7">
                       <div>
                         <label className="text-sm font-medium text-slate-700 mb-2 block">Tipo di arrotondamento</label>
                         <div className="space-y-2">
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
-                              type="radio"
-                              name="arrotondamento_tipo"
-                              value="eccesso"
-                              checked={configForm.arrotondamento_tipo === 'eccesso'}
-                              onChange={(e) => setConfigForm({ ...configForm, arrotondamento_tipo: e.target.value })}
-                              className="w-4 h-4"
-                            />
+                            type="radio"
+                            name="arrotondamento_tipo"
+                            value="eccesso"
+                            checked={configForm.arrotondamento_tipo === 'eccesso'}
+                            onChange={(e) => setConfigForm({ ...configForm, arrotondamento_tipo: e.target.value })}
+                            className="w-4 h-4" />
+
                             <span className="text-sm text-slate-700">Per eccesso (es: 4 min → 15 min)</span>
                           </label>
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
-                              type="radio"
-                              name="arrotondamento_tipo"
-                              value="difetto"
-                              checked={configForm.arrotondamento_tipo === 'difetto'}
-                              onChange={(e) => setConfigForm({ ...configForm, arrotondamento_tipo: e.target.value })}
-                              className="w-4 h-4"
-                            />
+                            type="radio"
+                            name="arrotondamento_tipo"
+                            value="difetto"
+                            checked={configForm.arrotondamento_tipo === 'difetto'}
+                            onChange={(e) => setConfigForm({ ...configForm, arrotondamento_tipo: e.target.value })}
+                            className="w-4 h-4" />
+
                             <span className="text-sm text-slate-700">Per difetto (es: 14 min → 0 min)</span>
                           </label>
                         </div>
@@ -3606,12 +3606,12 @@ export default function Planday() {
                           Arrotonda a multipli di (minuti)
                         </label>
                         <input
-                          type="number"
-                          min="1"
-                          value={configForm.arrotondamento_minuti}
-                          onChange={(e) => setConfigForm({ ...configForm, arrotondamento_minuti: parseInt(e.target.value) || 15 })}
-                          className="w-full neumorphic-flat px-4 py-3 rounded-xl outline-none"
-                        />
+                        type="number"
+                        min="1"
+                        value={configForm.arrotondamento_minuti}
+                        onChange={(e) => setConfigForm({ ...configForm, arrotondamento_minuti: parseInt(e.target.value) || 15 })}
+                        className="w-full neumorphic-flat px-4 py-3 rounded-xl outline-none" />
+
                         <p className="text-xs text-slate-500 mt-1">
                           Valori comuni: 5, 10, 15, 30 minuti
                         </p>
@@ -3619,15 +3619,15 @@ export default function Planday() {
 
                       <div className="p-3 bg-blue-50 rounded-lg">
                         <p className="text-xs text-blue-700">
-                          <strong>Esempio con {configForm.arrotondamento_minuti} min per {configForm.arrotondamento_tipo}:</strong><br/>
-                          {configForm.arrotondamento_tipo === 'eccesso' 
-                            ? `1-${configForm.arrotondamento_minuti} min → ${configForm.arrotondamento_minuti} min | ${configForm.arrotondamento_minuti + 1}-${configForm.arrotondamento_minuti * 2} min → ${configForm.arrotondamento_minuti * 2} min`
-                            : `0-${configForm.arrotondamento_minuti - 1} min → 0 min | ${configForm.arrotondamento_minuti}-${configForm.arrotondamento_minuti * 2 - 1} min → ${configForm.arrotondamento_minuti} min`
-                          }
+                          <strong>Esempio con {configForm.arrotondamento_minuti} min per {configForm.arrotondamento_tipo}:</strong><br />
+                          {configForm.arrotondamento_tipo === 'eccesso' ?
+                        `1-${configForm.arrotondamento_minuti} min → ${configForm.arrotondamento_minuti} min | ${configForm.arrotondamento_minuti + 1}-${configForm.arrotondamento_minuti * 2} min → ${configForm.arrotondamento_minuti * 2} min` :
+                        `0-${configForm.arrotondamento_minuti - 1} min → 0 min | ${configForm.arrotondamento_minuti}-${configForm.arrotondamento_minuti * 2 - 1} min → ${configForm.arrotondamento_minuti} min`
+                        }
                         </p>
                       </div>
                     </div>
-                  )}
+                  }
                 </div>
 
                 {/* Penalità Timbratura Mancata */}
@@ -3647,8 +3647,8 @@ export default function Planday() {
                         min="0"
                         value={configForm.penalita_timbratura_mancata}
                         onChange={(e) => setConfigForm({ ...configForm, penalita_timbratura_mancata: parseInt(e.target.value) || 0 })}
-                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      />
+                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                       <p className="text-xs text-slate-500 mt-1">
                         Applicata se non c'è timbratura entrata entro la fine del turno
                       </p>
@@ -3664,8 +3664,8 @@ export default function Planday() {
                         step="0.5"
                         value={configForm.ore_mancata_uscita}
                         onChange={(e) => setConfigForm({ ...configForm, ore_mancata_uscita: parseFloat(e.target.value) || 2 })}
-                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      />
+                        className="w-full neumorphic-flat px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                       <p className="text-xs text-slate-500 mt-1">
                         Se non c'è timbratura uscita entro X ore dalla fine turno, viene applicata la penalità
                       </p>
@@ -3680,23 +3680,23 @@ export default function Planday() {
                     Le coordinate GPS sono gestite in HR → Assegnazione Locali
                   </p>
                   <div className="space-y-3 max-h-48 overflow-y-auto">
-                    {stores.map(store => (
-                      <div key={store.id} className="neumorphic-flat p-3 rounded-xl">
+                    {stores.map((store) =>
+                    <div key={store.id} className="neumorphic-flat p-3 rounded-xl">
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="font-medium text-slate-800">{store.name}</div>
                             <div className="text-xs text-slate-400">
                               {store.latitude && store.longitude ? `📍 ${store.latitude}, ${store.longitude}` : '⚠️ GPS non impostato'}
                             </div>
-                            {store.address && (
-                              <div className="text-xs text-slate-500 mt-1">
+                            {store.address &&
+                          <div className="text-xs text-slate-500 mt-1">
                                 📍 {store.address}
                               </div>
-                            )}
+                          }
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -3705,24 +3705,24 @@ export default function Planday() {
                 <NeumorphicButton onClick={() => setShowConfigModal(false)} className="flex-1">
                   Annulla
                 </NeumorphicButton>
-                <NeumorphicButton 
+                <NeumorphicButton
                   onClick={() => {
                     saveConfigMutation.mutate(configForm);
-                  }} 
-                  variant="primary" 
-                  className="flex-1"
-                >
+                  }}
+                  variant="primary"
+                  className="flex-1">
+
                   Salva Impostazioni
                 </NeumorphicButton>
               </div>
             </NeumorphicCard>
             </div>
           </div>
-        )}
+        }
 
         {/* Modal Form Assignment Details */}
-        {showFormAssignmentDetails && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showFormAssignmentDetails &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-lg w-full">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800">Dettaglio Assegnazione Form</h2>
@@ -3732,27 +3732,27 @@ export default function Planday() {
               </div>
 
               {(() => {
-                const { formName, turno, formStatus } = showFormAssignmentDetails;
-                const config = formTrackerConfigs.find(c => c.form_name === formName && c.is_active);
-                
-                if (!config) {
-                  return <p className="text-slate-500">Configurazione non trovata</p>;
-                }
+              const { formName, turno, formStatus } = showFormAssignmentDetails;
+              const config = formTrackerConfigs.find((c) => c.form_name === formName && c.is_active);
 
-                // Usa il campo salvato nel turno se esiste, altrimenti calcola
-                const turnoSequence = turno.turno_sequence || getTurnoSequenceFromMomento(turno);
-                const turnoDayOfWeek = new Date(turno.data).getDay();
-                const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
-                const configSequences = config.shift_sequences || (config.shift_sequence ? [config.shift_sequence] : ['first']);
-                const configDays = config.days_of_week || [];
-                const configStores = config.assigned_stores || [];
-                const configRoles = config.assigned_roles || [];
-                const storeName = getStoreName(turno.store_id);
-                
-                const isCompilato = formStatus.compilati.includes(formName);
+              if (!config) {
+                return <p className="text-slate-500">Configurazione non trovata</p>;
+              }
 
-                return (
-                  <div className="space-y-4">
+              // Usa il campo salvato nel turno se esiste, altrimenti calcola
+              const turnoSequence = turno.turno_sequence || getTurnoSequenceFromMomento(turno);
+              const turnoDayOfWeek = new Date(turno.data).getDay();
+              const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+              const configSequences = config.shift_sequences || (config.shift_sequence ? [config.shift_sequence] : ['first']);
+              const configDays = config.days_of_week || [];
+              const configStores = config.assigned_stores || [];
+              const configRoles = config.assigned_roles || [];
+              const storeName = getStoreName(turno.store_id);
+
+              const isCompilato = formStatus.compilati.includes(formName);
+
+              return (
+                <div className="space-y-4">
                     <div className="neumorphic-pressed p-4 rounded-xl">
                       <h3 className="font-bold text-slate-700 mb-3">📋 Form: {formName}</h3>
                       <div className={`px-3 py-2 rounded-lg text-sm font-medium ${isCompilato ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -3783,21 +3783,21 @@ export default function Planday() {
                         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                           <span className="text-slate-500">Sequenza turno:</span>
                           <span className="font-medium">
-                            {configSequences.includes('first') && configSequences.includes('second') 
-                              ? '☀️🌙 Entrambi' 
-                              : configSequences.includes('first') 
-                                ? '☀️ Solo Mattina (1°)' 
-                                : '🌙 Solo Sera (2°)'
-                            }
+                            {configSequences.includes('first') && configSequences.includes('second') ?
+                          '☀️🌙 Entrambi' :
+                          configSequences.includes('first') ?
+                          '☀️ Solo Mattina (1°)' :
+                          '🌙 Solo Sera (2°)'
+                          }
                           </span>
                         </div>
                         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                           <span className="text-slate-500">Giorni settimana:</span>
-                          <span className="font-medium">{configDays.length > 0 ? configDays.map(d => dayNames[d]).join(', ') : 'Tutti i giorni'}</span>
+                          <span className="font-medium">{configDays.length > 0 ? configDays.map((d) => dayNames[d]).join(', ') : 'Tutti i giorni'}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-slate-500">Locali:</span>
-                          <span className="font-medium">{configStores.length > 0 ? configStores.map(id => stores.find(s => s.id === id)?.name || id).join(', ') : 'Tutti'}</span>
+                          <span className="font-medium">{configStores.length > 0 ? configStores.map((id) => stores.find((s) => s.id === id)?.name || id).join(', ') : 'Tutti'}</span>
                         </div>
                       </div>
                     </div>
@@ -3811,18 +3811,18 @@ export default function Planday() {
                         <li>✓ Store ({storeName}) {configStores.length === 0 || configStores.includes(turno.store_id) ? 'corrisponde' : 'NON corrisponde'}</li>
                       </ul>
                     </div>
-                  </div>
-                );
-              })()}
+                  </div>);
+
+            })()}
             </NeumorphicCard>
           </div>
-        )}
+        }
 
 
 
         {/* Modal Gestione Turni (Tipi Turno) */}
-        {showGestioneTurniModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showGestioneTurniModal &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800">Gestione Turni</h2>
@@ -3840,39 +3840,39 @@ export default function Planday() {
                 <div className="neumorphic-pressed p-4 rounded-xl">
                   <div className="flex gap-2 mb-3">
                     <input
-                      type="text"
-                      value={newTipoTurno}
-                      onChange={(e) => setNewTipoTurno(e.target.value)}
-                      className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
-                      placeholder="Nuovo tipo turno..."
-                      onKeyDown={(e) => e.key === 'Enter' && addTipoTurno()}
-                    />
+                    type="text"
+                    value={newTipoTurno}
+                    onChange={(e) => setNewTipoTurno(e.target.value)}
+                    className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm outline-none"
+                    placeholder="Nuovo tipo turno..."
+                    onKeyDown={(e) => e.key === 'Enter' && addTipoTurno()} />
+
                     <NeumorphicButton onClick={addTipoTurno} className="text-sm px-3 py-1">
                       <Plus className="w-4 h-4" />
                     </NeumorphicButton>
                   </div>
                   <div className="space-y-2">
-                    {tipiTurno.map(tipo => (
-                      <div key={tipo} className="flex items-center justify-between bg-white p-2 rounded-lg">
+                    {tipiTurno.map((tipo) =>
+                  <div key={tipo} className="flex items-center justify-between bg-white p-2 rounded-lg">
                         <span className="text-sm font-medium text-slate-800">{tipo}</span>
                         <div className="flex items-center gap-2">
                           <input
-                            type="color"
-                            value={coloriTipoTurno[tipo] || '#94a3b8'}
-                            onChange={(e) => updateColoreTipoTurno(tipo, e.target.value)}
-                            className="w-8 h-8 cursor-pointer rounded border-0"
-                            title={`Colore ${tipo}`}
-                          />
-                          <button 
-                            onClick={() => deleteTipoTurno(tipo)} 
-                            className="text-red-500 hover:text-red-700"
-                            disabled={tipiTurno.length <= 1}
-                          >
+                        type="color"
+                        value={coloriTipoTurno[tipo] || '#94a3b8'}
+                        onChange={(e) => updateColoreTipoTurno(tipo, e.target.value)}
+                        className="w-8 h-8 cursor-pointer rounded border-0"
+                        title={`Colore ${tipo}`} />
+
+                          <button
+                        onClick={() => deleteTipoTurno(tipo)}
+                        className="text-red-500 hover:text-red-700"
+                        disabled={tipiTurno.length <= 1}>
+
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
-                    ))}
+                  )}
                   </div>
                 </div>
               </div>
@@ -3892,109 +3892,109 @@ export default function Planday() {
                   <div className="neumorphic-flat p-3 rounded-xl mb-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                       <select
-                        value={tipoConfigForm.tipo_turno}
-                        onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, tipo_turno: e.target.value })}
-                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                      >
+                      value={tipoConfigForm.tipo_turno}
+                      onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, tipo_turno: e.target.value })}
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none">
+
                         <option value="">Seleziona tipo turno...</option>
-                        {tipiTurno.map(tipo => (
-                          <option key={tipo} value={tipo}>{tipo}</option>
-                        ))}
+                        {tipiTurno.map((tipo) =>
+                      <option key={tipo} value={tipo}>{tipo}</option>
+                      )}
                       </select>
                     </div>
                     <div className="space-y-2 mb-3">
                       <label className="flex items-center gap-2 text-sm">
                         <input
-                          type="checkbox"
-                          checked={tipoConfigForm.mostra_attivita}
-                          onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, mostra_attivita: e.target.checked })}
-                          className="w-4 h-4"
-                        />
+                        type="checkbox"
+                        checked={tipoConfigForm.mostra_attivita}
+                        onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, mostra_attivita: e.target.checked })}
+                        className="w-4 h-4" />
+
                         <span className="text-slate-700">Mostra lista "Attività previste"</span>
                       </label>
                       <label className="flex items-center gap-2 text-sm">
                         <input
-                          type="checkbox"
-                          checked={tipoConfigForm.richiede_timbratura}
-                          onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, richiede_timbratura: e.target.checked })}
-                          className="w-4 h-4"
-                        />
+                        type="checkbox"
+                        checked={tipoConfigForm.richiede_timbratura}
+                        onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, richiede_timbratura: e.target.checked })}
+                        className="w-4 h-4" />
+
                         <span className="text-slate-700">Richiede timbratura</span>
                       </label>
                       <label className="flex items-center gap-2 text-sm">
                         <input
-                          type="checkbox"
-                          checked={tipoConfigForm.richiede_form}
-                          onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, richiede_form: e.target.checked })}
-                          className="w-4 h-4"
-                        />
+                        type="checkbox"
+                        checked={tipoConfigForm.richiede_form}
+                        onChange={(e) => setTipoConfigForm({ ...tipoConfigForm, richiede_form: e.target.checked })}
+                        className="w-4 h-4" />
+
                         <span className="text-slate-700">Richiede compilazione form</span>
                       </label>
                     </div>
-                    <NeumorphicButton 
-                      onClick={() => {
-                        if (!tipoConfigForm.tipo_turno) return;
-                        saveTipoConfigMutation.mutate(tipoConfigForm);
-                      }}
-                      variant="primary" 
-                      className="w-full text-sm"
-                      disabled={!tipoConfigForm.tipo_turno}
-                    >
+                    <NeumorphicButton
+                    onClick={() => {
+                      if (!tipoConfigForm.tipo_turno) return;
+                      saveTipoConfigMutation.mutate(tipoConfigForm);
+                    }}
+                    variant="primary"
+                    className="w-full text-sm"
+                    disabled={!tipoConfigForm.tipo_turno}>
+
                       {editingTipoConfig ? 'Aggiorna' : 'Aggiungi Configurazione'}
                     </NeumorphicButton>
                   </div>
 
                   {/* Lista configurazioni esistenti */}
-                  {tipoTurnoConfigs.length > 0 && (
-                    <div className="space-y-2">
-                      {tipoTurnoConfigs.map(config => (
-                        <div key={config.id} className="bg-white p-3 rounded-lg">
+                  {tipoTurnoConfigs.length > 0 &&
+                <div className="space-y-2">
+                      {tipoTurnoConfigs.map((config) =>
+                  <div key={config.id} className="bg-white p-3 rounded-lg">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className="font-medium text-slate-800 text-sm">{config.tipo_turno}</div>
                               <div className="flex gap-2 mt-1">
-                                {config.mostra_attivita !== false && (
-                                  <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">📋 Attività</span>
-                                )}
-                                {config.richiede_timbratura !== false && (
-                                  <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">⏱️ Timbratura</span>
-                                )}
-                                {config.richiede_form !== false && (
-                                  <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">📝 Form</span>
-                                )}
+                                {config.mostra_attivita !== false &&
+                          <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">📋 Attività</span>
+                          }
+                                {config.richiede_timbratura !== false &&
+                          <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">⏱️ Timbratura</span>
+                          }
+                                {config.richiede_form !== false &&
+                          <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded">📝 Form</span>
+                          }
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => {
-                                  setEditingTipoConfig(config);
-                                  setTipoConfigForm({
-                                    tipo_turno: config.tipo_turno,
-                                    mostra_attivita: config.mostra_attivita !== false,
-                                    richiede_timbratura: config.richiede_timbratura !== false,
-                                    richiede_form: config.richiede_form !== false
-                                  });
-                                }}
-                                className="text-blue-500 hover:text-blue-700"
-                              >
+                          onClick={() => {
+                            setEditingTipoConfig(config);
+                            setTipoConfigForm({
+                              tipo_turno: config.tipo_turno,
+                              mostra_attivita: config.mostra_attivita !== false,
+                              richiede_timbratura: config.richiede_timbratura !== false,
+                              richiede_form: config.richiede_form !== false
+                            });
+                          }}
+                          className="text-blue-500 hover:text-blue-700">
+
                                 <Edit className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => {
-                                  if (confirm(`Eliminare configurazione per ${config.tipo_turno}?`)) {
-                                    deleteTipoConfigMutation.mutate(config.id);
-                                  }
-                                }}
-                                className="text-red-500 hover:text-red-700"
-                              >
+                          onClick={() => {
+                            if (confirm(`Eliminare configurazione per ${config.tipo_turno}?`)) {
+                              deleteTipoConfigMutation.mutate(config.id);
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700">
+
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
                   )}
+                    </div>
+                }
                 </div>
               </div>
 
@@ -4003,11 +4003,11 @@ export default function Planday() {
               </NeumorphicButton>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Modal Alert Settings */}
-        {showAlertSettings && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showAlertSettings &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="p-6 max-w-md w-full">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800">Impostazioni Alert WhatsApp</h2>
@@ -4019,12 +4019,12 @@ export default function Planday() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <input
-                    type="checkbox"
-                    id="alert-enabled"
-                    checked={alertConfig.enabled}
-                    onChange={(e) => setAlertConfig({ ...alertConfig, enabled: e.target.checked })}
-                    className="w-5 h-5"
-                  />
+                  type="checkbox"
+                  id="alert-enabled"
+                  checked={alertConfig.enabled}
+                  onChange={(e) => setAlertConfig({ ...alertConfig, enabled: e.target.checked })}
+                  className="w-5 h-5" />
+
                   <label htmlFor="alert-enabled" className="text-sm font-medium text-slate-700">
                     Abilita alert per mancata timbratura
                   </label>
@@ -4035,12 +4035,12 @@ export default function Planday() {
                     Invia alert dopo (minuti di ritardo)
                   </label>
                   <input
-                    type="number"
-                    min="5"
-                    value={alertConfig.minutiRitardo}
-                    onChange={(e) => setAlertConfig({ ...alertConfig, minutiRitardo: parseInt(e.target.value) || 15 })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  />
+                  type="number"
+                  min="5"
+                  value={alertConfig.minutiRitardo}
+                  onChange={(e) => setAlertConfig({ ...alertConfig, minutiRitardo: parseInt(e.target.value) || 15 })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
                   <p className="text-xs text-slate-500 mt-1">
                     Se il dipendente non timbra entro X minuti dall'inizio del turno
                   </p>
@@ -4051,12 +4051,12 @@ export default function Planday() {
                     Numero WhatsApp per notifiche
                   </label>
                   <input
-                    type="tel"
-                    value={alertConfig.whatsappNumber}
-                    onChange={(e) => setAlertConfig({ ...alertConfig, whatsappNumber: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                    placeholder="+39 333 1234567"
-                  />
+                  type="tel"
+                  value={alertConfig.whatsappNumber}
+                  onChange={(e) => setAlertConfig({ ...alertConfig, whatsappNumber: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  placeholder="+39 333 1234567" />
+
                   <p className="text-xs text-slate-500 mt-1">
                     Inserisci il numero con prefisso internazionale
                   </p>
@@ -4064,12 +4064,12 @@ export default function Planday() {
 
                 <div className="flex items-center gap-2">
                   <input
-                    type="checkbox"
-                    id="notify-managers"
-                    checked={alertConfig.notifyManagers}
-                    onChange={(e) => setAlertConfig({ ...alertConfig, notifyManagers: e.target.checked })}
-                    className="w-5 h-5"
-                  />
+                  type="checkbox"
+                  id="notify-managers"
+                  checked={alertConfig.notifyManagers}
+                  onChange={(e) => setAlertConfig({ ...alertConfig, notifyManagers: e.target.checked })}
+                  className="w-5 h-5" />
+
                   <label htmlFor="notify-managers" className="text-sm font-medium text-slate-700">
                     Notifica anche gli Store Manager dello store
                   </label>
@@ -4090,27 +4090,27 @@ export default function Planday() {
                 <NeumorphicButton onClick={() => setShowAlertSettings(false)} className="flex-1">
                   Annulla
                 </NeumorphicButton>
-                <NeumorphicButton 
-                  onClick={() => saveAlertMutation.mutate(alertConfig)}
-                  variant="primary"
-                  className="flex-1 flex items-center justify-center gap-2"
-                  disabled={saveAlertMutation.isPending}
-                >
-                  {saveAlertMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
+                <NeumorphicButton
+                onClick={() => saveAlertMutation.mutate(alertConfig)}
+                variant="primary"
+                className="flex-1 flex items-center justify-center gap-2"
+                disabled={saveAlertMutation.isPending}>
+
+                  {saveAlertMutation.isPending ?
+                <Loader2 className="w-4 h-4 animate-spin" /> :
+
+                <Save className="w-4 h-4" />
+                }
                   Salva
                 </NeumorphicButton>
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Modal Disponibilità Dipendente */}
-        {showDisponibilitaModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showDisponibilitaModal &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <NeumorphicCard className="p-6 my-8">
                 <div className="flex items-center justify-between mb-4">
@@ -4124,52 +4124,52 @@ export default function Planday() {
                 <div className="mb-6">
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Seleziona Dipendente</label>
                   <select
-                    value={selectedDipendenteDisp || ''}
-                    onChange={(e) => setSelectedDipendenteDisp(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                  >
+                  value={selectedDipendenteDisp || ''}
+                  onChange={(e) => setSelectedDipendenteDisp(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+
                     <option value="">-- Seleziona dipendente --</option>
-                    {users.filter(u => u.user_type === 'dipendente' || u.user_type === 'user').map(u => (
-                      <option key={u.id} value={u.id}>
+                    {users.filter((u) => u.user_type === 'dipendente' || u.user_type === 'user').map((u) =>
+                  <option key={u.id} value={u.id}>
                         {u.nome_cognome || u.full_name} - {u.ruoli_dipendente?.join(', ')}
                       </option>
-                    ))}
+                  )}
                   </select>
                 </div>
 
                 {selectedDipendenteDisp && (() => {
-                  const dipendente = users.find(u => u.id === selectedDipendenteDisp);
-                  if (!dipendente) return null;
+                const dipendente = users.find((u) => u.id === selectedDipendenteDisp);
+                if (!dipendente) return null;
 
-                  return (
-                    <div className="space-y-4">
-                      <DisponibilitaCalendar 
-                        dipendente={dipendente} 
-                        disponibilita={disponibilita} 
-                      />
+                return (
+                  <div className="space-y-4">
+                      <DisponibilitaCalendar
+                      dipendente={dipendente}
+                      disponibilita={disponibilita} />
+
                       
                       <div className="mt-6">
-                        <DisponibilitaRicorrenti 
-                          dipendente={dipendente} 
-                          disponibilita={disponibilita} 
-                        />
-                      </div>
-                    </div>
-                  );
-                })()}
+                        <DisponibilitaRicorrenti
+                        dipendente={dipendente}
+                        disponibilita={disponibilita} />
 
-                {!selectedDipendenteDisp && (
-                  <div className="text-center py-8 text-slate-500">
+                      </div>
+                    </div>);
+
+              })()}
+
+                {!selectedDipendenteDisp &&
+              <div className="text-center py-8 text-slate-500">
                     <CalendarClock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                     <p>Seleziona un dipendente per gestire le sue disponibilità</p>
                   </div>
-                )}
+              }
               </NeumorphicCard>
             </div>
           </div>
-        )}
+        }
 
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
