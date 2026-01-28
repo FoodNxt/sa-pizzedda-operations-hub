@@ -2352,7 +2352,14 @@ export default function TurniDipendente() {
                   <input
                   type="date"
                   value={ferieForm.data_fine}
-                  onChange={(e) => setFerieForm({ ...ferieForm, data_fine: e.target.value })}
+                  onChange={(e) => {
+                    const nuovaDataFine = e.target.value;
+                    if (ferieForm.data_inizio && nuovaDataFine < ferieForm.data_inizio) {
+                      alert('La data di fine non può essere antecedente alla data di inizio');
+                      return;
+                    }
+                    setFerieForm({ ...ferieForm, data_fine: nuovaDataFine });
+                  }}
                   min={ferieForm.data_inizio || moment().format('YYYY-MM-DD')}
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
 
