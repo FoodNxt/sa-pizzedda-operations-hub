@@ -5,28 +5,28 @@ import {
   ChefHat,
   Truck,
   Upload,
-  Settings
-} from 'lucide-react';
+  Settings } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 
 export default function InventarioAdmin() {
   const forms = [
-    {
-      title: "Ricette",
-      description: "Gestisci ricette, ingredienti e calcola il food cost",
-      icon: ChefHat,
-      url: createPageUrl("Ricette"),
-      gradient: "from-orange-500 to-red-600"
-    },
-    {
-      title: "Elenco Fornitori",
-      description: "Visualizza e gestisci i fornitori",
-      icon: Truck,
-      url: createPageUrl("ElencoFornitori"),
-      gradient: "from-blue-500 to-indigo-600"
-    }
-  ];
+  {
+    title: "Ricette",
+    description: "Gestisci ricette, ingredienti e calcola il food cost",
+    icon: ChefHat,
+    url: createPageUrl("Ricette"),
+    gradient: "from-orange-500 to-red-600"
+  },
+  {
+    title: "Elenco Fornitori",
+    description: "Visualizza e gestisci i fornitori",
+    icon: Truck,
+    url: createPageUrl("ElencoFornitori"),
+    gradient: "from-blue-500 to-indigo-600"
+  }];
+
 
   return (
     <ProtectedPage pageName="InventarioAdmin">
@@ -35,9 +35,9 @@ export default function InventarioAdmin() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <Settings className="w-10 h-10 text-[#8b7355]" />
-            <h1 className="text-3xl font-bold text-[#6b6b6b]">Inventory Admin</h1>
+            <h1 className="text-slate-50 text-3xl font-bold">Inventory Admin</h1>
           </div>
-          <p className="text-[#9b9b9b]">Configurazione avanzata dell'inventario</p>
+          <p className="text-slate-50">Configurazione avanzata dell'inventario</p>
         </div>
 
         {/* Forms Grid */}
@@ -56,8 +56,8 @@ export default function InventarioAdmin() {
                     <p className="text-sm text-[#9b9b9b]">{form.description}</p>
                   </div>
                 </NeumorphicCard>
-              </Link>
-            );
+              </Link>);
+
           })}
         </div>
 
@@ -70,6 +70,6 @@ export default function InventarioAdmin() {
           </div>
         </NeumorphicCard>
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
