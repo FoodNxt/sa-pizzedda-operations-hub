@@ -17,7 +17,6 @@ export default function Dashboard() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [syncMessage, setSyncMessage] = useState(null);
-  const [comparisonMode, setComparisonMode] = useState('weekly'); // 'weekly' or 'monthly'
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -869,7 +868,7 @@ export default function Dashboard() {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     let currentStart, currentEnd;
 
-    // Calcola periodo corrente
+    // Calcola periodo corrente dal filtro globale della Dashboard
     if (startDate || endDate) {
       currentStart = startDate ? new Date(startDate) : new Date(0);
       currentEnd = endDate ? new Date(endDate) : today;
@@ -882,28 +881,14 @@ export default function Dashboard() {
     const currentStartStr = currentStart.toISOString().split('T')[0];
     const currentEndStr = currentEnd.toISOString().split('T')[0];
 
-    // Calcola periodo precedente (stessa lunghezza del periodo corrente)
-    const daysDiff = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
-    const previousEnd = new Date(currentStart.getTime() - 24 * 60 * 60 * 1000);
-    const previousStart = new Date(previousEnd.getTime() - daysDiff * 24 * 60 * 60 * 1000);
-    const previousStartStr = previousStart.toISOString().split('T')[0];
-    const previousEndStr = previousEnd.toISOString().split('T')[0];
-
-    // Filtra dati periodo corrente
+    // Filtra solo dati periodo corrente
     const filteredCurrent = prodottiVenduti.filter((p) => {
       const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
       return dataStr >= currentStartStr && dataStr <= currentEndStr;
     });
 
-    // Filtra dati periodo precedente
-    const filteredPrevious = prodottiVenduti.filter((p) => {
-      const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
-      return dataStr >= previousStartStr && dataStr <= previousEndStr;
-    });
-
-    // Aggrega per flavor (come in ProdottiVenduti)
+    // Aggrega per flavor
     const currentTotals = {};
-    const previousTotals = {};
 
     filteredCurrent.forEach((record) => {
       const flavor = record.flavor;
@@ -914,39 +899,22 @@ export default function Dashboard() {
       currentTotals[flavor].total += record.total_pizzas_sold || 0;
     });
 
-    filteredPrevious.forEach((record) => {
-      const flavor = record.flavor;
-      if (!flavor) return;
-      if (!previousTotals[flavor]) {
-        previousTotals[flavor] = { name: flavor, total: 0 };
-      }
-      previousTotals[flavor].total += record.total_pizzas_sold || 0;
-    });
+    // Converti in array ordinato
+    const products = Object.keys(currentTotals).map((flavor) => ({
+      nome: flavor,
+      quantita: currentTotals[flavor].total
+    }));
 
-    // Calcola variazioni percentuali (come in ProdottiVenduti)
-    const productsWithChange = Object.keys(currentTotals).map((flavor) => {
-      const current = currentTotals[flavor].total;
-      const previous = previousTotals[flavor]?.total || 0;
-      const delta = current - previous;
-      const percentChange = previous > 0 ? ((delta / previous) * 100) : (current > 0 ? 100 : 0);
-      
-      return {
-        nome: flavor,
-        quantita: current,
-        change: percentChange
-      };
-    });
-
-    if (productsWithChange.length === 0) {
+    if (products.length === 0) {
       return { top3: [], bottom3: [] };
     }
 
-    const sorted = productsWithChange.sort((a, b) => b.quantita - a.quantita);
+    const sorted = products.sort((a, b) => b.quantita - a.quantita);
     const top3 = sorted.slice(0, Math.min(3, sorted.length));
     const bottom3 = sorted.length > 3 ? sorted.slice(-3).reverse() : [];
 
     return { top3, bottom3 };
-  }, [prodottiVenduti, dateRange, startDate, endDate, comparisonMode]);
+  }, [prodottiVenduti, dateRange, startDate, endDate]);
 
   const clearCustomDates = () => {
     setStartDate('');
@@ -1249,30 +1217,7 @@ export default function Dashboard() {
 
         {/* Top & Bottom Prodotti */}
         <NeumorphicCard className="p-4 lg:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base lg:text-lg font-bold text-slate-800">Prodotti più e meno venduti</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500">Confronto:</span>
-              <button
-                onClick={() => setComparisonMode('weekly')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  comparisonMode === 'weekly' 
-                    ? 'bg-blue-500 text-white shadow-md' 
-                    : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                }`}>
-                Settimanale
-              </button>
-              <button
-                onClick={() => setComparisonMode('monthly')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  comparisonMode === 'monthly' 
-                    ? 'bg-blue-500 text-white shadow-md' 
-                    : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                }`}>
-                Mensile
-              </button>
-            </div>
-          </div>
+          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Prodotti più e meno venduti</h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Top 3 */}
@@ -1287,16 +1232,10 @@ export default function Dashboard() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="text-xs font-bold text-slate-800">{prod.nome}</p>
-                        <p className="text-[10px] text-slate-500">Quantità: {prod.quantita}</p>
                       </div>
                       <div className="text-right ml-2">
-                        <div className={`flex items-center gap-1 text-xs font-bold ${
-                          prod.change > 0 ? 'text-green-600' : prod.change < 0 ? 'text-red-600' : 'text-slate-500'
-                        }`}>
-                          {prod.change > 0 ? <ArrowUp className="w-3 h-3" /> : prod.change < 0 ? <ArrowDown className="w-3 h-3" /> : null}
-                          {prod.change > 0 ? '+' : ''}{prod.change.toFixed(1)}%
-                        </div>
-                        <p className="text-[9px] text-slate-400">vs {comparisonMode === 'weekly' ? '7gg fa' : '30gg fa'}</p>
+                        <p className="text-xs font-bold text-green-700">{prod.quantita}</p>
+                        <p className="text-[10px] text-slate-500">vendite</p>
                       </div>
                     </div>
                   </div>
@@ -1316,16 +1255,10 @@ export default function Dashboard() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="text-xs font-bold text-slate-800">{prod.nome}</p>
-                        <p className="text-[10px] text-slate-500">Quantità: {prod.quantita}</p>
                       </div>
                       <div className="text-right ml-2">
-                        <div className={`flex items-center gap-1 text-xs font-bold ${
-                          prod.change > 0 ? 'text-green-600' : prod.change < 0 ? 'text-red-600' : 'text-slate-500'
-                        }`}>
-                          {prod.change > 0 ? <ArrowUp className="w-3 h-3" /> : prod.change < 0 ? <ArrowDown className="w-3 h-3" /> : null}
-                          {prod.change > 0 ? '+' : ''}{prod.change.toFixed(1)}%
-                        </div>
-                        <p className="text-[9px] text-slate-400">vs {comparisonMode === 'weekly' ? '7gg fa' : '30gg fa'}</p>
+                        <p className="text-xs font-bold text-red-700">{prod.quantita}</p>
+                        <p className="text-[10px] text-slate-500">vendite</p>
                       </div>
                     </div>
                   </div>
