@@ -14,40 +14,40 @@ export default function PulizieMatch() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: inspections = [] } = useQuery({
     queryKey: ['cleaning-inspections'],
-    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 500),
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 500)
   });
 
   const { data: domande = [] } = useQuery({
     queryKey: ['domande-pulizia'],
-    queryFn: () => base44.entities.DomandaPulizia.list(),
+    queryFn: () => base44.entities.DomandaPulizia.list()
   });
 
   const { data: attrezzature = [] } = useQuery({
     queryKey: ['attrezzature'],
-    queryFn: () => base44.entities.Attrezzatura.list(),
+    queryFn: () => base44.entities.Attrezzatura.list()
   });
 
   const { data: turni = [] } = useQuery({
     queryKey: ['turni-planday'],
-    queryFn: () => base44.entities.TurnoPlanday.list('-data', 5000),
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 5000)
   });
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees'],
-    queryFn: () => base44.entities.Employee.list(),
+    queryFn: () => base44.entities.Employee.list()
   });
 
   // Calculate date range based on period
   const getDateRange = () => {
     const now = new Date();
     let startDate;
-    
-    switch(selectedPeriod) {
+
+    switch (selectedPeriod) {
       case 'week':
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         break;
@@ -62,7 +62,7 @@ export default function PulizieMatch() {
         startDate = new Date(0);
         break;
     }
-    
+
     return { startDate, endDate: now };
   };
 
@@ -72,7 +72,7 @@ export default function PulizieMatch() {
     const results = {};
 
     // Filter inspections by period and store
-    let filteredInspections = inspections.filter(insp => {
+    let filteredInspections = inspections.filter((insp) => {
       const inspDate = new Date(insp.inspection_date);
       const storeMatch = selectedStore === 'all' || insp.store_id === selectedStore;
       const dateMatch = inspDate >= startDate && inspDate <= endDate;
@@ -82,11 +82,11 @@ export default function PulizieMatch() {
     console.log('Processing', filteredInspections.length, 'inspections');
     console.log('Total attrezzature:', attrezzature.length);
     console.log('Total turni:', turni.length);
-    
-    filteredInspections.forEach(inspection => {
+
+    filteredInspections.forEach((inspection) => {
       console.log('Inspection:', inspection.id, 'Store:', inspection.store_name, 'Date:', inspection.inspection_date, 'Domande:', inspection.domande_risposte?.length);
-      
-      inspection.domande_risposte?.forEach(domanda => {
+
+      inspection.domande_risposte?.forEach((domanda) => {
         console.log('Domanda:', domanda.domanda_testo, 'Tipo:', domanda.tipo_controllo);
 
         // Trova l'attrezzatura - per scelta multipla cerca nella domanda originale
@@ -94,7 +94,7 @@ export default function PulizieMatch() {
 
         if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
           // Cerca la domanda originale per trovare l'attrezzatura
-          const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+          const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
           nomeAttrezzatura = originalQuestion?.attrezzatura;
 
           // Se ancora non trovata, prova a estrarre dal testo
@@ -117,7 +117,7 @@ export default function PulizieMatch() {
         }
 
         // Find attrezzatura
-        const attrezzatura = attrezzature.find(a => a.nome === nomeAttrezzatura);
+        const attrezzatura = attrezzature.find((a) => a.nome === nomeAttrezzatura);
         console.log('Found attrezzatura:', attrezzatura?.nome, 'Ruoli:', attrezzatura?.ruoli_responsabili);
 
         if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) {
@@ -149,7 +149,7 @@ export default function PulizieMatch() {
           statoPulizia = inspection[correctedField] || inspection[statusField];
         } else if (domanda.tipo_controllo === 'scelta_multipla') {
           // Per scelta multipla, verifica se la risposta è corretta
-          const originalQuestion = domande.find(d => d.id === domanda.domanda_id);
+          const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
           const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
           statoPulizia = isCorrect ? 'pulito' : 'sporco';
         }
@@ -162,84 +162,84 @@ export default function PulizieMatch() {
         }
 
         // Process each responsible role
-        attrezzatura.ruoli_responsabili.forEach(ruoloResponsabile => {
-        const dataCompilazione = new Date(inspection.inspection_date);
+        attrezzatura.ruoli_responsabili.forEach((ruoloResponsabile) => {
+          const dataCompilazione = new Date(inspection.inspection_date);
 
-        console.log('🔍 Match per attrezzatura:', domanda.attrezzatura, 'Ruolo richiesto:', ruoloResponsabile, 'Store:', inspection.store_id, 'Data ispezione:', dataCompilazione);
+          console.log('🔍 Match per attrezzatura:', domanda.attrezzatura, 'Ruolo richiesto:', ruoloResponsabile, 'Store:', inspection.store_id, 'Data ispezione:', dataCompilazione);
 
-        // Find all shifts for this role and store that ENDED BEFORE inspection time
-        const candidateShifts = turni.filter(t => {
-          if (t.store_id !== inspection.store_id) return false;
-          if (t.ruolo !== ruoloResponsabile) return false;
-          if (!t.dipendente_nome) return false;
-          if (!t.data || !t.ora_fine) return false;
+          // Find all shifts for this role and store that ENDED BEFORE inspection time
+          const candidateShifts = turni.filter((t) => {
+            if (t.store_id !== inspection.store_id) return false;
+            if (t.ruolo !== ruoloResponsabile) return false;
+            if (!t.dipendente_nome) return false;
+            if (!t.data || !t.ora_fine) return false;
 
-          // Controlla che il turno sia finito prima della compilazione
-          const shiftEndTime = t.timbratura_uscita 
-            ? new Date(t.timbratura_uscita)
-            : new Date(t.data + 'T' + t.ora_fine);
+            // Controlla che il turno sia finito prima della compilazione
+            const shiftEndTime = t.timbratura_uscita ?
+            new Date(t.timbratura_uscita) :
+            new Date(t.data + 'T' + t.ora_fine);
 
-          return shiftEndTime <= dataCompilazione;
-        });
+            return shiftEndTime <= dataCompilazione;
+          });
 
-        console.log('✅ Turni candidati trovati:', candidateShifts.length);
-        if (candidateShifts.length > 0) {
-          console.log('Turni:', candidateShifts.map(t => ({
-            nome: t.dipendente_nome,
-            data: t.data,
-            inizio: t.ora_inizio,
-            fine: t.ora_fine,
-            timbratura_uscita: t.timbratura_uscita
-          })));
-        }
+          console.log('✅ Turni candidati trovati:', candidateShifts.length);
+          if (candidateShifts.length > 0) {
+            console.log('Turni:', candidateShifts.map((t) => ({
+              nome: t.dipendente_nome,
+              data: t.data,
+              inizio: t.ora_inizio,
+              fine: t.ora_fine,
+              timbratura_uscita: t.timbratura_uscita
+            })));
+          }
 
-        // Ordina per ora di fine turno (più recente prima) - prendi l'ultimo turno finito prima dell'ispezione
-        const lastShift = candidateShifts.sort((a, b) => {
-          const endA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
-          const endB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
-          return endB - endA;
-        })[0];
+          // Ordina per ora di fine turno (più recente prima) - prendi l'ultimo turno finito prima dell'ispezione
+          const lastShift = candidateShifts.sort((a, b) => {
+            const endA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
+            const endB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
+            return endB - endA;
+          })[0];
 
-        if (!lastShift) {
-          console.log('❌ Nessun turno trovato per ruolo:', ruoloResponsabile);
-          return;
-        }
-        
-        const oraFineTurno = lastShift.timbratura_uscita 
-          ? new Date(lastShift.timbratura_uscita).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
-          : lastShift.ora_fine;
-        console.log('✅ Turno selezionato:', lastShift.dipendente_nome, 'Data:', lastShift.data, 'Finito alle:', oraFineTurno);
+          if (!lastShift) {
+            console.log('❌ Nessun turno trovato per ruolo:', ruoloResponsabile);
+            return;
+          }
 
-        const employeeName = lastShift.dipendente_nome;
+          const oraFineTurno = lastShift.timbratura_uscita ?
+          new Date(lastShift.timbratura_uscita).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) :
+          lastShift.ora_fine;
+          console.log('✅ Turno selezionato:', lastShift.dipendente_nome, 'Data:', lastShift.data, 'Finito alle:', oraFineTurno);
 
-        if (!results[employeeName]) {
-          results[employeeName] = {
-            id: employeeName,
-            name: employeeName,
-            puliti: 0,
-            sporchi: 0,
-            details: []
-          };
-        }
+          const employeeName = lastShift.dipendente_nome;
 
-        const isPulito = statoPulizia === 'pulito';
-        
-        if (isPulito) {
-          results[employeeName].puliti++;
-        } else {
-          results[employeeName].sporchi++;
-        }
+          if (!results[employeeName]) {
+            results[employeeName] = {
+              id: employeeName,
+              name: employeeName,
+              puliti: 0,
+              sporchi: 0,
+              details: []
+            };
+          }
 
-        results[employeeName].details.push({
-          attrezzatura: domanda.attrezzatura,
-          stato: statoPulizia,
-          data_compilazione: inspection.inspection_date,
-          store_name: inspection.store_name,
-          ruolo: ruoloResponsabile,
-          data_turno: lastShift.data,
-          ora_fine_turno: oraFineTurno,
-          compilato_da: inspection.inspector_name || 'N/A'
-        });
+          const isPulito = statoPulizia === 'pulito';
+
+          if (isPulito) {
+            results[employeeName].puliti++;
+          } else {
+            results[employeeName].sporchi++;
+          }
+
+          results[employeeName].details.push({
+            attrezzatura: domanda.attrezzatura,
+            stato: statoPulizia,
+            data_compilazione: inspection.inspection_date,
+            store_name: inspection.store_name,
+            ruolo: ruoloResponsabile,
+            data_turno: lastShift.data,
+            ora_fine_turno: oraFineTurno,
+            compilato_da: inspection.inspector_name || 'N/A'
+          });
         });
       });
     });
@@ -250,14 +250,14 @@ export default function PulizieMatch() {
   // Filter by selected employee
   const filteredResults = useMemo(() => {
     if (selectedEmployee === 'all') return matchedResults;
-    return matchedResults.filter(r => r.id === selectedEmployee);
+    return matchedResults.filter((r) => r.id === selectedEmployee);
   }, [matchedResults, selectedEmployee]);
 
   // Sort by performance (worst first)
   const sortedResults = useMemo(() => {
     return [...filteredResults].sort((a, b) => {
-      const percentA = a.puliti + a.sporchi > 0 ? (a.puliti / (a.puliti + a.sporchi)) * 100 : 0;
-      const percentB = b.puliti + b.sporchi > 0 ? (b.puliti / (b.puliti + b.sporchi)) * 100 : 0;
+      const percentA = a.puliti + a.sporchi > 0 ? a.puliti / (a.puliti + a.sporchi) * 100 : 0;
+      const percentB = b.puliti + b.sporchi > 0 ? b.puliti / (b.puliti + b.sporchi) * 100 : 0;
       return percentA - percentB;
     });
   }, [filteredResults]);
@@ -270,7 +270,7 @@ export default function PulizieMatch() {
     }), { puliti: 0, sporchi: 0 });
 
     const totalChecks = total.puliti + total.sporchi;
-    const percentage = totalChecks > 0 ? (total.puliti / totalChecks) * 100 : 0;
+    const percentage = totalChecks > 0 ? total.puliti / totalChecks * 100 : 0;
 
     return { ...total, totalChecks, percentage };
   }, [filteredResults]);
@@ -279,8 +279,8 @@ export default function PulizieMatch() {
     <ProtectedPage pageName="PulizieMatch">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">🎯 Match Pulizie</h1>
-          <p className="text-[#9b9b9b]">Performance controlli pulizia per dipendente</p>
+          <h1 className="text-slate-50 mb-2 text-3xl font-bold">🎯 Match Pulizie</h1>
+          <p className="text-slate-50">Performance controlli pulizia per dipendente</p>
         </div>
 
         {/* Filters */}
@@ -294,12 +294,12 @@ export default function PulizieMatch() {
               <select
                 value={selectedStore}
                 onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              >
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                 <option value="all">Tutti i Locali</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id}>{store.name}</option>
-                ))}
+                {stores.map((store) =>
+                <option key={store.id} value={store.id}>{store.name}</option>
+                )}
               </select>
             </div>
 
@@ -311,8 +311,8 @@ export default function PulizieMatch() {
               <select
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              >
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                 <option value="week">Ultima Settimana</option>
                 <option value="month">Ultimo Mese</option>
                 <option value="3months">Ultimi 3 Mesi</option>
@@ -328,12 +328,12 @@ export default function PulizieMatch() {
               <select
                 value={selectedEmployee}
                 onChange={(e) => setSelectedEmployee(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              >
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                 <option value="all">Tutti i Dipendenti</option>
-                {matchedResults.map(r => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
+                {matchedResults.map((r) =>
+                <option key={r.id} value={r.id}>{r.name}</option>
+                )}
               </select>
             </div>
           </div>
@@ -368,22 +368,22 @@ export default function PulizieMatch() {
             Performance Dipendenti ({sortedResults.length})
           </h2>
 
-          {sortedResults.length === 0 ? (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          ) : (
-            <div className="space-y-4">
-              {sortedResults.map(employee => {
-                const total = employee.puliti + employee.sporchi;
-                const percentage = total > 0 ? (employee.puliti / total) * 100 : 0;
-                const isGood = percentage >= 80;
+          {sortedResults.length === 0 ?
+          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p> :
 
-                return (
-                  <div key={employee.id} className="neumorphic-pressed p-5 rounded-xl">
+          <div className="space-y-4">
+              {sortedResults.map((employee) => {
+              const total = employee.puliti + employee.sporchi;
+              const percentage = total > 0 ? employee.puliti / total * 100 : 0;
+              const isGood = percentage >= 80;
+
+              return (
+                <div key={employee.id} className="neumorphic-pressed p-5 rounded-xl">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          isGood ? 'bg-green-100' : 'bg-orange-100'
-                        }`}>
+                      isGood ? 'bg-green-100' : 'bg-orange-100'}`
+                      }>
                           <Users className={`w-6 h-6 ${isGood ? 'text-green-600' : 'text-orange-600'}`} />
                         </div>
                         <div>
@@ -395,11 +395,11 @@ export default function PulizieMatch() {
                       <div className="text-right">
                         <div className="flex items-center gap-2 justify-end mb-1">
                           <span className="text-2xl font-bold text-[#6b6b6b]">{percentage.toFixed(1)}%</span>
-                          {isGood ? (
-                            <TrendingUp className="w-6 h-6 text-green-600" />
-                          ) : (
-                            <TrendingDown className="w-6 h-6 text-orange-600" />
-                          )}
+                          {isGood ?
+                        <TrendingUp className="w-6 h-6 text-green-600" /> :
+
+                        <TrendingDown className="w-6 h-6 text-orange-600" />
+                        }
                         </div>
                         <div className="flex items-center gap-3 text-sm">
                           <span className="text-green-600 font-medium">
@@ -416,10 +416,10 @@ export default function PulizieMatch() {
 
                     {/* Progress Bar */}
                     <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden mb-3">
-                      <div 
-                        className={`h-full transition-all ${isGood ? 'bg-green-500' : 'bg-orange-500'}`}
-                        style={{ width: `${percentage}%` }}
-                      />
+                      <div
+                      className={`h-full transition-all ${isGood ? 'bg-green-500' : 'bg-orange-500'}`}
+                      style={{ width: `${percentage}%` }} />
+
                     </div>
 
                     {/* Details */}
@@ -428,19 +428,19 @@ export default function PulizieMatch() {
                         Vedi dettagli ({employee.details.length})
                       </summary>
                       <div className="mt-3 space-y-2">
-                        {employee.details
-                          .sort((a, b) => new Date(b.data_compilazione) - new Date(a.data_compilazione))
-                          .map((detail, idx) => (
-                          <div key={idx} className="neumorphic-flat p-3 rounded-lg text-sm">
+                        {employee.details.
+                      sort((a, b) => new Date(b.data_compilazione) - new Date(a.data_compilazione)).
+                      map((detail, idx) =>
+                      <div key={idx} className="neumorphic-flat p-3 rounded-lg text-sm">
                             <div className="flex items-start justify-between">
                               <div>
                                 <p className="font-medium text-[#6b6b6b]">
                                   {detail.attrezzatura}
                                   <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                                    detail.stato === 'pulito' 
-                                      ? 'bg-green-100 text-green-700' 
-                                      : 'bg-red-100 text-red-700'
-                                  }`}>
+                              detail.stato === 'pulito' ?
+                              'bg-green-100 text-green-700' :
+                              'bg-red-100 text-red-700'}`
+                              }>
                                     {detail.stato}
                                   </span>
                                 </p>
@@ -455,21 +455,21 @@ export default function PulizieMatch() {
                                 </p>
                               </div>
                               <div className="text-right text-xs text-[#9b9b9b]">
-                                Rilevato:<br/>
+                                Rilevato:<br />
                                 {format(parseISO(detail.data_compilazione), 'dd/MM/yyyy HH:mm', { locale: it })}
                               </div>
                             </div>
                           </div>
-                        ))}
+                      )}
                       </div>
                     </details>
-                  </div>
-                );
-              })}
+                  </div>);
+
+            })}
             </div>
-          )}
+          }
         </NeumorphicCard>
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
