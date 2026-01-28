@@ -14,171 +14,171 @@ import {
   Trash2,
   UserCheck,
   AlertTriangle,
-  Truck
-} from 'lucide-react';
+  Truck } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function FormsDipendente() {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => base44.auth.me()
   });
 
   const { data: pageAccessConfig } = useQuery({
     queryKey: ['page-access-config'],
     queryFn: async () => {
       const configs = await base44.entities.PageAccessConfig.list();
-      return configs.find(c => c.is_active);
-    },
+      return configs.find((c) => c.is_active);
+    }
   });
 
   const userRoles = user?.ruoli_dipendente || [];
 
   const forms = [
-    {
-      title: "Controllo Pulizia Cassiere",
-      description: "Controllo pulizia area cassa",
-      icon: Camera,
-      url: "ControlloPuliziaCassiere",
-      color: "from-blue-500 to-cyan-500"
-    },
-    {
-      title: "Controllo Pulizia Pizzaiolo",
-      description: "Controllo pulizia area pizza",
-      icon: Camera,
-      url: "ControlloPuliziaPizzaiolo",
-      color: "from-orange-500 to-red-600"
-    },
-    {
-      title: "Controllo Pulizia Store Manager",
-      description: "Controllo pulizia generale",
-      icon: Camera,
-      url: "ControlloPuliziaStoreManager",
-      color: "from-purple-500 to-pink-600"
-    },
-    {
-      title: "Inventario",
-      description: "Form inventario e gestione magazzino",
-      icon: ClipboardList,
-      url: "FormInventario",
-      color: "from-green-500 to-emerald-600"
-    },
-    {
-      title: "Inventario Cantina",
-      description: "Form inventario cantina",
-      icon: ClipboardList,
-      url: "FormCantina",
-      color: "from-indigo-500 to-blue-600"
-    },
-    {
-      title: "Inventario Store Manager",
-      description: "Gestione completa inventario",
-      icon: ClipboardList,
-      url: "InventarioStoreManager",
-      color: "from-emerald-500 to-green-600"
-    },
-    {
-      title: "Conteggio Cassa",
-      description: "Registra il conteggio cassa",
-      icon: DollarSign,
-      url: "ConteggioCassa",
-      color: "from-teal-500 to-cyan-600"
-    },
-    {
-      title: "Prelievi",
-      description: "Registra prelievi dalla cassa",
-      icon: DollarSign,
-      url: "FormPrelievi",
-      color: "from-red-500 to-orange-600",
-      requiresStoreManager: true
-    },
-    {
-      title: "Depositi",
-      description: "Registra depositi alla cassa",
-      icon: DollarSign,
-      url: "FormDeposito",
-      color: "from-green-500 to-teal-600",
-      requiresStoreManager: true
-    },
-    {
-      title: "Pagamenti Contanti",
-      description: "Registra pagamenti in contanti",
-      icon: DollarSign,
-      url: "FormPagamentiContanti",
-      color: "from-blue-500 to-indigo-600",
-      requiresStoreManager: true
-    },
-    {
-      title: "Feedback P2P",
-      description: "Dai feedback ai tuoi colleghi",
-      icon: Users,
-      url: "FeedbackP2P",
-      color: "from-rose-500 to-pink-600"
-    },
-    {
-      title: "Impasto",
-      description: "Gestione impasto",
-      icon: ChefHat,
-      url: "Impasto",
-      color: "from-amber-500 to-yellow-600"
-    },
-    {
-      title: "Precotture",
-      description: "Gestione precotture",
-      icon: Pizza,
-      url: "Precotture",
-      color: "from-indigo-500 to-blue-600"
-    },
-    {
-      title: "Teglie Buttate",
-      description: "Registra teglie buttate",
-      icon: Trash2,
-      url: "FormTeglieButtate",
-      color: "from-red-500 to-rose-600"
-    },
-    {
-      title: "Preparazioni",
-      description: "Gestione preparazioni",
-      icon: ClipboardList,
-      url: "FormPreparazioni",
-      color: "from-violet-500 to-purple-600"
-    },
-    {
-      title: "Valutazione Prove",
-      description: "Valuta i candidati",
-      icon: UserCheck,
-      url: "ValutazioneProvaForm",
-      color: "from-pink-500 to-rose-600",
-      requiresAbilitatoProve: true
-    },
-    {
-      title: "Segnalazioni",
-      description: "Segnala problemi o anomalie",
-      icon: AlertTriangle,
-      url: "Segnalazioni",
-      color: "from-orange-500 to-red-600"
-    },
-    {
-      title: "Sprechi",
-      description: "Registra prodotti sprecati",
-      icon: Trash2,
-      url: "FormSprechi",
-      color: "from-red-500 to-orange-600"
-    },
-    {
-      title: "Spostamenti tra Negozi",
-      description: "Registra trasferimenti tra locali",
-      icon: Truck,
-      url: "FormSpostamenti",
-      color: "from-blue-500 to-indigo-600",
-      requiresStoreManager: true
-    }
-  ];
+  {
+    title: "Controllo Pulizia Cassiere",
+    description: "Controllo pulizia area cassa",
+    icon: Camera,
+    url: "ControlloPuliziaCassiere",
+    color: "from-blue-500 to-cyan-500"
+  },
+  {
+    title: "Controllo Pulizia Pizzaiolo",
+    description: "Controllo pulizia area pizza",
+    icon: Camera,
+    url: "ControlloPuliziaPizzaiolo",
+    color: "from-orange-500 to-red-600"
+  },
+  {
+    title: "Controllo Pulizia Store Manager",
+    description: "Controllo pulizia generale",
+    icon: Camera,
+    url: "ControlloPuliziaStoreManager",
+    color: "from-purple-500 to-pink-600"
+  },
+  {
+    title: "Inventario",
+    description: "Form inventario e gestione magazzino",
+    icon: ClipboardList,
+    url: "FormInventario",
+    color: "from-green-500 to-emerald-600"
+  },
+  {
+    title: "Inventario Cantina",
+    description: "Form inventario cantina",
+    icon: ClipboardList,
+    url: "FormCantina",
+    color: "from-indigo-500 to-blue-600"
+  },
+  {
+    title: "Inventario Store Manager",
+    description: "Gestione completa inventario",
+    icon: ClipboardList,
+    url: "InventarioStoreManager",
+    color: "from-emerald-500 to-green-600"
+  },
+  {
+    title: "Conteggio Cassa",
+    description: "Registra il conteggio cassa",
+    icon: DollarSign,
+    url: "ConteggioCassa",
+    color: "from-teal-500 to-cyan-600"
+  },
+  {
+    title: "Prelievi",
+    description: "Registra prelievi dalla cassa",
+    icon: DollarSign,
+    url: "FormPrelievi",
+    color: "from-red-500 to-orange-600",
+    requiresStoreManager: true
+  },
+  {
+    title: "Depositi",
+    description: "Registra depositi alla cassa",
+    icon: DollarSign,
+    url: "FormDeposito",
+    color: "from-green-500 to-teal-600",
+    requiresStoreManager: true
+  },
+  {
+    title: "Pagamenti Contanti",
+    description: "Registra pagamenti in contanti",
+    icon: DollarSign,
+    url: "FormPagamentiContanti",
+    color: "from-blue-500 to-indigo-600",
+    requiresStoreManager: true
+  },
+  {
+    title: "Feedback P2P",
+    description: "Dai feedback ai tuoi colleghi",
+    icon: Users,
+    url: "FeedbackP2P",
+    color: "from-rose-500 to-pink-600"
+  },
+  {
+    title: "Impasto",
+    description: "Gestione impasto",
+    icon: ChefHat,
+    url: "Impasto",
+    color: "from-amber-500 to-yellow-600"
+  },
+  {
+    title: "Precotture",
+    description: "Gestione precotture",
+    icon: Pizza,
+    url: "Precotture",
+    color: "from-indigo-500 to-blue-600"
+  },
+  {
+    title: "Teglie Buttate",
+    description: "Registra teglie buttate",
+    icon: Trash2,
+    url: "FormTeglieButtate",
+    color: "from-red-500 to-rose-600"
+  },
+  {
+    title: "Preparazioni",
+    description: "Gestione preparazioni",
+    icon: ClipboardList,
+    url: "FormPreparazioni",
+    color: "from-violet-500 to-purple-600"
+  },
+  {
+    title: "Valutazione Prove",
+    description: "Valuta i candidati",
+    icon: UserCheck,
+    url: "ValutazioneProvaForm",
+    color: "from-pink-500 to-rose-600",
+    requiresAbilitatoProve: true
+  },
+  {
+    title: "Segnalazioni",
+    description: "Segnala problemi o anomalie",
+    icon: AlertTriangle,
+    url: "Segnalazioni",
+    color: "from-orange-500 to-red-600"
+  },
+  {
+    title: "Sprechi",
+    description: "Registra prodotti sprecati",
+    icon: Trash2,
+    url: "FormSprechi",
+    color: "from-red-500 to-orange-600"
+  },
+  {
+    title: "Spostamenti tra Negozi",
+    description: "Registra trasferimenti tra locali",
+    icon: Truck,
+    url: "FormSpostamenti",
+    color: "from-blue-500 to-indigo-600",
+    requiresStoreManager: true
+  }];
+
 
   // Normalize config (convert strings to objects)
   const normalizePageConfig = (pages) => {
     if (!pages || pages.length === 0) return [];
-    return pages.map(p => {
+    return pages.map((p) => {
       if (typeof p === 'string') {
         return { page: p, showInMenu: true, showInForms: false };
       }
@@ -189,7 +189,7 @@ export default function FormsDipendente() {
   // Get pages that should show in Forms from config
   const getFormsPages = () => {
     if (!pageAccessConfig || !user) return [];
-    
+
     const userRoles = user.ruoli_dipendente || [];
     let pagesConfig = [];
 
@@ -197,7 +197,7 @@ export default function FormsDipendente() {
       pagesConfig = normalizePageConfig(pageAccessConfig.after_registration || []);
     } else {
       const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
-      
+
       if (contractStarted) {
         if (userRoles.includes('Pizzaiolo')) {
           pagesConfig = [...pagesConfig, ...normalizePageConfig(pageAccessConfig.pizzaiolo_pages || [])];
@@ -213,51 +213,51 @@ export default function FormsDipendente() {
 
     // Remove duplicates by page name
     const seen = new Set();
-    pagesConfig = pagesConfig.filter(p => {
+    pagesConfig = pagesConfig.filter((p) => {
       if (seen.has(p.page)) return false;
       seen.add(p.page);
       return true;
     });
 
     // Filter only pages that should show in Forms
-    return pagesConfig
-      .filter(p => p.showInForms === true)
-      .map(p => p.page);
+    return pagesConfig.
+    filter((p) => p.showInForms === true).
+    map((p) => p.page);
   };
 
   const formsPages = getFormsPages();
 
   // Filter forms based on config
-  let filteredForms = forms.filter(form => {
+  let filteredForms = forms.filter((form) => {
     // Check if in formsPages config - OR check if in any role pages (fallback)
     const inFormsPages = formsPages.includes(form.url);
-    
+
     // Fallback: check if user has access through role pages
     let hasAccessThroughRole = false;
     if (!inFormsPages && pageAccessConfig && userRoles.length > 0) {
       const contractStarted = user?.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
       if (contractStarted) {
         const allRolePages = [
-          ...(userRoles.includes('Pizzaiolo') ? normalizePageConfig(pageAccessConfig.pizzaiolo_pages || []) : []),
-          ...(userRoles.includes('Cassiere') ? normalizePageConfig(pageAccessConfig.cassiere_pages || []) : []),
-          ...(userRoles.includes('Store Manager') ? normalizePageConfig(pageAccessConfig.store_manager_pages || []) : [])
-        ];
-        hasAccessThroughRole = allRolePages.some(p => p.page === form.url);
+        ...(userRoles.includes('Pizzaiolo') ? normalizePageConfig(pageAccessConfig.pizzaiolo_pages || []) : []),
+        ...(userRoles.includes('Cassiere') ? normalizePageConfig(pageAccessConfig.cassiere_pages || []) : []),
+        ...(userRoles.includes('Store Manager') ? normalizePageConfig(pageAccessConfig.store_manager_pages || []) : [])];
+
+        hasAccessThroughRole = allRolePages.some((p) => p.page === form.url);
       }
     }
-    
+
     if (!inFormsPages && !hasAccessThroughRole) return false;
-    
+
     // Check if requires Store Manager role
     if (form.requiresStoreManager && !userRoles.includes('Store Manager')) return false;
-    
+
     return true;
   });
 
   // Add ValutazioneProvaForm for users with abilitato_prove
   if (user?.abilitato_prove) {
-    const valutazioneForm = forms.find(f => f.url === 'ValutazioneProvaForm');
-    if (valutazioneForm && !filteredForms.some(f => f.url === 'ValutazioneProvaForm')) {
+    const valutazioneForm = forms.find((f) => f.url === 'ValutazioneProvaForm');
+    if (valutazioneForm && !filteredForms.some((f) => f.url === 'ValutazioneProvaForm')) {
       filteredForms = [...filteredForms, valutazioneForm];
     }
   }
@@ -265,10 +265,10 @@ export default function FormsDipendente() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-          Form
+        <h1 className="bg-clip-text text-slate-50 mb-1 text-3xl font-bold from-slate-700 to-slate-900">Form
+
         </h1>
-        <p className="text-sm text-slate-500">Compila i form richiesti per il tuo ruolo</p>
+        <p className="text-slate-50 text-sm">Compila i form richiesti per il tuo ruolo</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -284,8 +284,8 @@ export default function FormsDipendente() {
                 <h3 className="text-lg font-bold text-slate-800 text-center mb-2">{form.title}</h3>
                 <p className="text-sm text-slate-600 text-center">{form.description}</p>
               </NeumorphicCard>
-            </Link>
-          );
+            </Link>);
+
         })}
       </div>
 
@@ -303,6 +303,6 @@ export default function FormsDipendente() {
           </div>
         </div>
       </NeumorphicCard>
-    </div>
-  );
+    </div>);
+
 }
