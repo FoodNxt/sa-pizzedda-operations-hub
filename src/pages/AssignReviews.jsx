@@ -17,38 +17,38 @@ export default function AssignReviews() {
     tipi_turno_inclusi: ['Normale'],
     ruoli_esclusi: ['Preparazioni', 'Volantinaggio']
   });
-  
+
   const queryClient = useQueryClient();
 
   const { data: reviews = [] } = useQuery({
     queryKey: ['reviews'],
-    queryFn: () => base44.entities.Review.list('-review_date'),
+    queryFn: () => base44.entities.Review.list('-review_date')
   });
 
   const { data: turniPlanday = [] } = useQuery({
     queryKey: ['turni-planday'],
-    queryFn: () => base44.entities.TurnoPlanday.list('-data'),
+    queryFn: () => base44.entities.TurnoPlanday.list('-data')
   });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: configs = [] } = useQuery({
     queryKey: ['review-assignment-config'],
-    queryFn: () => base44.entities.ReviewAssignmentConfig.list(),
+    queryFn: () => base44.entities.ReviewAssignmentConfig.list()
   });
 
   const { data: employees = [] } = useQuery({
     queryKey: ['dipendenti-users'],
     queryFn: async () => {
       const allUsers = await base44.entities.User.list();
-      return allUsers.filter(u => u.user_type === 'dipendente');
-    },
+      return allUsers.filter((u) => u.user_type === 'dipendente');
+    }
   });
 
-  const activeConfig = configs.find(c => c.is_active) || {
+  const activeConfig = configs.find((c) => c.is_active) || {
     tipi_turno_inclusi: ['Normale'],
     ruoli_esclusi: ['Preparazioni', 'Volantinaggio']
   };
@@ -57,7 +57,7 @@ export default function AssignReviews() {
     mutationFn: ({ reviewId, data }) => base44.entities.Review.update(reviewId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
-    },
+    }
   });
 
   const updateConfigMutation = useMutation({
@@ -65,7 +65,7 @@ export default function AssignReviews() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['review-assignment-config'] });
       setShowSettings(false);
-    },
+    }
   });
 
   const createConfigMutation = useMutation({
@@ -73,7 +73,7 @@ export default function AssignReviews() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['review-assignment-config'] });
       setShowSettings(false);
-    },
+    }
   });
 
   // Find matching employees for a review using TurnoPlanday
@@ -83,41 +83,41 @@ export default function AssignReviews() {
     try {
       const reviewDate = parseISO(review.review_date);
       if (isNaN(reviewDate.getTime())) return [];
-      
+
       const employeeMap = new Map();
-      
-      turniPlanday.forEach(turno => {
+
+      turniPlanday.forEach((turno) => {
         if (turno.store_id !== review.store_id) return;
-        
+
         const normalizedName = (turno.dipendente_nome || '').trim();
         const mapKey = normalizedName.toLowerCase();
-        
+
         if (!normalizedName) return;
         if (employeeMap.has(mapKey)) return;
-        
+
         // Check tipo_turno against config
         if (!activeConfig.tipi_turno_inclusi.includes(turno.tipo_turno || 'Normale')) return;
-        
+
         // Exclude certain roles
         if (activeConfig.ruoli_esclusi.includes(turno.ruolo)) return;
-        
+
         if (!turno.data || !turno.ora_inizio || !turno.ora_fine) return;
-        
+
         try {
           const turnoDate = turno.data;
           const reviewDateStr = format(reviewDate, 'yyyy-MM-dd');
-          
+
           if (turnoDate !== reviewDateStr) return;
-          
+
           const [startHour, startMin] = turno.ora_inizio.split(':').map(Number);
           const [endHour, endMin] = turno.ora_fine.split(':').map(Number);
-          
+
           const shiftStart = new Date(reviewDate);
           shiftStart.setHours(startHour, startMin, 0, 0);
-          
+
           const shiftEnd = new Date(reviewDate);
           shiftEnd.setHours(endHour, endMin, 0, 0);
-          
+
           if (isWithinInterval(reviewDate, { start: shiftStart, end: shiftEnd })) {
             employeeMap.set(mapKey, {
               employee_name: normalizedName,
@@ -125,15 +125,15 @@ export default function AssignReviews() {
             });
           }
         } catch (e) {
+
+
           // Skip this turno if parsing fails
-        }
-      });
-
+        }});
       const uniqueEmployees = Array.from(employeeMap.values());
-      const confidence = uniqueEmployees.length === 1 ? 'high' : 
-                        uniqueEmployees.length === 2 ? 'medium' : 'low';
+      const confidence = uniqueEmployees.length === 1 ? 'high' :
+      uniqueEmployees.length === 2 ? 'medium' : 'low';
 
-      return uniqueEmployees.map(emp => ({
+      return uniqueEmployees.map((emp) => ({
         ...emp,
         confidence
       }));
@@ -144,7 +144,7 @@ export default function AssignReviews() {
 
   // Enriched reviews with matching employees
   const enrichedReviews = useMemo(() => {
-    return reviews.map(review => {
+    return reviews.map((review) => {
       const matches = findMatchingEmployees(review);
       return {
         ...review,
@@ -156,7 +156,7 @@ export default function AssignReviews() {
   }, [reviews, turniPlanday, activeConfig]);
 
   // Filter reviews
-  const filteredReviews = enrichedReviews.filter(review => {
+  const filteredReviews = enrichedReviews.filter((review) => {
     if (selectedStore !== 'all' && review.store_id !== selectedStore) return false;
     if (showOnlyUnassigned && review.isAssigned) return false;
     return true;
@@ -165,9 +165,9 @@ export default function AssignReviews() {
   // Statistics
   const stats = {
     total: reviews.length,
-    assigned: reviews.filter(r => r.employee_assigned_name).length,
-    unassigned: reviews.filter(r => !r.employee_assigned_name).length,
-    withMatches: enrichedReviews.filter(r => r.hasMatches && !r.isAssigned).length
+    assigned: reviews.filter((r) => r.employee_assigned_name).length,
+    unassigned: reviews.filter((r) => !r.employee_assigned_name).length,
+    withMatches: enrichedReviews.filter((r) => r.hasMatches && !r.isAssigned).length
   };
 
   const handleAssignReview = async (review, employeeNames) => {
@@ -175,22 +175,22 @@ export default function AssignReviews() {
     if (typeof employeeNames === 'string') {
       employeeNames = [employeeNames];
     }
-    
+
     // ROBUST: Remove duplicates and normalize names
     const uniqueNames = [...new Set(
-      employeeNames
-        .map(name => (name || '').trim())
-        .filter(name => name.length > 0)
+      employeeNames.
+      map((name) => (name || '').trim()).
+      filter((name) => name.length > 0)
     )];
-    
+
     if (uniqueNames.length === 0) {
       alert('Errore: nessun dipendente valido da assegnare');
       return;
     }
-    
-    const confidence = uniqueNames.length === 1 ? 'high' : 
-                      uniqueNames.length === 2 ? 'medium' : 'low';
-    
+
+    const confidence = uniqueNames.length === 1 ? 'high' :
+    uniqueNames.length === 2 ? 'medium' : 'low';
+
     await updateReviewMutation.mutateAsync({
       reviewId: review.id,
       data: {
@@ -203,24 +203,24 @@ export default function AssignReviews() {
   // Auto-assign unassigned reviews on load
   useEffect(() => {
     const autoAssignReviews = async () => {
-      const unassignedWithMatches = enrichedReviews.filter(r => !r.isAssigned && r.hasMatches);
-      
+      const unassignedWithMatches = enrichedReviews.filter((r) => !r.isAssigned && r.hasMatches);
+
       if (unassignedWithMatches.length === 0) return;
-      
+
       for (const review of unassignedWithMatches) {
-        const employeeNames = review.matchingEmployees.map(m => m.employee_name);
-        
+        const employeeNames = review.matchingEmployees.map((m) => m.employee_name);
+
         const uniqueNames = [...new Set(
-          employeeNames
-            .map(name => (name || '').trim())
-            .filter(name => name.length > 0)
+          employeeNames.
+          map((name) => (name || '').trim()).
+          filter((name) => name.length > 0)
         )];
-        
+
         if (uniqueNames.length === 0) continue;
-        
-        const confidence = uniqueNames.length === 1 ? 'high' : 
-                         uniqueNames.length === 2 ? 'medium' : 'low';
-        
+
+        const confidence = uniqueNames.length === 1 ? 'high' :
+        uniqueNames.length === 2 ? 'medium' : 'low';
+
         await updateReviewMutation.mutateAsync({
           reviewId: review.id,
           data: {
@@ -242,9 +242,9 @@ export default function AssignReviews() {
     }
 
     setResetting(true);
-    
-    const assignedReviews = reviews.filter(r => r.employee_assigned_name);
-    
+
+    const assignedReviews = reviews.filter((r) => r.employee_assigned_name);
+
     for (const review of assignedReviews) {
       await updateReviewMutation.mutateAsync({
         reviewId: review.id,
@@ -254,21 +254,21 @@ export default function AssignReviews() {
         }
       });
     }
-    
+
     setResetting(false);
   };
 
   const getStoreName = (storeId) => {
-    const store = stores.find(s => s.id === storeId);
+    const store = stores.find((s) => s.id === storeId);
     return store?.name || 'Sconosciuto';
   };
 
   const getConfidenceColor = (confidence) => {
     switch (confidence) {
-      case 'high': return 'text-green-600 bg-green-50';
-      case 'medium': return 'text-yellow-600 bg-yellow-50';
-      case 'low': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
+      case 'high':return 'text-green-600 bg-green-50';
+      case 'medium':return 'text-yellow-600 bg-yellow-50';
+      case 'low':return 'text-red-600 bg-red-50';
+      default:return 'text-gray-600 bg-gray-50';
     }
   };
 
@@ -298,7 +298,7 @@ export default function AssignReviews() {
 
   const handleEditReview = (review) => {
     setEditingReview(review);
-    const currentNames = review.employee_assigned_name ? review.employee_assigned_name.split(',').map(n => n.trim()) : [];
+    const currentNames = review.employee_assigned_name ? review.employee_assigned_name.split(',').map((n) => n.trim()) : [];
     setSelectedEmployees(currentNames);
   };
 
@@ -318,8 +318,8 @@ export default function AssignReviews() {
       return;
     }
 
-    const confidence = selectedEmployees.length === 1 ? 'high' : 
-                      selectedEmployees.length === 2 ? 'medium' : 'low';
+    const confidence = selectedEmployees.length === 1 ? 'high' :
+    selectedEmployees.length === 2 ? 'medium' : 'low';
 
     await updateReviewMutation.mutateAsync({
       reviewId: editingReview.id,
@@ -334,10 +334,10 @@ export default function AssignReviews() {
   };
 
   const toggleEmployeeSelection = (employeeName) => {
-    setSelectedEmployees(prev => 
-      prev.includes(employeeName) 
-        ? prev.filter(n => n !== employeeName)
-        : [...prev, employeeName]
+    setSelectedEmployees((prev) =>
+    prev.includes(employeeName) ?
+    prev.filter((n) => n !== employeeName) :
+    [...prev, employeeName]
     );
   };
 
@@ -345,8 +345,8 @@ export default function AssignReviews() {
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">Assegnazione Recensioni</h1>
-        <p className="text-[#9b9b9b]">Assegna automaticamente le recensioni ai dipendenti in turno</p>
+        <h1 className="text-slate-50 mb-2 text-3xl font-bold">Assegnazione Recensioni</h1>
+        <p className="text-slate-50">Assegna automaticamente le recensioni ai dipendenti in turno</p>
       </div>
 
       {/* Statistics */}
@@ -379,12 +379,12 @@ export default function AssignReviews() {
             <select
               value={selectedStore}
               onChange={(e) => setSelectedStore(e.target.value)}
-              className="bg-transparent text-[#6b6b6b] outline-none"
-            >
+              className="bg-transparent text-[#6b6b6b] outline-none">
+
               <option value="all">Tutti i Locali</option>
-              {stores.map(store => (
-                <option key={store.id} value={store.id}>{store.name}</option>
-              ))}
+              {stores.map((store) =>
+              <option key={store.id} value={store.id}>{store.name}</option>
+              )}
             </select>
           </NeumorphicCard>
 
@@ -394,8 +394,8 @@ export default function AssignReviews() {
                 type="checkbox"
                 checked={showOnlyUnassigned}
                 onChange={(e) => setShowOnlyUnassigned(e.target.checked)}
-                className="rounded"
-              />
+                className="rounded" />
+
               <span className="text-sm text-[#6b6b6b]">Solo non assegnate</span>
             </label>
           </NeumorphicCard>
@@ -404,8 +404,8 @@ export default function AssignReviews() {
         <div className="flex gap-3">
           <NeumorphicButton
             onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <Settings className="w-4 h-4" />
             Impostazioni
           </NeumorphicButton>
@@ -413,8 +413,8 @@ export default function AssignReviews() {
           <NeumorphicButton
             onClick={handleResetAllAssignments}
             disabled={resetting || stats.assigned === 0}
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <RefreshCw className={`w-4 h-4 ${resetting ? 'animate-spin' : ''}`} />
             {resetting ? 'Resettando...' : `Reset (${stats.assigned})`}
           </NeumorphicButton>
@@ -439,9 +439,9 @@ export default function AssignReviews() {
 
       {/* Reviews List */}
       <div className="space-y-4">
-        {filteredReviews.length > 0 ? (
-          filteredReviews.map(review => (
-            <NeumorphicCard key={review.id} className="p-6">
+        {filteredReviews.length > 0 ?
+        filteredReviews.map((review) =>
+        <NeumorphicCard key={review.id} className="p-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Review Info */}
                 <div className="lg:col-span-2">
@@ -461,12 +461,12 @@ export default function AssignReviews() {
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {(() => {
-                            try {
-                              return format(parseISO(review.review_date), 'dd/MM/yyyy HH:mm');
-                            } catch (e) {
-                              return review.review_date;
-                            }
-                          })()}
+                        try {
+                          return format(parseISO(review.review_date), 'dd/MM/yyyy HH:mm');
+                        } catch (e) {
+                          return review.review_date;
+                        }
+                      })()}
                         </div>
                       </div>
                       <div className="text-xs text-[#9b9b9b] font-mono">
@@ -475,8 +475,8 @@ export default function AssignReviews() {
                     </div>
 
                     <div className="neumorphic-flat px-4 py-2 rounded-lg min-w-[200px]">
-                      {review.isAssigned ? (
-                        <>
+                      {review.isAssigned ?
+                  <>
                           <div className="flex items-center justify-between gap-3 mb-2">
                             <div className="flex items-center gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600" />
@@ -484,49 +484,49 @@ export default function AssignReviews() {
                             </div>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => handleEditReview(review)}
-                                className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                                title="Modifica assegnazione"
-                              >
+                          onClick={() => handleEditReview(review)}
+                          className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                          title="Modifica assegnazione">
+
                                 <Edit className="w-4 h-4 text-blue-600" />
                               </button>
                               <button
-                                onClick={() => handleUnassignReview(review.id)}
-                                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                                title="Rimuovi assegnazione"
-                              >
+                          onClick={() => handleUnassignReview(review.id)}
+                          className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Rimuovi assegnazione">
+
                                 <X className="w-4 h-4 text-red-600" />
                               </button>
                             </div>
                           </div>
                           <p className="text-sm text-[#6b6b6b] font-medium">{review.employee_assigned_name}</p>
-                          {review.assignment_confidence && (
-                            <p className={`text-xs mt-1 px-2 py-1 rounded inline-block ${getConfidenceColor(review.assignment_confidence)}`}>
+                          {review.assignment_confidence &&
+                    <p className={`text-xs mt-1 px-2 py-1 rounded inline-block ${getConfidenceColor(review.assignment_confidence)}`}>
                               {review.assignment_confidence}
                             </p>
-                          )}
-                        </>
-                      ) : (
-                        <div className="text-center py-2">
+                    }
+                        </> :
+
+                  <div className="text-center py-2">
                           <button
-                            onClick={() => {
-                              setEditingReview(review);
-                              setSelectedEmployees([]);
-                            }}
-                            className="neumorphic-flat px-4 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
-                          >
+                      onClick={() => {
+                        setEditingReview(review);
+                        setSelectedEmployees([]);
+                      }}
+                      className="neumorphic-flat px-4 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors">
+
                             Assegna Manualmente
                           </button>
                         </div>
-                      )}
+                  }
                     </div>
                   </div>
 
-                  {review.comment && (
-                    <div className="neumorphic-pressed p-4 rounded-lg">
+                  {review.comment &&
+              <div className="neumorphic-pressed p-4 rounded-lg">
                       <p className="text-sm text-[#6b6b6b]">{review.comment}</p>
                     </div>
-                  )}
+              }
                 </div>
 
                 {/* Matching Employees */}
@@ -536,10 +536,10 @@ export default function AssignReviews() {
                     Dipendenti in Turno ({review.matchingEmployees.length})
                   </h3>
                   
-                  {review.hasMatches ? (
-                    <div className="space-y-2">
-                      {review.matchingEmployees.map((match, idx) => (
-                        <div key={`${review.id}-${match.employee_name}-${idx}`} className="neumorphic-flat p-3 rounded-lg">
+                  {review.hasMatches ?
+              <div className="space-y-2">
+                      {review.matchingEmployees.map((match, idx) =>
+                <div key={`${review.id}-${match.employee_name}-${idx}`} className="neumorphic-flat p-3 rounded-lg">
                           <div className="mb-2">
                             <p className="font-medium text-[#6b6b6b] text-sm">{match.employee_name}</p>
                             <p className="text-xs text-[#9b9b9b]">{match.turno.ruolo || 'N/A'}</p>
@@ -549,39 +549,39 @@ export default function AssignReviews() {
                             <p>
                               Turno: {match.turno.ora_inizio} - {match.turno.ora_fine}
                             </p>
-                            {match.turno.tipo_turno && (
-                              <p>Tipo: {match.turno.tipo_turno}</p>
-                            )}
+                            {match.turno.tipo_turno &&
+                    <p>Tipo: {match.turno.tipo_turno}</p>
+                    }
                           </div>
                         </div>
-                      ))}
+                )}
 
-                      {!review.isAssigned && (
-                        <button
-                          onClick={() => handleAssignReview(review, review.matchingEmployees.map(m => m.employee_name))}
-                          className="w-full neumorphic-flat px-3 py-2 rounded-lg text-xs font-medium text-[#6b6b6b] hover:bg-[#8b7355] hover:text-white transition-all mt-2"
-                        >
+                      {!review.isAssigned &&
+                <button
+                  onClick={() => handleAssignReview(review, review.matchingEmployees.map((m) => m.employee_name))}
+                  className="w-full neumorphic-flat px-3 py-2 rounded-lg text-xs font-medium text-[#6b6b6b] hover:bg-[#8b7355] hover:text-white transition-all mt-2">
+
                           Assegna a {review.matchingEmployees.length === 1 ? review.matchingEmployees[0].employee_name : `tutti (${review.matchingEmployees.length})`}
                         </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="neumorphic-pressed p-4 rounded-lg text-center">
+                }
+                    </div> :
+
+              <div className="neumorphic-pressed p-4 rounded-lg text-center">
                       <AlertCircle className="w-8 h-8 text-[#9b9b9b] mx-auto mb-2" />
                       <p className="text-xs text-[#9b9b9b]">Nessun dipendente in turno trovato</p>
                     </div>
-                  )}
+              }
                 </div>
               </div>
             </NeumorphicCard>
-          ))
-        ) : (
-          <NeumorphicCard className="p-12 text-center">
+        ) :
+
+        <NeumorphicCard className="p-12 text-center">
             <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-[#6b6b6b] mb-2">Tutte le recensioni sono state assegnate!</h3>
             <p className="text-[#9b9b9b]">Ottimo lavoro! Non ci sono recensioni da assegnare.</p>
           </NeumorphicCard>
-        )}
+        }
       </div>
 
       {/* Info Box */}
@@ -603,8 +603,8 @@ export default function AssignReviews() {
       </NeumorphicCard>
 
       {/* Edit Modal */}
-      {editingReview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {editingReview &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-md w-full">
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -620,45 +620,45 @@ export default function AssignReviews() {
                     Seleziona Dipendenti ({selectedEmployees.length} selezionati)
                   </label>
                   <div className="max-h-64 overflow-y-auto space-y-2 neumorphic-pressed p-3 rounded-xl">
-                    {employees.length > 0 ? (
-                      employees.map(emp => {
-                        const displayName = emp.nome_cognome || emp.full_name || emp.email;
-                        return (
-                          <label
-                            key={emp.id}
-                            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-                              selectedEmployees.includes(displayName)
-                                ? 'bg-blue-100 border-2 border-blue-500'
-                                : 'neumorphic-flat hover:bg-slate-50'
-                            }`}
-                          >
+                    {employees.length > 0 ?
+                  employees.map((emp) => {
+                    const displayName = emp.nome_cognome || emp.full_name || emp.email;
+                    return (
+                      <label
+                        key={emp.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                        selectedEmployees.includes(displayName) ?
+                        'bg-blue-100 border-2 border-blue-500' :
+                        'neumorphic-flat hover:bg-slate-50'}`
+                        }>
+
                             <input
-                              type="checkbox"
-                              checked={selectedEmployees.includes(displayName)}
-                              onChange={() => toggleEmployeeSelection(displayName)}
-                              className="w-5 h-5 rounded"
-                            />
+                          type="checkbox"
+                          checked={selectedEmployees.includes(displayName)}
+                          onChange={() => toggleEmployeeSelection(displayName)}
+                          className="w-5 h-5 rounded" />
+
                             <div className="flex-1">
                               <p className="text-sm font-medium text-[#6b6b6b]">{displayName}</p>
-                              {emp.ruoli_dipendente && emp.ruoli_dipendente.length > 0 && (
-                                <p className="text-xs text-[#9b9b9b]">{emp.ruoli_dipendente.join(', ')}</p>
-                              )}
+                              {emp.ruoli_dipendente && emp.ruoli_dipendente.length > 0 &&
+                          <p className="text-xs text-[#9b9b9b]">{emp.ruoli_dipendente.join(', ')}</p>
+                          }
                             </div>
-                          </label>
-                        );
-                      })
-                    ) : (
-                      <p className="text-sm text-[#9b9b9b] text-center py-4">
+                          </label>);
+
+                  }) :
+
+                  <p className="text-sm text-[#9b9b9b] text-center py-4">
                         Nessun dipendente attivo trovato
                       </p>
-                    )}
+                  }
                   </div>
-                  {selectedEmployees.length > 0 && (
-                    <div className="mt-3 p-3 neumorphic-flat rounded-lg">
+                  {selectedEmployees.length > 0 &&
+                <div className="mt-3 p-3 neumorphic-flat rounded-lg">
                       <p className="text-xs text-[#9b9b9b] mb-2">Dipendenti selezionati:</p>
                       <p className="text-sm text-[#6b6b6b] font-medium">{selectedEmployees.join(', ')}</p>
                     </div>
-                  )}
+                }
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -673,11 +673,11 @@ export default function AssignReviews() {
             </NeumorphicCard>
           </div>
         </div>
-      )}
+      }
 
       {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showSettings &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-2xl w-full">
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -693,29 +693,29 @@ export default function AssignReviews() {
                     Tipologie di Turno da Includere
                   </label>
                   <div className="space-y-2">
-                    {['Normale', 'Straordinario', 'Prova', 'Affiancamento', 'Ferie', 'Malattia'].map(tipo => (
-                      <label key={tipo} className="flex items-center gap-3 p-3 neumorphic-flat rounded-lg cursor-pointer">
+                    {['Normale', 'Straordinario', 'Prova', 'Affiancamento', 'Ferie', 'Malattia'].map((tipo) =>
+                  <label key={tipo} className="flex items-center gap-3 p-3 neumorphic-flat rounded-lg cursor-pointer">
                         <input
-                          type="checkbox"
-                          checked={configForm.tipi_turno_inclusi.includes(tipo)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setConfigForm({
-                                ...configForm,
-                                tipi_turno_inclusi: [...configForm.tipi_turno_inclusi, tipo]
-                              });
-                            } else {
-                              setConfigForm({
-                                ...configForm,
-                                tipi_turno_inclusi: configForm.tipi_turno_inclusi.filter(t => t !== tipo)
-                              });
-                            }
-                          }}
-                          className="w-5 h-5"
-                        />
+                      type="checkbox"
+                      checked={configForm.tipi_turno_inclusi.includes(tipo)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setConfigForm({
+                            ...configForm,
+                            tipi_turno_inclusi: [...configForm.tipi_turno_inclusi, tipo]
+                          });
+                        } else {
+                          setConfigForm({
+                            ...configForm,
+                            tipi_turno_inclusi: configForm.tipi_turno_inclusi.filter((t) => t !== tipo)
+                          });
+                        }
+                      }}
+                      className="w-5 h-5" />
+
                         <span className="text-[#6b6b6b] font-medium">{tipo}</span>
                       </label>
-                    ))}
+                  )}
                   </div>
                 </div>
 
@@ -724,29 +724,29 @@ export default function AssignReviews() {
                     Ruoli da Escludere
                   </label>
                   <div className="space-y-2">
-                    {['Pizzaiolo', 'Cassiere', 'Store Manager', 'Preparazioni', 'Volantinaggio'].map(ruolo => (
-                      <label key={ruolo} className="flex items-center gap-3 p-3 neumorphic-flat rounded-lg cursor-pointer">
+                    {['Pizzaiolo', 'Cassiere', 'Store Manager', 'Preparazioni', 'Volantinaggio'].map((ruolo) =>
+                  <label key={ruolo} className="flex items-center gap-3 p-3 neumorphic-flat rounded-lg cursor-pointer">
                         <input
-                          type="checkbox"
-                          checked={configForm.ruoli_esclusi.includes(ruolo)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setConfigForm({
-                                ...configForm,
-                                ruoli_esclusi: [...configForm.ruoli_esclusi, ruolo]
-                              });
-                            } else {
-                              setConfigForm({
-                                ...configForm,
-                                ruoli_esclusi: configForm.ruoli_esclusi.filter(r => r !== ruolo)
-                              });
-                            }
-                          }}
-                          className="w-5 h-5"
-                        />
+                      type="checkbox"
+                      checked={configForm.ruoli_esclusi.includes(ruolo)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setConfigForm({
+                            ...configForm,
+                            ruoli_esclusi: [...configForm.ruoli_esclusi, ruolo]
+                          });
+                        } else {
+                          setConfigForm({
+                            ...configForm,
+                            ruoli_esclusi: configForm.ruoli_esclusi.filter((r) => r !== ruolo)
+                          });
+                        }
+                      }}
+                      className="w-5 h-5" />
+
                         <span className="text-[#6b6b6b] font-medium">{ruolo}</span>
                       </label>
-                    ))}
+                  )}
                   </div>
                 </div>
 
@@ -762,7 +762,7 @@ export default function AssignReviews() {
             </NeumorphicCard>
           </div>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
