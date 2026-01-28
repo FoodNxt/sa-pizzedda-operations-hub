@@ -13,8 +13,8 @@ import {
   Shield,
   Users,
   ChevronDown,
-  ChevronRight
-} from 'lucide-react';
+  ChevronRight } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
@@ -23,7 +23,7 @@ export default function GestioneAccessoPagine() {
   const [expandedSections, setExpandedSections] = useState({});
 
   const toggleSection = (sectionKey) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
       [sectionKey]: !prev[sectionKey]
     }));
@@ -34,16 +34,16 @@ export default function GestioneAccessoPagine() {
     queryFn: async () => {
       const result = await base44.entities.PageAccessConfig.list();
       return result;
-    },
+    }
   });
 
-  const activeConfig = configs.find(c => c.is_active) || null;
+  const activeConfig = configs.find((c) => c.is_active) || null;
 
   // Helper to convert old format (string[]) to new format (object[])
   const normalizePages = (pages) => {
     if (!pages || pages.length === 0) return [];
     if (typeof pages[0] === 'string') {
-      return pages.map(p => ({ page: p, showInMenu: true, showInForms: false }));
+      return pages.map((p) => ({ page: p, showInMenu: true, showInForms: false }));
     }
     return pages;
   };
@@ -53,45 +53,45 @@ export default function GestioneAccessoPagine() {
     manager_pages: activeConfig?.manager_pages || [],
     after_registration: normalizePages(activeConfig?.after_registration || [{ page: 'TurniDipendente', showInMenu: true, showInForms: false }, { page: 'ProfiloDipendente', showInMenu: true, showInForms: false }]),
     after_contract_received: normalizePages(activeConfig?.after_contract_received || [
-      { page: 'TurniDipendente', showInMenu: true, showInForms: false },
-      { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-      { page: 'ContrattiDipendente', showInMenu: true, showInForms: false }
-    ]),
+    { page: 'TurniDipendente', showInMenu: true, showInForms: false },
+    { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+    { page: 'ContrattiDipendente', showInMenu: true, showInForms: false }]
+    ),
     after_contract_signed: normalizePages(activeConfig?.after_contract_signed || [
-      { page: 'TurniDipendente', showInMenu: true, showInForms: false },
-      { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-      { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
-      { page: 'Academy', showInMenu: true, showInForms: false }
-    ]),
+    { page: 'TurniDipendente', showInMenu: true, showInForms: false },
+    { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+    { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+    { page: 'Academy', showInMenu: true, showInForms: false }]
+    ),
     pizzaiolo_pages: normalizePages(activeConfig?.pizzaiolo_pages || [
-      { page: 'TurniDipendente', showInMenu: true, showInForms: false },
-      { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-      { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
-      { page: 'Academy', showInMenu: true, showInForms: false },
-      { page: 'Valutazione', showInMenu: true, showInForms: false },
-      { page: 'FormsDipendente', showInMenu: true, showInForms: false },
-      { page: 'ControlloPuliziaPizzaiolo', showInMenu: false, showInForms: true }
-    ]),
+    { page: 'TurniDipendente', showInMenu: true, showInForms: false },
+    { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+    { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+    { page: 'Academy', showInMenu: true, showInForms: false },
+    { page: 'Valutazione', showInMenu: true, showInForms: false },
+    { page: 'FormsDipendente', showInMenu: true, showInForms: false },
+    { page: 'ControlloPuliziaPizzaiolo', showInMenu: false, showInForms: true }]
+    ),
     cassiere_pages: normalizePages(activeConfig?.cassiere_pages || [
-      { page: 'TurniDipendente', showInMenu: true, showInForms: false },
-      { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-      { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
-      { page: 'Academy', showInMenu: true, showInForms: false },
-      { page: 'Valutazione', showInMenu: true, showInForms: false },
-      { page: 'FormsDipendente', showInMenu: true, showInForms: false },
-      { page: 'ControlloPuliziaCassiere', showInMenu: false, showInForms: true }
-    ]),
+    { page: 'TurniDipendente', showInMenu: true, showInForms: false },
+    { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+    { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+    { page: 'Academy', showInMenu: true, showInForms: false },
+    { page: 'Valutazione', showInMenu: true, showInForms: false },
+    { page: 'FormsDipendente', showInMenu: true, showInForms: false },
+    { page: 'ControlloPuliziaCassiere', showInMenu: false, showInForms: true }]
+    ),
     store_manager_pages: normalizePages(activeConfig?.store_manager_pages || [
-      { page: 'TurniDipendente', showInMenu: true, showInForms: false },
-      { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-      { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
-      { page: 'Academy', showInMenu: true, showInForms: false },
-      { page: 'Valutazione', showInMenu: true, showInForms: false },
-      { page: 'FormsDipendente', showInMenu: true, showInForms: false },
-      { page: 'DashboardStoreManager', showInMenu: true, showInForms: false },
-      { page: 'FormSpostamenti', showInMenu: false, showInForms: true }
-      ])
-      });
+    { page: 'TurniDipendente', showInMenu: true, showInForms: false },
+    { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+    { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+    { page: 'Academy', showInMenu: true, showInForms: false },
+    { page: 'Valutazione', showInMenu: true, showInForms: false },
+    { page: 'FormsDipendente', showInMenu: true, showInForms: false },
+    { page: 'DashboardStoreManager', showInMenu: true, showInForms: false },
+    { page: 'FormSpostamenti', showInMenu: false, showInForms: true }]
+    )
+  });
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -110,7 +110,7 @@ export default function GestioneAccessoPagine() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['page-access-config'] });
-    },
+    }
   });
 
   React.useEffect(() => {
@@ -120,238 +120,238 @@ export default function GestioneAccessoPagine() {
         manager_pages: activeConfig.manager_pages || [],
         after_registration: normalizePages(activeConfig.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }]),
         after_contract_received: normalizePages(activeConfig.after_contract_received || [
-          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false }
-        ]),
+        { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+        { page: 'ContrattiDipendente', showInMenu: true, showInForms: false }]
+        ),
         after_contract_signed: normalizePages(activeConfig.after_contract_signed || [
-          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
-          { page: 'Academy', showInMenu: true, showInForms: false }
-        ]),
+        { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+        { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+        { page: 'Academy', showInMenu: true, showInForms: false }]
+        ),
         pizzaiolo_pages: normalizePages(activeConfig.pizzaiolo_pages || [
-          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
-          { page: 'Academy', showInMenu: true, showInForms: false },
-          { page: 'Valutazione', showInMenu: true, showInForms: false },
-          { page: 'FormsDipendente', showInMenu: true, showInForms: false },
-          { page: 'ControlloPuliziaPizzaiolo', showInMenu: false, showInForms: true }
-        ]),
+        { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+        { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+        { page: 'Academy', showInMenu: true, showInForms: false },
+        { page: 'Valutazione', showInMenu: true, showInForms: false },
+        { page: 'FormsDipendente', showInMenu: true, showInForms: false },
+        { page: 'ControlloPuliziaPizzaiolo', showInMenu: false, showInForms: true }]
+        ),
         cassiere_pages: normalizePages(activeConfig.cassiere_pages || [
-          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
-          { page: 'Academy', showInMenu: true, showInForms: false },
-          { page: 'Valutazione', showInMenu: true, showInForms: false },
-          { page: 'FormsDipendente', showInMenu: true, showInForms: false },
-          { page: 'ControlloPuliziaCassiere', showInMenu: false, showInForms: true }
-        ]),
+        { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+        { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+        { page: 'Academy', showInMenu: true, showInForms: false },
+        { page: 'Valutazione', showInMenu: true, showInForms: false },
+        { page: 'FormsDipendente', showInMenu: true, showInForms: false },
+        { page: 'ControlloPuliziaCassiere', showInMenu: false, showInForms: true }]
+        ),
         store_manager_pages: normalizePages(activeConfig.store_manager_pages || [
-          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
-          { page: 'Academy', showInMenu: true, showInForms: false },
-          { page: 'Valutazione', showInMenu: true, showInForms: false },
-          { page: 'FormsDipendente', showInMenu: true, showInForms: false },
-          { page: 'DashboardStoreManager', showInMenu: true, showInForms: false },
-          { page: 'FormSpostamenti', showInMenu: false, showInForms: true }
-          ])
+        { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
+        { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
+        { page: 'Academy', showInMenu: true, showInForms: false },
+        { page: 'Valutazione', showInMenu: true, showInForms: false },
+        { page: 'FormsDipendente', showInMenu: true, showInForms: false },
+        { page: 'DashboardStoreManager', showInMenu: true, showInForms: false },
+        { page: 'FormSpostamenti', showInMenu: false, showInForms: true }]
+        )
       });
     }
   }, [activeConfig]);
 
   const allAdminPages = [
-    { value: 'Dashboard', label: 'Dashboard Overview', category: 'Dashboard' },
-    { value: 'SummaryAI', label: 'Summary AI', category: 'Dashboard' },
-    { value: 'FormTracker', label: 'Form Tracker', category: 'Dashboard' },
-    { value: 'Alerts', label: 'Alerts', category: 'Dashboard' },
-    { value: 'StoreReviews', label: 'Store Reviews', category: 'Reviews' },
-    { value: 'AssignReviews', label: 'Assign Reviews', category: 'Reviews' },
-    { value: 'EmployeeReviewsPerformance', label: 'Employee Reviews', category: 'Reviews' },
-    { value: 'RealTime', label: 'Real Time', category: 'Financials' },
-    { value: 'Financials', label: 'Financials', category: 'Financials' },
-    { value: 'ChannelComparison', label: 'Channel Comparison', category: 'Financials' },
-    { value: 'StoricoCassa', label: 'Storico Cassa', category: 'Financials' },
-    { value: 'Costi', label: 'Costi', category: 'Financials' },
-    { value: 'FinancialForms', label: 'Financial Forms', category: 'Financials' },
-    { value: 'Inventory', label: 'Inventory Dashboard', category: 'Inventory' },
-    { value: 'MateriePrime', label: 'Materie Prime', category: 'Inventory' },
-    { value: 'Ricette', label: 'Ricette', category: 'Inventory' },
-    { value: 'ConfrontoListini', label: 'Confronto Listini', category: 'Inventory' },
-    { value: 'AnalisiSprechi', label: 'Analisi Sprechi', category: 'Inventory' },
-    { value: 'InventarioAdmin', label: 'Inventario Admin', category: 'Inventory' },
-    { value: 'InventarioStoreManager', label: 'Inventario Store Manager', category: 'Inventory' },
-    { value: 'ControlloConsumi', label: 'Controllo Consumi', category: 'Inventory' },
-    { value: 'FormInventario', label: 'Form Inventario', category: 'Inventory' },
-    { value: 'FormCantina', label: 'Form Cantina', category: 'Inventory' },
-    { value: 'QuantitaMinime', label: 'Quantità Minime', category: 'Inventory' },
-    { value: 'ElencoFornitori', label: 'Elenco Fornitori', category: 'Inventory' },
-    { value: 'UploadFattureXML', label: 'Upload Fatture XML', category: 'Inventory' },
-    { value: 'ProdottiVenduti', label: 'Prodotti Venduti', category: 'Inventory' },
-    { value: 'StoricoImpasti', label: 'Storico Impasti', category: 'Inventory' },
-    { value: 'Marketing', label: 'Marketing Overview', category: 'Marketing' },
-    { value: 'Google', label: 'Google Ads', category: 'Marketing' },
-    { value: 'Meta', label: 'Meta Ads', category: 'Marketing' },
-    { value: 'Activation', label: 'Activation', category: 'Marketing' },
-    { value: 'Contatti', label: 'Contatti Marketing', category: 'Marketing' },
-    { value: 'PianoQuarter', label: 'Piano Quarter', category: 'Marketing' },
-    { value: 'MarketingSettings', label: 'Marketing Settings', category: 'Marketing' },
-    { value: 'PrecottureAdmin', label: 'Precotture Admin', category: 'Inventory' },
-    { value: 'TeglieButtate', label: 'Teglie Buttate', category: 'Inventory' },
-    { value: 'Preparazioni', label: 'Preparazioni', category: 'Inventory' },
-    { value: 'PreparazioniAdmin', label: 'Preparazioni Admin', category: 'Inventory' },
-    { value: 'FormPreparazioni', label: 'Form Preparazioni', category: 'Inventory' },
-    { value: 'InventoryForms', label: 'Inventory Forms', category: 'Inventory' },
-    { value: 'OrdiniAdmin', label: 'Ordini Fornitori Admin', category: 'Inventory' },
-    { value: 'Ordini', label: 'Ordini Fornitori (Dipendente)', category: 'Inventory' },
-    { value: 'Employees', label: 'Employees', category: 'HR' },
-    { value: 'Shifts', label: 'Shifts', category: 'HR' },
-    { value: 'Payroll', label: 'Payroll', category: 'HR' },
-    { value: 'Contratti', label: 'Contratti', category: 'HR' },
-    { value: 'AlertPeriodoProva', label: 'Alert Periodo Prova', category: 'HR' },
-    { value: 'HRAdmin', label: 'HR Admin', category: 'HR' },
-    { value: 'AcademyAdmin', label: 'Academy Admin', category: 'HR' },
-    { value: 'Planday', label: 'Planday - Gestione Turni', category: 'HR' },
-    { value: 'StrutturaTurno', label: 'Struttura Turno', category: 'HR' },
-    { value: 'Assenze', label: 'Assenze (Ferie/Malattia)', category: 'HR' },
-    { value: 'ATS', label: 'ATS - Candidati', category: 'HR' },
-    { value: 'Compliance', label: 'Compliance', category: 'HR' },
-    { value: 'Documenti', label: 'Documenti', category: 'HR' },
-    { value: 'FeedbackP2P', label: 'Feedback P2P', category: 'HR' },
-    { value: 'OverviewContratti', label: 'Overview Contratti', category: 'HR' },
-    { value: 'StoreManagerAdmin', label: 'Store Manager Admin', category: 'HR' },
-    { value: 'GestioneAssistente', label: 'Gestione Assistente', category: 'HR' },
-    { value: 'RecalculateShifts', label: 'Ricalcola Ritardi Turni', category: 'HR' },
-    { value: 'CleanupDuplicateShifts', label: 'Elimina Turni Duplicati', category: 'HR' },
-    { value: 'Disponibilita', label: 'Disponibilità', category: 'HR' },
-    { value: 'Pulizie', label: 'Storico Pulizie', category: 'Pulizie' },
-    { value: 'PulizieMatch', label: 'Pulizie Match', category: 'Pulizie' },
-    { value: 'FormPulizia', label: 'Form Pulizia', category: 'Pulizie' },
-    { value: 'Attrezzature', label: 'Attrezzature', category: 'Pulizie' },
-    { value: 'ControlloPulizieMaster', label: 'Controllo Pulizie Master', category: 'Pulizie' },
-    { value: 'ControlloPuliziaCassiere', label: 'Controllo Pulizia Cassiere', category: 'Pulizie' },
-    { value: 'ControlloPuliziaPizzaiolo', label: 'Controllo Pulizia Pizzaiolo', category: 'Pulizie' },
-    { value: 'ControlloPuliziaStoreManager', label: 'Controllo Pulizia Store Manager', category: 'Pulizie' },
-    { value: 'OrdiniSbagliati', label: 'Ordini Sbagliati', category: 'Delivery' },
-    { value: 'MatchingOrdiniSbagliati', label: 'Matching Ordini Sbagliati', category: 'Delivery' },
-    { value: 'ZapierSetup', label: 'Zapier Reviews', category: 'Zapier' },
-    { value: 'ShiftsSetup', label: 'Zapier Shifts', category: 'Zapier' },
-    { value: 'OrderItemsSetup', label: 'Zapier Orders', category: 'Zapier' },
-    { value: 'InventorySetup', label: 'Zapier Inventory', category: 'Zapier' },
-    { value: 'IPraticoSetup', label: 'Zapier iPratico', category: 'Zapier' },
-    { value: 'IPraticoBulkImport', label: 'Bulk Import iPratico', category: 'Zapier' },
-    { value: 'ZapierProdottiVenduti', label: 'Zapier Prodotti Venduti', category: 'Zapier' },
-    { value: 'BulkImportProdottiVenduti', label: 'Bulk Import Prodotti Venduti', category: 'Zapier' },
-    { value: 'UsersManagement', label: 'Gestione Utenti', category: 'Sistema' },
-    { value: 'GestioneAccessoPagine', label: 'Gestione Accesso Pagine', category: 'Sistema' },
-    { value: 'StrutturaMenù', label: 'Struttura Menu', category: 'Sistema' },
-    { value: 'FunzionamentoApp', label: 'Funzionamento App', category: 'Sistema' },
-    { value: 'NotificheMail', label: 'Notifiche Mail', category: 'Sistema' },
-    { value: 'FormSpostamenti', label: 'Spostamenti tra Negozi', category: 'Inventory' },
-    { value: 'SpostamentiAdmin', label: 'Spostamenti Admin', category: 'Inventory' }
-  ];
+  { value: 'Dashboard', label: 'Dashboard Overview', category: 'Dashboard' },
+  { value: 'SummaryAI', label: 'Summary AI', category: 'Dashboard' },
+  { value: 'FormTracker', label: 'Form Tracker', category: 'Dashboard' },
+  { value: 'Alerts', label: 'Alerts', category: 'Dashboard' },
+  { value: 'StoreReviews', label: 'Store Reviews', category: 'Reviews' },
+  { value: 'AssignReviews', label: 'Assign Reviews', category: 'Reviews' },
+  { value: 'EmployeeReviewsPerformance', label: 'Employee Reviews', category: 'Reviews' },
+  { value: 'RealTime', label: 'Real Time', category: 'Financials' },
+  { value: 'Financials', label: 'Financials', category: 'Financials' },
+  { value: 'ChannelComparison', label: 'Channel Comparison', category: 'Financials' },
+  { value: 'StoricoCassa', label: 'Storico Cassa', category: 'Financials' },
+  { value: 'Costi', label: 'Costi', category: 'Financials' },
+  { value: 'FinancialForms', label: 'Financial Forms', category: 'Financials' },
+  { value: 'Inventory', label: 'Inventory Dashboard', category: 'Inventory' },
+  { value: 'MateriePrime', label: 'Materie Prime', category: 'Inventory' },
+  { value: 'Ricette', label: 'Ricette', category: 'Inventory' },
+  { value: 'ConfrontoListini', label: 'Confronto Listini', category: 'Inventory' },
+  { value: 'AnalisiSprechi', label: 'Analisi Sprechi', category: 'Inventory' },
+  { value: 'InventarioAdmin', label: 'Inventario Admin', category: 'Inventory' },
+  { value: 'InventarioStoreManager', label: 'Inventario Store Manager', category: 'Inventory' },
+  { value: 'ControlloConsumi', label: 'Controllo Consumi', category: 'Inventory' },
+  { value: 'FormInventario', label: 'Form Inventario', category: 'Inventory' },
+  { value: 'FormCantina', label: 'Form Cantina', category: 'Inventory' },
+  { value: 'QuantitaMinime', label: 'Quantità Minime', category: 'Inventory' },
+  { value: 'ElencoFornitori', label: 'Elenco Fornitori', category: 'Inventory' },
+  { value: 'UploadFattureXML', label: 'Upload Fatture XML', category: 'Inventory' },
+  { value: 'ProdottiVenduti', label: 'Prodotti Venduti', category: 'Inventory' },
+  { value: 'StoricoImpasti', label: 'Storico Impasti', category: 'Inventory' },
+  { value: 'Marketing', label: 'Marketing Overview', category: 'Marketing' },
+  { value: 'Google', label: 'Google Ads', category: 'Marketing' },
+  { value: 'Meta', label: 'Meta Ads', category: 'Marketing' },
+  { value: 'Activation', label: 'Activation', category: 'Marketing' },
+  { value: 'Contatti', label: 'Contatti Marketing', category: 'Marketing' },
+  { value: 'PianoQuarter', label: 'Piano Quarter', category: 'Marketing' },
+  { value: 'MarketingSettings', label: 'Marketing Settings', category: 'Marketing' },
+  { value: 'PrecottureAdmin', label: 'Precotture Admin', category: 'Inventory' },
+  { value: 'TeglieButtate', label: 'Teglie Buttate', category: 'Inventory' },
+  { value: 'Preparazioni', label: 'Preparazioni', category: 'Inventory' },
+  { value: 'PreparazioniAdmin', label: 'Preparazioni Admin', category: 'Inventory' },
+  { value: 'FormPreparazioni', label: 'Form Preparazioni', category: 'Inventory' },
+  { value: 'InventoryForms', label: 'Inventory Forms', category: 'Inventory' },
+  { value: 'OrdiniAdmin', label: 'Ordini Fornitori Admin', category: 'Inventory' },
+  { value: 'Ordini', label: 'Ordini Fornitori (Dipendente)', category: 'Inventory' },
+  { value: 'Employees', label: 'Employees', category: 'HR' },
+  { value: 'Shifts', label: 'Shifts', category: 'HR' },
+  { value: 'Payroll', label: 'Payroll', category: 'HR' },
+  { value: 'Contratti', label: 'Contratti', category: 'HR' },
+  { value: 'AlertPeriodoProva', label: 'Alert Periodo Prova', category: 'HR' },
+  { value: 'HRAdmin', label: 'HR Admin', category: 'HR' },
+  { value: 'AcademyAdmin', label: 'Academy Admin', category: 'HR' },
+  { value: 'Planday', label: 'Planday - Gestione Turni', category: 'HR' },
+  { value: 'StrutturaTurno', label: 'Struttura Turno', category: 'HR' },
+  { value: 'Assenze', label: 'Assenze (Ferie/Malattia)', category: 'HR' },
+  { value: 'ATS', label: 'ATS - Candidati', category: 'HR' },
+  { value: 'Compliance', label: 'Compliance', category: 'HR' },
+  { value: 'Documenti', label: 'Documenti', category: 'HR' },
+  { value: 'FeedbackP2P', label: 'Feedback P2P', category: 'HR' },
+  { value: 'OverviewContratti', label: 'Overview Contratti', category: 'HR' },
+  { value: 'StoreManagerAdmin', label: 'Store Manager Admin', category: 'HR' },
+  { value: 'GestioneAssistente', label: 'Gestione Assistente', category: 'HR' },
+  { value: 'RecalculateShifts', label: 'Ricalcola Ritardi Turni', category: 'HR' },
+  { value: 'CleanupDuplicateShifts', label: 'Elimina Turni Duplicati', category: 'HR' },
+  { value: 'Disponibilita', label: 'Disponibilità', category: 'HR' },
+  { value: 'Pulizie', label: 'Storico Pulizie', category: 'Pulizie' },
+  { value: 'PulizieMatch', label: 'Pulizie Match', category: 'Pulizie' },
+  { value: 'FormPulizia', label: 'Form Pulizia', category: 'Pulizie' },
+  { value: 'Attrezzature', label: 'Attrezzature', category: 'Pulizie' },
+  { value: 'ControlloPulizieMaster', label: 'Controllo Pulizie Master', category: 'Pulizie' },
+  { value: 'ControlloPuliziaCassiere', label: 'Controllo Pulizia Cassiere', category: 'Pulizie' },
+  { value: 'ControlloPuliziaPizzaiolo', label: 'Controllo Pulizia Pizzaiolo', category: 'Pulizie' },
+  { value: 'ControlloPuliziaStoreManager', label: 'Controllo Pulizia Store Manager', category: 'Pulizie' },
+  { value: 'OrdiniSbagliati', label: 'Ordini Sbagliati', category: 'Delivery' },
+  { value: 'MatchingOrdiniSbagliati', label: 'Matching Ordini Sbagliati', category: 'Delivery' },
+  { value: 'ZapierSetup', label: 'Zapier Reviews', category: 'Zapier' },
+  { value: 'ShiftsSetup', label: 'Zapier Shifts', category: 'Zapier' },
+  { value: 'OrderItemsSetup', label: 'Zapier Orders', category: 'Zapier' },
+  { value: 'InventorySetup', label: 'Zapier Inventory', category: 'Zapier' },
+  { value: 'IPraticoSetup', label: 'Zapier iPratico', category: 'Zapier' },
+  { value: 'IPraticoBulkImport', label: 'Bulk Import iPratico', category: 'Zapier' },
+  { value: 'ZapierProdottiVenduti', label: 'Zapier Prodotti Venduti', category: 'Zapier' },
+  { value: 'BulkImportProdottiVenduti', label: 'Bulk Import Prodotti Venduti', category: 'Zapier' },
+  { value: 'UsersManagement', label: 'Gestione Utenti', category: 'Sistema' },
+  { value: 'GestioneAccessoPagine', label: 'Gestione Accesso Pagine', category: 'Sistema' },
+  { value: 'StrutturaMenù', label: 'Struttura Menu', category: 'Sistema' },
+  { value: 'FunzionamentoApp', label: 'Funzionamento App', category: 'Sistema' },
+  { value: 'NotificheMail', label: 'Notifiche Mail', category: 'Sistema' },
+  { value: 'FormSpostamenti', label: 'Spostamenti tra Negozi', category: 'Inventory' },
+  { value: 'SpostamentiAdmin', label: 'Spostamenti Admin', category: 'Inventory' }];
+
 
   const availableDipendentiPages = [
-    { value: 'ProfiloDipendente', label: '✅ Il Mio Profilo', icon: User, category: 'Area Dipendente', recommended: true },
-    { value: 'ContrattiDipendente', label: '✅ I Miei Contratti', icon: FileText, category: 'Area Dipendente', recommended: true },
-    { value: 'Academy', label: '✅ Academy', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'Valutazione', label: '✅ La Mia Valutazione', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'FormsDipendente', label: '✅ Forms', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'Segnalazioni', label: '✅ Segnalazioni', icon: AlertCircle, category: 'Area Dipendente', recommended: true },
-    { value: 'ValutazioneProvaForm', label: '✅ Valutazione Prove', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'ControlloPuliziaCassiere', label: '✅ Controllo Pulizia Cassiere', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'ControlloPuliziaPizzaiolo', label: '✅ Controllo Pulizia Pizzaiolo', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'ControlloPuliziaStoreManager', label: '✅ Controllo Pulizia Store Manager', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'FormInventario', label: '✅ Form Inventario', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'ConteggioCassa', label: '✅ Conteggio Cassa', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'FormTeglieButtate', label: '✅ Teglie Buttate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'Preparazioni', label: '✅ Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'FormPreparazioni', label: '✅ Form Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'Impasto', label: '✅ Impasto', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'Precotture', label: '✅ Precotture', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'FeedbackP2P', label: '✅ Feedback P2P', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'InventarioStoreManager', label: '✅ Inventario Store Manager', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'OreLavorate', label: '✅ Ore Lavorate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'TurniDipendente', label: '✅ I Miei Turni (Timbratura)', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'DashboardStoreManager', label: '✅ Dashboard Store Manager', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'PlandayStoreManager', label: '✅ Planday Store Manager', icon: Calendar, category: 'Area Dipendente', recommended: true },
-    { value: 'FormSpostamenti', label: '✅ Spostamenti tra Negozi', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'FormCantina', label: '✅ Form Cantina', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'Ordini', label: '✅ Ordini Fornitori', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'FormSprechi', label: '✅ Sprechi', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'FormPrelievi', label: '✅ Form Prelievi', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'FormDeposito', label: '✅ Form Deposito', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'FormPagamentiContanti', label: '✅ Form Pagamenti Contanti', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
-    { value: 'AssistenteDipendente', label: '✅ Assistente AI', icon: Users, category: 'Area Dipendente', recommended: true },
-    { value: 'Dashboard', label: '🚫 Dashboard Overview (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'SummaryAI', label: '🚫 Summary AI (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'StoreReviews', label: '🚫 Store Reviews', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'AssignReviews', label: '🚫 Assign Reviews', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'EmployeeReviewsPerformance', label: '🚫 Employee Reviews', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'RealTime', label: '🚫 Real Time (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'Financials', label: '🚫 Financials (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'ChannelComparison', label: '🚫 Channel Comparison', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'StoricoCassa', label: '🚫 Storico Cassa', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'Inventory', label: '🚫 Inventory Dashboard', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'Employees', label: '🚫 Employees (DATI HR)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'Payroll', label: '🚫 Payroll (DATI HR)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'Contratti', label: '🚫 Contratti Admin', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'HRAdmin', label: '🚫 HR Admin', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'AcademyAdmin', label: '🚫 Academy Admin', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'Pulizie', label: '🚫 Storico Pulizie', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
-    { value: 'Attrezzature', label: '🚫 Attrezzature', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false }
-  ];
+  { value: 'ProfiloDipendente', label: '✅ Il Mio Profilo', icon: User, category: 'Area Dipendente', recommended: true },
+  { value: 'ContrattiDipendente', label: '✅ I Miei Contratti', icon: FileText, category: 'Area Dipendente', recommended: true },
+  { value: 'Academy', label: '✅ Academy', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'Valutazione', label: '✅ La Mia Valutazione', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'FormsDipendente', label: '✅ Forms', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'Segnalazioni', label: '✅ Segnalazioni', icon: AlertCircle, category: 'Area Dipendente', recommended: true },
+  { value: 'ValutazioneProvaForm', label: '✅ Valutazione Prove', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'ControlloPuliziaCassiere', label: '✅ Controllo Pulizia Cassiere', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'ControlloPuliziaPizzaiolo', label: '✅ Controllo Pulizia Pizzaiolo', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'ControlloPuliziaStoreManager', label: '✅ Controllo Pulizia Store Manager', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'FormInventario', label: '✅ Form Inventario', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'ConteggioCassa', label: '✅ Conteggio Cassa', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'FormTeglieButtate', label: '✅ Teglie Buttate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'Preparazioni', label: '✅ Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'FormPreparazioni', label: '✅ Form Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'Impasto', label: '✅ Impasto', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'Precotture', label: '✅ Precotture', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'FeedbackP2P', label: '✅ Feedback P2P', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'InventarioStoreManager', label: '✅ Inventario Store Manager', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'OreLavorate', label: '✅ Ore Lavorate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'TurniDipendente', label: '✅ I Miei Turni (Timbratura)', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'DashboardStoreManager', label: '✅ Dashboard Store Manager', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'PlandayStoreManager', label: '✅ Planday Store Manager', icon: Calendar, category: 'Area Dipendente', recommended: true },
+  { value: 'FormSpostamenti', label: '✅ Spostamenti tra Negozi', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'FormCantina', label: '✅ Form Cantina', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'Ordini', label: '✅ Ordini Fornitori', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'FormSprechi', label: '✅ Sprechi', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'FormPrelievi', label: '✅ Form Prelievi', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'FormDeposito', label: '✅ Form Deposito', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'FormPagamentiContanti', label: '✅ Form Pagamenti Contanti', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
+  { value: 'AssistenteDipendente', label: '✅ Assistente AI', icon: Users, category: 'Area Dipendente', recommended: true },
+  { value: 'Dashboard', label: '🚫 Dashboard Overview (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'SummaryAI', label: '🚫 Summary AI (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'StoreReviews', label: '🚫 Store Reviews', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'AssignReviews', label: '🚫 Assign Reviews', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'EmployeeReviewsPerformance', label: '🚫 Employee Reviews', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'RealTime', label: '🚫 Real Time (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'Financials', label: '🚫 Financials (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'ChannelComparison', label: '🚫 Channel Comparison', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'StoricoCassa', label: '🚫 Storico Cassa', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'Inventory', label: '🚫 Inventory Dashboard', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'Employees', label: '🚫 Employees (DATI HR)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'Payroll', label: '🚫 Payroll (DATI HR)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'Contratti', label: '🚫 Contratti Admin', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'HRAdmin', label: '🚫 HR Admin', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'AcademyAdmin', label: '🚫 Academy Admin', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'Pulizie', label: '🚫 Storico Pulizie', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
+  { value: 'Attrezzature', label: '🚫 Attrezzature', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false }];
+
 
   const handlePageToggle = (userType, pageName) => {
-    setPageConfig(prev => {
+    setPageConfig((prev) => {
       const key = userType === 'admin' ? 'admin_pages' : userType === 'manager' ? 'manager_pages' : userType;
       const currentPages = prev[key];
-      
+
       if (userType === 'admin' || userType === 'manager') {
         const hasPage = currentPages.includes(pageName);
         return {
           ...prev,
-          [key]: hasPage
-            ? currentPages.filter(p => p !== pageName)
-            : [...currentPages, pageName]
+          [key]: hasPage ?
+          currentPages.filter((p) => p !== pageName) :
+          [...currentPages, pageName]
         };
       }
-      
-      const hasPage = currentPages.some(p => p.page === pageName);
-      
+
+      const hasPage = currentPages.some((p) => p.page === pageName);
+
       return {
         ...prev,
-        [key]: hasPage
-          ? currentPages.filter(p => p.page !== pageName)
-          : [...currentPages, { page: pageName, showInMenu: true, showInForms: false }]
+        [key]: hasPage ?
+        currentPages.filter((p) => p.page !== pageName) :
+        [...currentPages, { page: pageName, showInMenu: true, showInForms: false }]
       };
     });
   };
 
   const handlePageMenuToggle = (userType, pageName) => {
-    setPageConfig(prev => {
+    setPageConfig((prev) => {
       const key = userType;
       const currentPages = prev[key];
-      
+
       return {
         ...prev,
-        [key]: currentPages.map(p => 
-          p.page === pageName 
-            ? { ...p, showInMenu: !p.showInMenu }
-            : p
+        [key]: currentPages.map((p) =>
+        p.page === pageName ?
+        { ...p, showInMenu: !p.showInMenu } :
+        p
         )
       };
     });
   };
 
   const handlePageFormsToggle = (userType, pageName) => {
-    setPageConfig(prev => {
+    setPageConfig((prev) => {
       const key = userType;
       const currentPages = prev[key];
-      
+
       return {
         ...prev,
-        [key]: currentPages.map(p => 
-          p.page === pageName 
-            ? { ...p, showInForms: !p.showInForms }
-            : p
+        [key]: currentPages.map((p) =>
+        p.page === pageName ?
+        { ...p, showInForms: !p.showInForms } :
+        p
         )
       };
     });
@@ -376,7 +376,7 @@ export default function GestioneAccessoPagine() {
 
   const groupPagesByCategory = () => {
     const grouped = {};
-    allAdminPages.forEach(page => {
+    allAdminPages.forEach((page) => {
       if (!grouped[page.category]) grouped[page.category] = [];
       grouped[page.category].push(page);
     });
@@ -385,7 +385,7 @@ export default function GestioneAccessoPagine() {
 
   const groupDipendentePagesByCategory = () => {
     const grouped = {};
-    availableDipendentiPages.forEach(page => {
+    availableDipendentiPages.forEach((page) => {
       if (!grouped[page.category]) grouped[page.category] = [];
       grouped[page.category].push(page);
     });
@@ -398,8 +398,8 @@ export default function GestioneAccessoPagine() {
         <NeumorphicCard className="p-8 text-center">
           <p className="text-[#9b9b9b]">Caricamento configurazione...</p>
         </NeumorphicCard>
-      </div>
-    );
+      </div>);
+
   }
 
   const groupedPages = groupPagesByCategory();
@@ -408,13 +408,13 @@ export default function GestioneAccessoPagine() {
   // Collapsible Section Component
   const CollapsibleSection = ({ sectionKey, title, subtitle, icon, iconBg, children, defaultOpen = false }) => {
     const isExpanded = expandedSections[sectionKey] ?? defaultOpen;
-    
+
     return (
       <NeumorphicCard className="overflow-hidden">
         <button
           onClick={() => toggleSection(sectionKey)}
-          className="w-full p-6 flex items-center justify-between hover:bg-slate-50 transition-colors"
-        >
+          className="w-full p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
+
           <div className="flex items-center gap-3">
             <div className={`neumorphic-flat w-12 h-12 rounded-full flex items-center justify-center ${iconBg || ''}`}>
               {icon}
@@ -424,83 +424,83 @@ export default function GestioneAccessoPagine() {
               <p className="text-sm text-[#9b9b9b]">{subtitle}</p>
             </div>
           </div>
-          {isExpanded ? (
-            <ChevronDown className="w-6 h-6 text-[#6b6b6b]" />
-          ) : (
-            <ChevronRight className="w-6 h-6 text-[#6b6b6b]" />
-          )}
+          {isExpanded ?
+          <ChevronDown className="w-6 h-6 text-[#6b6b6b]" /> :
+
+          <ChevronRight className="w-6 h-6 text-[#6b6b6b]" />
+          }
         </button>
         
-        {isExpanded && (
-          <div className="px-6 pb-6 border-t border-slate-200">
+        {isExpanded &&
+        <div className="px-6 pb-6 border-t border-slate-200">
             {children}
           </div>
-        )}
-      </NeumorphicCard>
-    );
+        }
+      </NeumorphicCard>);
+
   };
 
   // Render page list for dipendenti sections
   const renderDipendentePageList = (configKey) => {
-    return Object.entries(groupedDipendentePages).map(([category, pages]) => (
-      <div key={category} className="mb-4 mt-4">
+    return Object.entries(groupedDipendentePages).map(([category, pages]) =>
+    <div key={category} className="mb-4 mt-4">
         <h3 className={`font-bold mb-2 text-sm ${
-          category === 'Pagine Sensibili' ? 'text-red-600' : 'text-[#6b6b6b]'
-        }`}>
+      category === 'Pagine Sensibili' ? 'text-red-600' : 'text-[#6b6b6b]'}`
+      }>
           {category}
         </h3>
         <div className="grid grid-cols-1 gap-2">
-          {pages.map(page => {
-            const pageData = pageConfig[configKey]?.find(p => p.page === page.value);
-            const isChecked = !!pageData;
+          {pages.map((page) => {
+          const pageData = pageConfig[configKey]?.find((p) => p.page === page.value);
+          const isChecked = !!pageData;
 
-            return (
-              <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
-                !page.recommended && isChecked ? 'border-2 border-red-500' : ''
-              }`}>
+          return (
+            <div key={page.value} className={`neumorphic-pressed p-3 rounded-lg ${
+            !page.recommended && isChecked ? 'border-2 border-red-500' : ''}`
+            }>
                 <div className="flex items-start gap-3">
                   <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => handlePageToggle(configKey, page.value)}
-                    className="w-5 h-5 rounded mt-0.5"
-                  />
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => handlePageToggle(configKey, page.value)}
+                  className="w-5 h-5 rounded mt-0.5" />
+
                   <div className="flex-1">
                     <span className={`text-sm block mb-2 ${
-                      page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'
-                    }`}>
+                  page.recommended ? 'text-[#6b6b6b]' : 'text-red-600 font-bold'}`
+                  }>
                       {page.label}
                     </span>
-                    {isChecked && (
-                      <div className="flex gap-4 text-xs">
+                    {isChecked &&
+                  <div className="flex gap-4 text-xs">
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
-                            type="checkbox"
-                            checked={pageData.showInMenu}
-                            onChange={() => handlePageMenuToggle(configKey, page.value)}
-                            className="w-4 h-4"
-                          />
+                        type="checkbox"
+                        checked={pageData.showInMenu}
+                        onChange={() => handlePageMenuToggle(configKey, page.value)}
+                        className="w-4 h-4" />
+
                           <span className="text-slate-600">Menu</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
-                            type="checkbox"
-                            checked={pageData.showInForms}
-                            onChange={() => handlePageFormsToggle(configKey, page.value)}
-                            className="w-4 h-4"
-                          />
+                        type="checkbox"
+                        checked={pageData.showInForms}
+                        onChange={() => handlePageFormsToggle(configKey, page.value)}
+                        className="w-4 h-4" />
+
                           <span className="text-slate-600">Forms</span>
                         </label>
                       </div>
-                    )}
+                  }
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              </div>);
+
+        })}
         </div>
       </div>
-    ));
+    );
   };
 
   return (
@@ -509,9 +509,9 @@ export default function GestioneAccessoPagine() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <CheckSquare className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-3xl font-bold text-[#6b6b6b]">Gestione Accesso Pagine</h1>
+          <h1 className="text-slate-50 text-3xl font-bold">Gestione Accesso Pagine</h1>
         </div>
-        <p className="text-[#9b9b9b]">Configura quali pagine sono visibili per ogni tipo di utente</p>
+        <p className="text-slate-50">Configura quali pagine sono visibili per ogni tipo di utente</p>
       </div>
 
       {/* Info Card */}
@@ -530,28 +530,28 @@ export default function GestioneAccessoPagine() {
         sectionKey="admin"
         title="Amministratori"
         subtitle="Pagine accessibili agli utenti admin"
-        icon={<Shield className="w-6 h-6 text-red-600" />}
-      >
-        {Object.entries(groupedPages).map(([category, pages]) => (
-          <div key={category} className="mb-4 mt-4">
+        icon={<Shield className="w-6 h-6 text-red-600" />}>
+
+        {Object.entries(groupedPages).map(([category, pages]) =>
+        <div key={category} className="mb-4 mt-4">
             <h3 className="font-bold text-[#6b6b6b] mb-2 text-sm">{category}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {pages.map(page => (
-                <div key={page.value} className="neumorphic-pressed p-2 rounded-lg">
+              {pages.map((page) =>
+            <div key={page.value} className="neumorphic-pressed p-2 rounded-lg">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
-                      type="checkbox"
-                      checked={pageConfig.admin_pages.includes(page.value)}
-                      onChange={() => handlePageToggle('admin', page.value)}
-                      className="w-4 h-4 rounded"
-                    />
+                  type="checkbox"
+                  checked={pageConfig.admin_pages.includes(page.value)}
+                  onChange={() => handlePageToggle('admin', page.value)}
+                  className="w-4 h-4 rounded" />
+
                     <span className="text-[#6b6b6b] text-xs">{page.label}</span>
                   </label>
                 </div>
-              ))}
+            )}
             </div>
           </div>
-        ))}
+        )}
       </CollapsibleSection>
 
       {/* Manager Pages */}
@@ -559,28 +559,28 @@ export default function GestioneAccessoPagine() {
         sectionKey="manager"
         title="Manager"
         subtitle="Pagine accessibili ai manager"
-        icon={<Users className="w-6 h-6 text-blue-600" />}
-      >
-        {Object.entries(groupedPages).filter(([category]) => category !== 'Zapier' && category !== 'Sistema').map(([category, pages]) => (
-          <div key={category} className="mb-4 mt-4">
+        icon={<Users className="w-6 h-6 text-blue-600" />}>
+
+        {Object.entries(groupedPages).filter(([category]) => category !== 'Zapier' && category !== 'Sistema').map(([category, pages]) =>
+        <div key={category} className="mb-4 mt-4">
             <h3 className="font-bold text-[#6b6b6b] mb-2 text-sm">{category}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {pages.map(page => (
-                <div key={page.value} className="neumorphic-pressed p-2 rounded-lg">
+              {pages.map((page) =>
+            <div key={page.value} className="neumorphic-pressed p-2 rounded-lg">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
-                      type="checkbox"
-                      checked={pageConfig.manager_pages.includes(page.value)}
-                      onChange={() => handlePageToggle('manager', page.value)}
-                      className="w-4 h-4 rounded"
-                    />
+                  type="checkbox"
+                  checked={pageConfig.manager_pages.includes(page.value)}
+                  onChange={() => handlePageToggle('manager', page.value)}
+                  className="w-4 h-4 rounded" />
+
                     <span className="text-[#6b6b6b] text-xs">{page.label}</span>
                   </label>
                 </div>
-              ))}
+            )}
             </div>
           </div>
-        ))}
+        )}
       </CollapsibleSection>
 
       {/* Dipendenti - Stage 1 */}
@@ -588,8 +588,8 @@ export default function GestioneAccessoPagine() {
         sectionKey="after_registration"
         title="Dipendenti - Appena Registrato"
         subtitle="Senza ruoli assegnati"
-        icon={<span className="text-xl font-bold text-[#8b7355]">1</span>}
-      >
+        icon={<span className="text-xl font-bold text-[#8b7355]">1</span>}>
+
         {renderDipendentePageList('after_registration')}
       </CollapsibleSection>
 
@@ -598,8 +598,8 @@ export default function GestioneAccessoPagine() {
         sectionKey="after_contract_received"
         title="Dipendenti - Contratto Ricevuto"
         subtitle="Ha ricevuto un contratto"
-        icon={<span className="text-xl font-bold text-[#8b7355]">2</span>}
-      >
+        icon={<span className="text-xl font-bold text-[#8b7355]">2</span>}>
+
         {renderDipendentePageList('after_contract_received')}
       </CollapsibleSection>
 
@@ -608,8 +608,8 @@ export default function GestioneAccessoPagine() {
         sectionKey="after_contract_signed"
         title="Dipendenti - Contratto Firmato"
         subtitle="Ha firmato il contratto"
-        icon={<span className="text-xl font-bold text-[#8b7355]">3</span>}
-      >
+        icon={<span className="text-xl font-bold text-[#8b7355]">3</span>}>
+
         {renderDipendentePageList('after_contract_signed')}
       </CollapsibleSection>
 
@@ -618,8 +618,8 @@ export default function GestioneAccessoPagine() {
         sectionKey="pizzaiolo_pages"
         title="Ruolo: Pizzaiolo"
         subtitle="Pagine per dipendenti Pizzaiolo"
-        icon={<span className="text-2xl">🍕</span>}
-      >
+        icon={<span className="text-2xl">🍕</span>}>
+
         {renderDipendentePageList('pizzaiolo_pages')}
       </CollapsibleSection>
 
@@ -628,8 +628,8 @@ export default function GestioneAccessoPagine() {
         sectionKey="cassiere_pages"
         title="Ruolo: Cassiere"
         subtitle="Pagine per dipendenti Cassiere"
-        icon={<span className="text-2xl">💰</span>}
-      >
+        icon={<span className="text-2xl">💰</span>}>
+
         {renderDipendentePageList('cassiere_pages')}
       </CollapsibleSection>
 
@@ -638,8 +638,8 @@ export default function GestioneAccessoPagine() {
         sectionKey="store_manager_pages"
         title="Ruolo: Store Manager"
         subtitle="Pagine per dipendenti Store Manager"
-        icon={<span className="text-2xl">👔</span>}
-      >
+        icon={<span className="text-2xl">👔</span>}>
+
         {renderDipendentePageList('store_manager_pages')}
       </CollapsibleSection>
 
@@ -649,24 +649,24 @@ export default function GestioneAccessoPagine() {
           onClick={handleSave}
           variant="primary"
           disabled={saving}
-          className="flex items-center gap-2 px-8 py-4 shadow-xl"
-        >
-          {saving ? (
-            <>
+          className="flex items-center gap-2 px-8 py-4 shadow-xl">
+
+          {saving ?
+          <>
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Salvataggio...
-            </>
-          ) : saved ? (
-            <>
+            </> :
+          saved ?
+          <>
               <CheckCircle className="w-5 h-5" />
               Salvato!
-            </>
-          ) : (
-            <>
+            </> :
+
+          <>
               <Save className="w-5 h-5" />
               Salva Configurazione
             </>
-          )}
+          }
         </NeumorphicButton>
       </div>
 
@@ -680,6 +680,6 @@ export default function GestioneAccessoPagine() {
           </div>
         </div>
       </NeumorphicCard>
-    </div>
-  );
+    </div>);
+
 }
