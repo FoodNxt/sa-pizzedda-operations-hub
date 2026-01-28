@@ -222,8 +222,37 @@ export default function OrdiniAdmin() {
 
         if (ingrediente && ricetta.quantita_prodotta && ricetta.quantita_prodotta > 0) {
           // Calculate proportion: how much raw ingredient is needed per unit of finished product
-          const moltiplicatore = ingrediente.quantita / ricetta.quantita_prodotta;
-          const quantitaDaSommare = (reading.quantita_rilevata || 0) * moltiplicatore;
+          const materiaPrimaTarget = products.find((p) => p.id === ricetta.somma_a_materia_prima_id);
+          
+          if (!materiaPrimaTarget) return;
+          
+          // Convert all quantities to grams for calculation
+          let quantitaSemilavoratoInGrammi = reading.quantita_rilevata || 0;
+          if (reading.unita_misura === 'kg') quantitaSemilavoratoInGrammi *= 1000;
+          if (reading.unita_misura === 'litri') quantitaSemilavoratoInGrammi *= 1000;
+          
+          let quantitaIngredienteInGrammi = ingrediente.quantita || 0;
+          if (ingrediente.unita_misura === 'kg') quantitaIngredienteInGrammi *= 1000;
+          if (ingrediente.unita_misura === 'litri') quantitaIngredienteInGrammi *= 1000;
+          
+          let quantitaProdottaInGrammi = ricetta.quantita_prodotta || 0;
+          if (ricetta.unita_misura_prodotta === 'kg') quantitaProdottaInGrammi *= 1000;
+          if (ricetta.unita_misura_prodotta === 'litri') quantitaProdottaInGrammi *= 1000;
+          
+          // Calculate how much raw material is needed
+          const moltiplicatore = quantitaIngredienteInGrammi / quantitaProdottaInGrammi;
+          const quantitaMateriaPrimaNecessariaInGrammi = quantitaSemilavoratoInGrammi * moltiplicatore;
+          
+          // Convert to target unit (sacchi, kg, etc.)
+          let quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi;
+          
+          if (materiaPrimaTarget.unita_misura === 'sacchi' && materiaPrimaTarget.peso_dimensione_unita) {
+            // Convert grams to sacchi
+            const grammiPerSacco = materiaPrimaTarget.peso_dimensione_unita * 1000; // kg to grams
+            quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi / grammiPerSacco;
+          } else if (materiaPrimaTarget.unita_misura === 'kg') {
+            quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi / 1000;
+          }
 
           const targetKey = `${reading.store_id}-${ricetta.somma_a_materia_prima_id}`;
           
@@ -231,9 +260,14 @@ export default function OrdiniAdmin() {
           console.log(`🔍 SOMMA SEMILAVORATO:`, {
             semilavorato: reading.nome_prodotto,
             quantita_semilavorato: reading.quantita_rilevata,
+            unita_semilavorato: reading.unita_misura,
             materia_prima_target: ricetta.somma_a_materia_prima_nome,
+            unita_materia_prima: materiaPrimaTarget.unita_misura,
+            peso_per_unita: materiaPrimaTarget.peso_dimensione_unita,
             ingrediente_quantita: ingrediente.quantita,
+            ingrediente_unita: ingrediente.unita_misura,
             quantita_prodotta: ricetta.quantita_prodotta,
+            unita_prodotta: ricetta.unita_misura_prodotta,
             moltiplicatore,
             quantita_da_sommare: quantitaDaSommare,
             targetKey
