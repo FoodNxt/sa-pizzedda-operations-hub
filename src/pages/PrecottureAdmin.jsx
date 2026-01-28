@@ -16,6 +16,10 @@ export default function PrecottureAdmin() {
   const [editingRow, setEditingRow] = useState(null);
   const [editData, setEditData] = useState({});
   const [dateRange, setDateRange] = useState('week');
+  const [testStoreId, setTestStoreId] = useState('');
+  const [testTurno, setTestTurno] = useState('pranzo');
+  const [testRossePresenti, setTestRossePresenti] = useState(0);
+  const [testResult, setTestResult] = useState(null);
   const { data: configTeglieData = [] } = useQuery({
     queryKey: ['config-teglie'],
     queryFn: () => base44.entities.ConfigurazioneTeglieCalcolo.list()
@@ -520,6 +524,62 @@ export default function PrecottureAdmin() {
   const mediaUltimi60Giorni = useMemo(() => calcMediaUltimiGiorni(60), [prodottiVenduti, selectedStore, teglieConfig]);
   const mediaUltimi90Giorni = useMemo(() => calcMediaUltimiGiorni(90), [prodottiVenduti, selectedStore, teglieConfig]);
 
+  const handleTestCalcolo = () => {
+    if (!testStoreId || testRossePresenti === '') {
+      alert('Seleziona un negozio e inserisci il numero di rosse presenti');
+      return;
+    }
+
+    // Determina il giorno della settimana corrente
+    const dayMapping = {
+      0: 'Domenica',
+      1: 'Lunedì',
+      2: 'Martedì',
+      3: 'Mercoledì',
+      4: 'Giovedì',
+      5: 'Venerdì',
+      6: 'Sabato'
+    };
+    const dayOfWeek = dayMapping[moment().day()];
+
+    // Trova configurazione per questo store e giorno
+    const config = impasti.find((i) => 
+      i.store_id === testStoreId && 
+      i.giorno_settimana === dayOfWeek
+    );
+
+    if (!config) {
+      setTestResult({
+        success: false,
+        error: `Nessuna configurazione trovata per ${getStoreName(testStoreId)} - ${dayOfWeek}. Configura prima il locale.`
+      });
+      return;
+    }
+
+    // Calcola rosse richieste in base al turno
+    let rosseRichieste = 0;
+    if (testTurno === 'pranzo') {
+      rosseRichieste = config.pranzo_rosse || 0;
+    } else if (testTurno === 'pomeriggio') {
+      rosseRichieste = config.pomeriggio_rosse || 0;
+    } else if (testTurno === 'cena') {
+      rosseRichieste = config.cena_rosse || 0;
+    }
+
+    const rosseDaFare = Math.max(0, rosseRichieste - testRossePresenti);
+
+    setTestResult({
+      success: true,
+      storeName: getStoreName(testStoreId),
+      dayOfWeek,
+      turno: testTurno,
+      rossePresenti: testRossePresenti,
+      rosseRichieste,
+      rosseDaFare,
+      configUsata: config
+    });
+  };
+
   // DEBUG: Log values
   React.useEffect(() => {
     console.log('mediaUltimi30Giorni:', mediaUltimi30Giorni);
@@ -877,6 +937,133 @@ export default function PrecottureAdmin() {
                   </tbody>
                 </table>
               </div>
+            </NeumorphicCard>
+
+            {/* Sezione Test Calcolo */}
+            <NeumorphicCard className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                  <Pizza className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-purple-900">🧪 Test Calcolo Precotture</h2>
+                  <p className="text-sm text-purple-700">Simula il calcolo senza salvare nel database</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="text-sm font-medium text-purple-800 mb-2 block">Locale</label>
+                  <select
+                    value={testStoreId}
+                    onChange={(e) => {
+                      setTestStoreId(e.target.value);
+                      setTestResult(null);
+                    }}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none bg-white">
+                    <option value="">-- Seleziona locale --</option>
+                    {stores.map((store) =>
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-purple-800 mb-2 block">Turno</label>
+                  <select
+                    value={testTurno}
+                    onChange={(e) => {
+                      setTestTurno(e.target.value);
+                      setTestResult(null);
+                    }}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none bg-white">
+                    <option value="pranzo">Pranzo</option>
+                    <option value="pomeriggio">Pomeriggio</option>
+                    <option value="cena">Cena</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-purple-800 mb-2 block">Rosse Presenti</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={testRossePresenti}
+                    onChange={(e) => {
+                      setTestRossePresenti(parseInt(e.target.value) || 0);
+                      setTestResult(null);
+                    }}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none bg-white"
+                    placeholder="0" />
+                </div>
+              </div>
+
+              <NeumorphicButton
+                onClick={handleTestCalcolo}
+                variant="primary"
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600">
+                <Pizza className="w-5 h-5" />
+                Calcola Precotture
+              </NeumorphicButton>
+
+              {testResult && (
+                <div className={`mt-4 p-6 rounded-xl border-2 ${
+                  testResult.success ? 'bg-white border-green-300' : 'bg-red-50 border-red-300'
+                }`}>
+                  {testResult.success ? (
+                    <>
+                      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-200">
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                        <h3 className="text-lg font-bold text-slate-800">Risultato Calcolo</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="neumorphic-flat p-4 rounded-xl">
+                          <p className="text-xs text-slate-500 mb-1">Locale</p>
+                          <p className="font-bold text-slate-800">{testResult.storeName}</p>
+                        </div>
+                        <div className="neumorphic-flat p-4 rounded-xl">
+                          <p className="text-xs text-slate-500 mb-1">Giorno</p>
+                          <p className="font-bold text-slate-800">{testResult.dayOfWeek}</p>
+                        </div>
+                        <div className="neumorphic-flat p-4 rounded-xl">
+                          <p className="text-xs text-slate-500 mb-1">Turno</p>
+                          <p className="font-bold text-purple-700 capitalize">{testResult.turno}</p>
+                        </div>
+                        <div className="neumorphic-flat p-4 rounded-xl">
+                          <p className="text-xs text-slate-500 mb-1">Rosse Presenti</p>
+                          <p className="font-bold text-yellow-700">{testResult.rossePresenti}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-orange-50 p-4 rounded-xl border border-orange-200">
+                          <p className="text-xs text-orange-600 mb-1">Rosse Richieste</p>
+                          <p className="text-3xl font-bold text-orange-700">{testResult.rosseRichieste}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-red-500 to-red-600 p-4 rounded-xl shadow-lg">
+                          <p className="text-xs text-red-100 mb-1">Rosse da Fare</p>
+                          <p className="text-3xl font-bold text-white">{testResult.rosseDaFare}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-blue-800">
+                          <strong>Calcolo:</strong> {testResult.rosseRichieste} (richieste) - {testResult.rossePresenti} (presenti) = {testResult.rosseDaFare} da fare
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-red-800 text-sm">Errore</p>
+                        <p className="text-sm text-red-700">{testResult.error}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </NeumorphicCard>
           </>
         }
