@@ -861,39 +861,44 @@ export default function Dashboard() {
   }, [turni]);
 
   const topBottomProducts = useMemo(() => {
+    if (!prodottiVenduti || prodottiVenduti.length === 0) {
+      return { top3: [], bottom3: [] };
+    }
+
     let cutoffDate, endFilterDate, previousCutoffDate, previousEndDate;
     
     if (startDate || endDate) {
-      cutoffDate = startDate ? safeParseDate(startDate) : new Date(0);
-      endFilterDate = endDate ? safeParseDate(endDate) : new Date();
+      cutoffDate = startDate ? new Date(startDate) : new Date(0);
+      endFilterDate = endDate ? new Date(endDate) : new Date();
     } else {
       const days = parseInt(dateRange);
       cutoffDate = subDays(new Date(), days);
       endFilterDate = new Date();
     }
 
+    // Imposta ora a inizio/fine giornata
+    cutoffDate.setHours(0, 0, 0, 0);
+    endFilterDate.setHours(23, 59, 59, 999);
+
     // Calcola periodo precedente per confronto
-    const daysDiff = Math.round((endFilterDate - cutoffDate) / (1000 * 60 * 60 * 24));
     const comparisonDays = comparisonMode === 'weekly' ? 7 : 30;
     previousEndDate = subDays(cutoffDate, 1);
+    previousEndDate.setHours(23, 59, 59, 999);
     previousCutoffDate = subDays(previousEndDate, comparisonDays);
+    previousCutoffDate.setHours(0, 0, 0, 0);
 
     const filteredCurrent = prodottiVenduti.filter((p) => {
       if (!p.data_vendita) return false;
-      const itemDate = safeParseDate(p.data_vendita);
-      if (!itemDate) return false;
-      if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
-      if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
-      return true;
+      const itemDate = new Date(p.data_vendita);
+      if (isNaN(itemDate.getTime())) return false;
+      return itemDate >= cutoffDate && itemDate <= endFilterDate;
     });
 
     const filteredPrevious = prodottiVenduti.filter((p) => {
       if (!p.data_vendita) return false;
-      const itemDate = safeParseDate(p.data_vendita);
-      if (!itemDate) return false;
-      if (previousCutoffDate && isBefore(itemDate, previousCutoffDate)) return false;
-      if (previousEndDate && isAfter(itemDate, previousEndDate)) return false;
-      return true;
+      const itemDate = new Date(p.data_vendita);
+      if (isNaN(itemDate.getTime())) return false;
+      return itemDate >= previousCutoffDate && itemDate <= previousEndDate;
     });
 
     // Aggrega quantità per prodotto
@@ -902,12 +907,14 @@ export default function Dashboard() {
 
     filteredCurrent.forEach((p) => {
       const key = p.nome_prodotto;
+      if (!key) return;
       if (!productMap[key]) productMap[key] = 0;
       productMap[key] += p.quantita || 0;
     });
 
     filteredPrevious.forEach((p) => {
       const key = p.nome_prodotto;
+      if (!key) return;
       if (!previousProductMap[key]) previousProductMap[key] = 0;
       previousProductMap[key] += p.quantita || 0;
     });
@@ -919,9 +926,13 @@ export default function Dashboard() {
       return { nome, quantita: qty, change };
     });
 
+    if (productsWithChange.length === 0) {
+      return { top3: [], bottom3: [] };
+    }
+
     const sorted = productsWithChange.sort((a, b) => b.quantita - a.quantita);
-    const top3 = sorted.slice(0, 3);
-    const bottom3 = sorted.slice(-3).reverse();
+    const top3 = sorted.slice(0, Math.min(3, sorted.length));
+    const bottom3 = sorted.length > 3 ? sorted.slice(-3).reverse() : [];
 
     return { top3, bottom3 };
   }, [prodottiVenduti, dateRange, startDate, endDate, comparisonMode]);
