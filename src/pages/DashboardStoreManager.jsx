@@ -23,8 +23,8 @@ import {
   ArrowRight,
   Bell,
   ChevronRight,
-  Truck
-} from 'lucide-react';
+  Truck } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function DashboardStoreManager() {
@@ -91,7 +91,7 @@ export default function DashboardStoreManager() {
 
   const { data: richiesteScambio = [] } = useQuery({
     queryKey: ['richieste-scambio', selectedStoreId],
-    queryFn: () => base44.entities.RichiestaTurnoLibero.filter({ 
+    queryFn: () => base44.entities.RichiestaTurnoLibero.filter({
       store_id: selectedStoreId,
       stato: 'in_attesa'
     }),
@@ -126,18 +126,18 @@ export default function DashboardStoreManager() {
   // Turni liberi nei prossimi 14 giorni
   const turniLiberi = useMemo(() => {
     if (!selectedStoreId) return [];
-    
+
     const now = moment();
     const next14Days = moment().add(14, 'days');
-    
-    return shifts.filter(s => {
+
+    return shifts.filter((s) => {
       if (s.store_id !== selectedStoreId) return false;
       if (s.dipendente_id || s.dipendente_nome) return false; // Solo turni NON assegnati
       if (!s.data) return false;
-      
+
       const shiftDate = moment(s.data);
       if (!shiftDate.isValid()) return false;
-      
+
       return shiftDate.isBetween(now, next14Days, 'day', '[]');
     }).sort((a, b) => {
       const dateA = moment(a.data);
@@ -149,7 +149,7 @@ export default function DashboardStoreManager() {
   // Trova i locali di cui l'utente è Store Manager
   const myStores = useMemo(() => {
     if (!currentUser?.id) return [];
-    return stores.filter(s => s.store_manager_id === currentUser.id);
+    return stores.filter((s) => s.store_manager_id === currentUser.id);
   }, [stores, currentUser]);
 
   // Auto-select first store if not selected
@@ -167,28 +167,28 @@ export default function DashboardStoreManager() {
     const monthEnd = moment(selectedMonth, 'YYYY-MM').endOf('month');
 
     // Fatturato
-    const monthRevenue = iPratico
-      .filter(r => {
-        if (r.store_id !== selectedStoreId || !r.order_date) return false;
-        const date = moment(r.order_date);
-        if (!date.isValid()) return false;
-        return date.isBetween(monthStart, monthEnd, 'day', '[]');
-      })
-      .reduce((acc, r) => acc + (r.total_revenue || 0), 0);
+    const monthRevenue = iPratico.
+    filter((r) => {
+      if (r.store_id !== selectedStoreId || !r.order_date) return false;
+      const date = moment(r.order_date);
+      if (!date.isValid()) return false;
+      return date.isBetween(monthStart, monthEnd, 'day', '[]');
+    }).
+    reduce((acc, r) => acc + (r.total_revenue || 0), 0);
 
     // Recensioni
-    const monthReviews = reviews.filter(r => {
+    const monthReviews = reviews.filter((r) => {
       if (r.store_id !== selectedStoreId || !r.review_date) return false;
       const date = moment(r.review_date);
       if (!date.isValid()) return false;
       return date.isBetween(monthStart, monthEnd, 'day', '[]');
     });
-    const avgRating = monthReviews.length > 0
-      ? monthReviews.reduce((acc, r) => acc + r.rating, 0) / monthReviews.length
-      : 0;
+    const avgRating = monthReviews.length > 0 ?
+    monthReviews.reduce((acc, r) => acc + r.rating, 0) / monthReviews.length :
+    0;
 
     // Ordini sbagliati
-    const monthWrongOrders = wrongOrders.filter(o => {
+    const monthWrongOrders = wrongOrders.filter((o) => {
       if (o.store_id !== selectedStoreId) return false;
       const date = moment(o.order_date);
       if (!date.isValid()) return false;
@@ -202,8 +202,8 @@ export default function DashboardStoreManager() {
     console.log('monthStart:', monthStart.format('YYYY-MM-DD'));
     console.log('monthEnd:', monthEnd.format('YYYY-MM-DD'));
     console.log('Totale turni disponibili:', shifts.length);
-    
-    const monthShiftsWithClockIn = shifts.filter(s => {
+
+    const monthShiftsWithClockIn = shifts.filter((s) => {
       const passStoreId = s.store_id === selectedStoreId;
       const hasData = !!s.data;
       const hasTimbratura = !!s.timbratura_entrata;
@@ -211,7 +211,7 @@ export default function DashboardStoreManager() {
       const shiftDate = moment(s.data);
       const isValidDate = shiftDate.isValid();
       const isInRange = isValidDate && shiftDate.isBetween(monthStart, monthEnd, 'day', '[]');
-      
+
       if (passStoreId && hasData && isInRange) {
         console.log('📋 Turno nel periodo:', {
           data: s.data,
@@ -222,15 +222,15 @@ export default function DashboardStoreManager() {
           ora_inizio: s.ora_inizio
         });
       }
-      
+
       return passStoreId && hasData && hasTimbratura && hasOraInizio && isInRange;
     });
-    
+
     console.log('✅ Turni con timbratura valida:', monthShiftsWithClockIn.length);
-    
+
     let totalDelayMinutes = 0;
-    
-    monthShiftsWithClockIn.forEach(shift => {
+
+    monthShiftsWithClockIn.forEach((shift) => {
       try {
         const clockInTime = new Date(shift.timbratura_entrata);
         const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
@@ -240,7 +240,7 @@ export default function DashboardStoreManager() {
         const delayMinutes = Math.floor(delayMs / 60000);
         const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
         totalDelayMinutes += ritardoReale;
-        
+
         if (ritardoReale > 0) {
           console.log('⏰ RITARDO TROVATO:', {
             dipendente: shift.dipendente_nome,
@@ -255,30 +255,30 @@ export default function DashboardStoreManager() {
         console.error('❌ Errore calcolo ritardo:', e, shift);
       }
     });
-    
+
     console.log('🎯 TOTALE FINALE RITARDI:', totalDelayMinutes, 'minuti');
-    
+
     const avgDelay = monthShiftsWithClockIn.length > 0 ? totalDelayMinutes / monthShiftsWithClockIn.length : 0;
     const monthShifts = monthShiftsWithClockIn;
 
     // Pulizie - solo form completati con score
-    const monthInspections = inspections.filter(i => {
+    const monthInspections = inspections.filter((i) => {
       if (i.store_id !== selectedStoreId || !i.inspection_date || !i.overall_score) return false;
       const date = moment(i.inspection_date);
       if (!date.isValid()) return false;
       return date.isBetween(monthStart, monthEnd, 'day', '[]');
     });
-    const avgCleaningScore = monthInspections.length > 0
-      ? monthInspections.reduce((acc, i) => acc + (i.overall_score || 0), 0) / monthInspections.length
-      : 0;
+    const avgCleaningScore = monthInspections.length > 0 ?
+    monthInspections.reduce((acc, i) => acc + (i.overall_score || 0), 0) / monthInspections.length :
+    0;
 
     // Target
-    const target = targets.find(t => t.store_id === selectedStoreId);
+    const target = targets.find((t) => t.store_id === selectedStoreId);
 
     // Calcola bonus
     let bonusTotale = 0;
     const metriche = target?.metriche_attive || [];
-    
+
     if (target) {
       // Fatturato
       if (metriche.includes('fatturato') && monthRevenue >= target.target_fatturato && monthRevenue >= (target.soglia_min_fatturato || 0)) {
@@ -328,28 +328,28 @@ export default function DashboardStoreManager() {
   // Ultimo conteggio cassa
   const ultimoConteggioCassa = useMemo(() => {
     if (!selectedStoreId) return null;
-    
-    const conteggioStore = conteggiCassa
-      .filter(c => c.store_id === selectedStoreId && c.data_conteggio)
-      .sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio))[0];
-    
+
+    const conteggioStore = conteggiCassa.
+    filter((c) => c.store_id === selectedStoreId && c.data_conteggio).
+    sort((a, b) => new Date(b.data_conteggio) - new Date(a.data_conteggio))[0];
+
     return conteggioStore || null;
   }, [selectedStoreId, conteggiCassa]);
 
   // Trasporto tra locali - Mostra semilavorati in TUTTI i locali con suggerimenti di spostamento
   const trasportoData = useMemo(() => {
-    const tipiAbilitati = tipiPreparazione.filter(t => t.mostra_trasporto_store_manager);
-    
-    return tipiAbilitati.map(tipo => {
+    const tipiAbilitati = tipiPreparazione.filter((t) => t.mostra_trasporto_store_manager);
+
+    return tipiAbilitati.map((tipo) => {
       // Trova il semilavorato associato
-      const semilavorato = ricette.find(r => r.id === tipo.semilavorato_id);
+      const semilavorato = ricette.find((r) => r.id === tipo.semilavorato_id);
       if (!semilavorato) return null;
 
       // Per OGNI store, prendi l'ultima rilevazione inventario del semilavorato
-      const storeQuantita = stores.map(store => {
-        const rilevazione = rilevazioniInventario
-          .filter(r => r.prodotto_id === semilavorato.id && r.store_id === store.id)
-          .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
+      const storeQuantita = stores.map((store) => {
+        const rilevazione = rilevazioniInventario.
+        filter((r) => r.prodotto_id === semilavorato.id && r.store_id === store.id).
+        sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
 
         if (!rilevazione) return null;
 
@@ -371,12 +371,12 @@ export default function DashboardStoreManager() {
       // Calcola suggerimenti: spostare SOLO dal locale di preparazione agli altri
       const suggerimenti = [];
       const storePreparazioneId = tipo.store_preparazione_id;
-      
+
       if (storePreparazioneId) {
-        const storeSource = storeQuantita.find(s => s.storeId === storePreparazioneId);
-        const storeConDeficit = storeQuantita
-          .filter(s => s.differenza < 0 && s.storeId !== storePreparazioneId)
-          .sort((a, b) => a.differenza - b.differenza);
+        const storeSource = storeQuantita.find((s) => s.storeId === storePreparazioneId);
+        const storeConDeficit = storeQuantita.
+        filter((s) => s.differenza < 0 && s.storeId !== storePreparazioneId).
+        sort((a, b) => a.differenza - b.differenza);
 
         if (storeSource && storeSource.differenza > 0) {
           for (const to of storeConDeficit) {
@@ -415,7 +415,7 @@ export default function DashboardStoreManager() {
     const monthEnd = moment(selectedMonth, 'YYYY-MM').endOf('month');
 
     // 1. Filtra turni per store e periodo
-    const storeShifts = shifts.filter(s => {
+    const storeShifts = shifts.filter((s) => {
       if (s.store_id !== selectedStoreId || !s.data) return false;
       const date = moment(s.data);
       if (!date.isValid()) return false;
@@ -423,21 +423,21 @@ export default function DashboardStoreManager() {
     });
 
     // 2. Estrai nomi univoci dipendenti da questi turni
-    const employeeNames = [...new Set(storeShifts.map(s => s.dipendente_nome).filter(Boolean))];
+    const employeeNames = [...new Set(storeShifts.map((s) => s.dipendente_nome).filter(Boolean))];
 
     console.log('📊 Dipendenti trovati nello store:', employeeNames);
 
     // 3. Calcola metriche per ogni dipendente
-    return employeeNames.map(employeeName => {
+    return employeeNames.map((employeeName) => {
       // Turni di questo dipendente nello store selezionato nel mese
-      const empShifts = storeShifts.filter(s => s.dipendente_nome === employeeName);
-      
+      const empShifts = storeShifts.filter((s) => s.dipendente_nome === employeeName);
+
       // Calcola ritardi - CALCOLO 100% MANUALE
       let totalDelayMinutes = 0;
       let numeroRitardi = 0;
       const turniInRitardo = [];
-      
-      empShifts.forEach(shift => {
+
+      empShifts.forEach((shift) => {
         if (!shift.timbratura_entrata || !shift.ora_inizio) return;
         try {
           const clockInTime = new Date(shift.timbratura_entrata);
@@ -447,53 +447,53 @@ export default function DashboardStoreManager() {
           const delayMs = clockInTime - scheduledStart;
           const delayMinutes = Math.floor(delayMs / 60000);
           const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
-          
+
           totalDelayMinutes += ritardoReale;
-          
+
           if (ritardoReale > 0) {
             numeroRitardi++;
             turniInRitardo.push(shift);
           }
         } catch (e) {
+
           // Skip in caso di errore
-        }
-      });
+        }});
       const avgLateMinutes = empShifts.length > 0 ? totalDelayMinutes / empShifts.length : 0;
-      
+
       // Conta turni completati
-      const totalShifts = empShifts.filter(s => s.timbratura_entrata && s.timbratura_uscita).length;
-      
+      const totalShifts = empShifts.filter((s) => s.timbratura_entrata && s.timbratura_uscita).length;
+
       // Trova recensioni assegnate
-      const empReviews = reviews.filter(r => {
+      const empReviews = reviews.filter((r) => {
         if (!r.employee_assigned_name || !r.review_date) return false;
-        const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+        const assignedNames = r.employee_assigned_name.split(',').map((n) => n.trim().toLowerCase());
         if (!assignedNames.includes(employeeName.toLowerCase())) return false;
-        
+
         const date = moment(r.review_date);
         if (!date.isValid()) return false;
         return date.isBetween(monthStart, monthEnd, 'day', '[]');
       });
-      
-      const googleReviews = empReviews.filter(r => r.source === 'google');
-      const avgGoogleRating = googleReviews.length > 0
-        ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
-        : 0;
+
+      const googleReviews = empReviews.filter((r) => r.source === 'google');
+      const avgGoogleRating = googleReviews.length > 0 ?
+      googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length :
+      0;
 
       // Trova ordini sbagliati assegnati a questo dipendente
-      const empWrongOrders = wrongOrderMatches
-        .filter(m => m.matched_employee_name?.toLowerCase() === employeeName.toLowerCase())
-        .map(m => wrongOrders.find(wo => wo.id === m.wrong_order_id))
-        .filter(Boolean)
-        .filter(wo => {
-          if (wo.store_id !== selectedStoreId || !wo.order_date) return false;
-          const date = moment(wo.order_date);
-          if (!date.isValid()) return false;
-          return date.isBetween(monthStart, monthEnd, 'day', '[]');
-        });
+      const empWrongOrders = wrongOrderMatches.
+      filter((m) => m.matched_employee_name?.toLowerCase() === employeeName.toLowerCase()).
+      map((m) => wrongOrders.find((wo) => wo.id === m.wrong_order_id)).
+      filter(Boolean).
+      filter((wo) => {
+        if (wo.store_id !== selectedStoreId || !wo.order_date) return false;
+        const date = moment(wo.order_date);
+        if (!date.isValid()) return false;
+        return date.isBetween(monthStart, monthEnd, 'day', '[]');
+      });
 
       // Trova user corrispondente per email e ruoli
-      const user = users.find(u => 
-        (u.nome_cognome || u.full_name || '').toLowerCase() === employeeName.toLowerCase()
+      const user = users.find((u) =>
+      (u.nome_cognome || u.full_name || '').toLowerCase() === employeeName.toLowerCase()
       );
 
       return {
@@ -535,8 +535,8 @@ export default function DashboardStoreManager() {
         <NeumorphicCard className="p-12 text-center">
           <p className="text-slate-500">Caricamento...</p>
         </NeumorphicCard>
-      </div>
-    );
+      </div>);
+
   }
 
   if (myStores.length === 0) {
@@ -553,8 +553,8 @@ export default function DashboardStoreManager() {
           <h2 className="text-xl font-bold text-slate-700 mb-2">Nessun locale assegnato</h2>
           <p className="text-slate-500">Non sei ancora stato assegnato come Store Manager di un locale.</p>
         </NeumorphicCard>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -564,56 +564,56 @@ export default function DashboardStoreManager() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Crown className="w-10 h-10 text-purple-600" />
-            <h1 className="text-3xl font-bold text-slate-800">Dashboard Store Manager</h1>
+            <h1 className="text-slate-50 text-3xl font-bold">Dashboard Store Manager</h1>
           </div>
           <button
             onClick={() => setShowApprovazioniModal(true)}
-            className="neumorphic-flat px-4 py-3 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all relative"
-          >
+            className="neumorphic-flat px-4 py-3 rounded-xl flex items-center gap-2 hover:shadow-lg transition-all relative">
+
             <Bell className="w-5 h-5 text-purple-600" />
             <span className="font-medium text-slate-700">Approvazioni</span>
-            {richiesteScambio.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+            {richiesteScambio.length > 0 &&
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
                 {richiesteScambio.length}
               </span>
-            )}
+            }
           </button>
         </div>
         
         <div className="flex flex-col md:flex-row gap-3">
-          {myStores.length > 1 && (
-            <select
-              value={selectedStoreId}
-              onChange={(e) => setSelectedStoreId(e.target.value)}
-              className="neumorphic-pressed px-4 py-3 rounded-xl outline-none flex-1"
-            >
-              {myStores.map(store => (
-                <option key={store.id} value={store.id}>{store.name}</option>
-              ))}
+          {myStores.length > 1 &&
+          <select
+            value={selectedStoreId}
+            onChange={(e) => setSelectedStoreId(e.target.value)}
+            className="neumorphic-pressed px-4 py-3 rounded-xl outline-none flex-1">
+
+              {myStores.map((store) =>
+            <option key={store.id} value={store.id}>{store.name}</option>
+            )}
             </select>
-          )}
-          {myStores.length === 1 && (
-            <div className="px-4 py-3 rounded-xl bg-purple-100 text-purple-700 font-bold">
+          }
+          {myStores.length === 1 &&
+          <div className="px-4 py-3 rounded-xl bg-purple-100 text-purple-700 font-bold">
               {myStores[0].name}
             </div>
-          )}
+          }
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-          >
-            {monthOptions.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
+            className="neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+
+            {monthOptions.map((opt) =>
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            )}
           </select>
         </div>
       </div>
 
-      {metrics && (
-        <>
+      {metrics &&
+      <>
           {/* Ultimo Conteggio Cassa */}
-          {ultimoConteggioCassa && (
-            <NeumorphicCard className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
+          {ultimoConteggioCassa &&
+        <NeumorphicCard className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
               <div className="flex items-center gap-3 mb-3">
                 <DollarSign className="w-6 h-6 text-green-600" />
                 <h2 className="text-xl font-bold text-green-800">Ultimo Conteggio Cassa</h2>
@@ -627,11 +627,11 @@ export default function DashboardStoreManager() {
                 <p className="text-xs text-slate-500 mt-1">da {ultimoConteggioCassa.rilevato_da}</p>
               </div>
             </NeumorphicCard>
-          )}
+        }
 
           {/* Bonus Card */}
-          {metrics.target && (
-            <NeumorphicCard className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200">
+          {metrics.target &&
+        <NeumorphicCard className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200">
               <div className="flex items-center gap-3 mb-4">
                 <Crown className="w-6 h-6 text-purple-600" />
                 <h2 className="text-xl font-bold text-purple-800">I Tuoi Obiettivi</h2>
@@ -644,97 +644,97 @@ export default function DashboardStoreManager() {
               </div>
 
               {/* Overview Metriche Attive */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3" style={{ 
-                gridTemplateColumns: window.innerWidth >= 1024 ? `repeat(${metrics.target.metriche_attive?.filter(m => {
-                  if (m === 'fatturato' && metrics.target.target_fatturato) return true;
-                  if (m === 'recensioni_media' && metrics.target.target_recensioni_media) return true;
-                  if (m === 'num_recensioni' && metrics.target.target_num_recensioni) return true;
-                  if (m === 'ordini_sbagliati' && metrics.target.target_ordini_sbagliati_max !== undefined) return true;
-                  if (m === 'ritardi' && metrics.target.target_ritardi_max_minuti !== undefined) return true;
-                  if (m === 'pulizie' && metrics.target.target_pulizie_min_score) return true;
-                  return false;
-                }).length || 6}, minmax(0, 1fr))` : undefined
-              }}>
-                {metrics.target.metriche_attive?.includes('fatturato') && metrics.target.target_fatturato && (
-                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3" style={{
+            gridTemplateColumns: window.innerWidth >= 1024 ? `repeat(${metrics.target.metriche_attive?.filter((m) => {
+              if (m === 'fatturato' && metrics.target.target_fatturato) return true;
+              if (m === 'recensioni_media' && metrics.target.target_recensioni_media) return true;
+              if (m === 'num_recensioni' && metrics.target.target_num_recensioni) return true;
+              if (m === 'ordini_sbagliati' && metrics.target.target_ordini_sbagliati_max !== undefined) return true;
+              if (m === 'ritardi' && metrics.target.target_ritardi_max_minuti !== undefined) return true;
+              if (m === 'pulizie' && metrics.target.target_pulizie_min_score) return true;
+              return false;
+            }).length || 6}, minmax(0, 1fr))` : undefined
+          }}>
+                {metrics.target.metriche_attive?.includes('fatturato') && metrics.target.target_fatturato &&
+            <div className="neumorphic-flat p-3 rounded-xl text-center">
                     <DollarSign className="w-5 h-5 text-green-600 mx-auto mb-1" />
                     <p className="text-xs text-slate-500 mb-1">Fatturato</p>
-                    {metrics.fatturato >= metrics.target.target_fatturato ? (
-                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
-                    ) : metrics.fatturato >= (metrics.target.soglia_min_fatturato || 0) ? (
-                      <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-600 mx-auto" />
-                    )}
+                    {metrics.fatturato >= metrics.target.target_fatturato ?
+              <CheckCircle className="w-5 h-5 text-green-600 mx-auto" /> :
+              metrics.fatturato >= (metrics.target.soglia_min_fatturato || 0) ?
+              <XCircle className="w-5 h-5 text-orange-600 mx-auto" /> :
+
+              <XCircle className="w-5 h-5 text-red-600 mx-auto" />
+              }
                   </div>
-                )}
+            }
                 
-                {metrics.target.metriche_attive?.includes('recensioni_media') && metrics.target.target_recensioni_media && (
-                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+                {metrics.target.metriche_attive?.includes('recensioni_media') && metrics.target.target_recensioni_media &&
+            <div className="neumorphic-flat p-3 rounded-xl text-center">
                     <Star className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
                     <p className="text-xs text-slate-500 mb-1">Recensioni</p>
-                    {metrics.avgRating >= metrics.target.target_recensioni_media ? (
-                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
-                    )}
-                  </div>
-                )}
+                    {metrics.avgRating >= metrics.target.target_recensioni_media ?
+              <CheckCircle className="w-5 h-5 text-green-600 mx-auto" /> :
 
-                {metrics.target.metriche_attive?.includes('num_recensioni') && metrics.target.target_num_recensioni && (
-                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+              <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
+              }
+                  </div>
+            }
+
+                {metrics.target.metriche_attive?.includes('num_recensioni') && metrics.target.target_num_recensioni &&
+            <div className="neumorphic-flat p-3 rounded-xl text-center">
                     <Star className="w-5 h-5 text-blue-500 mx-auto mb-1" />
                     <p className="text-xs text-slate-500 mb-1"># Recensioni</p>
-                    {metrics.totalReviews >= metrics.target.target_num_recensioni ? (
-                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
-                    )}
-                  </div>
-                )}
+                    {metrics.totalReviews >= metrics.target.target_num_recensioni ?
+              <CheckCircle className="w-5 h-5 text-green-600 mx-auto" /> :
 
-                {metrics.target.metriche_attive?.includes('ordini_sbagliati') && metrics.target.target_ordini_sbagliati_max !== undefined && (
-                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+              <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
+              }
+                  </div>
+            }
+
+                {metrics.target.metriche_attive?.includes('ordini_sbagliati') && metrics.target.target_ordini_sbagliati_max !== undefined &&
+            <div className="neumorphic-flat p-3 rounded-xl text-center">
                     <AlertTriangle className="w-5 h-5 text-red-600 mx-auto mb-1" />
                     <p className="text-xs text-slate-500 mb-1">Ordini</p>
-                    {metrics.wrongOrdersCount <= metrics.target.target_ordini_sbagliati_max ? (
-                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-600 mx-auto" />
-                    )}
-                  </div>
-                )}
+                    {metrics.wrongOrdersCount <= metrics.target.target_ordini_sbagliati_max ?
+              <CheckCircle className="w-5 h-5 text-green-600 mx-auto" /> :
 
-                {metrics.target.metriche_attive?.includes('ritardi') && metrics.target.target_ritardi_max_minuti !== undefined && (
-                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+              <XCircle className="w-5 h-5 text-red-600 mx-auto" />
+              }
+                  </div>
+            }
+
+                {metrics.target.metriche_attive?.includes('ritardi') && metrics.target.target_ritardi_max_minuti !== undefined &&
+            <div className="neumorphic-flat p-3 rounded-xl text-center">
                     <Clock className="w-5 h-5 text-blue-600 mx-auto mb-1" />
                     <p className="text-xs text-slate-500 mb-1">Ritardi</p>
-                    {metrics.totalDelayMinutes <= metrics.target.target_ritardi_max_minuti ? (
-                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-600 mx-auto" />
-                    )}
-                  </div>
-                )}
+                    {metrics.totalDelayMinutes <= metrics.target.target_ritardi_max_minuti ?
+              <CheckCircle className="w-5 h-5 text-green-600 mx-auto" /> :
 
-                {metrics.target.metriche_attive?.includes('pulizie') && metrics.target.target_pulizie_min_score && (
-                  <div className="neumorphic-flat p-3 rounded-xl text-center">
+              <XCircle className="w-5 h-5 text-red-600 mx-auto" />
+              }
+                  </div>
+            }
+
+                {metrics.target.metriche_attive?.includes('pulizie') && metrics.target.target_pulizie_min_score &&
+            <div className="neumorphic-flat p-3 rounded-xl text-center">
                     <Sparkles className="w-5 h-5 text-cyan-600 mx-auto mb-1" />
                     <p className="text-xs text-slate-500 mb-1">Pulizie</p>
-                    {metrics.avgCleaningScore >= metrics.target.target_pulizie_min_score ? (
-                      <CheckCircle className="w-5 h-5 text-green-600 mx-auto" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
-                    )}
+                    {metrics.avgCleaningScore >= metrics.target.target_pulizie_min_score ?
+              <CheckCircle className="w-5 h-5 text-green-600 mx-auto" /> :
+
+              <XCircle className="w-5 h-5 text-orange-600 mx-auto" />
+              }
                   </div>
-                )}
+            }
               </div>
             </NeumorphicCard>
-          )}
+        }
 
           {/* Metriche Attive */}
-          {metrics.target?.metriche_attive?.includes('fatturato') && (
-            <NeumorphicCard className="p-6">
+          {metrics.target?.metriche_attive?.includes('fatturato') &&
+        <NeumorphicCard className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <DollarSign className="w-6 h-6 text-green-600" />
                 <h2 className="text-xl font-bold text-slate-800">Fatturato</h2>
@@ -756,30 +756,30 @@ export default function DashboardStoreManager() {
                 </div>
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
                   <p className="text-xs text-slate-500 mb-1">Stato</p>
-                  {metrics.fatturato >= metrics.target.target_fatturato ? (
-                    <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
-                  ) : (
-                    <p className={`text-xl font-bold ${metrics.fatturato >= metrics.target.soglia_min_fatturato ? 'text-orange-600' : 'text-red-600'}`}>
-                      {Math.round((metrics.fatturato / metrics.target.target_fatturato) * 100)}%
+                  {metrics.fatturato >= metrics.target.target_fatturato ?
+              <CheckCircle className="w-8 h-8 text-green-600 mx-auto" /> :
+
+              <p className={`text-xl font-bold ${metrics.fatturato >= metrics.target.soglia_min_fatturato ? 'text-orange-600' : 'text-red-600'}`}>
+                      {Math.round(metrics.fatturato / metrics.target.target_fatturato * 100)}%
                     </p>
-                  )}
+              }
                 </div>
               </div>
             </NeumorphicCard>
-          )}
+        }
 
           {/* Recensioni */}
-          {metrics.target?.metriche_attive?.includes('recensioni_media') && metrics.target.target_recensioni_media && (
-            <NeumorphicCard className="p-6">
+          {metrics.target?.metriche_attive?.includes('recensioni_media') && metrics.target.target_recensioni_media &&
+        <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Star className="w-6 h-6 text-yellow-500" />
                   <h2 className="text-xl font-bold text-slate-800">Media Recensioni</h2>
                 </div>
-                <button 
-                  onClick={() => setShowDetailModal('reviews')}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                >
+                <button
+              onClick={() => setShowDetailModal('reviews')}
+              className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
+
                   <Eye className="w-5 h-5 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
@@ -804,28 +804,28 @@ export default function DashboardStoreManager() {
                 </div>
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
                   <p className="text-xs text-slate-500 mb-1">Stato</p>
-                  {metrics.avgRating >= metrics.target.target_recensioni_media ? (
-                    <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
-                  ) : (
-                    <XCircle className="w-8 h-8 text-orange-600 mx-auto" />
-                  )}
+                  {metrics.avgRating >= metrics.target.target_recensioni_media ?
+              <CheckCircle className="w-8 h-8 text-green-600 mx-auto" /> :
+
+              <XCircle className="w-8 h-8 text-orange-600 mx-auto" />
+              }
                 </div>
               </div>
             </NeumorphicCard>
-          )}
+        }
 
           {/* Ordini Sbagliati */}
-          {metrics.target?.metriche_attive?.includes('ordini_sbagliati') && metrics.target.target_ordini_sbagliati_max !== undefined && (
-            <NeumorphicCard className="p-6">
+          {metrics.target?.metriche_attive?.includes('ordini_sbagliati') && metrics.target.target_ordini_sbagliati_max !== undefined &&
+        <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-6 h-6 text-red-600" />
                   <h2 className="text-xl font-bold text-slate-800">Ordini Sbagliati</h2>
                 </div>
-                <button 
-                  onClick={() => setShowDetailModal('wrongOrders')}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                >
+                <button
+              onClick={() => setShowDetailModal('wrongOrders')}
+              className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
+
                   <Eye className="w-5 h-5 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
@@ -846,28 +846,28 @@ export default function DashboardStoreManager() {
                 </div>
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
                   <p className="text-xs text-slate-500 mb-1">Stato</p>
-                  {metrics.wrongOrdersCount <= metrics.target.target_ordini_sbagliati_max ? (
-                    <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
-                  ) : (
-                    <XCircle className="w-8 h-8 text-red-600 mx-auto" />
-                  )}
+                  {metrics.wrongOrdersCount <= metrics.target.target_ordini_sbagliati_max ?
+              <CheckCircle className="w-8 h-8 text-green-600 mx-auto" /> :
+
+              <XCircle className="w-8 h-8 text-red-600 mx-auto" />
+              }
                 </div>
               </div>
             </NeumorphicCard>
-          )}
+        }
 
           {/* Ritardi */}
-          {metrics.target?.metriche_attive?.includes('ritardi') && metrics.target.target_ritardi_max_minuti !== undefined && (
-            <NeumorphicCard className="p-6">
+          {metrics.target?.metriche_attive?.includes('ritardi') && metrics.target.target_ritardi_max_minuti !== undefined &&
+        <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Clock className="w-6 h-6 text-blue-600" />
                   <h2 className="text-xl font-bold text-slate-800">Ritardi</h2>
                 </div>
-                <button 
-                  onClick={() => setShowDetailModal('delays')}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                >
+                <button
+              onClick={() => setShowDetailModal('delays')}
+              className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
+
                   <Eye className="w-5 h-5 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
@@ -889,28 +889,28 @@ export default function DashboardStoreManager() {
                 </div>
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
                   <p className="text-xs text-slate-500 mb-1">Stato</p>
-                  {metrics.totalDelayMinutes <= metrics.target.target_ritardi_max_minuti ? (
-                    <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
-                  ) : (
-                    <XCircle className="w-8 h-8 text-red-600 mx-auto" />
-                  )}
+                  {metrics.totalDelayMinutes <= metrics.target.target_ritardi_max_minuti ?
+              <CheckCircle className="w-8 h-8 text-green-600 mx-auto" /> :
+
+              <XCircle className="w-8 h-8 text-red-600 mx-auto" />
+              }
                 </div>
               </div>
             </NeumorphicCard>
-          )}
+        }
 
           {/* Pulizie */}
-          {metrics.target?.metriche_attive?.includes('pulizie') && metrics.target.target_pulizie_min_score && (
-            <NeumorphicCard className="p-6">
+          {metrics.target?.metriche_attive?.includes('pulizie') && metrics.target.target_pulizie_min_score &&
+        <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-6 h-6 text-cyan-600" />
                   <h2 className="text-xl font-bold text-slate-800">Pulizie</h2>
                 </div>
-                <button 
-                  onClick={() => setShowDetailModal('cleanings')}
-                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                >
+                <button
+              onClick={() => setShowDetailModal('cleanings')}
+              className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
+
                   <Eye className="w-5 h-5 text-slate-400 hover:text-slate-600" />
                 </button>
               </div>
@@ -932,15 +932,15 @@ export default function DashboardStoreManager() {
                 </div>
                 <div className="neumorphic-pressed p-4 rounded-xl text-center">
                   <p className="text-xs text-slate-500 mb-1">Stato</p>
-                  {metrics.avgCleaningScore >= metrics.target.target_pulizie_min_score ? (
-                    <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
-                  ) : (
-                    <XCircle className="w-8 h-8 text-orange-600 mx-auto" />
-                  )}
+                  {metrics.avgCleaningScore >= metrics.target.target_pulizie_min_score ?
+              <CheckCircle className="w-8 h-8 text-green-600 mx-auto" /> :
+
+              <XCircle className="w-8 h-8 text-orange-600 mx-auto" />
+              }
                 </div>
               </div>
             </NeumorphicCard>
-          )}
+        }
 
           {/* Turni da Coprire */}
           <NeumorphicCard className="p-6 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200">
@@ -954,16 +954,16 @@ export default function DashboardStoreManager() {
               <p className="text-4xl font-bold text-orange-600">{turniLiberi.length}</p>
             </div>
 
-            {turniLiberi.length === 0 ? (
-              <div className="text-center py-8">
+            {turniLiberi.length === 0 ?
+          <div className="text-center py-8">
                 <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
                 <p className="text-slate-600 font-medium">Nessun turno da coprire</p>
                 <p className="text-xs text-slate-500 mt-1">Tutti i turni dei prossimi 14 giorni sono assegnati</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {turniLiberi.map(turno => (
-                  <div key={turno.id} className="neumorphic-flat p-4 rounded-xl border-2 border-orange-200">
+              </div> :
+
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+                {turniLiberi.map((turno) =>
+            <div key={turno.id} className="neumorphic-flat p-4 rounded-xl border-2 border-orange-200">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-bold text-slate-800">
                         {moment(turno.data).format('dddd DD MMMM YYYY')}
@@ -977,16 +977,16 @@ export default function DashboardStoreManager() {
                         <Clock className="w-4 h-4" />
                         <span>{turno.ora_inizio} - {turno.ora_fine}</span>
                       </div>
-                      {turno.tipo_turno && (
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-xs">
+                      {turno.tipo_turno &&
+                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-xs">
                           {turno.tipo_turno}
                         </span>
-                      )}
+                }
                     </div>
                   </div>
-                ))}
-              </div>
             )}
+              </div>
+          }
           </NeumorphicCard>
 
           {/* Trasporto tra Locali */}
@@ -997,8 +997,8 @@ export default function DashboardStoreManager() {
               </div>
 
               <div className="space-y-6">
-                {trasportoData.map((data, idx) => (
-                  <div key={idx} className="neumorphic-flat p-4 rounded-xl">
+                {trasportoData.map((data, idx) =>
+            <div key={idx} className="neumorphic-flat p-4 rounded-xl">
                     <div className="mb-4">
                       <h3 className="font-bold text-slate-800 text-lg">{data.semilavorato}</h3>
                       <p className="text-xs text-slate-500 mt-1">📍 Preparato in: <strong>{data.storePreparazione}</strong></p>
@@ -1016,15 +1016,15 @@ export default function DashboardStoreManager() {
                           </tr>
                         </thead>
                         <tbody>
-                          {data.storeQuantita.map((sq) => (
-                            <tr key={sq.storeId} className={`border-b border-slate-100 hover:bg-slate-50 ${
-                              sq.differenza < 0 ? 'bg-red-50' : sq.differenza > 0 && sq.storeId === data.storePreparazioneId ? 'bg-green-50' : ''
-                            }`}>
+                          {data.storeQuantita.map((sq) =>
+                    <tr key={sq.storeId} className={`border-b border-slate-100 hover:bg-slate-50 ${
+                    sq.differenza < 0 ? 'bg-red-50' : sq.differenza > 0 && sq.storeId === data.storePreparazioneId ? 'bg-green-50' : ''}`
+                    }>
                               <td className="p-2 text-slate-700">
                                 {sq.storeName}
-                                {sq.storeId === data.storePreparazioneId && (
-                                  <span className="ml-2 text-xs text-blue-600">🏭 Origine</span>
-                                )}
+                                {sq.storeId === data.storePreparazioneId &&
+                        <span className="ml-2 text-xs text-blue-600">🏭 Origine</span>
+                        }
                               </td>
                               <td className="p-2 text-center font-bold text-blue-600">{sq.quantita} {data.unitaMisura}</td>
                               <td className="p-2 text-center text-slate-600">{sq.quantitaMinima}</td>
@@ -1032,30 +1032,30 @@ export default function DashboardStoreManager() {
                                 {moment(sq.dataRilevazione).format('DD/MM HH:mm')}
                               </td>
                             </tr>
-                          ))}
+                    )}
                         </tbody>
                       </table>
                     </div>
 
                     {/* Suggerimenti di spostamento */}
-                    {data.suggerimenti.length > 0 ? (
-                      <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+                    {data.suggerimenti.length > 0 ?
+              <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="font-bold text-blue-800 text-sm flex items-center gap-2">
                             <Truck className="w-5 h-5" />
                             Spostamenti Consigliati
                           </h4>
-                          <Link 
-                            to={createPageUrl('FormSpostamenti')}
-                            className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
-                          >
+                          <Link
+                    to={createPageUrl('FormSpostamenti')}
+                    className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1">
+
                             <ArrowRight className="w-3 h-3" />
                             Vai al Form
                           </Link>
                         </div>
                         <div className="space-y-3">
-                          {data.suggerimenti.map((sug, sIdx) => (
-                            <div key={sIdx} className="bg-white rounded-lg p-3 border border-blue-200">
+                          {data.suggerimenti.map((sug, sIdx) =>
+                  <div key={sIdx} className="bg-white rounded-lg p-3 border border-blue-200">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                   <div className="text-center">
@@ -1074,24 +1074,24 @@ export default function DashboardStoreManager() {
                                 </div>
                               </div>
                             </div>
-                          ))}
+                  )}
                         </div>
-                      </div>
-                    ) : (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                      </div> :
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                         <p className="text-sm text-green-700 font-medium">✅ Tutte le scorte sono equilibrate</p>
                       </div>
-                    )}
+              }
                   </div>
-                ))}
+            )}
               </div>
-            {trasportoData.length > 0 ? null : (
-              <div className="text-center py-8">
+            {trasportoData.length > 0 ? null :
+          <div className="text-center py-8">
                 <Truck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                 <p className="text-slate-500 font-medium">Nessuna rilevazione disponibile</p>
                 <p className="text-xs text-slate-400 mt-1">Compila il form inventario per visualizzare i suggerimenti di spostamento</p>
               </div>
-            )}
+          }
             </NeumorphicCard>
 
            {/* Scorecard Dipendenti */}
@@ -1101,10 +1101,10 @@ export default function DashboardStoreManager() {
               <h2 className="text-xl font-bold text-slate-800">Scorecard Dipendenti</h2>
             </div>
 
-            {employeeScorecard.length === 0 ? (
-              <p className="text-center text-slate-500 py-8">Nessun turno registrato per questo locale nel periodo selezionato</p>
-            ) : (
-              <div className="overflow-x-auto">
+            {employeeScorecard.length === 0 ?
+          <p className="text-center text-slate-500 py-8">Nessun turno registrato per questo locale nel periodo selezionato</p> :
+
+          <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b-2 border-slate-200">
@@ -1118,22 +1118,22 @@ export default function DashboardStoreManager() {
                     </tr>
                   </thead>
                   <tbody>
-                    {employeeScorecard.map(emp => (
-                      <React.Fragment key={emp.id}>
+                    {employeeScorecard.map((emp) =>
+                <React.Fragment key={emp.id}>
                         <tr className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="p-3">
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-slate-800">{emp.name}</span>
-                              {emp.isPrimaryHere && (
-                                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs">
+                              {emp.isPrimaryHere &&
+                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs">
                                   Principale
                                 </span>
-                              )}
+                        }
                             </div>
                             <div className="flex gap-1 mt-1">
-                              {emp.ruoli.map(r => (
-                                <span key={r} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{r}</span>
-                              ))}
+                              {emp.ruoli.map((r) =>
+                        <span key={r} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{r}</span>
+                        )}
                             </div>
                           </td>
                           <td className="p-3 text-center font-bold text-slate-700">{emp.shiftsCount}</td>
@@ -1153,57 +1153,57 @@ export default function DashboardStoreManager() {
                             </span>
                           </td>
                           <td className="p-3 text-center">
-                            {emp.reviewsCount > 0 ? (
-                              <div className="flex items-center justify-center gap-1">
+                            {emp.reviewsCount > 0 ?
+                      <div className="flex items-center justify-center gap-1">
                                 <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                                 <span className="font-bold text-slate-700">{emp.avgRating.toFixed(1)}</span>
                                 <span className="text-xs text-slate-500">({emp.reviewsCount})</span>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400">-</span>
-                            )}
+                              </div> :
+
+                      <span className="text-slate-400">-</span>
+                      }
                           </td>
                           <td className="p-3 text-center">
                             <button
-                              onClick={() => setExpandedEmployee(expandedEmployee === emp.id ? null : emp.id)}
-                              className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                            >
+                        onClick={() => setExpandedEmployee(expandedEmployee === emp.id ? null : emp.id)}
+                        className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
+
                               <ChevronRight className={`w-5 h-5 text-slate-400 transition-transform ${expandedEmployee === emp.id ? 'rotate-90' : ''}`} />
                             </button>
                           </td>
                         </tr>
 
-                        {expandedEmployee === emp.id && (
-                          <tr className="bg-slate-50">
+                        {expandedEmployee === emp.id &&
+                  <tr className="bg-slate-50">
                             <td colSpan="7" className="p-4">
                               <div className="space-y-4">
                                 {/* Ritardi */}
-                                {emp.lateShiftsDetails.length > 0 && (
-                                  <div className="neumorphic-pressed p-4 rounded-xl">
+                                {emp.lateShiftsDetails.length > 0 &&
+                        <div className="neumorphic-pressed p-4 rounded-xl">
                                     <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
                                       <Clock className="w-5 h-5 text-red-600" />
                                       Turni in Ritardo ({emp.lateShiftsDetails.length})
                                     </h4>
                                     <div className="space-y-2">
                                       {emp.lateShiftsDetails.slice(0, 5).map((shift, idx) => {
-                                       let ritardoReale = 0;
-                                       let oraInizioTurno = '';
-                                       let oraTimbratura = '';
-                                       if (shift.timbratura_entrata && shift.ora_inizio) {
-                                         try {
-                                           const clockInTime = new Date(shift.timbratura_entrata);
-                                           oraTimbratura = clockInTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-                                           oraInizioTurno = shift.ora_inizio;
-                                           const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
-                                           const scheduledStart = new Date(clockInTime);
-                                           scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
-                                           const delayMs = clockInTime - scheduledStart;
-                                           const delayMinutes = Math.floor(delayMs / 60000);
-                                           ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
-                                         } catch (e) {}
-                                       }
-                                       return (
-                                         <div key={idx} className="bg-white p-3 rounded-lg text-sm">
+                              let ritardoReale = 0;
+                              let oraInizioTurno = '';
+                              let oraTimbratura = '';
+                              if (shift.timbratura_entrata && shift.ora_inizio) {
+                                try {
+                                  const clockInTime = new Date(shift.timbratura_entrata);
+                                  oraTimbratura = clockInTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                                  oraInizioTurno = shift.ora_inizio;
+                                  const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+                                  const scheduledStart = new Date(clockInTime);
+                                  scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+                                  const delayMs = clockInTime - scheduledStart;
+                                  const delayMinutes = Math.floor(delayMs / 60000);
+                                  ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+                                } catch (e) {}
+                              }
+                              return (
+                                <div key={idx} className="bg-white p-3 rounded-lg text-sm">
                                            <div className="flex items-center justify-between mb-2">
                                              <span className="font-medium text-slate-700">{new Date(shift.data).toLocaleDateString('it-IT')}</span>
                                              <span className="font-bold text-red-600">+{ritardoReale} min</span>
@@ -1211,23 +1211,23 @@ export default function DashboardStoreManager() {
                                            <div className="text-xs text-slate-500">
                                              <strong>Previsto:</strong> {oraInizioTurno} → <strong>Timbrato:</strong> {oraTimbratura}
                                            </div>
-                                         </div>
-                                       );
-                                      })}
+                                         </div>);
+
+                            })}
                                     </div>
                                   </div>
-                                )}
+                        }
 
                                 {/* Ordini Sbagliati */}
-                                {emp.wrongOrdersDetails.length > 0 && (
-                                  <div className="neumorphic-pressed p-4 rounded-xl">
+                                {emp.wrongOrdersDetails.length > 0 &&
+                        <div className="neumorphic-pressed p-4 rounded-xl">
                                     <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
                                       <AlertTriangle className="w-5 h-5 text-purple-600" />
                                       Ordini Sbagliati ({emp.wrongOrdersDetails.length})
                                     </h4>
                                     <div className="space-y-2">
-                                      {emp.wrongOrdersDetails.slice(0, 5).map((order, idx) => (
-                                        <div key={idx} className="bg-white p-3 rounded-lg text-sm">
+                                      {emp.wrongOrdersDetails.slice(0, 5).map((order, idx) =>
+                            <div key={idx} className="bg-white p-3 rounded-lg text-sm">
                                           <div className="flex items-center justify-between mb-1">
                                             <span className="font-medium text-slate-700">#{order.order_id}</span>
                                             <span className="text-xs text-purple-600 font-bold">{order.platform}</span>
@@ -1235,61 +1235,61 @@ export default function DashboardStoreManager() {
                                           <div className="text-xs text-slate-500">
                                             {new Date(order.order_date).toLocaleDateString('it-IT')} • {new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} • €{order.order_total?.toFixed(2) || '0.00'}
                                           </div>
-                                          {order.complaint_reason && (
-                                            <p className="text-xs text-slate-600 mt-1 italic">{order.complaint_reason}</p>
-                                          )}
+                                          {order.complaint_reason &&
+                              <p className="text-xs text-slate-600 mt-1 italic">{order.complaint_reason}</p>
+                              }
                                         </div>
-                                      ))}
+                            )}
                                     </div>
                                   </div>
-                                )}
+                        }
 
                                 {/* Recensioni */}
-                                {emp.reviewsDetails.length > 0 && (
-                                  <div className="neumorphic-pressed p-4 rounded-xl">
+                                {emp.reviewsDetails.length > 0 &&
+                        <div className="neumorphic-pressed p-4 rounded-xl">
                                     <h4 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
                                       <Star className="w-5 h-5 text-yellow-500" />
                                       Recensioni Google ({emp.reviewsDetails.length})
                                     </h4>
                                     <div className="space-y-2">
-                                      {emp.reviewsDetails.slice(0, 5).map((review, idx) => (
-                                        <div key={idx} className="bg-white p-3 rounded-lg text-sm">
+                                      {emp.reviewsDetails.slice(0, 5).map((review, idx) =>
+                            <div key={idx} className="bg-white p-3 rounded-lg text-sm">
                                           <div className="flex items-center justify-between mb-2">
                                             <span className="text-slate-600">{review.customer_name || 'Anonimo'}</span>
                                             <div className="flex items-center gap-1">
-                                              {[...Array(5)].map((_, i) => (
-                                                <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
-                                              ))}
+                                              {[...Array(5)].map((_, i) =>
+                                  <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                                  )}
                                             </div>
                                           </div>
-                                          {(review.comment || review.review_text) && (
-                                            <p className="text-xs text-slate-600 mb-2 bg-slate-50 p-2 rounded italic">
+                                          {(review.comment || review.review_text) &&
+                              <p className="text-xs text-slate-600 mb-2 bg-slate-50 p-2 rounded italic">
                                               "{review.comment || review.review_text}"
                                             </p>
-                                          )}
+                              }
                                           <p className="text-xs text-slate-400">{new Date(review.review_date).toLocaleDateString('it-IT')}</p>
                                         </div>
-                                      ))}
+                            )}
                                     </div>
                                   </div>
-                                )}
+                        }
                               </div>
                             </td>
                           </tr>
-                        )}
+                  }
                       </React.Fragment>
-                    ))}
+                )}
                   </tbody>
                 </table>
               </div>
-            )}
+          }
           </NeumorphicCard>
         </>
-      )}
+      }
 
       {/* Modal Approvazioni */}
-      {showApprovazioniModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showApprovazioniModal &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -1302,16 +1302,16 @@ export default function DashboardStoreManager() {
                 </button>
               </div>
 
-              {richiesteScambio.length === 0 ? (
-                <div className="text-center py-12">
+              {richiesteScambio.length === 0 ?
+            <div className="text-center py-12">
                   <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                   <p className="text-slate-600 font-medium">Nessuna richiesta in attesa</p>
                   <p className="text-sm text-slate-500 mt-1">Tutte le richieste sono state processate</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {richiesteScambio.map(richiesta => (
-                    <div key={richiesta.id} className="neumorphic-pressed p-5 rounded-xl">
+                </div> :
+
+            <div className="space-y-4">
+                  {richiesteScambio.map((richiesta) =>
+              <div key={richiesta.id} className="neumorphic-pressed p-5 rounded-xl">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
@@ -1323,64 +1323,64 @@ export default function DashboardStoreManager() {
                             <p>🕐 Orario: {richiesta.ora_inizio} - {richiesta.ora_fine}</p>
                             <p>👤 Ruolo: {richiesta.ruolo}</p>
                             <p>🏪 Locale: {richiesta.store_name}</p>
-                            {richiesta.note && (
-                              <p className="text-slate-500 italic mt-2">💬 {richiesta.note}</p>
-                            )}
+                            {richiesta.note &&
+                      <p className="text-slate-500 italic mt-2">💬 {richiesta.note}</p>
+                      }
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={async () => {
-                              try {
-                                await base44.entities.RichiestaTurnoLibero.update(richiesta.id, {
-                                  stato: 'approvata',
-                                  data_approvazione: new Date().toISOString(),
-                                  approvato_da: currentUser.email
-                                });
-                                queryClient.invalidateQueries({ queryKey: ['richieste-scambio'] });
-                                alert('✅ Richiesta approvata');
-                              } catch (error) {
-                                alert('❌ Errore nell\'approvazione');
-                              }
-                            }}
-                            className="px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors flex items-center gap-1"
-                          >
+                      onClick={async () => {
+                        try {
+                          await base44.entities.RichiestaTurnoLibero.update(richiesta.id, {
+                            stato: 'approvata',
+                            data_approvazione: new Date().toISOString(),
+                            approvato_da: currentUser.email
+                          });
+                          queryClient.invalidateQueries({ queryKey: ['richieste-scambio'] });
+                          alert('✅ Richiesta approvata');
+                        } catch (error) {
+                          alert('❌ Errore nell\'approvazione');
+                        }
+                      }}
+                      className="px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600 transition-colors flex items-center gap-1">
+
                             <CheckCircle className="w-4 h-4" />
                             Approva
                           </button>
                           <button
-                            onClick={async () => {
-                              try {
-                                await base44.entities.RichiestaTurnoLibero.update(richiesta.id, {
-                                  stato: 'rifiutata',
-                                  data_approvazione: new Date().toISOString(),
-                                  approvato_da: currentUser.email
-                                });
-                                queryClient.invalidateQueries({ queryKey: ['richieste-scambio'] });
-                                alert('❌ Richiesta rifiutata');
-                              } catch (error) {
-                                alert('❌ Errore nel rifiuto');
-                              }
-                            }}
-                            className="px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors flex items-center gap-1"
-                          >
+                      onClick={async () => {
+                        try {
+                          await base44.entities.RichiestaTurnoLibero.update(richiesta.id, {
+                            stato: 'rifiutata',
+                            data_approvazione: new Date().toISOString(),
+                            approvato_da: currentUser.email
+                          });
+                          queryClient.invalidateQueries({ queryKey: ['richieste-scambio'] });
+                          alert('❌ Richiesta rifiutata');
+                        } catch (error) {
+                          alert('❌ Errore nel rifiuto');
+                        }
+                      }}
+                      className="px-4 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition-colors flex items-center gap-1">
+
                             <XCircle className="w-4 h-4" />
                             Rifiuta
                           </button>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
               )}
+                </div>
+            }
             </NeumorphicCard>
           </div>
         </div>
-      )}
+      }
 
       {/* Detail Modals */}
-      {showDetailModal === 'reviews' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showDetailModal === 'reviews' &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -1393,11 +1393,11 @@ export default function DashboardStoreManager() {
                 </button>
               </div>
               <div className="space-y-3">
-                {metrics.monthReviews.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Nessuna recensione questo mese</p>
-                ) : (
-                  metrics.monthReviews.map(review => (
-                    <div key={review.id} className="neumorphic-pressed p-4 rounded-xl">
+                {metrics.monthReviews.length === 0 ?
+              <p className="text-center text-slate-500 py-8">Nessuna recensione questo mese</p> :
+
+              metrics.monthReviews.map((review) =>
+              <div key={review.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
@@ -1407,31 +1407,31 @@ export default function DashboardStoreManager() {
                           {new Date(review.review_date).toLocaleDateString('it-IT')}
                         </span>
                       </div>
-                      {review.review_text && (
-                        <div className="bg-slate-50 p-3 rounded-lg mb-2">
+                      {review.review_text &&
+                <div className="bg-slate-50 p-3 rounded-lg mb-2">
                           <p className="text-sm text-slate-700 italic">"{review.review_text}"</p>
                         </div>
-                      )}
-                      {review.employee_assigned_name && (
-                        <div className="flex items-center gap-2 mt-2">
+                }
+                      {review.employee_assigned_name &&
+                <div className="flex items-center gap-2 mt-2">
                           <span className="text-xs font-medium text-slate-500">Assegnata a:</span>
                           <span className="text-xs font-bold text-slate-700">{review.employee_assigned_name}</span>
                         </div>
-                      )}
-                      {!review.review_text && !review.employee_assigned_name && (
-                        <p className="text-xs text-slate-400 italic">Nessun dettaglio aggiuntivo</p>
-                      )}
+                }
+                      {!review.review_text && !review.employee_assigned_name &&
+                <p className="text-xs text-slate-400 italic">Nessun dettaglio aggiuntivo</p>
+                }
                     </div>
-                  ))
-                )}
+              )
+              }
               </div>
             </NeumorphicCard>
           </div>
         </div>
-      )}
+      }
 
-      {showDetailModal === 'wrongOrders' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showDetailModal === 'wrongOrders' &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -1444,11 +1444,11 @@ export default function DashboardStoreManager() {
                 </button>
               </div>
               <div className="space-y-3">
-                {metrics.monthWrongOrders.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Nessun ordine sbagliato questo mese 🎉</p>
-                ) : (
-                  metrics.monthWrongOrders.map(order => (
-                    <div key={order.id} className="neumorphic-pressed p-4 rounded-xl">
+                {metrics.monthWrongOrders.length === 0 ?
+              <p className="text-center text-slate-500 py-8">Nessun ordine sbagliato questo mese 🎉</p> :
+
+              metrics.monthWrongOrders.map((order) =>
+              <div key={order.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between mb-2">
                          <span className="font-bold text-red-700">#{order.order_id || 'N/A'} • {order.platform}</span>
                          <span className="text-xs text-slate-500">
@@ -1456,26 +1456,26 @@ export default function DashboardStoreManager() {
                          </span>
                        </div>
                       {(() => {
-                        const matches = wrongOrderMatches.filter(m => m.wrong_order_id === order.id);
-                        return matches.length > 0 ? (
-                          <p className="text-sm text-slate-700 mb-1">👤 <strong>Assegnato a:</strong> {matches.map(m => m.matched_employee_name).join(', ')}</p>
-                        ) : null;
-                      })()}
+                  const matches = wrongOrderMatches.filter((m) => m.wrong_order_id === order.id);
+                  return matches.length > 0 ?
+                  <p className="text-sm text-slate-700 mb-1">👤 <strong>Assegnato a:</strong> {matches.map((m) => m.matched_employee_name).join(', ')}</p> :
+                  null;
+                })()}
                       <p className="text-xs text-slate-600 mb-1">💰 Importo: €{order.order_total || 0}</p>
-                      {order.complaint_reason && (
-                        <p className="text-xs text-slate-500 italic">📝 {order.complaint_reason}</p>
-                      )}
+                      {order.complaint_reason &&
+                <p className="text-xs text-slate-500 italic">📝 {order.complaint_reason}</p>
+                }
                     </div>
-                  ))
-                )}
+              )
+              }
               </div>
             </NeumorphicCard>
           </div>
         </div>
-      )}
+      }
 
-      {showDetailModal === 'delays' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showDetailModal === 'delays' &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -1488,28 +1488,28 @@ export default function DashboardStoreManager() {
                 </button>
               </div>
               <div className="space-y-3">
-                {metrics.monthShifts.filter(s => s.in_ritardo === true).length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Nessun ritardo questo mese 🎉</p>
-                ) : (
-                  metrics.monthShifts.filter(s => s.in_ritardo === true).map(shift => {
-                    let ritardoReale = 0;
-                    let oraInizioTurno = '';
-                    let oraTimbratura = '';
-                    if (shift.timbratura_entrata && shift.ora_inizio) {
-                      try {
-                        const clockInTime = new Date(shift.timbratura_entrata);
-                        oraTimbratura = clockInTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-                        oraInizioTurno = shift.ora_inizio;
-                        const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
-                        const scheduledStart = new Date(clockInTime);
-                        scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
-                        const delayMs = clockInTime - scheduledStart;
-                        const delayMinutes = Math.floor(delayMs / 60000);
-                        ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
-                      } catch (e) {}
-                    }
-                    return (
-                      <div key={shift.id} className="neumorphic-pressed p-4 rounded-xl">
+                {metrics.monthShifts.filter((s) => s.in_ritardo === true).length === 0 ?
+              <p className="text-center text-slate-500 py-8">Nessun ritardo questo mese 🎉</p> :
+
+              metrics.monthShifts.filter((s) => s.in_ritardo === true).map((shift) => {
+                let ritardoReale = 0;
+                let oraInizioTurno = '';
+                let oraTimbratura = '';
+                if (shift.timbratura_entrata && shift.ora_inizio) {
+                  try {
+                    const clockInTime = new Date(shift.timbratura_entrata);
+                    oraTimbratura = clockInTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                    oraInizioTurno = shift.ora_inizio;
+                    const [oraInizioHH, oraInizioMM] = shift.ora_inizio.split(':').map(Number);
+                    const scheduledStart = new Date(clockInTime);
+                    scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+                    const delayMs = clockInTime - scheduledStart;
+                    const delayMinutes = Math.floor(delayMs / 60000);
+                    ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
+                  } catch (e) {}
+                }
+                return (
+                  <div key={shift.id} className="neumorphic-pressed p-4 rounded-xl">
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-bold text-slate-800">{shift.dipendente_nome}</span>
                           <span className="text-xs text-slate-500">
@@ -1526,18 +1526,18 @@ export default function DashboardStoreManager() {
                             +{ritardoReale} min
                           </span>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
+                      </div>);
+
+              })
+              }
               </div>
             </NeumorphicCard>
           </div>
         </div>
-      )}
+      }
 
-      {showDetailModal === 'cleanings' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showDetailModal === 'cleanings' &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-6">
@@ -1550,19 +1550,19 @@ export default function DashboardStoreManager() {
                 </button>
               </div>
               <div className="space-y-3">
-                {metrics.monthInspections.filter(i => (i.overall_score || 0) > 0).length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Nessun controllo pulizie completato questo mese</p>
-                ) : (
-                  metrics.monthInspections.filter(i => (i.overall_score || 0) > 0).map(inspection => (
-                    <div key={inspection.id} className="neumorphic-pressed p-4 rounded-xl">
+                {metrics.monthInspections.filter((i) => (i.overall_score || 0) > 0).length === 0 ?
+              <p className="text-center text-slate-500 py-8">Nessun controllo pulizie completato questo mese</p> :
+
+              metrics.monthInspections.filter((i) => (i.overall_score || 0) > 0).map((inspection) =>
+              <div key={inspection.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-slate-800">{inspection.inspector_name}</span>
                         <div className="flex items-center gap-2">
                           <span className={`px-3 py-1 rounded-full font-bold ${
-                            inspection.overall_score >= 80 ? 'bg-green-100 text-green-700' :
-                            inspection.overall_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
+                    inspection.overall_score >= 80 ? 'bg-green-100 text-green-700' :
+                    inspection.overall_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'}`
+                    }>
                             {inspection.overall_score}/100
                           </span>
                           <span className="text-xs text-slate-500">
@@ -1573,17 +1573,17 @@ export default function DashboardStoreManager() {
                       <p className="text-xs text-slate-500">
                         Ruolo: {inspection.inspector_role} • Tipo: {inspection.inspection_type}
                       </p>
-                      {inspection.critical_issues && (
-                        <p className="text-sm text-red-600 mt-2">⚠️ {inspection.critical_issues}</p>
-                      )}
+                      {inspection.critical_issues &&
+                <p className="text-sm text-red-600 mt-2">⚠️ {inspection.critical_issues}</p>
+                }
                     </div>
-                  ))
-                )}
+              )
+              }
               </div>
             </NeumorphicCard>
           </div>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
