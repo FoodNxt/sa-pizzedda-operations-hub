@@ -37,37 +37,37 @@ export default function OverviewContratti() {
 
   const { data: contratti = [], isLoading } = useQuery({
     queryKey: ['contratti-overview'],
-    queryFn: () => base44.entities.Contratto.filter({ status: 'firmato' }),
+    queryFn: () => base44.entities.Contratto.filter({ status: 'firmato' })
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-overview'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list()
   });
 
   const { data: contractTemplates = [] } = useQuery({
     queryKey: ['contratto-templates'],
-    queryFn: () => base44.entities.ContrattoTemplate.filter({ attivo: true }),
+    queryFn: () => base44.entities.ContrattoTemplate.filter({ attivo: true })
   });
 
   const { data: payrollConfig = [] } = useQuery({
     queryKey: ['payroll-config'],
-    queryFn: () => base44.entities.PayrollConfig.list(),
+    queryFn: () => base44.entities.PayrollConfig.list()
   });
 
   const { data: uscite = [] } = useQuery({
     queryKey: ['uscite'],
-    queryFn: () => base44.entities.Uscita.list(),
+    queryFn: () => base44.entities.Uscita.list()
   });
 
   const { data: allContracts = [] } = useQuery({
     queryKey: ['all-contracts'],
-    queryFn: () => base44.entities.Contratto.list(),
+    queryFn: () => base44.entities.Contratto.list()
   });
 
   const { data: payrollEmailLogs = [] } = useQuery({
     queryKey: ['payroll-email-logs'],
-    queryFn: () => base44.entities.PayrollEmailLog.list('-data_invio', 100),
+    queryFn: () => base44.entities.PayrollEmailLog.list('-data_invio', 100)
   });
 
 
@@ -80,12 +80,12 @@ export default function OverviewContratti() {
       setRenewingContract(null);
       setRenewalData({ template_id: '', data_inizio: '', durata_mesi: 12 });
       alert('✅ Contratto rinnovato e inviato al dipendente!');
-    },
+    }
   });
 
   const savePayrollConfigMutation = useMutation({
     mutationFn: async (data) => {
-      const activeConfig = payrollConfig.find(c => c.is_active);
+      const activeConfig = payrollConfig.find((c) => c.is_active);
       if (activeConfig) {
         return await base44.entities.PayrollConfig.update(activeConfig.id, data);
       } else {
@@ -95,38 +95,38 @@ export default function OverviewContratti() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payroll-config'] });
       alert('✅ Configurazione salvata!');
-    },
+    }
   });
 
   const updatePayrollLogMutation = useMutation({
     mutationFn: (data) => base44.entities.PayrollEmailLog.update(data.id, { cob_completato: data.cob_completato }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payroll-email-logs'] });
-    },
+    }
   });
 
   const deletePayrollLogMutation = useMutation({
     mutationFn: (id) => base44.entities.PayrollEmailLog.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payroll-email-logs'] });
-    },
+    }
   });
 
   const dipendentiConContratti = useMemo(() => {
     const oggi = new Date();
-    
+
     // Raggruppa contratti per dipendente
     const contrattiPerDipendente = {};
-    contratti.forEach(c => {
+    contratti.forEach((c) => {
       const userId = c.user_id;
       if (!userId) return;
-      
+
       if (!contrattiPerDipendente[userId]) {
         contrattiPerDipendente[userId] = [];
       }
       contrattiPerDipendente[userId].push(c);
     });
-    
+
     return Object.entries(contrattiPerDipendente).map(([userId, userContracts]) => {
       // Sort by start date (most recent first)
       const sortedContracts = userContracts.sort((a, b) => {
@@ -137,12 +137,12 @@ export default function OverviewContratti() {
 
       const currentContract = sortedContracts[0];
       const dataInizio = new Date(currentContract.data_inizio_contratto);
-      
+
       // Get user data to check for contract end date
-      const userData = users.find(u => u.id === userId);
+      const userData = users.find((u) => u.id === userId);
       let dataFine;
       let durataMesi = 0;
-      
+
       // Prioritize data_fine_contratto from the most recent contract
       if (currentContract.data_fine_contratto) {
         dataFine = new Date(currentContract.data_fine_contratto);
@@ -165,12 +165,12 @@ export default function OverviewContratti() {
       }
 
       // Check if employee has exit record
-      const uscita = uscite.find(u => u.dipendente_id === userId);
-      const giorniRimanenti = uscita ? null : (dataFine ? Math.ceil((dataFine - oggi) / (1000 * 60 * 60 * 24)) : null);
+      const uscita = uscite.find((u) => u.dipendente_id === userId);
+      const giorniRimanenti = uscita ? null : dataFine ? Math.ceil((dataFine - oggi) / (1000 * 60 * 60 * 24)) : null;
 
       // Calculate tenure from first contract
-      const primoContratto = userContracts.sort((a, b) => 
-        new Date(a.data_inizio_contratto) - new Date(b.data_inizio_contratto)
+      const primoContratto = userContracts.sort((a, b) =>
+      new Date(a.data_inizio_contratto) - new Date(b.data_inizio_contratto)
       )[0];
       const dataPrimaAssunzione = new Date(primoContratto.data_inizio_contratto);
       const mesiTenure = Math.floor((oggi - dataPrimaAssunzione) / (1000 * 60 * 60 * 24 * 30.44));
@@ -180,29 +180,29 @@ export default function OverviewContratti() {
         data_inizio: dataInizio,
         data_fine: dataFine,
         giorni_rimanenti: giorniRimanenti,
-        tipo_contratto_label: currentContract.employee_group === 'FT' ? 'Full Time' : 
-                             currentContract.employee_group === 'PT' ? 'Part Time' : 
-                             currentContract.employee_group === 'CM' ? 'Chiamata' : 
-                             currentContract.employee_group || 'N/A',
+        tipo_contratto_label: currentContract.employee_group === 'FT' ? 'Full Time' :
+        currentContract.employee_group === 'PT' ? 'Part Time' :
+        currentContract.employee_group === 'CM' ? 'Chiamata' :
+        currentContract.employee_group || 'N/A',
         durata_contratto: dataFine ? 'Determinato' : 'Indeterminato',
         ruoli: (currentContract.ruoli_dipendente || []).join(', ') || currentContract.function_name || 'N/A',
         tenure_mesi: mesiTenure,
         tutti_contratti: sortedContracts,
         ore_settimanali: userData?.ore_settimanali ?? currentContract.ore_settimanali ?? 0,
-        uscita: uscite.find(u => u.dipendente_id === userId)
+        uscita: uscite.find((u) => u.dipendente_id === userId)
       };
     }).sort((a, b) => {
       let aVal = a[sortField];
       let bVal = b[sortField];
-      
+
       if (sortField === 'nome_cognome') {
         aVal = (aVal || '').toLowerCase();
         bVal = (bVal || '').toLowerCase();
       }
-      
+
       if (aVal === null || aVal === undefined) return 1;
       if (bVal === null || bVal === undefined) return -1;
-      
+
       if (sortDirection === 'asc') {
         return aVal > bVal ? 1 : -1;
       } else {
@@ -213,22 +213,22 @@ export default function OverviewContratti() {
 
   const handleSort = (field) => {
     if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      setSortDirection((prev) => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
       setSortDirection('asc');
     }
   };
 
-  const SortButton = ({ field, children }) => (
-    <button
-      onClick={() => handleSort(field)}
-      className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-    >
+  const SortButton = ({ field, children }) =>
+  <button
+    onClick={() => handleSort(field)}
+    className="flex items-center gap-1 hover:text-blue-600 transition-colors">
+
       {children}
       <ArrowUpDown className={`w-3 h-3 ${sortField === field ? 'text-blue-600' : 'text-slate-400'}`} />
-    </button>
-  );
+    </button>;
+
 
   const handleRenewContract = async () => {
     if (!renewalData.template_id || !renewalData.data_inizio) {
@@ -236,13 +236,13 @@ export default function OverviewContratti() {
       return;
     }
 
-    const template = contractTemplates.find(t => t.id === renewalData.template_id);
+    const template = contractTemplates.find((t) => t.id === renewalData.template_id);
     if (!template) {
       alert('Template non trovato');
       return;
     }
 
-    const user = users.find(u => u.id === renewingContract.user_id);
+    const user = users.find((u) => u.id === renewingContract.user_id);
     if (!user) {
       alert('Utente non trovato');
       return;
@@ -257,8 +257,8 @@ export default function OverviewContratti() {
     const tuttiContratti = await base44.entities.Contratto.filter({ user_id: renewingContract.user_id, status: 'firmato' });
     let dataInizioPrimoContratto = '';
     if (tuttiContratti.length > 0) {
-      const contrattoPiuVecchio = tuttiContratti.sort((a, b) => 
-        new Date(a.data_inizio_contratto) - new Date(b.data_inizio_contratto)
+      const contrattoPiuVecchio = tuttiContratti.sort((a, b) =>
+      new Date(a.data_inizio_contratto) - new Date(b.data_inizio_contratto)
       )[0];
       if (contrattoPiuVecchio.data_inizio_contratto) {
         dataInizioPrimoContratto = new Date(contrattoPiuVecchio.data_inizio_contratto).toLocaleDateString('it-IT');
@@ -329,38 +329,38 @@ export default function OverviewContratti() {
   };
 
   const dipendentiSenzaContratto = useMemo(() => {
-    const dipendentiConContrattoIds = new Set(dipendentiConContratti.map(d => d.user_id));
-    return users.filter(u => 
-      (u.user_type === 'dipendente' || u.user_type === 'user') && 
-      u.status === 'active' &&
-      !dipendentiConContrattoIds.has(u.id)
+    const dipendentiConContrattoIds = new Set(dipendentiConContratti.map((d) => d.user_id));
+    return users.filter((u) =>
+    (u.user_type === 'dipendente' || u.user_type === 'user') &&
+    u.status === 'active' &&
+    !dipendentiConContrattoIds.has(u.id)
     );
   }, [users, dipendentiConContratti]);
 
   const contrattiAttivi = useMemo(() => {
-    return dipendentiConContratti.filter(d => !d.uscita);
+    return dipendentiConContratti.filter((d) => !d.uscita);
   }, [dipendentiConContratti]);
 
   const contrattiTerminati = useMemo(() => {
-    return dipendentiConContratti.filter(d => d.uscita);
+    return dipendentiConContratti.filter((d) => d.uscita);
   }, [dipendentiConContratti]);
 
   const stats = useMemo(() => {
     const totale = dipendentiConContratti.length;
-    const usciti = dipendentiConContratti.filter(d => d.uscita).length;
-    const inScadenza30 = dipendentiConContratti.filter(d => !d.uscita && d.giorni_rimanenti !== null && d.giorni_rimanenti <= 30 && d.giorni_rimanenti >= 0).length;
-    const scaduti = dipendentiConContratti.filter(d => !d.uscita && d.giorni_rimanenti !== null && d.giorni_rimanenti < 0).length;
-    const fullTime = dipendentiConContratti.filter(d => d.employee_group === 'FT').length;
-    const partTime = dipendentiConContratti.filter(d => d.employee_group === 'PT').length;
+    const usciti = dipendentiConContratti.filter((d) => d.uscita).length;
+    const inScadenza30 = dipendentiConContratti.filter((d) => !d.uscita && d.giorni_rimanenti !== null && d.giorni_rimanenti <= 30 && d.giorni_rimanenti >= 0).length;
+    const scaduti = dipendentiConContratti.filter((d) => !d.uscita && d.giorni_rimanenti !== null && d.giorni_rimanenti < 0).length;
+    const fullTime = dipendentiConContratti.filter((d) => d.employee_group === 'FT').length;
+    const partTime = dipendentiConContratti.filter((d) => d.employee_group === 'PT').length;
     const senzaContratto = dipendentiSenzaContratto.length;
-    
+
     return { totale, inScadenza30, scaduti, fullTime, partTime, senzaContratto, usciti };
   }, [dipendentiConContratti, dipendentiSenzaContratto]);
 
   // Load payroll config
   React.useEffect(() => {
     if (payrollConfig.length > 0) {
-      const activeConfig = payrollConfig.find(c => c.is_active);
+      const activeConfig = payrollConfig.find((c) => c.is_active);
       if (activeConfig) {
         setPayrollEmail(activeConfig.email_payroll || '');
         setEmailTemplates(activeConfig.templates_email || []);
@@ -407,10 +407,10 @@ export default function OverviewContratti() {
     const text = newTemplate.corpo;
     const before = text.substring(0, start);
     const after = text.substring(end, text.length);
-    
+
     const newText = before + variable + after;
     setNewTemplate({ ...newTemplate, corpo: newText });
-    
+
     // Restore cursor position after the inserted variable
     setTimeout(() => {
       textarea.focus();
@@ -438,8 +438,8 @@ export default function OverviewContratti() {
 
       // Prepare documents URLs
       const documentiUrls = [];
-      
-      sendData.selectedDocuments.forEach(docId => {
+
+      sendData.selectedDocuments.forEach((docId) => {
         if (docId === 'documento_identita' && user?.documento_identita_url) {
           documentiUrls.push({ nome: 'Documento d\'Identità', url: user.documento_identita_url });
         } else if (docId === 'codice_fiscale_documento' && user?.codice_fiscale_documento_url) {
@@ -450,8 +450,8 @@ export default function OverviewContratti() {
       });
 
       // Get contracts URLs
-      const contrattiUrls = sendData.selectedContracts.map(id => {
-        const c = allContracts.find(ct => ct.id === id);
+      const contrattiUrls = sendData.selectedContracts.map((id) => {
+        const c = allContracts.find((ct) => ct.id === id);
         return {
           nome: `${c.template_nome} (${moment(c.data_inizio_contratto).format('DD/MM/YYYY')})`,
           id: c.id
@@ -460,10 +460,10 @@ export default function OverviewContratti() {
 
       // Add contracts list and documents list to email body
       if (contrattiUrls.length > 0) {
-        corpo += '\n\n📄 Contratti allegati:\n' + contrattiUrls.map(c => `- ${c.nome}`).join('\n');
+        corpo += '\n\n📄 Contratti allegati:\n' + contrattiUrls.map((c) => `- ${c.nome}`).join('\n');
       }
       if (documentiUrls.length > 0) {
-        corpo += '\n\n📎 Documenti allegati:\n' + documentiUrls.map(d => `- ${d.nome}`).join('\n');
+        corpo += '\n\n📎 Documenti allegati:\n' + documentiUrls.map((d) => `- ${d.nome}`).join('\n');
       }
 
       // Call backend function to send email
@@ -477,7 +477,7 @@ export default function OverviewContratti() {
       });
 
       alert('✅ Email inviata con successo a ' + payrollEmail);
-      
+
       queryClient.invalidateQueries({ queryKey: ['payroll-email-logs'] });
       setSendingToPayroll(null);
       setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
@@ -497,22 +497,22 @@ export default function OverviewContratti() {
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-10 h-10 text-blue-600" />
               <div>
-                <h1 className="text-3xl font-bold text-slate-800">Overview Contratti</h1>
-                <p className="text-slate-500">Panoramica completa dei contratti attivi</p>
+                <h1 className="text-slate-50 text-3xl font-bold">Overview Contratti</h1>
+                <p className="text-slate-50">Panoramica completa dei contratti attivi</p>
               </div>
             </div>
             <div className="flex gap-2">
               <NeumorphicButton
                 onClick={() => setShowPayrollLog(true)}
-                className="flex items-center gap-2"
-              >
+                className="flex items-center gap-2">
+
                 <Send className="w-4 h-4" />
                 Mail Payroll
               </NeumorphicButton>
               <NeumorphicButton
                 onClick={() => setShowSettings(true)}
-                className="flex items-center gap-2"
-              >
+                className="flex items-center gap-2">
+
                 <Settings className="w-4 h-4" />
                 Impostazioni
               </NeumorphicButton>
@@ -560,29 +560,29 @@ export default function OverviewContratti() {
         </div>
 
         {/* Dipendenti Senza Contratto */}
-        {dipendentiSenzaContratto.length > 0 && (
-          <NeumorphicCard className="p-6 bg-yellow-50 border-2 border-yellow-300">
+        {dipendentiSenzaContratto.length > 0 &&
+        <NeumorphicCard className="p-6 bg-yellow-50 border-2 border-yellow-300">
             <h2 className="text-xl font-bold text-yellow-800 mb-4 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-yellow-600" />
               Dipendenti Attivi Senza Contratto ({dipendentiSenzaContratto.length})
             </h2>
             <div className="space-y-2">
-              {dipendentiSenzaContratto.map(dip => (
-                <div key={dip.id} className="bg-white p-3 rounded-lg flex items-center justify-between">
+              {dipendentiSenzaContratto.map((dip) =>
+            <div key={dip.id} className="bg-white p-3 rounded-lg flex items-center justify-between">
                   <div>
                     <p className="font-medium text-slate-800">{dip.nome_cognome || dip.full_name}</p>
                     <p className="text-sm text-slate-500">{dip.email}</p>
                   </div>
-                  {dip.ruoli_dipendente && dip.ruoli_dipendente.length > 0 && (
-                    <span className="text-xs px-2 py-1 bg-slate-100 rounded">
+                  {dip.ruoli_dipendente && dip.ruoli_dipendente.length > 0 &&
+              <span className="text-xs px-2 py-1 bg-slate-100 rounded">
                       {dip.ruoli_dipendente.join(', ')}
                     </span>
-                  )}
+              }
                 </div>
-              ))}
+            )}
             </div>
           </NeumorphicCard>
-        )}
+        }
 
         {/* Contratti Attivi Table */}
         <NeumorphicCard className="p-6">
@@ -591,18 +591,18 @@ export default function OverviewContratti() {
             Contratti Attivi
           </h2>
 
-          {isLoading ? (
-            <div className="text-center py-12">
+          {isLoading ?
+          <div className="text-center py-12">
               <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
               <p className="text-slate-500 mt-3">Caricamento...</p>
-            </div>
-          ) : contrattiAttivi.length === 0 ? (
-            <div className="text-center py-12">
+            </div> :
+          contrattiAttivi.length === 0 ?
+          <div className="text-center py-12">
               <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500">Nessun contratto attivo trovato</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+            </div> :
+
+          <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-slate-200">
@@ -645,33 +645,33 @@ export default function OverviewContratti() {
                   </tr>
                 </thead>
                 <tbody>
-                  {contrattiAttivi.map(dip => {
-                    const isScaduto = dip.giorni_rimanenti !== null && dip.giorni_rimanenti < 0;
-                    const isInScadenza = dip.giorni_rimanenti !== null && dip.giorni_rimanenti >= 0 && dip.giorni_rimanenti <= 30;
+                  {contrattiAttivi.map((dip) => {
+                  const isScaduto = dip.giorni_rimanenti !== null && dip.giorni_rimanenti < 0;
+                  const isInScadenza = dip.giorni_rimanenti !== null && dip.giorni_rimanenti >= 0 && dip.giorni_rimanenti <= 30;
 
-                    return (
-                      <tr 
-                        key={dip.id} 
-                        className={`border-b border-slate-100 hover:bg-slate-50 ${
-                          isScaduto ? 'bg-red-50' : isInScadenza ? 'bg-orange-50' : ''
-                        }`}
-                      >
+                  return (
+                    <tr
+                      key={dip.id}
+                      className={`border-b border-slate-100 hover:bg-slate-50 ${
+                      isScaduto ? 'bg-red-50' : isInScadenza ? 'bg-orange-50' : ''}`
+                      }>
+
                         <td className="py-3 px-2 font-medium text-slate-800">
                           {dip.nome_cognome}
                         </td>
                         <td className="py-3 px-2">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            dip.employee_group === 'FT' ? 'bg-green-100 text-green-700' :
-                            dip.employee_group === 'PT' ? 'bg-purple-100 text-purple-700' :
-                            'bg-blue-100 text-blue-700'
-                          }`}>
+                        dip.employee_group === 'FT' ? 'bg-green-100 text-green-700' :
+                        dip.employee_group === 'PT' ? 'bg-purple-100 text-purple-700' :
+                        'bg-blue-100 text-blue-700'}`
+                        }>
                             {dip.tipo_contratto_label}
                           </span>
                         </td>
                         <td className="py-3 px-2 text-center">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            dip.durata_contratto === 'Determinato' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
-                          }`}>
+                        dip.durata_contratto === 'Determinato' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`
+                        }>
                             {dip.durata_contratto}
                           </span>
                         </td>
@@ -685,27 +685,27 @@ export default function OverviewContratti() {
                           {dip.data_inizio ? moment(dip.data_inizio).format('DD/MM/YYYY') : 'N/A'}
                         </td>
                         <td className="py-3 px-2 text-center text-slate-700">
-                          {dip.data_fine ? (
-                            moment(dip.data_fine).format('DD/MM/YYYY')
-                          ) : (
-                            'N/A'
-                          )}
+                          {dip.data_fine ?
+                        moment(dip.data_fine).format('DD/MM/YYYY') :
+
+                        'N/A'
+                        }
                         </td>
                         <td className="py-3 px-2 text-center">
-                          {dip.durata_contratto === 'Indeterminato' ? (
-                            <span className="text-slate-400">-</span>
-                          ) : dip.giorni_rimanenti !== null ? (
-                            <span className={`font-bold ${
-                              isScaduto ? 'text-red-700' :
-                              isInScadenza ? 'text-orange-700' :
-                              dip.giorni_rimanenti <= 60 ? 'text-yellow-700' :
-                              'text-green-700'
-                            }`}>
+                          {dip.durata_contratto === 'Indeterminato' ?
+                        <span className="text-slate-400">-</span> :
+                        dip.giorni_rimanenti !== null ?
+                        <span className={`font-bold ${
+                        isScaduto ? 'text-red-700' :
+                        isInScadenza ? 'text-orange-700' :
+                        dip.giorni_rimanenti <= 60 ? 'text-yellow-700' :
+                        'text-green-700'}`
+                        }>
                               {isScaduto ? `Scaduto da ${Math.abs(dip.giorni_rimanenti)}gg` : `${dip.giorni_rimanenti}gg`}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">N/A</span>
-                          )}
+                            </span> :
+
+                        <span className="text-slate-400">N/A</span>
+                        }
                         </td>
                         <td className="py-3 px-2 text-center">
                           <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
@@ -714,43 +714,43 @@ export default function OverviewContratti() {
                         </td>
                         <td className="py-3 px-2 text-center">
                           <button
-                            onClick={() => setViewingHistory(dip)}
-                            className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                            title="Vedi storico contratti"
-                          >
+                          onClick={() => setViewingHistory(dip)}
+                          className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                          title="Vedi storico contratti">
+
                             <History className="w-4 h-4 text-blue-600" />
                           </button>
                         </td>
                         <td className="py-3 px-2 text-center">
                           <button
-                            onClick={() => setRenewingContract(dip)}
-                            className="nav-button p-2 rounded-lg hover:bg-green-50 transition-colors"
-                            title="Rinnova Contratto"
-                          >
+                          onClick={() => setRenewingContract(dip)}
+                          className="nav-button p-2 rounded-lg hover:bg-green-50 transition-colors"
+                          title="Rinnova Contratto">
+
                             <RefreshCw className="w-4 h-4 text-green-600" />
                           </button>
                         </td>
                         <td className="py-3 px-2 text-center">
                           <button
-                            onClick={() => setSendingToPayroll(dip)}
-                            className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                            title="Invia a Payroll"
-                          >
+                          onClick={() => setSendingToPayroll(dip)}
+                          className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                          title="Invia a Payroll">
+
                             <Send className="w-4 h-4 text-blue-600" />
                           </button>
                         </td>
-                      </tr>
-                    );
-                  })}
+                      </tr>);
+
+                })}
                 </tbody>
               </table>
             </div>
-          )}
+          }
           </NeumorphicCard>
 
           {/* Contratti Terminati Table */}
-          {contrattiTerminati.length > 0 && (
-          <NeumorphicCard className="p-6 bg-red-50 border-2 border-red-300">
+          {contrattiTerminati.length > 0 &&
+        <NeumorphicCard className="p-6 bg-red-50 border-2 border-red-300">
             <h2 className="text-xl font-bold text-red-800 mb-4 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-red-600" />
               Contratti Terminati ({contrattiTerminati.length})
@@ -772,15 +772,15 @@ export default function OverviewContratti() {
                   </tr>
                 </thead>
                 <tbody>
-                  {contrattiTerminati.map(dip => (
-                    <tr key={dip.id} className="border-b border-red-100 hover:bg-red-100">
+                  {contrattiTerminati.map((dip) =>
+                <tr key={dip.id} className="border-b border-red-100 hover:bg-red-100">
                       <td className="py-3 px-2 font-medium text-red-900">{dip.nome_cognome}</td>
                       <td className="py-3 px-2">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          dip.employee_group === 'FT' ? 'bg-green-100 text-green-700' :
-                          dip.employee_group === 'PT' ? 'bg-purple-100 text-purple-700' :
-                          'bg-blue-100 text-blue-700'
-                        }`}>
+                    dip.employee_group === 'FT' ? 'bg-green-100 text-green-700' :
+                    dip.employee_group === 'PT' ? 'bg-purple-100 text-purple-700' :
+                    'bg-blue-100 text-blue-700'}`
+                    }>
                           {dip.tipo_contratto_label}
                         </span>
                       </td>
@@ -804,24 +804,24 @@ export default function OverviewContratti() {
                       </td>
                       <td className="py-3 px-2 text-center">
                         <button
-                          onClick={() => setViewingHistory(dip)}
-                          className="nav-button p-2 rounded-lg hover:bg-red-200 transition-colors"
-                          title="Vedi storico contratti"
-                        >
+                      onClick={() => setViewingHistory(dip)}
+                      className="nav-button p-2 rounded-lg hover:bg-red-200 transition-colors"
+                      title="Vedi storico contratti">
+
                           <History className="w-4 h-4 text-red-600" />
                         </button>
                       </td>
                     </tr>
-                  ))}
+                )}
                 </tbody>
               </table>
             </div>
           </NeumorphicCard>
-          )}
+        }
 
           {/* Rinnovo Contratto Modal */}
-        {renewingContract && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {renewingContract &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-2xl w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -829,12 +829,12 @@ export default function OverviewContratti() {
                   Rinnova Contratto - {renewingContract.nome_cognome}
                 </h2>
                 <button
-                  onClick={() => {
-                    setRenewingContract(null);
-                    setRenewalData({ template_id: '', data_inizio: '', durata_mesi: 12 });
-                  }}
-                  className="nav-button p-2 rounded-lg"
-                >
+                onClick={() => {
+                  setRenewingContract(null);
+                  setRenewalData({ template_id: '', data_inizio: '', durata_mesi: 12 });
+                }}
+                className="nav-button p-2 rounded-lg">
+
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -857,14 +857,14 @@ export default function OverviewContratti() {
                     Template Contratto <span className="text-red-600">*</span>
                   </label>
                   <select
-                    value={renewalData.template_id}
-                    onChange={(e) => setRenewalData({ ...renewalData, template_id: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  >
+                  value={renewalData.template_id}
+                  onChange={(e) => setRenewalData({ ...renewalData, template_id: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                     <option value="">Seleziona template...</option>
-                    {contractTemplates.map(t => (
-                      <option key={t.id} value={t.id}>{t.nome_template}</option>
-                    ))}
+                    {contractTemplates.map((t) =>
+                  <option key={t.id} value={t.id}>{t.nome_template}</option>
+                  )}
                   </select>
                 </div>
 
@@ -875,11 +875,11 @@ export default function OverviewContratti() {
                       Data Inizio <span className="text-red-600">*</span>
                     </label>
                     <input
-                      type="date"
-                      value={renewalData.data_inizio}
-                      onChange={(e) => setRenewalData({ ...renewalData, data_inizio: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    />
+                    type="date"
+                    value={renewalData.data_inizio}
+                    onChange={(e) => setRenewalData({ ...renewalData, data_inizio: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                   </div>
 
                   {/* Durata */}
@@ -888,48 +888,48 @@ export default function OverviewContratti() {
                       Durata (mesi) <span className="text-red-600">*</span>
                     </label>
                     <input
-                      type="number"
-                      value={renewalData.durata_mesi}
-                      onChange={(e) => setRenewalData({ ...renewalData, durata_mesi: parseInt(e.target.value) || 0 })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      min="1"
-                    />
+                    type="number"
+                    value={renewalData.durata_mesi}
+                    onChange={(e) => setRenewalData({ ...renewalData, durata_mesi: parseInt(e.target.value) || 0 })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    min="1" />
+
                   </div>
                 </div>
 
                 {/* Data Fine Calcolata */}
-                {renewalData.data_inizio && renewalData.durata_mesi > 0 && (
-                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
+                {renewalData.data_inizio && renewalData.durata_mesi > 0 &&
+              <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
                     <p className="text-sm text-green-700">
                       ✓ Data Fine Calcolata: <strong>
                         {(() => {
-                          const inizio = new Date(renewalData.data_inizio);
-                          const fine = new Date(inizio);
-                          fine.setMonth(fine.getMonth() + renewalData.durata_mesi);
-                          return moment(fine).format('DD/MM/YYYY');
-                        })()}
+                      const inizio = new Date(renewalData.data_inizio);
+                      const fine = new Date(inizio);
+                      fine.setMonth(fine.getMonth() + renewalData.durata_mesi);
+                      return moment(fine).format('DD/MM/YYYY');
+                    })()}
                       </strong>
                     </p>
                   </div>
-                )}
+              }
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4">
                   <NeumorphicButton
-                    onClick={() => {
-                      setRenewingContract(null);
-                      setRenewalData({ template_id: '', data_inizio: '', durata_mesi: 12 });
-                    }}
-                    className="flex-1"
-                  >
+                  onClick={() => {
+                    setRenewingContract(null);
+                    setRenewalData({ template_id: '', data_inizio: '', durata_mesi: 12 });
+                  }}
+                  className="flex-1">
+
                     Annulla
                   </NeumorphicButton>
                   <NeumorphicButton
-                    onClick={handleRenewContract}
-                    variant="primary"
-                    className="flex-1 flex items-center justify-center gap-2"
-                    disabled={createContractMutation.isPending}
-                  >
+                  onClick={handleRenewContract}
+                  variant="primary"
+                  className="flex-1 flex items-center justify-center gap-2"
+                  disabled={createContractMutation.isPending}>
+
                     <RefreshCw className="w-5 h-5" />
                     Rinnova e Invia
                   </NeumorphicButton>
@@ -937,11 +937,11 @@ export default function OverviewContratti() {
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Contract History Modal */}
-        {viewingHistory && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {viewingHistory &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -951,34 +951,34 @@ export default function OverviewContratti() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setViewingHistory(null)}
-                  className="nav-button p-2 rounded-lg"
-                >
+                onClick={() => setViewingHistory(null)}
+                className="nav-button p-2 rounded-lg">
+
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="space-y-3">
                 {viewingHistory.tutti_contratti.map((contratto, idx) => {
-                  const dataInizio = new Date(contratto.data_inizio_contratto);
-                  const dataFine = new Date(dataInizio);
-                  dataFine.setMonth(dataFine.getMonth() + parseInt(contratto.durata_contratto_mesi || 0));
-                  const isCurrent = idx === 0;
+                const dataInizio = new Date(contratto.data_inizio_contratto);
+                const dataFine = new Date(dataInizio);
+                dataFine.setMonth(dataFine.getMonth() + parseInt(contratto.durata_contratto_mesi || 0));
+                const isCurrent = idx === 0;
 
-                  return (
-                    <div 
-                      key={contratto.id} 
-                      className={`neumorphic-pressed p-4 rounded-xl ${isCurrent ? 'border-2 border-green-400 bg-green-50' : ''}`}
-                    >
+                return (
+                  <div
+                    key={contratto.id}
+                    className={`neumorphic-pressed p-4 rounded-xl ${isCurrent ? 'border-2 border-green-400 bg-green-50' : ''}`}>
+
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="font-bold text-slate-800">{contratto.template_nome}</h3>
-                            {isCurrent && (
-                              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-600 text-white">
+                            {isCurrent &&
+                          <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-600 text-white">
                                 Attuale
                               </span>
-                            )}
+                          }
                           </div>
                           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                             <p className="text-slate-600">
@@ -1002,17 +1002,17 @@ export default function OverviewContratti() {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    </div>);
+
+              })}
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Send to Payroll Modal */}
-        {sendingToPayroll && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {sendingToPayroll &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -1020,14 +1020,14 @@ export default function OverviewContratti() {
                   Invia a Payroll - {sendingToPayroll.nome_cognome}
                 </h2>
                 <button
-                  onClick={() => {
-                    setSendingToPayroll(null);
-                    setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
-                    setEditableEmailOggetto('');
-                    setEditableEmailCorpo('');
-                  }}
-                  className="nav-button p-2 rounded-lg"
-                >
+                onClick={() => {
+                  setSendingToPayroll(null);
+                  setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
+                  setEditableEmailOggetto('');
+                  setEditableEmailCorpo('');
+                }}
+                className="nav-button p-2 rounded-lg">
+
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1039,20 +1039,20 @@ export default function OverviewContratti() {
                     Seleziona Contratti da Allegare
                   </label>
                   <div className="neumorphic-pressed p-4 rounded-xl space-y-2 max-h-60 overflow-y-auto">
-                    {sendingToPayroll.tutti_contratti.map(c => (
-                      <label key={c.id} className="flex items-start gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                    {sendingToPayroll.tutti_contratti.map((c) =>
+                  <label key={c.id} className="flex items-start gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
                         <input
-                          type="checkbox"
-                          checked={sendData.selectedContracts.includes(c.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSendData({ ...sendData, selectedContracts: [...sendData.selectedContracts, c.id] });
-                            } else {
-                              setSendData({ ...sendData, selectedContracts: sendData.selectedContracts.filter(id => id !== c.id) });
-                            }
-                          }}
-                          className="w-4 h-4 mt-1"
-                        />
+                      type="checkbox"
+                      checked={sendData.selectedContracts.includes(c.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSendData({ ...sendData, selectedContracts: [...sendData.selectedContracts, c.id] });
+                        } else {
+                          setSendData({ ...sendData, selectedContracts: sendData.selectedContracts.filter((id) => id !== c.id) });
+                        }
+                      }}
+                      className="w-4 h-4 mt-1" />
+
                         <div className="flex-1">
                           <p className="text-sm font-medium text-slate-700">{c.template_nome}</p>
                           <p className="text-xs text-slate-500">
@@ -1062,7 +1062,7 @@ export default function OverviewContratti() {
                           </p>
                         </div>
                       </label>
-                    ))}
+                  )}
                   </div>
                 </div>
 
@@ -1073,64 +1073,64 @@ export default function OverviewContratti() {
                   </label>
                   <div className="neumorphic-pressed p-4 rounded-xl space-y-2 max-h-60 overflow-y-auto">
                     {(() => {
-                      const user = users.find(u => u.id === sendingToPayroll.user_id);
-                      const documentiDipendente = [];
+                    const user = users.find((u) => u.id === sendingToPayroll.user_id);
+                    const documentiDipendente = [];
 
-                      if (user?.documento_identita_url) {
-                        documentiDipendente.push({
-                          id: 'documento_identita',
-                          nome: 'Documento d\'Identità',
-                          url: user.documento_identita_url
-                        });
-                      }
-                      if (user?.codice_fiscale_documento_url) {
-                        documentiDipendente.push({
-                          id: 'codice_fiscale_documento',
-                          nome: 'Codice Fiscale',
-                          url: user.codice_fiscale_documento_url
-                        });
-                      }
-                      if (user?.permesso_soggiorno_url) {
-                        documentiDipendente.push({
-                          id: 'permesso_soggiorno',
-                          nome: 'Permesso di Soggiorno',
-                          url: user.permesso_soggiorno_url
-                        });
-                      }
+                    if (user?.documento_identita_url) {
+                      documentiDipendente.push({
+                        id: 'documento_identita',
+                        nome: 'Documento d\'Identità',
+                        url: user.documento_identita_url
+                      });
+                    }
+                    if (user?.codice_fiscale_documento_url) {
+                      documentiDipendente.push({
+                        id: 'codice_fiscale_documento',
+                        nome: 'Codice Fiscale',
+                        url: user.codice_fiscale_documento_url
+                      });
+                    }
+                    if (user?.permesso_soggiorno_url) {
+                      documentiDipendente.push({
+                        id: 'permesso_soggiorno',
+                        nome: 'Permesso di Soggiorno',
+                        url: user.permesso_soggiorno_url
+                      });
+                    }
 
-                      if (documentiDipendente.length === 0) {
-                        return <p className="text-sm text-slate-400 text-center py-4">Nessun documento caricato per questo dipendente</p>;
-                      }
+                    if (documentiDipendente.length === 0) {
+                      return <p className="text-sm text-slate-400 text-center py-4">Nessun documento caricato per questo dipendente</p>;
+                    }
 
-                      return documentiDipendente.map(doc => (
-                        <label key={doc.id} className="flex items-start gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
+                    return documentiDipendente.map((doc) =>
+                    <label key={doc.id} className="flex items-start gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
                           <input
-                            type="checkbox"
-                            checked={sendData.selectedDocuments.includes(doc.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSendData({ ...sendData, selectedDocuments: [...sendData.selectedDocuments, doc.id] });
-                              } else {
-                                setSendData({ ...sendData, selectedDocuments: sendData.selectedDocuments.filter(id => id !== doc.id) });
-                              }
-                            }}
-                            className="w-4 h-4 mt-1"
-                          />
+                        type="checkbox"
+                        checked={sendData.selectedDocuments.includes(doc.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSendData({ ...sendData, selectedDocuments: [...sendData.selectedDocuments, doc.id] });
+                          } else {
+                            setSendData({ ...sendData, selectedDocuments: sendData.selectedDocuments.filter((id) => id !== doc.id) });
+                          }
+                        }}
+                        className="w-4 h-4 mt-1" />
+
                           <div className="flex-1">
                             <p className="text-sm font-medium text-slate-700">{doc.nome}</p>
                             <a
-                              href={doc.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline"
+                          onClick={(e) => e.stopPropagation()}>
+
                               Visualizza Documento
                             </a>
                           </div>
                         </label>
-                      ));
-                    })()}
+                    );
+                  })()}
                   </div>
                 </div>
 
@@ -1140,109 +1140,109 @@ export default function OverviewContratti() {
                     Template Email <span className="text-red-600">*</span>
                   </label>
                   <select
-                    value={sendData.templateIndex !== null ? sendData.templateIndex : ''}
-                    onChange={(e) => {
-                      const idx = e.target.value !== '' ? parseInt(e.target.value) : null;
-                      setSendData({ ...sendData, templateIndex: idx });
-                      
-                      if (idx !== null) {
-                        const template = emailTemplates[idx];
-                        const dipendente = sendingToPayroll.nome_cognome;
-                        const dataInvio = moment().format('DD/MM/YYYY');
-                        const currentContract = sendingToPayroll.tutti_contratti[0];
-                        const user = users.find(u => u.id === sendingToPayroll.user_id);
-                        
-                        let dataFineContratto = '-';
-                        if (currentContract.data_fine_contratto) {
-                          dataFineContratto = moment(currentContract.data_fine_contratto).format('DD/MM/YYYY');
-                        } else if (currentContract.data_inizio_contratto && currentContract.durata_contratto_mesi) {
-                          const dataInizio = moment(currentContract.data_inizio_contratto);
-                          const dataFine = dataInizio.clone().add(currentContract.durata_contratto_mesi, 'months');
-                          dataFineContratto = dataFine.format('DD/MM/YYYY');
-                        }
-                        
-                        let oggetto = template.oggetto
-                          .replace(/{{nome_dipendente}}/g, dipendente)
-                          .replace(/{{data_invio}}/g, dataInvio)
-                          .replace(/{{data_nascita}}/g, currentContract.data_nascita ? moment(currentContract.data_nascita).format('DD/MM/YYYY') : '-')
-                          .replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-')
-                          .replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-')
-                          .replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-')
-                          .replace(/{{citta_residenza}}/g, user?.citta_residenza || '-')
-                          .replace(/{{livello}}/g, user?.livello?.toString() || '-')
-                          .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
-                          .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
-                          .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
-                          .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-')
-                          .replace(/{{data_fine_contratto}}/g, dataFineContratto);
-                        
-                        let corpo = template.corpo
-                          .replace(/{{nome_dipendente}}/g, dipendente)
-                          .replace(/{{data_invio}}/g, dataInvio)
-                          .replace(/{{data_nascita}}/g, currentContract.data_nascita ? moment(currentContract.data_nascita).format('DD/MM/YYYY') : '-')
-                          .replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-')
-                          .replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-')
-                          .replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-')
-                          .replace(/{{citta_residenza}}/g, user?.citta_residenza || '-')
-                          .replace(/{{livello}}/g, user?.livello?.toString() || '-')
-                          .replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-')
-                          .replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-')
-                          .replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-')
-                          .replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-')
-                          .replace(/{{data_fine_contratto}}/g, dataFineContratto)
-                          .replace(/{{locali}}/g, (user?.assigned_stores || []).join(', ') || 'Tutti i locali')
-                          .replace(/{{ruoli_dipendente}}/g, (currentContract.ruoli_dipendente || user?.ruoli_dipendente || []).join(', ') || '-');
-                        
-                        setEditableEmailOggetto(oggetto);
-                        setEditableEmailCorpo(corpo);
+                  value={sendData.templateIndex !== null ? sendData.templateIndex : ''}
+                  onChange={(e) => {
+                    const idx = e.target.value !== '' ? parseInt(e.target.value) : null;
+                    setSendData({ ...sendData, templateIndex: idx });
+
+                    if (idx !== null) {
+                      const template = emailTemplates[idx];
+                      const dipendente = sendingToPayroll.nome_cognome;
+                      const dataInvio = moment().format('DD/MM/YYYY');
+                      const currentContract = sendingToPayroll.tutti_contratti[0];
+                      const user = users.find((u) => u.id === sendingToPayroll.user_id);
+
+                      let dataFineContratto = '-';
+                      if (currentContract.data_fine_contratto) {
+                        dataFineContratto = moment(currentContract.data_fine_contratto).format('DD/MM/YYYY');
+                      } else if (currentContract.data_inizio_contratto && currentContract.durata_contratto_mesi) {
+                        const dataInizio = moment(currentContract.data_inizio_contratto);
+                        const dataFine = dataInizio.clone().add(currentContract.durata_contratto_mesi, 'months');
+                        dataFineContratto = dataFine.format('DD/MM/YYYY');
                       }
-                    }}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  >
+
+                      let oggetto = template.oggetto.
+                      replace(/{{nome_dipendente}}/g, dipendente).
+                      replace(/{{data_invio}}/g, dataInvio).
+                      replace(/{{data_nascita}}/g, currentContract.data_nascita ? moment(currentContract.data_nascita).format('DD/MM/YYYY') : '-').
+                      replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-').
+                      replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-').
+                      replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-').
+                      replace(/{{citta_residenza}}/g, user?.citta_residenza || '-').
+                      replace(/{{livello}}/g, user?.livello?.toString() || '-').
+                      replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-').
+                      replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-').
+                      replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-').
+                      replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-').
+                      replace(/{{data_fine_contratto}}/g, dataFineContratto);
+
+                      let corpo = template.corpo.
+                      replace(/{{nome_dipendente}}/g, dipendente).
+                      replace(/{{data_invio}}/g, dataInvio).
+                      replace(/{{data_nascita}}/g, currentContract.data_nascita ? moment(currentContract.data_nascita).format('DD/MM/YYYY') : '-').
+                      replace(/{{codice_fiscale}}/g, currentContract.codice_fiscale || '-').
+                      replace(/{{citta_nascita}}/g, currentContract.citta_nascita || '-').
+                      replace(/{{indirizzo_residenza}}/g, currentContract.indirizzo_residenza || '-').
+                      replace(/{{citta_residenza}}/g, user?.citta_residenza || '-').
+                      replace(/{{livello}}/g, user?.livello?.toString() || '-').
+                      replace(/{{gruppo_contrattuale}}/g, currentContract.employee_group || '-').
+                      replace(/{{data_inizio_contratto}}/g, currentContract.data_inizio_contratto ? moment(currentContract.data_inizio_contratto).format('DD/MM/YYYY') : '-').
+                      replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-').
+                      replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-').
+                      replace(/{{data_fine_contratto}}/g, dataFineContratto).
+                      replace(/{{locali}}/g, (user?.assigned_stores || []).join(', ') || 'Tutti i locali').
+                      replace(/{{ruoli_dipendente}}/g, (currentContract.ruoli_dipendente || user?.ruoli_dipendente || []).join(', ') || '-');
+
+                      setEditableEmailOggetto(oggetto);
+                      setEditableEmailCorpo(corpo);
+                    }
+                  }}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                     <option value="">Seleziona template...</option>
-                    {emailTemplates.map((t, idx) => (
-                      <option key={idx} value={idx}>{t.nome}</option>
-                    ))}
+                    {emailTemplates.map((t, idx) =>
+                  <option key={idx} value={idx}>{t.nome}</option>
+                  )}
                   </select>
-                  {sendData.templateIndex !== null && (
-                    <div className="mt-3 space-y-3">
+                  {sendData.templateIndex !== null &&
+                <div className="mt-3 space-y-3">
                       <div>
                         <label className="text-xs text-slate-600 font-bold mb-1 block">Oggetto:</label>
                         <input
-                          type="text"
-                          value={editableEmailOggetto}
-                          onChange={(e) => setEditableEmailOggetto(e.target.value)}
-                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none"
-                        />
+                      type="text"
+                      value={editableEmailOggetto}
+                      onChange={(e) => setEditableEmailOggetto(e.target.value)}
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none" />
+
                       </div>
                       <div>
                         <label className="text-xs text-slate-600 font-bold mb-1 block">Corpo:</label>
                         <textarea
-                          value={editableEmailCorpo}
-                          onChange={(e) => setEditableEmailCorpo(e.target.value)}
-                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none resize-none"
-                          rows="8"
-                        />
+                      value={editableEmailCorpo}
+                      onChange={(e) => setEditableEmailCorpo(e.target.value)}
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm outline-none resize-none"
+                      rows="8" />
+
                       </div>
                     </div>
-                  )}
+                }
                 </div>
 
                 <div className="flex gap-3 pt-4">
                   <NeumorphicButton
-                    onClick={() => {
-                      setSendingToPayroll(null);
-                      setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
-                    }}
-                    className="flex-1"
-                  >
+                  onClick={() => {
+                    setSendingToPayroll(null);
+                    setSendData({ selectedContracts: [], selectedDocuments: [], templateIndex: null });
+                  }}
+                  className="flex-1">
+
                     Annulla
                   </NeumorphicButton>
                   <NeumorphicButton
-                    onClick={handleSendToPayroll}
-                    variant="primary"
-                    className="flex-1 flex items-center justify-center gap-2"
-                  >
+                  onClick={handleSendToPayroll}
+                  variant="primary"
+                  className="flex-1 flex items-center justify-center gap-2">
+
                     <Send className="w-5 h-5" />
                     Invia a Payroll
                   </NeumorphicButton>
@@ -1250,11 +1250,11 @@ export default function OverviewContratti() {
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Payroll Email Log Modal */}
-        {showPayrollLog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showPayrollLog &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-6xl w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -1262,9 +1262,9 @@ export default function OverviewContratti() {
                   Log Email Payroll
                 </h2>
                 <button
-                  onClick={() => setShowPayrollLog(false)}
-                  className="nav-button p-2 rounded-lg"
-                >
+                onClick={() => setShowPayrollLog(false)}
+                className="nav-button p-2 rounded-lg">
+
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1282,8 +1282,8 @@ export default function OverviewContratti() {
                     </tr>
                   </thead>
                   <tbody>
-                    {payrollEmailLogs.map((log) => (
-                      <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50">
+                    {payrollEmailLogs.map((log) =>
+                  <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="py-3 px-2 text-slate-700">
                           {moment(log.data_invio).format('DD/MM/YYYY HH:mm')}
                         </td>
@@ -1298,49 +1298,49 @@ export default function OverviewContratti() {
                         </td>
                         <td className="py-3 px-2 text-center">
                           <input
-                            type="checkbox"
-                            checked={log.cob_completato || false}
-                            onChange={(e) => {
-                              updatePayrollLogMutation.mutate({
-                                id: log.id,
-                                cob_completato: e.target.checked
-                              });
-                            }}
-                            className="w-5 h-5 cursor-pointer"
-                          />
+                        type="checkbox"
+                        checked={log.cob_completato || false}
+                        onChange={(e) => {
+                          updatePayrollLogMutation.mutate({
+                            id: log.id,
+                            cob_completato: e.target.checked
+                          });
+                        }}
+                        className="w-5 h-5 cursor-pointer" />
+
                         </td>
                         <td className="py-3 px-2 text-center">
                           <button
-                            onClick={() => {
-                              if (confirm('Sei sicuro di voler eliminare questa mail dal log?')) {
-                                deletePayrollLogMutation.mutate(log.id);
-                              }
-                            }}
-                            className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
-                            title="Elimina"
-                          >
+                        onClick={() => {
+                          if (confirm('Sei sicuro di voler eliminare questa mail dal log?')) {
+                            deletePayrollLogMutation.mutate(log.id);
+                          }
+                        }}
+                        className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors"
+                        title="Elimina">
+
                             <Trash2 className="w-4 h-4 text-red-600" />
                           </button>
                         </td>
                       </tr>
-                    ))}
+                  )}
                   </tbody>
                 </table>
               </div>
 
-              {payrollEmailLogs.length === 0 && (
-                <div className="text-center py-8">
+              {payrollEmailLogs.length === 0 &&
+            <div className="text-center py-8">
                   <Send className="w-12 h-12 text-slate-300 mx-auto mb-2" />
                   <p className="text-slate-500">Nessuna email inviata a payroll</p>
                 </div>
-              )}
+            }
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Settings Modal */}
-        {showSettings && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showSettings &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
@@ -1348,9 +1348,9 @@ export default function OverviewContratti() {
                   Impostazioni Payroll
                 </h2>
                 <button
-                  onClick={() => setShowSettings(false)}
-                  className="nav-button p-2 rounded-lg"
-                >
+                onClick={() => setShowSettings(false)}
+                className="nav-button p-2 rounded-lg">
+
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1362,12 +1362,12 @@ export default function OverviewContratti() {
                     Email Payroll
                   </label>
                   <input
-                    type="email"
-                    value={payrollEmail}
-                    onChange={(e) => setPayrollEmail(e.target.value)}
-                    placeholder="payroll@example.com"
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  />
+                  type="email"
+                  value={payrollEmail}
+                  onChange={(e) => setPayrollEmail(e.target.value)}
+                  placeholder="payroll@example.com"
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                 </div>
 
                 {/* Templates */}
@@ -1383,24 +1383,24 @@ export default function OverviewContratti() {
                     </p>
                     <div className="space-y-3">
                       <input
-                        type="text"
-                        value={newTemplate.nome}
-                        onChange={(e) => setNewTemplate({ ...newTemplate, nome: e.target.value })}
-                        placeholder="Nome template"
-                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
-                      />
+                      type="text"
+                      value={newTemplate.nome}
+                      onChange={(e) => setNewTemplate({ ...newTemplate, nome: e.target.value })}
+                      placeholder="Nome template"
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm" />
+
                       
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <label className="text-xs text-slate-600">Oggetto email</label>
                         </div>
                         <input
-                          type="text"
-                          value={newTemplate.oggetto}
-                          onChange={(e) => setNewTemplate({ ...newTemplate, oggetto: e.target.value })}
-                          placeholder="Oggetto email"
-                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
-                        />
+                        type="text"
+                        value={newTemplate.oggetto}
+                        onChange={(e) => setNewTemplate({ ...newTemplate, oggetto: e.target.value })}
+                        placeholder="Oggetto email"
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm" />
+
                       </div>
 
                       <div>
@@ -1411,138 +1411,138 @@ export default function OverviewContratti() {
                           <p className="mb-2 font-medium">Clicca per inserire variabile:</p>
                           <div className="grid grid-cols-3 gap-1 bg-slate-50 p-3 rounded-lg max-h-32 overflow-y-auto">
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{nome_dipendente}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{nome_dipendente}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{nome_dipendente}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{data_invio}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{data_invio}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{data_invio}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{data_nascita}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{data_nascita}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{data_nascita}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{codice_fiscale}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{codice_fiscale}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{codice_fiscale}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{citta_nascita}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{citta_nascita}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{citta_nascita}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{indirizzo_residenza}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{indirizzo_residenza}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{indirizzo_residenza}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{citta_residenza}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{citta_residenza}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{citta_residenza}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{livello}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{livello}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{livello}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{gruppo_contrattuale}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{gruppo_contrattuale}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{gruppo_contrattuale}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{data_inizio_contratto}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{data_inizio_contratto}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{data_inizio_contratto}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{ore_settimanali}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{ore_settimanali}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{ore_settimanali}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{durata_contratto_mesi}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{durata_contratto_mesi}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{durata_contratto_mesi}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{data_fine_contratto}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{data_fine_contratto}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{data_fine_contratto}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{locali}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{locali}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{locali}}'}
                             </button>
                             <button
-                              type="button"
-                              onClick={() => insertVariable('{{ruoli_dipendente}}')}
-                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left"
-                            >
+                            type="button"
+                            onClick={() => insertVariable('{{ruoli_dipendente}}')}
+                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 text-left">
+
                               {'{{ruoli_dipendente}}'}
                             </button>
                           </div>
                         </div>
                         <textarea
-                          ref={corpoTextareaRef}
-                          value={newTemplate.corpo}
-                          onChange={(e) => setNewTemplate({ ...newTemplate, corpo: e.target.value })}
-                          placeholder="Corpo email"
-                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
-                          rows="6"
-                        />
+                        ref={corpoTextareaRef}
+                        value={newTemplate.corpo}
+                        onChange={(e) => setNewTemplate({ ...newTemplate, corpo: e.target.value })}
+                        placeholder="Corpo email"
+                        className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-sm"
+                        rows="6" />
+
                       </div>
 
                       <div className="flex gap-2">
-                        {editingTemplateIndex !== null && (
-                          <NeumorphicButton
-                            onClick={() => {
-                              setEditingTemplateIndex(null);
-                              setNewTemplate({ nome: '', oggetto: '', corpo: '' });
-                            }}
-                            className="flex-1"
-                          >
+                        {editingTemplateIndex !== null &&
+                      <NeumorphicButton
+                        onClick={() => {
+                          setEditingTemplateIndex(null);
+                          setNewTemplate({ nome: '', oggetto: '', corpo: '' });
+                        }}
+                        className="flex-1">
+
                             Annulla
                           </NeumorphicButton>
-                        )}
+                      }
                         <NeumorphicButton
-                          onClick={handleAddTemplate}
-                          className="flex-1 flex items-center justify-center gap-2"
-                        >
+                        onClick={handleAddTemplate}
+                        className="flex-1 flex items-center justify-center gap-2">
+
                           <Plus className="w-4 h-4" />
                           {editingTemplateIndex !== null ? 'Aggiorna' : 'Aggiungi'} Template
                         </NeumorphicButton>
@@ -1552,8 +1552,8 @@ export default function OverviewContratti() {
 
                   {/* Existing Templates */}
                   <div className="space-y-2">
-                    {emailTemplates.map((t, idx) => (
-                      <div key={idx} className="neumorphic-pressed p-3 rounded-xl">
+                    {emailTemplates.map((t, idx) =>
+                  <div key={idx} className="neumorphic-pressed p-3 rounded-xl">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p className="text-sm font-bold text-slate-800">{t.nome}</p>
@@ -1562,48 +1562,48 @@ export default function OverviewContratti() {
                           </div>
                           <div className="flex gap-1 ml-2">
                             <button
-                              onClick={() => handleEditTemplate(idx)}
-                              className="text-blue-600 hover:text-blue-800"
-                            >
+                          onClick={() => handleEditTemplate(idx)}
+                          className="text-blue-600 hover:text-blue-800">
+
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDeleteTemplate(idx)}
-                              className="text-red-600 hover:text-red-800"
-                            >
+                          onClick={() => handleDeleteTemplate(idx)}
+                          className="text-red-600 hover:text-red-800">
+
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
                       </div>
-                    ))}
-                    {emailTemplates.length === 0 && (
-                      <p className="text-sm text-slate-400 text-center py-4">Nessun template configurato</p>
-                    )}
+                  )}
+                    {emailTemplates.length === 0 &&
+                  <p className="text-sm text-slate-400 text-center py-4">Nessun template configurato</p>
+                  }
                   </div>
                 </div>
 
                 <div className="flex gap-3 pt-4">
                   <NeumorphicButton
-                    onClick={() => setShowSettings(false)}
-                    className="flex-1"
-                  >
+                  onClick={() => setShowSettings(false)}
+                  className="flex-1">
+
                     Chiudi
                   </NeumorphicButton>
                   <NeumorphicButton
-                    onClick={handleSavePayrollConfig}
-                    variant="primary"
-                    className="flex-1"
-                    disabled={savePayrollConfigMutation.isPending}
-                  >
+                  onClick={handleSavePayrollConfig}
+                  variant="primary"
+                  className="flex-1"
+                  disabled={savePayrollConfigMutation.isPending}>
+
                     Salva Configurazione
                   </NeumorphicButton>
                 </div>
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
