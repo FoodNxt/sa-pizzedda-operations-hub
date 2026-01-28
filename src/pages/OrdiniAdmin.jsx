@@ -183,6 +183,9 @@ export default function OrdiniAdmin() {
     const orders = [];
     const allInventory = [...inventory, ...inventoryCantina];
     const latestByProduct = {};
+    
+    // DEBUG: Log per capire cosa sta succedendo
+    console.log('🔍 DEBUG ORDINI - Starting calculation');
 
     allInventory.forEach((item) => {
       const key = `${item.store_id}-${item.prodotto_id}`;
@@ -205,10 +208,17 @@ export default function OrdiniAdmin() {
 
       if (ricetta?.somma_a_materia_prima_id && ricetta?.somma_ingrediente_id) {
         // Find the ingredient to use for proportion calculation
-        // somma_ingrediente_id is the materia_prima_id, not an array index
-        const ingrediente = ricetta.ingredienti?.find((ing) => 
-          ing.materia_prima_id === ricetta.somma_ingrediente_id
-        );
+        let ingrediente;
+        
+        // Support both legacy format (ing_0) and new format (materia_prima_id)
+        if (ricetta.somma_ingrediente_id.startsWith('ing_')) {
+          const ingredienteIndex = parseInt(ricetta.somma_ingrediente_id.replace('ing_', ''));
+          ingrediente = ricetta.ingredienti?.[ingredienteIndex];
+        } else {
+          ingrediente = ricetta.ingredienti?.find((ing) => 
+            ing.materia_prima_id === ricetta.somma_ingrediente_id
+          );
+        }
 
         if (ingrediente && ricetta.quantita_prodotta && ricetta.quantita_prodotta > 0) {
           // Calculate proportion: how much raw ingredient is needed per unit of finished product
@@ -216,6 +226,19 @@ export default function OrdiniAdmin() {
           const quantitaDaSommare = (reading.quantita_rilevata || 0) * moltiplicatore;
 
           const targetKey = `${reading.store_id}-${ricetta.somma_a_materia_prima_id}`;
+          
+          // DEBUG
+          console.log(`🔍 SOMMA SEMILAVORATO:`, {
+            semilavorato: reading.nome_prodotto,
+            quantita_semilavorato: reading.quantita_rilevata,
+            materia_prima_target: ricetta.somma_a_materia_prima_nome,
+            ingrediente_quantita: ingrediente.quantita,
+            quantita_prodotta: ricetta.quantita_prodotta,
+            moltiplicatore,
+            quantita_da_sommare: quantitaDaSommare,
+            targetKey
+          });
+          
           aggregatedQuantities[targetKey] = (aggregatedQuantities[targetKey] || 0) + quantitaDaSommare;
         }
       }
@@ -246,6 +269,18 @@ export default function OrdiniAdmin() {
 
       const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
+
+      // DEBUG
+      if (product.nome_prodotto?.toLowerCase().includes('patate') && reading.store_id === '690907bd20c125326dda4db5') {
+        console.log(`🔍 CHECK ORDINE:`, {
+          prodotto: product.nome_prodotto,
+          quantita_effettiva: quantitaEffettiva,
+          quantita_critica: quantitaCritica,
+          quantita_ordine: quantitaOrdine,
+          sotto_minimo: quantitaEffettiva <= quantitaCritica,
+          aggiungi_ordine: quantitaEffettiva <= quantitaCritica && quantitaOrdine > 0
+        });
+      }
 
       if (quantitaEffettiva <= quantitaCritica && quantitaOrdine > 0) {
         orders.push({
@@ -932,7 +967,48 @@ Sa Pizzedda`,
 
                                       return (
                                         <tr key={idx} className="border-b border-slate-200">
-                                                <td className="p-2 text-sm text-slate-700">{order.nome_prodotto}</td>
+                                                <td className="p-2 text-sm text-slate-700">
+                                                  {order.nome_prodotto}
+                                                  {(() => {
+                                                    // Trova semilavorati collegati a questa materia prima
+                                                    const semilavoratiCollegati = ricette.filter((r) => 
+                                                      r.somma_a_materia_prima_id === order.product.id &&
+                                                      r.is_semilavorato
+                                                    );
+                                                    
+                                                    if (semilavoratiCollegati.length === 0) return null;
+                                                    
+                                                    const dettagli = semilavoratiCollegati.map((ricetta) => {
+                                                      // Trova l'ultimo inventario per questo semilavorato
+                                                      const latestSemilavorato = allInventory
+                                                        .filter((i) => 
+                                                          i.store_id === order.store_id &&
+                                                          i.nome_prodotto?.toLowerCase() === ricetta.nome_prodotto?.toLowerCase()
+                                                        )
+                                                        .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
+                                                      
+                                                      if (!latestSemilavorato) return null;
+                                                      
+                                                      return {
+                                                        nome: ricetta.nome_prodotto,
+                                                        quantita: latestSemilavorato.quantita_rilevata,
+                                                        unita: latestSemilavorato.unita_misura
+                                                      };
+                                                    }).filter(Boolean);
+                                                    
+                                                    if (dettagli.length === 0) return null;
+                                                    
+                                                    return (
+                                                      <div className="mt-1 text-xs text-blue-600">
+                                                        {dettagli.map((d, i) => (
+                                                          <div key={i}>
+                                                            ↳ {d.nome}: {d.quantita} {d.unita}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    );
+                                                  })()}
+                                                </td>
                                                 <td className="p-2 text-sm text-right text-red-600 font-bold">
                                                   {order.quantita_rilevata} {order.unita_misura}
                                                 </td>
