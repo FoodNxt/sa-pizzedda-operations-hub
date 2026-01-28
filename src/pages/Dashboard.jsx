@@ -864,27 +864,26 @@ export default function Dashboard() {
       return { top3: [], bottom3: [] };
     }
 
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    let currentStart, currentEnd;
+    // Usa lo stesso filtro del processedData
+    let cutoffDate, endFilterDate;
 
-    // Calcola periodo corrente dal filtro globale della Dashboard
     if (startDate || endDate) {
-      currentStart = startDate ? new Date(startDate) : new Date(0);
-      currentEnd = endDate ? new Date(endDate) : today;
+      cutoffDate = startDate ? safeParseDate(startDate) : new Date(0);
+      endFilterDate = endDate ? safeParseDate(endDate) : new Date();
     } else {
       const days = parseInt(dateRange);
-      currentStart = new Date(today.getTime() - days * 24 * 60 * 60 * 1000);
-      currentEnd = today;
+      cutoffDate = subDays(new Date(), days);
+      endFilterDate = new Date();
     }
 
-    const currentStartStr = currentStart.toISOString().split('T')[0];
-    const currentEndStr = currentEnd.toISOString().split('T')[0];
-
-    // Filtra solo dati periodo corrente
+    // Filtra prodotti venduti per il periodo selezionato
     const filteredCurrent = prodottiVenduti.filter((p) => {
-      const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
-      return dataStr >= currentStartStr && dataStr <= currentEndStr;
+      if (!p.data_vendita) return false;
+      const itemDate = safeParseDate(p.data_vendita);
+      if (!itemDate) return false;
+      if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
+      if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
+      return true;
     });
 
     // Aggrega per flavor
@@ -894,15 +893,15 @@ export default function Dashboard() {
       const flavor = record.flavor;
       if (!flavor) return;
       if (!currentTotals[flavor]) {
-        currentTotals[flavor] = { name: flavor, total: 0, category: record.category || 'altro' };
+        currentTotals[flavor] = 0;
       }
-      currentTotals[flavor].total += record.total_pizzas_sold || 0;
+      currentTotals[flavor] += record.total_pizzas_sold || 0;
     });
 
     // Converti in array ordinato
     const products = Object.keys(currentTotals).map((flavor) => ({
       nome: flavor,
-      quantita: currentTotals[flavor].total
+      quantita: currentTotals[flavor]
     }));
 
     if (products.length === 0) {
