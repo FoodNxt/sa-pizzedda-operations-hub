@@ -304,6 +304,18 @@ export default function OrdiniAdmin() {
       // Get aggregated quantity (including summed semilavorati)
       const key = `${reading.store_id}-${reading.prodotto_id}`;
       const quantitaEffettiva = aggregatedQuantities[key] || reading.quantita_rilevata || 0;
+      
+      // DEBUG
+      if (product.nome_prodotto?.toLowerCase().includes('patate') && reading.store_id === '690907bd20c125326dda4db5') {
+        console.log(`🔍 LEGGO DA AGGREGATED:`, {
+          prodotto: product.nome_prodotto,
+          key,
+          valore_in_aggregated: aggregatedQuantities[key],
+          quantita_da_reading: reading.quantita_rilevata,
+          quantita_effettiva: quantitaEffettiva,
+          tutte_le_key_in_aggregated: Object.keys(aggregatedQuantities).filter(k => k.includes('690907bd20c125326dda4db5'))
+        });
+      }
 
       const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
