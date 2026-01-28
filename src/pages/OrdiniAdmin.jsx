@@ -178,10 +178,14 @@ export default function OrdiniAdmin() {
     }
   });
 
+  // Combine all inventory data
+  const allInventory = React.useMemo(() => {
+    return [...inventory, ...inventoryCantina];
+  }, [inventory, inventoryCantina]);
+
   // Calculate orders needed
   const ordersNeeded = React.useMemo(() => {
     const orders = [];
-    const allInventory = [...inventory, ...inventoryCantina];
     const latestByProduct = {};
     
     // DEBUG: Log per capire cosa sta succedendo
