@@ -41,7 +41,8 @@ import {
   Calendar,
   Bell,
   Cloud,
-  TrendingUp
+  TrendingUp,
+  MessageCircle
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -1755,6 +1756,21 @@ export default function Layout({ children, currentPageName }) {
           onClick={() => setSidebarOpen(false)}
         />
       )}
-    </div>
-  );
-}
+
+      {/* WhatsApp Floating Button (Admin/Manager only) */}
+      {normalizedUserType === 'admin' || normalizedUserType === 'manager' ? (
+        <a
+          href={base44.agents.getWhatsAppConnectURL('assistente_dipendenti')}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-green-500 to-green-600 shadow-lg hover:shadow-xl transition-all flex items-center justify-center group hover:scale-110"
+          title="WhatsApp Assistente">
+          <MessageCircle className="w-7 h-7 text-white" />
+          <span className="absolute right-16 top-1/2 -translate-y-1/2 bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            WhatsApp Bot
+          </span>
+        </a>
+      ) : null}
+      </div>
+      );
+      }
