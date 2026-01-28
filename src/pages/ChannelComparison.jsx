@@ -11,12 +11,12 @@ export default function ChannelComparison() {
   const [dateRange, setDateRange] = useState('30');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  
+
   // Combination 1
   const [channel1, setChannel1] = useState('all');
   const [app1, setApp1] = useState('all');
   const [store1, setStore1] = useState('all');
-  
+
   // Combination 2
   const [channel2, setChannel2] = useState('all');
   const [app2, setApp2] = useState('all');
@@ -25,26 +25,26 @@ export default function ChannelComparison() {
   // Fetch iPratico data
   const { data: iPraticoData = [], isLoading } = useQuery({
     queryKey: ['iPratico'], // Updated queryKey as per outline
-    queryFn: () => base44.entities.iPratico.list('-order_date', 1000), // Updated queryFn as per outline
+    queryFn: () => base44.entities.iPratico.list('-order_date', 1000) // Updated queryFn as per outline
   });
 
   // Fetch stores
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   // Get unique sales channels and delivery apps
   const { salesChannels, deliveryApps } = useMemo(() => {
     const channels = new Set();
     const apps = new Set();
-    
-    iPraticoData.forEach(item => {
+
+    iPraticoData.forEach((item) => {
       // Source types as channels, checking if they exist / have values
       if ((item.sourceType_delivery || 0) > 0 || (item.sourceType_delivery_orders || 0) > 0) channels.add('Delivery');
       if ((item.sourceType_takeaway || 0) > 0 || (item.sourceType_takeaway_orders || 0) > 0) channels.add('Takeaway');
       if ((item.sourceType_store || 0) > 0 || (item.sourceType_store_orders || 0) > 0) channels.add('Store');
-      
+
       // Source apps, checking if they exist / have values
       if ((item.sourceApp_glovo || 0) > 0 || (item.sourceApp_glovo_orders || 0) > 0) apps.add('Glovo');
       if ((item.sourceApp_deliveroo || 0) > 0 || (item.sourceApp_deliveroo_orders || 0) > 0) apps.add('Deliveroo');
@@ -52,7 +52,7 @@ export default function ChannelComparison() {
       if ((item.sourceApp_tabesto || 0) > 0 || (item.sourceApp_tabesto_orders || 0) > 0) apps.add('Tabesto');
       if ((item.sourceApp_store || 0) > 0 || (item.sourceApp_store_orders || 0) > 0) apps.add('Store');
     });
-    
+
     return {
       salesChannels: [...channels].sort(),
       deliveryApps: [...apps].sort()
@@ -63,8 +63,8 @@ export default function ChannelComparison() {
   const comparisonData = useMemo(() => {
     let cutoffDate;
     let endFilterDate;
-    
-    if (startDate && endDate) { // Check both to ensure a valid custom range
+
+    if (startDate && endDate) {// Check both to ensure a valid custom range
       cutoffDate = parseISO(startDate + 'T00:00:00'); // Ensure start of day
       endFilterDate = parseISO(endDate + 'T23:59:59'); // Ensure end of day
     } else {
@@ -74,7 +74,7 @@ export default function ChannelComparison() {
     }
 
     const filterByDate = () => {
-      return iPraticoData.filter(item => {
+      return iPraticoData.filter((item) => {
         if (item.order_date) {
           const itemDate = parseISO(item.order_date);
           // Compare only date part
@@ -86,19 +86,19 @@ export default function ChannelComparison() {
 
     const calculateMetrics = (channel, app, store) => {
       let filteredData = filterByDate(); // First filter by date
-      
+
       // Apply store filter
       if (store !== 'all') {
-        filteredData = filteredData.filter(item => item.store_id === store);
+        filteredData = filteredData.filter((item) => item.store_id === store);
       }
-      
+
       let totalRevenue = 0;
       let totalOrders = 0;
-      
-      filteredData.forEach(item => {
+
+      filteredData.forEach((item) => {
         let currentChannelRevenue = 0;
         let currentChannelOrders = 0;
-        
+
         // Calculate revenue and orders based on channel filter
         if (channel === 'all') {
           currentChannelRevenue = item.total_revenue || 0;
@@ -113,12 +113,12 @@ export default function ChannelComparison() {
           currentChannelRevenue = item.sourceType_store || 0;
           currentChannelOrders = item.sourceType_store_orders || 0;
         }
-        
+
         // Apply app filter if not 'all'
         if (app !== 'all') {
           let appRevenue = 0;
           let appOrders = 0;
-          
+
           if (app === 'Glovo') {
             appRevenue = item.sourceApp_glovo || 0;
             appOrders = item.sourceApp_glovo_orders || 0;
@@ -131,17 +131,17 @@ export default function ChannelComparison() {
           } else if (app === 'Tabesto') {
             appRevenue = item.sourceApp_tabesto || 0;
             appOrders = item.sourceApp_tabesto_orders || 0;
-          } else if (app === 'Store') { // Note: 'Store' as an app usually means direct, matching sourceType_store
+          } else if (app === 'Store') {// Note: 'Store' as an app usually means direct, matching sourceType_store
             appRevenue = item.sourceApp_store || 0;
             appOrders = item.sourceApp_store_orders || 0;
           }
-          
+
           // Use minimum of channel and app (intersection logic from outline)
           // This implies the revenue/orders for a combination are the minimum of the two category totals for that item.
           currentChannelRevenue = Math.min(currentChannelRevenue, appRevenue);
           currentChannelOrders = Math.min(currentChannelOrders, appOrders);
         }
-        
+
         totalRevenue += currentChannelRevenue;
         totalOrders += currentChannelOrders;
       });
@@ -155,15 +155,15 @@ export default function ChannelComparison() {
     const metrics2 = calculateMetrics(channel2, app2, store2);
 
     // Calculate comparison percentages - simplified as per outline
-    const revenueDiff = metrics2.totalRevenue !== 0 
-      ? ((metrics1.totalRevenue - metrics2.totalRevenue) / metrics2.totalRevenue) * 100 
-      : 0; // Changed from Infinity/NaN handling to 0
-    const ordersDiff = metrics2.totalOrders !== 0 
-      ? ((metrics1.totalOrders - metrics2.totalOrders) / metrics2.totalOrders) * 100 
-      : 0; // Changed from Infinity/NaN handling to 0
-    const avgDiff = metrics2.avgOrderValue !== 0 
-      ? ((metrics1.avgOrderValue - metrics2.avgOrderValue) / metrics2.avgOrderValue) * 100 
-      : 0; // Changed from Infinity/NaN handling to 0
+    const revenueDiff = metrics2.totalRevenue !== 0 ?
+    (metrics1.totalRevenue - metrics2.totalRevenue) / metrics2.totalRevenue * 100 :
+    0; // Changed from Infinity/NaN handling to 0
+    const ordersDiff = metrics2.totalOrders !== 0 ?
+    (metrics1.totalOrders - metrics2.totalOrders) / metrics2.totalOrders * 100 :
+    0; // Changed from Infinity/NaN handling to 0
+    const avgDiff = metrics2.avgOrderValue !== 0 ?
+    (metrics1.avgOrderValue - metrics2.avgOrderValue) / metrics2.avgOrderValue * 100 :
+    0; // Changed from Infinity/NaN handling to 0
 
     return {
       combination1: metrics1,
@@ -179,13 +179,13 @@ export default function ChannelComparison() {
   const getCombinationLabel = (channel, app, store) => {
     const channelLabel = channel === 'all' ? 'Tutti i canali' : channel;
     const appLabel = app === 'all' ? 'Tutte le app' : app;
-    const storeLabel = store === 'all' ? 'Tutti i locali' : stores.find(s => s.id === store)?.name || store;
-    
+    const storeLabel = store === 'all' ? 'Tutti i locali' : stores.find((s) => s.id === store)?.name || store;
+
     const parts = [];
     if (store !== 'all') parts.push(storeLabel);
     if (channel !== 'all') parts.push(channelLabel);
     if (app !== 'all') parts.push(appLabel);
-    
+
     if (parts.length === 0) return 'Tutti';
     return parts.join(' - ');
   };
@@ -204,29 +204,29 @@ export default function ChannelComparison() {
 
   // Chart data - labels changed as per outline
   const chartData = [
-    {
-      metric: 'Revenue €',
-      'Comb 1': parseFloat(comparisonData.combination1.totalRevenue.toFixed(2)),
-      'Comb 2': parseFloat(comparisonData.combination2.totalRevenue.toFixed(2))
-    },
-    {
-      metric: 'Ordini',
-      'Comb 1': comparisonData.combination1.totalOrders,
-      'Comb 2': comparisonData.combination2.totalOrders
-    },
-    {
-      metric: 'Medio €', // Label changed
-      'Comb 1': parseFloat(comparisonData.combination1.avgOrderValue.toFixed(2)),
-      'Comb 2': parseFloat(comparisonData.combination2.avgOrderValue.toFixed(2))
-    }
-  ];
+  {
+    metric: 'Revenue €',
+    'Comb 1': parseFloat(comparisonData.combination1.totalRevenue.toFixed(2)),
+    'Comb 2': parseFloat(comparisonData.combination2.totalRevenue.toFixed(2))
+  },
+  {
+    metric: 'Ordini',
+    'Comb 1': comparisonData.combination1.totalOrders,
+    'Comb 2': comparisonData.combination2.totalOrders
+  },
+  {
+    metric: 'Medio €', // Label changed
+    'Comb 1': parseFloat(comparisonData.combination1.avgOrderValue.toFixed(2)),
+    'Comb 2': parseFloat(comparisonData.combination2.avgOrderValue.toFixed(2))
+  }];
+
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" /> {/* Updated spinner as per outline */}
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -234,10 +234,10 @@ export default function ChannelComparison() {
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6"> {/* Updated spacing for mobile */}
         {/* Header */}
         <div className="mb-4 lg:mb-6"> {/* Updated margin */}
-          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1"> {/* Updated styling as per outline */}
-            Confronto Canali
+          <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Confronto Canali
+
           </h1>
-          <p className="text-sm text-slate-500">Confronta performance tra diverse combinazioni</p> {/* Updated styling as per outline */}
+          <p className="text-slate-50 text-sm">Confronta performance tra diverse combinazioni</p> {/* Updated styling as per outline */}
         </div>
 
         {/* Date Range Filter */}
@@ -265,23 +265,23 @@ export default function ChannelComparison() {
               <option value="custom">Personalizzato</option> {/* Updated label */}
             </select>
 
-            {dateRange === 'custom' && (
-              <div className="grid grid-cols-2 gap-3"> {/* Updated grid for custom dates */}
+            {dateRange === 'custom' &&
+            <div className="grid grid-cols-2 gap-3"> {/* Updated grid for custom dates */}
                 <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" // Updated text styling and size
-                />
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" // Updated text styling and size
+              />
                 <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" // Updated text styling and size
-                />
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" // Updated text styling and size
+              />
                 {/* Removed clear button */}
               </div>
-            )}
+            }
           </div>
         </NeumorphicCard>
 
@@ -300,12 +300,12 @@ export default function ChannelComparison() {
                 <select
                   value={store1}
                   onChange={(e) => setStore1(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                >
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
                   <option value="all">Tutti</option>
-                  {stores.map(store => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
-                  ))}
+                  {stores.map((store) =>
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                  )}
                 </select>
               </div>
 
@@ -317,9 +317,9 @@ export default function ChannelComparison() {
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" // Updated text styling and size
                 >
                   <option value="all">Tutti</option> {/* Updated label */}
-                  {salesChannels.map(channel => (
-                    <option key={channel} value={channel}>{channel}</option>
-                  ))}
+                  {salesChannels.map((channel) =>
+                  <option key={channel} value={channel}>{channel}</option>
+                  )}
                 </select>
               </div>
 
@@ -331,9 +331,9 @@ export default function ChannelComparison() {
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" // Updated text styling and size
                 >
                   <option value="all">Tutte</option> {/* Updated label */}
-                  {deliveryApps.map(app => (
-                    <option key={app} value={app}>{app}</option>
-                  ))}
+                  {deliveryApps.map((app) =>
+                  <option key={app} value={app}>{app}</option>
+                  )}
                 </select>
               </div>
 
@@ -358,12 +358,12 @@ export default function ChannelComparison() {
                 <select
                   value={store2}
                   onChange={(e) => setStore2(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                >
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
                   <option value="all">Tutti</option>
-                  {stores.map(store => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
-                  ))}
+                  {stores.map((store) =>
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                  )}
                 </select>
               </div>
 
@@ -375,9 +375,9 @@ export default function ChannelComparison() {
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" // Updated text styling and size
                 >
                   <option value="all">Tutti</option> {/* Updated label */}
-                  {salesChannels.map(channel => (
-                    <option key={channel} value={channel}>{channel}</option>
-                  ))}
+                  {salesChannels.map((channel) =>
+                  <option key={channel} value={channel}>{channel}</option>
+                  )}
                 </select>
               </div>
 
@@ -389,9 +389,9 @@ export default function ChannelComparison() {
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" // Updated text styling and size
                 >
                   <option value="all">Tutte</option> {/* Updated label */}
-                  {deliveryApps.map(app => (
-                    <option key={app} value={app}>{app}</option>
-                  ))}
+                  {deliveryApps.map((app) =>
+                  <option key={app} value={app}>{app}</option>
+                  )}
                 </select>
               </div>
 
@@ -526,23 +526,23 @@ export default function ChannelComparison() {
               <ResponsiveContainer width="100%" height={300}> {/* Updated height */}
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" /> {/* Updated stroke color */}
-                  <XAxis 
-                    dataKey="metric" 
+                  <XAxis
+                    dataKey="metric"
                     stroke="#64748b" // Updated stroke color
                     tick={{ fontSize: 11 }} // Updated tick font size
                   />
-                  <YAxis 
+                  <YAxis
                     stroke="#64748b" // Updated stroke color
                     tick={{ fontSize: 11 }} // Updated tick font size
                   />
-                  <Tooltip 
-                    contentStyle={{ 
+                  <Tooltip
+                    contentStyle={{
                       background: 'rgba(248, 250, 252, 0.95)', // Updated background color
                       border: 'none',
                       borderRadius: '12px',
                       fontSize: '11px' // Updated font size
-                    }}
-                  />
+                    }} />
+
                   <Legend wrapperStyle={{ fontSize: '11px' }} /> {/* Updated wrapperStyle */}
                   <Bar dataKey="Comb 1" fill="#3b82f6" radius={[8, 8, 0, 0]} /> {/* Updated fill color */}
                   <Bar dataKey="Comb 2" fill="#8b5cf6" radius={[8, 8, 0, 0]} /> {/* Updated fill color */}
@@ -554,6 +554,6 @@ export default function ChannelComparison() {
 
         {/* Insights - Removed completely as per outline */}
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
