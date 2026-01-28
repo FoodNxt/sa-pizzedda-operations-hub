@@ -70,11 +70,11 @@ export default function ControlloConsumi() {
   // Helper: determina il tipo di prodotto
   const getProductType = (prodottoId, nomeProdotto) => {
     // Cerca in materie prime
-    const mp = materiePrime.find(m => m.id === prodottoId || m.nome_prodotto === nomeProdotto);
+    const mp = materiePrime.find((m) => m.id === prodottoId || m.nome_prodotto === nomeProdotto);
     if (mp) return 'materie_prime';
 
     // Cerca in ricette
-    const ricetta = ricette.find(r => r.id === prodottoId || r.nome_prodotto === nomeProdotto);
+    const ricetta = ricette.find((r) => r.id === prodottoId || r.nome_prodotto === nomeProdotto);
     if (ricetta) {
       if (ricetta.is_semilavorato) return 'semilavorati';
       return 'prodotti_finiti';
@@ -86,57 +86,57 @@ export default function ControlloConsumi() {
 
   // Raggruppa prodotti per categoria
   const productsByCategory = {
-    materie_prime: materiePrime.map(m => ({ id: m.id, nome: m.nome_prodotto })),
-    semilavorati: ricette.filter(r => r.is_semilavorato).map(r => ({ id: r.id, nome: r.nome_prodotto })),
-    prodotti_finiti: ricette.filter(r => !r.is_semilavorato).map(r => ({ id: r.id, nome: r.nome_prodotto }))
+    materie_prime: materiePrime.map((m) => ({ id: m.id, nome: m.nome_prodotto })),
+    semilavorati: ricette.filter((r) => r.is_semilavorato).map((r) => ({ id: r.id, nome: r.nome_prodotto })),
+    prodotti_finiti: ricette.filter((r) => !r.is_semilavorato).map((r) => ({ id: r.id, nome: r.nome_prodotto }))
   };
 
   // Inizializza selectedProducts con tutti i prodotti se vuoto
   React.useEffect(() => {
     if (selectedProducts.length === 0 && (materiePrime.length > 0 || ricette.length > 0)) {
       const allProducts = [
-        ...productsByCategory.materie_prime.map(p => p.id),
-        ...productsByCategory.semilavorati.map(p => p.id),
-        ...productsByCategory.prodotti_finiti.map(p => p.id)
-      ];
+      ...productsByCategory.materie_prime.map((p) => p.id),
+      ...productsByCategory.semilavorati.map((p) => p.id),
+      ...productsByCategory.prodotti_finiti.map((p) => p.id)];
+
       setSelectedProducts(allProducts);
     }
   }, [materiePrime, ricette]);
 
   const toggleProduct = (productId) => {
-    setSelectedProducts(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
+    setSelectedProducts((prev) =>
+    prev.includes(productId) ?
+    prev.filter((id) => id !== productId) :
+    [...prev, productId]
     );
   };
 
   const toggleCategory = (category) => {
-    const categoryProducts = productsByCategory[category].map(p => p.id);
-    const allSelected = categoryProducts.every(id => selectedProducts.includes(id));
-    
+    const categoryProducts = productsByCategory[category].map((p) => p.id);
+    const allSelected = categoryProducts.every((id) => selectedProducts.includes(id));
+
     if (allSelected) {
-      setSelectedProducts(prev => prev.filter(id => !categoryProducts.includes(id)));
+      setSelectedProducts((prev) => prev.filter((id) => !categoryProducts.includes(id)));
     } else {
-      setSelectedProducts(prev => [...new Set([...prev, ...categoryProducts])]);
+      setSelectedProducts((prev) => [...new Set([...prev, ...categoryProducts])]);
     }
   };
 
   // Filtra per store e date
-  const filteredVendite = prodottiVenduti.filter(v => {
+  const filteredVendite = prodottiVenduti.filter((v) => {
     const matchStore = selectedStore === "all" || v.store_id === selectedStore;
     const matchDate = v.data_vendita >= startDate && v.data_vendita <= endDate;
     return matchStore && matchDate;
   });
 
-  const filteredSprechi = sprechi.filter(s => {
+  const filteredSprechi = sprechi.filter((s) => {
     const matchStore = selectedStore === "all" || s.store_id === selectedStore;
     const dataSpreco = s.data_rilevazione.split('T')[0];
     const matchDate = dataSpreco >= startDate && dataSpreco <= endDate;
     return matchStore && matchDate;
   });
 
-  const filteredInventari = inventari.filter(i => {
+  const filteredInventari = inventari.filter((i) => {
     const matchStore = selectedStore === "all" || i.store_id === selectedStore;
     const dataRil = i.data_rilevazione.split('T')[0];
     const matchDate = dataRil >= startDate && dataRil <= endDate;
@@ -144,7 +144,7 @@ export default function ControlloConsumi() {
   });
 
   // Includi anche inventari del giorno precedente al periodo (per quantità iniziale)
-  const allInventari = inventari.filter(i => {
+  const allInventari = inventari.filter((i) => {
     const matchStore = selectedStore === "all" || i.store_id === selectedStore;
     const dataRil = i.data_rilevazione.split('T')[0];
     const dayBeforeStart = format(subDays(parseISO(startDate), 1), 'yyyy-MM-dd');
@@ -152,7 +152,7 @@ export default function ControlloConsumi() {
     return matchStore && matchDate;
   });
 
-  const filteredOrdini = ordini.filter(o => {
+  const filteredOrdini = ordini.filter((o) => {
     const matchStore = selectedStore === "all" || o.store_id === selectedStore;
     if (!o.data_completamento) return false;
     const dataCompl = o.data_completamento.split('T')[0];
@@ -162,7 +162,7 @@ export default function ControlloConsumi() {
 
   // Organizza inventari per prodotto e data
   const inventariPerProdotto = {};
-  allInventari.forEach(inv => {
+  allInventari.forEach((inv) => {
     const key = inv.prodotto_id;
     if (!inventariPerProdotto[key]) {
       inventariPerProdotto[key] = [];
@@ -171,30 +171,30 @@ export default function ControlloConsumi() {
   });
 
   // Ordina per data
-  Object.keys(inventariPerProdotto).forEach(prodottoId => {
-    inventariPerProdotto[prodottoId].sort((a, b) => 
-      new Date(a.data_rilevazione) - new Date(b.data_rilevazione)
+  Object.keys(inventariPerProdotto).forEach((prodottoId) => {
+    inventariPerProdotto[prodottoId].sort((a, b) =>
+    new Date(a.data_rilevazione) - new Date(b.data_rilevazione)
     );
   });
 
   // Funzione ricorsiva per espandere ingredienti (inclusi semilavorati)
   const espandiIngredienti = (ingredienti, moltiplicatore = 1) => {
     const risultato = {};
-    
+
     if (!ingredienti || ingredienti.length === 0) return risultato;
-    
-    ingredienti.forEach(ing => {
+
+    ingredienti.forEach((ing) => {
       const key = ing.materia_prima_id || ing.nome_prodotto;
-      
+
       // Verifica se è un semilavorato
-      const ricettaSemilavorato = ricette.find(r => 
-        (r.id === ing.materia_prima_id || r.nome_prodotto === ing.nome_prodotto) && r.is_semilavorato
+      const ricettaSemilavorato = ricette.find((r) =>
+      (r.id === ing.materia_prima_id || r.nome_prodotto === ing.nome_prodotto) && r.is_semilavorato
       );
-      
+
       if (ricettaSemilavorato && ricettaSemilavorato.ingredienti) {
         // È un semilavorato: espandi ricorsivamente i suoi ingredienti
         const subIngredienti = espandiIngredienti(ricettaSemilavorato.ingredienti, moltiplicatore * ing.quantita);
-        Object.keys(subIngredienti).forEach(subKey => {
+        Object.keys(subIngredienti).forEach((subKey) => {
           if (!risultato[subKey]) {
             risultato[subKey] = {
               nome: subIngredienti[subKey].nome,
@@ -206,18 +206,18 @@ export default function ControlloConsumi() {
         });
       } else {
         // È una materia prima
-        const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id || m.nome_prodotto === ing.nome_prodotto);
-        
+        const materiaPrima = materiePrime.find((m) => m.id === ing.materia_prima_id || m.nome_prodotto === ing.nome_prodotto);
+
         let quantitaBase = ing.quantita * moltiplicatore;
         let unitaMisuraFinale = ing.unita_misura;
         let quantitaFinale = quantitaBase;
-        
+
         if (materiaPrima) {
           // CASO 1: Materia prima con peso/dimensione unitaria (es. mozzarella 2.5kg, estathe 24 lattine)
           if (materiaPrima.peso_dimensione_unita && materiaPrima.unita_misura_peso) {
             // Converti l'unità della ricetta in quella della materia prima
             let quantitaConvertita = quantitaBase;
-            
+
             // Conversione grammi -> kg
             if (ing.unita_misura === 'g' && materiaPrima.unita_misura_peso === 'kg') {
               quantitaConvertita = quantitaBase / 1000;
@@ -234,7 +234,7 @@ export default function ControlloConsumi() {
             else if (ing.unita_misura === 'litri' && materiaPrima.unita_misura_peso === 'ml') {
               quantitaConvertita = quantitaBase * 1000;
             }
-            
+
             // Calcola quanti pezzi/unità servono
             quantitaFinale = quantitaConvertita / materiaPrima.peso_dimensione_unita;
             unitaMisuraFinale = materiaPrima.unita_misura;
@@ -245,7 +245,7 @@ export default function ControlloConsumi() {
             unitaMisuraFinale = materiaPrima.unita_misura || 'confezioni';
           }
         }
-        
+
         if (!risultato[key]) {
           risultato[key] = {
             nome: ing.nome_prodotto,
@@ -256,28 +256,28 @@ export default function ControlloConsumi() {
         risultato[key].quantita += quantitaFinale;
       }
     });
-    
+
     return risultato;
   };
 
   // Funzione per espandere ingredienti SENZA conversione a pezzi (solo grammi originali)
   const espandiIngredientiGrammi = (ingredienti, moltiplicatore = 1) => {
     const risultato = {};
-    
+
     if (!ingredienti || ingredienti.length === 0) return risultato;
-    
-    ingredienti.forEach(ing => {
+
+    ingredienti.forEach((ing) => {
       const key = ing.materia_prima_id || ing.nome_prodotto;
-      
+
       // Verifica se è un semilavorato
-      const ricettaSemilavorato = ricette.find(r => 
-        (r.id === ing.materia_prima_id || r.nome_prodotto === ing.nome_prodotto) && r.is_semilavorato
+      const ricettaSemilavorato = ricette.find((r) =>
+      (r.id === ing.materia_prima_id || r.nome_prodotto === ing.nome_prodotto) && r.is_semilavorato
       );
-      
+
       if (ricettaSemilavorato && ricettaSemilavorato.ingredienti) {
         // È un semilavorato: espandi ricorsivamente
         const subIngredienti = espandiIngredientiGrammi(ricettaSemilavorato.ingredienti, moltiplicatore * ing.quantita);
-        Object.keys(subIngredienti).forEach(subKey => {
+        Object.keys(subIngredienti).forEach((subKey) => {
           if (!risultato[subKey]) {
             risultato[subKey] = {
               nome: subIngredienti[subKey].nome,
@@ -290,7 +290,7 @@ export default function ControlloConsumi() {
       } else {
         // È una materia prima - NON fare conversione a pezzi
         const quantitaFinale = ing.quantita * moltiplicatore;
-        
+
         if (!risultato[key]) {
           risultato[key] = {
             nome: ing.nome_prodotto,
@@ -301,14 +301,14 @@ export default function ControlloConsumi() {
         risultato[key].quantita += quantitaFinale;
       }
     });
-    
+
     return risultato;
   };
 
   // Calcola quantità vendute per giorno e prodotto (da prodotti venduti)
   const quantitaVendutePerGiorno = {};
-  filteredVendite.forEach(vendita => {
-    const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
+  filteredVendite.forEach((vendita) => {
+    const ricetta = ricette.find((r) => r.nome_prodotto === vendita.flavor);
     if (!ricetta || !ricetta.ingredienti) return;
 
     const qty = vendita.total_pizzas_sold || 0;
@@ -320,8 +320,8 @@ export default function ControlloConsumi() {
 
     // Espandi ingredienti ricorsivamente
     const ingredientiEspansi = espandiIngredienti(ricetta.ingredienti, qty);
-    
-    Object.keys(ingredientiEspansi).forEach(key => {
+
+    Object.keys(ingredientiEspansi).forEach((key) => {
       if (!quantitaVendutePerGiorno[date][key]) {
         quantitaVendutePerGiorno[date][key] = {
           nome: ingredientiEspansi[key].nome,
@@ -335,7 +335,7 @@ export default function ControlloConsumi() {
 
   // Calcola ordini ricevuti per giorno
   const ordiniPerGiorno = {};
-  filteredOrdini.forEach(ordine => {
+  filteredOrdini.forEach((ordine) => {
     if (ordine.status !== 'completato' || !ordine.data_completamento) return;
     const date = ordine.data_completamento.split('T')[0];
 
@@ -343,7 +343,7 @@ export default function ControlloConsumi() {
       ordiniPerGiorno[date] = {};
     }
 
-    ordine.prodotti.forEach(prod => {
+    ordine.prodotti.forEach((prod) => {
       const key = prod.prodotto_id;
       if (!ordiniPerGiorno[date][key]) {
         ordiniPerGiorno[date][key] = {
@@ -360,12 +360,12 @@ export default function ControlloConsumi() {
   const datiGiornalieriPerProdotto = {};
 
   // Itera su tutti gli inventari
-  Object.keys(inventariPerProdotto).forEach(prodottoId => {
+  Object.keys(inventariPerProdotto).forEach((prodottoId) => {
     const invs = inventariPerProdotto[prodottoId];
-    
+
     invs.forEach((inv, idx) => {
       const date = inv.data_rilevazione.split('T')[0];
-      
+
       // Salta se la data non è nel range selezionato
       if (date < startDate || date > endDate) return;
 
@@ -412,13 +412,13 @@ export default function ControlloConsumi() {
     if (mode === 'daily') return { data: datiGiornalieriPerProdotto, dates: datesSorted };
 
     const aggregated = {};
-    
+
     // Raggruppa date per periodo
     const datesByPeriod = {};
-    Object.keys(datiGiornalieriPerProdotto).forEach(date => {
+    Object.keys(datiGiornalieriPerProdotto).forEach((date) => {
       const d = parseISO(date);
       let periodoKey;
-      
+
       if (mode === 'weekly') {
         const weekStart = startOfWeek(d, { weekStartsOn: 1 });
         periodoKey = format(weekStart, 'yyyy-MM-dd');
@@ -433,22 +433,22 @@ export default function ControlloConsumi() {
     });
 
     // Per ogni periodo, aggrega i dati
-    Object.keys(datesByPeriod).forEach(periodoKey => {
+    Object.keys(datesByPeriod).forEach((periodoKey) => {
       const datesInPeriod = datesByPeriod[periodoKey].sort();
-      
+
       if (!aggregated[periodoKey]) {
         aggregated[periodoKey] = {};
       }
 
       // Per ogni prodotto, aggrega attraverso tutte le date del periodo
       const allProdIds = new Set();
-      datesInPeriod.forEach(date => {
-        Object.keys(datiGiornalieriPerProdotto[date] || {}).forEach(prodId => {
+      datesInPeriod.forEach((date) => {
+        Object.keys(datiGiornalieriPerProdotto[date] || {}).forEach((prodId) => {
           allProdIds.add(prodId);
         });
       });
 
-      allProdIds.forEach(prodId => {
+      allProdIds.forEach((prodId) => {
         let qtyInizialeFirst = null;
         let qtyFinaleLast = null;
         let qtyVenditaTotale = 0;
@@ -456,7 +456,7 @@ export default function ControlloConsumi() {
         let nome = '';
         let unita_misura = '';
 
-        datesInPeriod.forEach(date => {
+        datesInPeriod.forEach((date) => {
           const prod = datiGiornalieriPerProdotto[date]?.[prodId];
           if (!prod) return;
 
@@ -510,11 +510,11 @@ export default function ControlloConsumi() {
     ricetteNonTrovate: new Set()
   };
 
-  filteredVendite.forEach(vendita => {
+  filteredVendite.forEach((vendita) => {
     const qty = vendita.total_pizzas_sold || 0;
     debugStats.totalePizzeVendute += qty;
 
-    const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
+    const ricetta = ricette.find((r) => r.nome_prodotto === vendita.flavor);
     if (!ricetta || !ricetta.ingredienti) {
       debugStats.pizzeSenzaRicetta += qty;
       if (vendita.flavor) {
@@ -533,9 +533,9 @@ export default function ControlloConsumi() {
     // Espandi ingredienti ricorsivamente per consumi teorici
     const ingredientiEspansi = espandiIngredienti(ricetta.ingredienti, qty);
 
-    Object.keys(ingredientiEspansi).forEach(key => {
+    Object.keys(ingredientiEspansi).forEach((key) => {
       if (!consumiTeoriciPerGiorno[date][key]) {
-        const materiaPrima = materiePrime.find(m => m.id === key || m.nome_prodotto === ingredientiEspansi[key].nome);
+        const materiaPrima = materiePrime.find((m) => m.id === key || m.nome_prodotto === ingredientiEspansi[key].nome);
         consumiTeoriciPerGiorno[date][key] = {
           nome: ingredientiEspansi[key].nome,
           quantita: 0,
@@ -553,10 +553,10 @@ export default function ControlloConsumi() {
     if (mode === 'daily') return data;
 
     const aggregated = {};
-    Object.keys(data).forEach(date => {
+    Object.keys(data).forEach((date) => {
       const d = parseISO(date);
       let key;
-      
+
       if (mode === 'weekly') {
         const weekStart = startOfDay(d);
         weekStart.setDate(d.getDate() - d.getDay());
@@ -569,7 +569,7 @@ export default function ControlloConsumi() {
         aggregated[key] = {};
       }
 
-      Object.keys(data[date]).forEach(prodId => {
+      Object.keys(data[date]).forEach((prodId) => {
         if (!aggregated[key][prodId]) {
           aggregated[key][prodId] = {
             nome: data[date][prodId].nome,
@@ -598,9 +598,9 @@ export default function ControlloConsumi() {
   };
 
   let prodottiSet = new Set();
-  datesSorted.forEach(date => {
+  datesSorted.forEach((date) => {
     const prodotti = datiGiornalieriPerProdotto[date] || {};
-    Object.keys(prodotti).forEach(prodId => {
+    Object.keys(prodotti).forEach((prodId) => {
       prodottiSet.add(prodId);
       const delta = prodotti[prodId].delta;
       if (delta > 0) stats.deltaPositivoTotale += delta;
@@ -611,17 +611,17 @@ export default function ControlloConsumi() {
 
   // Calcola dati dettagliati per prodotti chiave (mozzarella, pomodoro, farina, semola)
   const calcProdottiChiaveData = (mode) => {
-    const mozzarellaProducts = materiePrime.filter(m => {
+    const mozzarellaProducts = materiePrime.filter((m) => {
       const nome = m.nome_prodotto.toLowerCase();
-      return nome.includes('mozzarella') || 
-             nome.includes('pomodoro') || 
-             nome.includes('farina') || 
-             nome.includes('semola');
+      return nome.includes('mozzarella') ||
+      nome.includes('pomodoro') ||
+      nome.includes('farina') ||
+      nome.includes('semola');
     });
 
     const details = {};
 
-    mozzarellaProducts.forEach(mozz => {
+    mozzarellaProducts.forEach((mozz) => {
       const datiMozz = {
         nome: mozz.nome_prodotto,
         pesoUnitario: mozz.peso_dimensione_unita,
@@ -634,7 +634,7 @@ export default function ControlloConsumi() {
         const allDatesInRange = [];
         let currentDate = parseISO(startDate);
         const lastDate = parseISO(endDate);
-        
+
         while (currentDate <= lastDate) {
           allDatesInRange.push(format(currentDate, 'yyyy-MM-dd'));
           currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
@@ -644,30 +644,30 @@ export default function ControlloConsumi() {
         let prevQtyAttesa = null;
         let prevWasInventoried = false; // Track if previous day had inventory
         const dayBeforeStart = format(subDays(parseISO(startDate), 1), 'yyyy-MM-dd');
-        const invDayBefore = allInventari.find(inv => 
-          inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === dayBeforeStart
+        const invDayBefore = allInventari.find((inv) =>
+        inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === dayBeforeStart
         );
         if (invDayBefore) {
           prevQtyAttesa = invDayBefore.quantita_rilevata;
           prevWasInventoried = true;
         }
 
-        allDatesInRange.forEach(date => {
+        allDatesInRange.forEach((date) => {
           const prod = datiGiornalieriPerProdotto[date]?.[mozz.id];
 
           // Check if inventory was done on this date
-          const inventarioEsistente = filteredInventari.find(inv => 
-            inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === date
+          const inventarioEsistente = filteredInventari.find((inv) =>
+          inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === date
           );
 
           const breakdown = [];
-          filteredVendite.filter(v => v.data_vendita === date).forEach(vendita => {
-            const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
+          filteredVendite.filter((v) => v.data_vendita === date).forEach((vendita) => {
+            const ricetta = ricette.find((r) => r.nome_prodotto === vendita.flavor);
             if (!ricetta || !ricetta.ingredienti) return;
 
             const qty = vendita.total_pizzas_sold || 0;
             const ingredientiGrammi = espandiIngredientiGrammi(ricetta.ingredienti, 1);
-            
+
             const mozzKey = mozz.id || mozz.nome_prodotto;
             if (ingredientiGrammi[mozzKey]) {
               breakdown.push({
@@ -681,8 +681,8 @@ export default function ControlloConsumi() {
 
           const grammiVenduti = breakdown.reduce((sum, item) => sum + item.grammiTotali, 0);
           const kgVenduti = grammiVenduti / 1000;
-          
-          const sprechiProdotto = filteredSprechi.filter(s => {
+
+          const sprechiProdotto = filteredSprechi.filter((s) => {
             const dataSpreco = s.data_rilevazione.split('T')[0];
             return dataSpreco === date && s.prodotto_id === mozz.id;
           });
@@ -690,13 +690,13 @@ export default function ControlloConsumi() {
           const totaleSprechiKg = totaleSprechiGrammi / 1000;
 
           const qtyArrivata = ordiniPerGiorno[date]?.[mozz.id]?.quantita || 0;
-          const pezziVenduti = prod?.qtyVenduta || (quantitaVendutePerGiorno[date]?.[mozz.id]?.quantita || 0);
+          const pezziVenduti = prod?.qtyVenduta || quantitaVendutePerGiorno[date]?.[mozz.id]?.quantita || 0;
 
           if (!inventarioEsistente) {
             // NO inventory done - use expected quantity from previous day as initial
             const qtyIniziale = prevQtyAttesa !== null ? prevQtyAttesa : 0;
             const qtyAttesa = qtyIniziale - pezziVenduti + qtyArrivata;
-            
+
             datiMozz.periodi.push({
               periodo: date,
               inventarioMancante: true,
@@ -719,7 +719,7 @@ export default function ControlloConsumi() {
             prevWasInventoried = false;
           } else {
             // Inventory exists - qtyIniziale is theoretical only if previous day had no inventory
-            const qtyIniziale = prevQtyAttesa !== null ? prevQtyAttesa : (prod?.qtyIniziale || 0);
+            const qtyIniziale = prevQtyAttesa !== null ? prevQtyAttesa : prod?.qtyIniziale || 0;
             const qtyFinale = prod?.qtyFinale || inventarioEsistente.quantita_rilevata || 0;
             const qtyAttesa = qtyIniziale - pezziVenduti + qtyArrivata;
             const delta = qtyFinale - qtyAttesa;
@@ -749,11 +749,11 @@ export default function ControlloConsumi() {
       } else {
         // Weekly or Monthly aggregation
         const periodi = {};
-        
-        datesSorted.forEach(date => {
+
+        datesSorted.forEach((date) => {
           const d = parseISO(date);
           let periodoKey;
-          
+
           if (mode === 'weekly') {
             const weekStart = startOfWeek(d, { weekStartsOn: 1 });
             periodoKey = format(weekStart, 'yyyy-MM-dd');
@@ -771,7 +771,7 @@ export default function ControlloConsumi() {
         });
 
         // Per ogni periodo, aggrega i dati
-        Object.keys(periodi).sort().forEach(periodoKey => {
+        Object.keys(periodi).sort().forEach((periodoKey) => {
           const datesInPeriod = periodi[periodoKey].dates.sort();
           const firstDate = datesInPeriod[0];
           const lastDate = datesInPeriod[datesInPeriod.length - 1];
@@ -782,7 +782,7 @@ export default function ControlloConsumi() {
           let qtyIniziale = 0;
           let qtyInizialeTeorica = false;
           let dayBeforePeriod;
-          
+
           if (mode === 'weekly') {
             // periodoKey è già la data del lunedì (inizio settimana)
             dayBeforePeriod = format(subDays(parseISO(periodoKey), 1), 'yyyy-MM-dd');
@@ -791,11 +791,11 @@ export default function ControlloConsumi() {
             const firstDayOfMonth = parseISO(periodoKey + '-01');
             dayBeforePeriod = format(subDays(firstDayOfMonth, 1), 'yyyy-MM-dd');
           }
-          
-          const invDayBefore = allInventari.find(inv => 
-            inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === dayBeforePeriod
+
+          const invDayBefore = allInventari.find((inv) =>
+          inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === dayBeforePeriod
           );
-          
+
           if (invDayBefore) {
             // Usa l'inventario del giorno prima dell'inizio periodo
             qtyIniziale = invDayBefore.quantita_rilevata;
@@ -815,13 +815,13 @@ export default function ControlloConsumi() {
           }
 
           // Trova operatore per inventario inizio periodo (giorno prima)
-          const initialOperatore = invDayBefore ? users.find(u => u.email === invDayBefore.created_by) : null;
+          const initialOperatore = invDayBefore ? users.find((u) => u.email === invDayBefore.created_by) : null;
 
           // Trova inventario e operatore dell'ultimo giorno
-          const lastInventario = filteredInventari.find(inv => 
-            inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === lastDate
+          const lastInventario = filteredInventari.find((inv) =>
+          inv.prodotto_id === mozz.id && inv.data_rilevazione.split('T')[0] === lastDate
           );
-          const lastOperatore = lastInventario ? users.find(u => u.email === lastInventario.created_by) : null;
+          const lastOperatore = lastInventario ? users.find((u) => u.email === lastInventario.created_by) : null;
 
           // Qty finale: dall'inventario dell'ultimo giorno
           const lastProd = datiGiornalieriPerProdotto[lastDate]?.[mozz.id];
@@ -834,7 +834,7 @@ export default function ControlloConsumi() {
           let sprechiGrammiTotali = 0;
           const allBreakdown = [];
 
-          datesInPeriod.forEach(date => {
+          datesInPeriod.forEach((date) => {
             const prod = datiGiornalieriPerProdotto[date]?.[mozz.id];
             if (prod) {
               pezziVendutiTotali += prod.qtyVenduta;
@@ -842,16 +842,16 @@ export default function ControlloConsumi() {
             }
 
             // Breakdown vendite
-            filteredVendite.filter(v => v.data_vendita === date).forEach(vendita => {
-              const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
+            filteredVendite.filter((v) => v.data_vendita === date).forEach((vendita) => {
+              const ricetta = ricette.find((r) => r.nome_prodotto === vendita.flavor);
               if (!ricetta || !ricetta.ingredienti) return;
 
               const qty = vendita.total_pizzas_sold || 0;
               const ingredientiGrammi = espandiIngredientiGrammi(ricetta.ingredienti, 1);
-              
+
               const mozzKey = mozz.id || mozz.nome_prodotto;
               if (ingredientiGrammi[mozzKey]) {
-                const existing = allBreakdown.find(b => b.nomeProdotto === vendita.flavor);
+                const existing = allBreakdown.find((b) => b.nomeProdotto === vendita.flavor);
                 if (existing) {
                   existing.quantitaVenduta += qty;
                   existing.grammiTotali += ingredientiGrammi[mozzKey].quantita * qty;
@@ -868,10 +868,10 @@ export default function ControlloConsumi() {
             });
 
             // Sprechi
-            filteredSprechi.filter(s => {
+            filteredSprechi.filter((s) => {
               const dataSpreco = s.data_rilevazione.split('T')[0];
               return dataSpreco === date && s.prodotto_id === mozz.id;
-            }).forEach(s => {
+            }).forEach((s) => {
               sprechiGrammiTotali += s.quantita_grammi || 0;
             });
           });
@@ -923,10 +923,10 @@ export default function ControlloConsumi() {
     <ProtectedPage pageName="ControlloConsumi">
       <div className="max-w-7xl mx-auto space-y-4">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-            Controllo Consumi
+          <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Controllo Consumi
+
           </h1>
-          <p className="text-slate-500 mt-1">Confronto tra consumi teorici ed effettivi</p>
+          <p className="text-slate-50 mt-1">Confronto tra consumi teorici ed effettivi</p>
         </div>
 
         {/* Tabs */}
@@ -935,21 +935,21 @@ export default function ControlloConsumi() {
             <button
               onClick={() => setActiveTab('confronto')}
               className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'confronto'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
+              activeTab === 'confronto' ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'text-slate-600 hover:bg-slate-50'}`
+              }>
+
               Confronto Consumi
             </button>
             <button
               onClick={() => setActiveTab('consumi_teorici')}
               className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'consumi_teorici'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
+              activeTab === 'consumi_teorici' ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'text-slate-600 hover:bg-slate-50'}`
+              }>
+
               Consumi Teorici
             </button>
           </div>
@@ -966,12 +966,12 @@ export default function ControlloConsumi() {
                 <select
                   value={selectedStore}
                   onChange={(e) => setSelectedStore(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700"
-                >
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700">
+
                   <option value="all">Tutti i negozi</option>
-                  {stores.map(store => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
-                  ))}
+                  {stores.map((store) =>
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                  )}
                 </select>
               </div>
               <div>
@@ -982,8 +982,8 @@ export default function ControlloConsumi() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700"
-                />
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700" />
+
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -993,8 +993,8 @@ export default function ControlloConsumi() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700"
-                />
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700" />
+
               </div>
             </div>
             <NeumorphicButton onClick={() => setShowSettings(true)} className="flex items-center gap-2">
@@ -1009,26 +1009,26 @@ export default function ControlloConsumi() {
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-slate-700">Vista:</span>
             <div className="flex gap-2">
-              {['daily', 'weekly', 'monthly'].map(mode => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    viewMode === mode
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                      : 'neumorphic-flat text-slate-600'
-                  }`}
-                >
+              {['daily', 'weekly', 'monthly'].map((mode) =>
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === mode ?
+                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                'neumorphic-flat text-slate-600'}`
+                }>
+
                   {mode === 'daily' ? 'Giornaliera' : mode === 'weekly' ? 'Settimanale' : 'Mensile'}
                 </button>
-              ))}
+              )}
             </div>
           </div>
         </NeumorphicCard>
 
         {/* Statistiche */}
-        {activeTab === 'confronto' && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {activeTab === 'confronto' &&
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <NeumorphicCard className="p-6">
             <div className="flex items-center gap-3">
               <div className="neumorphic-flat p-3 rounded-xl">
@@ -1077,39 +1077,39 @@ export default function ControlloConsumi() {
             </div>
           </NeumorphicCard>
         </div>
-        )}
+        }
 
         {/* Dettaglio Prodotti Chiave */}
-        {activeTab === 'confronto' && Object.keys(mozzarellaDetails).length > 0 && (
-          <NeumorphicCard className="p-6">
+        {activeTab === 'confronto' && Object.keys(mozzarellaDetails).length > 0 &&
+        <NeumorphicCard className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-slate-700">📊 Dettaglio Prodotti Chiave</h2>
               <div className="flex gap-2">
-                {['daily', 'weekly', 'monthly'].map(mode => (
-                  <button
-                    key={mode}
-                    onClick={() => setProdottiChiaveViewMode(mode)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      prodottiChiaveViewMode === mode
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                        : 'neumorphic-flat text-slate-600'
-                    }`}
-                  >
+                {['daily', 'weekly', 'monthly'].map((mode) =>
+              <button
+                key={mode}
+                onClick={() => setProdottiChiaveViewMode(mode)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                prodottiChiaveViewMode === mode ?
+                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                'neumorphic-flat text-slate-600'}`
+                }>
+
                     {mode === 'daily' ? 'Giornaliera' : mode === 'weekly' ? 'Settimanale' : 'Mensile'}
                   </button>
-                ))}
+              )}
               </div>
             </div>
             <div className="space-y-4">
-              {Object.keys(mozzarellaDetails).map(mozzId => {
-                const mozz = mozzarellaDetails[mozzId];
-                const isExpanded = expandedProducts[mozzId];
-                return (
-                  <div key={mozzId} className="neumorphic-pressed rounded-lg">
+              {Object.keys(mozzarellaDetails).map((mozzId) => {
+              const mozz = mozzarellaDetails[mozzId];
+              const isExpanded = expandedProducts[mozzId];
+              return (
+                <div key={mozzId} className="neumorphic-pressed rounded-lg">
                     <button
-                      onClick={() => setExpandedProducts(prev => ({ ...prev, [mozzId]: !prev[mozzId] }))}
-                      className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
-                    >
+                    onClick={() => setExpandedProducts((prev) => ({ ...prev, [mozzId]: !prev[mozzId] }))}
+                    className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{isExpanded ? '▼' : '▶'}</span>
                         <div>
@@ -1121,103 +1121,103 @@ export default function ControlloConsumi() {
                       </div>
                     </button>
                     
-                    {isExpanded && (
-                      <div className="p-4 pt-0">
+                    {isExpanded &&
+                  <div className="p-4 pt-0">
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b-2 border-slate-300">
                                 <th className="text-left py-2 px-3">{prodottiChiaveViewMode === 'daily' ? 'Data' : prodottiChiaveViewMode === 'weekly' ? 'Settimana' : 'Mese'}</th>
-                                <th className="text-right py-2 px-3">Qty Iniziale<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
-                                <th className="text-right py-2 px-3">Grammi Venduti<br/><span className="text-xs font-normal">(ricette)</span></th>
+                                <th className="text-right py-2 px-3">Qty Iniziale<br /><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
+                                <th className="text-right py-2 px-3">Grammi Venduti<br /><span className="text-xs font-normal">(ricette)</span></th>
                                 <th className="text-right py-2 px-3">Kg Venduti</th>
-                                <th className="text-right py-2 px-3">Pezzi Venduti<br/><span className="text-xs font-normal">(calcolati)</span></th>
-                                <th className="text-right py-2 px-3">Sprechi<br/><span className="text-xs font-normal">(g / kg)</span></th>
-                                <th className="text-right py-2 px-3">Qty Arrivata<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
-                                <th className="text-right py-2 px-3">Qty Attesa<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
-                                <th className="text-right py-2 px-3">Qty Finale<br/><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
-                                <th className="text-right py-2 px-3">Delta<br/><span className="text-xs font-normal">({mozz.unitaMisura} | %)</span></th>
+                                <th className="text-right py-2 px-3">Pezzi Venduti<br /><span className="text-xs font-normal">(calcolati)</span></th>
+                                <th className="text-right py-2 px-3">Sprechi<br /><span className="text-xs font-normal">(g / kg)</span></th>
+                                <th className="text-right py-2 px-3">Qty Arrivata<br /><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
+                                <th className="text-right py-2 px-3">Qty Attesa<br /><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
+                                <th className="text-right py-2 px-3">Qty Finale<br /><span className="text-xs font-normal">({mozz.unitaMisura})</span></th>
+                                <th className="text-right py-2 px-3">Delta<br /><span className="text-xs font-normal">({mozz.unitaMisura} | %)</span></th>
                               </tr>
                             </thead>
                             <tbody>
-                              {mozz.periodi.map(periodo => {
-                                const rowKey = `${mozzId}-${periodo.periodo}`;
-                                const isRowExpanded = expandedMozzarellaRows[rowKey];
-                                const deltaPercent = periodo.pezziVenduti !== 0 ? (periodo.delta / periodo.pezziVenduti * 100) : 0;
-                                return (
-                                  <React.Fragment key={periodo.periodo}>
+                              {mozz.periodi.map((periodo) => {
+                            const rowKey = `${mozzId}-${periodo.periodo}`;
+                            const isRowExpanded = expandedMozzarellaRows[rowKey];
+                            const deltaPercent = periodo.pezziVenduti !== 0 ? periodo.delta / periodo.pezziVenduti * 100 : 0;
+                            return (
+                              <React.Fragment key={periodo.periodo}>
                                     <tr className={`border-b border-slate-100 hover:bg-slate-50 ${periodo.inventarioMancante ? 'bg-yellow-50' : ''}`}>
                                       <td className="py-2 px-3">
                                         <button
-                                          onClick={() => setExpandedMozzarellaRows(prev => ({ ...prev, [rowKey]: !prev[rowKey] }))}
-                                          className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
-                                        >
+                                      onClick={() => setExpandedMozzarellaRows((prev) => ({ ...prev, [rowKey]: !prev[rowKey] }))}
+                                      className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
+
                                           <span className="text-xs">{isRowExpanded ? '▼' : '▶'}</span>
-                                          {prodottiChiaveViewMode === 'daily' 
-                                            ? format(parseISO(periodo.periodo), 'dd/MM/yyyy')
-                                            : prodottiChiaveViewMode === 'weekly'
-                                            ? `${format(parseISO(periodo.periodo), 'dd/MM/yyyy')}`
-                                            : format(parseISO(periodo.periodo + '-01'), 'MMMM yyyy', { locale: it })
-                                          }
-                                          {periodo.inventarioMancante && (
-                                            <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800">
+                                          {prodottiChiaveViewMode === 'daily' ?
+                                      format(parseISO(periodo.periodo), 'dd/MM/yyyy') :
+                                      prodottiChiaveViewMode === 'weekly' ?
+                                      `${format(parseISO(periodo.periodo), 'dd/MM/yyyy')}` :
+                                      format(parseISO(periodo.periodo + '-01'), 'MMMM yyyy', { locale: it })
+                                      }
+                                          {periodo.inventarioMancante &&
+                                      <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800">
                                               No inv.
                                             </span>
-                                          )}
+                                      }
                                         </button>
                                       </td>
                                       <td className="py-2 px-3 text-right font-medium">
                                         <div className="flex items-center justify-end gap-1">
                                           <span>{periodo.qtyIniziale.toFixed(2)}</span>
-                                          {periodo.qtyInizialeteorica && (
-                                            <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700" title="Valore teorico calcolato">
+                                          {periodo.qtyInizialeteorica &&
+                                      <span className="text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700" title="Valore teorico calcolato">
                                               T
                                             </span>
-                                          )}
+                                      }
                                         </div>
                                       </td>
                                       <td className="py-2 px-3 text-right text-orange-600">{periodo.grammiVenduti.toFixed(0)} g</td>
                                       <td className="py-2 px-3 text-right text-orange-600 font-medium">{periodo.kgVenduti.toFixed(2)} kg</td>
                                       <td className="py-2 px-3 text-right text-orange-700 font-bold">-{periodo.pezziVenduti.toFixed(2)}</td>
                                       <td className="py-2 px-3 text-right text-red-600">
-                                        {periodo.sprechiGrammi > 0 ? (
-                                          <div>
+                                        {periodo.sprechiGrammi > 0 ?
+                                    <div>
                                             <div className="font-medium">{periodo.sprechiGrammi.toFixed(0)} g</div>
                                             <div className="text-xs">({periodo.sprechiKg.toFixed(2)} kg)</div>
-                                          </div>
-                                        ) : '-'}
+                                          </div> :
+                                    '-'}
                                       </td>
                                       <td className="py-2 px-3 text-right text-blue-600 font-medium">+{periodo.qtyArrivata.toFixed(2)}</td>
                                       <td className="py-2 px-3 text-right text-slate-600">{periodo.qtyAttesa.toFixed(2)}</td>
                                       <td className="py-2 px-3 text-right font-bold">
-                                        {periodo.inventarioMancante ? (
-                                          <span className="text-yellow-600">-</span>
-                                        ) : (
-                                          periodo.qtyFinale.toFixed(2)
-                                        )}
+                                        {periodo.inventarioMancante ?
+                                    <span className="text-yellow-600">-</span> :
+
+                                    periodo.qtyFinale.toFixed(2)
+                                    }
                                       </td>
                                       <td className={`py-2 px-3 text-right ${
-                                        periodo.inventarioMancante ? 'text-yellow-600' :
-                                        periodo.delta > 0 ? 'text-green-600' : 
-                                        periodo.delta < 0 ? 'text-red-600' : 
-                                        'text-slate-600'
-                                      }`}>
-                                        {periodo.inventarioMancante ? (
-                                          <span className="text-xs">N/A</span>
-                                        ) : (
-                                          <>
+                                  periodo.inventarioMancante ? 'text-yellow-600' :
+                                  periodo.delta > 0 ? 'text-green-600' :
+                                  periodo.delta < 0 ? 'text-red-600' :
+                                  'text-slate-600'}`
+                                  }>
+                                        {periodo.inventarioMancante ?
+                                    <span className="text-xs">N/A</span> :
+
+                                    <>
                                             <div className="font-bold">{periodo.delta > 0 ? '+' : ''}{periodo.delta.toFixed(2)}</div>
                                             <div className="text-xs">({deltaPercent > 0 ? '+' : ''}{deltaPercent.toFixed(1)}%)</div>
                                           </>
-                                        )}
+                                    }
                                       </td>
                                     </tr>
-                                    {isRowExpanded && (
-                                      <tr>
+                                    {isRowExpanded &&
+                                <tr>
                                         <td colSpan="10" className={`p-4 ${periodo.inventarioMancante ? 'bg-yellow-50' : 'bg-slate-50'}`}>
                                           <div className="text-sm space-y-4">
-                                            {periodo.inventarioMancante && (
-                                              <div className="p-3 bg-yellow-100 border border-yellow-300 rounded-lg mb-4">
+                                            {periodo.inventarioMancante &&
+                                      <div className="p-3 bg-yellow-100 border border-yellow-300 rounded-lg mb-4">
                                                 <p className="font-bold text-yellow-800 flex items-center gap-2">
                                                   <AlertTriangle className="w-4 h-4" />
                                                   ⚠️ Inventario non compilato in questa data
@@ -1226,47 +1226,47 @@ export default function ControlloConsumi() {
                                                   La quantità iniziale è stata calcolata dalla quantità attesa del giorno precedente
                                                 </p>
                                               </div>
-                                            )}
-                                            {prodottiChiaveViewMode !== 'daily' && (
-                                              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                                      }
+                                            {prodottiChiaveViewMode !== 'daily' &&
+                                      <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                                                 <p className="font-bold text-blue-800 mb-2">📅 Dettaglio Form Inventario:</p>
                                                 <div className="grid grid-cols-2 gap-4 ml-4 text-xs">
                                                   <div>
                                                     <p className="font-medium text-slate-700">Inizio Periodo:</p>
-                                                    {periodo.initialInventario ? (
-                                                      <>
+                                                    {periodo.initialInventario ?
+                                            <>
                                                         <p className="text-slate-600">Data: {format(parseISO(periodo.initialInventario.timestamp), 'dd/MM/yyyy HH:mm')}</p>
                                                         <p className="text-slate-600">Operatore: {periodo.initialInventario.operatore}</p>
-                                                      </>
-                                                    ) : (
-                                                      <>
+                                                      </> :
+
+                                            <>
                                                         <p className="text-slate-600">Data: -</p>
                                                         <p className="text-purple-600 font-medium">Operatore: Teorico</p>
                                                       </>
-                                                    )}
+                                            }
                                                   </div>
                                                   <div>
                                                     <p className="font-medium text-slate-700">Fine Periodo:</p>
-                                                    {periodo.lastInventario ? (
-                                                      <>
+                                                    {periodo.lastInventario ?
+                                            <>
                                                         <p className="text-slate-600">Data: {format(parseISO(periodo.lastInventario.timestamp), 'dd/MM/yyyy HH:mm')}</p>
                                                         <p className="text-slate-600">Operatore: {periodo.lastInventario.operatore}</p>
-                                                      </>
-                                                    ) : (
-                                                      <>
+                                                      </> :
+
+                                            <>
                                                         <p className="text-slate-600">Data: -</p>
                                                         <p className="text-purple-600 font-medium">Operatore: Teorico</p>
                                                       </>
-                                                    )}
+                                            }
                                                   </div>
                                                 </div>
                                               </div>
-                                            )}
-                                            {periodo.breakdown && periodo.breakdown.length > 0 && (
-                                              <>
+                                      }
+                                            {periodo.breakdown && periodo.breakdown.length > 0 &&
+                                      <>
                                                 <p className="font-bold text-slate-700 mb-2">📋 Breakdown Calcolo Grammi Venduti:</p>
                                       <div className="space-y-1 ml-4">
-                                        {periodo.breakdown.map((item, idx) => (
+                                        {periodo.breakdown.map((item, idx) =>
                                           <div key={idx} className="flex items-center justify-between text-slate-600">
                                             <span>
                                               <span className="font-medium text-slate-800">{item.nomeProdotto}</span>
@@ -1279,36 +1279,36 @@ export default function ControlloConsumi() {
                                               = {item.grammiTotali.toFixed(0)} g
                                             </span>
                                           </div>
-                                        ))}
+                                          )}
                                         <div className="border-t border-slate-300 mt-2 pt-2 flex justify-between font-bold text-slate-800">
                                           <span>TOTALE:</span>
                                           <span className="text-orange-700">{periodo.grammiVenduti.toFixed(0)} g</span>
                                         </div>
                                       </div>
                                       </>
-                                      )}
+                                      }
                                     </div>
                                   </td>
                                 </tr>
-                              )}
-                            </React.Fragment>
-                            );
-                            })}
+                                }
+                            </React.Fragment>);
+
+                          })}
                             </tbody>
                             </table>
                             </div>
                             </div>
-                            )}
-                            </div>
-                            );
-                            })}
+                  }
+                            </div>);
+
+            })}
                             </div>
                             </NeumorphicCard>
-                            )}
+        }
 
         {/* Tabella dati confronto */}
-        {activeTab === 'confronto' && (
-          <NeumorphicCard className="p-6">
+        {activeTab === 'confronto' &&
+        <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-slate-700 mb-4">
             Dettaglio {viewMode === 'daily' ? 'Giornaliero' : viewMode === 'weekly' ? 'Settimanale' : 'Mensile'} per Prodotto
           </h2>
@@ -1329,10 +1329,10 @@ export default function ControlloConsumi() {
                 </tr>
               </thead>
               <tbody>
-                {dateConfrontoSorted.map(date => {
+                {dateConfrontoSorted.map((date) => {
                   const prodotti = datiConfrontoView[date] || {};
-                  
-                  return Object.keys(prodotti).map(prodId => {
+
+                  return Object.keys(prodotti).map((prodId) => {
                     const prod = prodotti[prodId];
                     const isDeltaPositive = prod.delta > 0;
                     const isDeltaNegative = prod.delta < 0;
@@ -1340,11 +1340,11 @@ export default function ControlloConsumi() {
                     return (
                       <tr key={`${date}-${prodId}`} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="py-3 px-4 text-sm text-slate-600">
-                          {viewMode === 'daily' 
-                            ? format(parseISO(date), 'dd/MM/yyyy')
-                            : viewMode === 'weekly'
-                            ? `${format(parseISO(date), 'dd/MM/yyyy')}`
-                            : format(parseISO(date + '-01'), 'MMMM yyyy', { locale: it })
+                          {viewMode === 'daily' ?
+                          format(parseISO(date), 'dd/MM/yyyy') :
+                          viewMode === 'weekly' ?
+                          `${format(parseISO(date), 'dd/MM/yyyy')}` :
+                          format(parseISO(date + '-01'), 'MMMM yyyy', { locale: it })
                           }
                         </td>
                         <td className="py-3 px-4 text-sm text-slate-700 font-medium">{prod.nome}</td>
@@ -1353,33 +1353,33 @@ export default function ControlloConsumi() {
                         <td className="py-3 px-4 text-sm text-blue-600 text-right font-medium">+{prod.qtyArrivata.toFixed(2)}</td>
                         <td className="py-3 px-4 text-sm text-slate-700 text-right font-bold">{prod.qtyFinale.toFixed(2)}</td>
                         <td className={`py-3 px-4 text-sm text-right font-bold ${
-                          isDeltaPositive ? 'text-green-600' : isDeltaNegative ? 'text-red-600' : 'text-slate-600'
-                        }`}>
+                        isDeltaPositive ? 'text-green-600' : isDeltaNegative ? 'text-red-600' : 'text-slate-600'}`
+                        }>
                           {prod.delta > 0 ? '+' : ''}{prod.delta.toFixed(2)}
                         </td>
                         <td className="py-3 px-4 text-sm text-slate-500">{prod.unita_misura}</td>
-                      </tr>
-                    );
+                      </tr>);
+
                   });
                 })}
               </tbody>
             </table>
           </div>
 
-          {dateConfrontoSorted.length === 0 && (
-            <div className="text-center py-8 text-slate-500">
+          {dateConfrontoSorted.length === 0 &&
+          <div className="text-center py-8 text-slate-500">
               Nessun dato disponibile per il periodo selezionato
             </div>
-          )}
+          }
         </NeumorphicCard>
-        )}
+        }
 
         {/* Tabella Consumi Teorici */}
-        {activeTab === 'consumi_teorici' && (
-          <>
+        {activeTab === 'consumi_teorici' &&
+        <>
             {/* Statistiche Debug */}
-            {debugStats.pizzeSenzaRicetta > 0 && (
-              <NeumorphicCard className="p-4 mb-4 bg-orange-50 border-l-4 border-orange-500">
+            {debugStats.pizzeSenzaRicetta > 0 &&
+          <NeumorphicCard className="p-4 mb-4 bg-orange-50 border-l-4 border-orange-500">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
                   <div className="flex-1">
@@ -1396,7 +1396,7 @@ export default function ControlloConsumi() {
                   </div>
                 </div>
               </NeumorphicCard>
-            )}
+          }
 
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -1421,20 +1421,20 @@ export default function ControlloConsumi() {
                   </tr>
                 </thead>
                 <tbody>
-                  {datesConsumiSorted.map(date => {
+                  {datesConsumiSorted.map((date) => {
                     const prodotti = consumiAggregati[date] || {};
 
-                    return Object.keys(prodotti).map(prodId => {
+                    return Object.keys(prodotti).map((prodId) => {
                       const prod = prodotti[prodId];
 
                       return (
                         <tr key={`${date}-${prodId}`} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 px-4 text-sm text-slate-600">
-                            {viewMode === 'daily' 
-                              ? format(parseISO(date), 'dd/MM/yyyy')
-                              : viewMode === 'weekly'
-                              ? `${format(parseISO(date), 'dd/MM/yyyy')}`
-                              : format(parseISO(date + '-01'), 'MMMM yyyy', { locale: it })
+                            {viewMode === 'daily' ?
+                            format(parseISO(date), 'dd/MM/yyyy') :
+                            viewMode === 'weekly' ?
+                            `${format(parseISO(date), 'dd/MM/yyyy')}` :
+                            format(parseISO(date + '-01'), 'MMMM yyyy', { locale: it })
                             }
                           </td>
                           <td className="py-3 px-4 text-sm text-slate-700 font-medium">{prod.nome}</td>
@@ -1443,31 +1443,31 @@ export default function ControlloConsumi() {
                           </td>
                           <td className="py-3 px-4 text-sm text-slate-500">{prod.unita_misura}</td>
                           <td className="py-3 px-4 text-sm text-slate-500">
-                            {prod.peso_dimensione_unita && prod.unita_misura_peso 
-                              ? `${prod.peso_dimensione_unita} ${prod.unita_misura_peso}`
-                              : '-'
+                            {prod.peso_dimensione_unita && prod.unita_misura_peso ?
+                            `${prod.peso_dimensione_unita} ${prod.unita_misura_peso}` :
+                            '-'
                             }
                           </td>
-                        </tr>
-                      );
+                        </tr>);
+
                     });
                   })}
                 </tbody>
               </table>
             </div>
 
-            {datesConsumiSorted.length === 0 && (
-              <div className="text-center py-8 text-slate-500">
+            {datesConsumiSorted.length === 0 &&
+            <div className="text-center py-8 text-slate-500">
                 Nessun dato disponibile per il periodo selezionato
               </div>
-            )}
+            }
             </NeumorphicCard>
           </>
-        )}
+        }
 
         {/* Modal Impostazioni */}
-        {showSettings && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        {showSettings &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
             <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-slate-700">Impostazioni Controllo Consumi</h3>
@@ -1484,39 +1484,39 @@ export default function ControlloConsumi() {
                   <div className="flex items-center justify-between mb-3">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
-                        type="checkbox"
-                        checked={productsByCategory.materie_prime.every(p => selectedProducts.includes(p.id))}
-                        onChange={() => toggleCategory('materie_prime')}
-                        className="w-5 h-5 rounded"
-                      />
+                      type="checkbox"
+                      checked={productsByCategory.materie_prime.every((p) => selectedProducts.includes(p.id))}
+                      onChange={() => toggleCategory('materie_prime')}
+                      className="w-5 h-5 rounded" />
+
                       <div>
                         <p className="font-bold text-slate-700">Materie Prime</p>
                         <p className="text-xs text-slate-500">{productsByCategory.materie_prime.length} prodotti</p>
                       </div>
                     </label>
                     <button
-                      onClick={() => setExpandedCategories(prev => ({ ...prev, materie_prime: !prev.materie_prime }))}
-                      className="text-slate-500 hover:text-slate-700"
-                    >
+                    onClick={() => setExpandedCategories((prev) => ({ ...prev, materie_prime: !prev.materie_prime }))}
+                    className="text-slate-500 hover:text-slate-700">
+
                       {expandedCategories.materie_prime ? '▼' : '▶'}
                     </button>
                   </div>
 
-                  {expandedCategories.materie_prime && (
-                    <div className="ml-8 space-y-2 max-h-48 overflow-y-auto">
-                      {productsByCategory.materie_prime.map(product => (
-                        <label key={product.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                  {expandedCategories.materie_prime &&
+                <div className="ml-8 space-y-2 max-h-48 overflow-y-auto">
+                      {productsByCategory.materie_prime.map((product) =>
+                  <label key={product.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
                           <input
-                            type="checkbox"
-                            checked={selectedProducts.includes(product.id)}
-                            onChange={() => toggleProduct(product.id)}
-                            className="w-4 h-4 rounded"
-                          />
+                      type="checkbox"
+                      checked={selectedProducts.includes(product.id)}
+                      onChange={() => toggleProduct(product.id)}
+                      className="w-4 h-4 rounded" />
+
                           <span className="text-sm text-slate-700">{product.nome}</span>
                         </label>
-                      ))}
-                    </div>
                   )}
+                    </div>
+                }
                 </div>
 
                 {/* Semilavorati */}
@@ -1524,39 +1524,39 @@ export default function ControlloConsumi() {
                   <div className="flex items-center justify-between mb-3">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
-                        type="checkbox"
-                        checked={productsByCategory.semilavorati.every(p => selectedProducts.includes(p.id))}
-                        onChange={() => toggleCategory('semilavorati')}
-                        className="w-5 h-5 rounded"
-                      />
+                      type="checkbox"
+                      checked={productsByCategory.semilavorati.every((p) => selectedProducts.includes(p.id))}
+                      onChange={() => toggleCategory('semilavorati')}
+                      className="w-5 h-5 rounded" />
+
                       <div>
                         <p className="font-bold text-slate-700">Semilavorati</p>
                         <p className="text-xs text-slate-500">{productsByCategory.semilavorati.length} prodotti</p>
                       </div>
                     </label>
                     <button
-                      onClick={() => setExpandedCategories(prev => ({ ...prev, semilavorati: !prev.semilavorati }))}
-                      className="text-slate-500 hover:text-slate-700"
-                    >
+                    onClick={() => setExpandedCategories((prev) => ({ ...prev, semilavorati: !prev.semilavorati }))}
+                    className="text-slate-500 hover:text-slate-700">
+
                       {expandedCategories.semilavorati ? '▼' : '▶'}
                     </button>
                   </div>
 
-                  {expandedCategories.semilavorati && (
-                    <div className="ml-8 space-y-2 max-h-48 overflow-y-auto">
-                      {productsByCategory.semilavorati.map(product => (
-                        <label key={product.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                  {expandedCategories.semilavorati &&
+                <div className="ml-8 space-y-2 max-h-48 overflow-y-auto">
+                      {productsByCategory.semilavorati.map((product) =>
+                  <label key={product.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
                           <input
-                            type="checkbox"
-                            checked={selectedProducts.includes(product.id)}
-                            onChange={() => toggleProduct(product.id)}
-                            className="w-4 h-4 rounded"
-                          />
+                      type="checkbox"
+                      checked={selectedProducts.includes(product.id)}
+                      onChange={() => toggleProduct(product.id)}
+                      className="w-4 h-4 rounded" />
+
                           <span className="text-sm text-slate-700">{product.nome}</span>
                         </label>
-                      ))}
-                    </div>
                   )}
+                    </div>
+                }
                 </div>
 
                 {/* Prodotti Finiti */}
@@ -1564,39 +1564,39 @@ export default function ControlloConsumi() {
                   <div className="flex items-center justify-between mb-3">
                     <label className="flex items-center gap-3 cursor-pointer">
                       <input
-                        type="checkbox"
-                        checked={productsByCategory.prodotti_finiti.every(p => selectedProducts.includes(p.id))}
-                        onChange={() => toggleCategory('prodotti_finiti')}
-                        className="w-5 h-5 rounded"
-                      />
+                      type="checkbox"
+                      checked={productsByCategory.prodotti_finiti.every((p) => selectedProducts.includes(p.id))}
+                      onChange={() => toggleCategory('prodotti_finiti')}
+                      className="w-5 h-5 rounded" />
+
                       <div>
                         <p className="font-bold text-slate-700">Prodotti Finiti</p>
                         <p className="text-xs text-slate-500">{productsByCategory.prodotti_finiti.length} prodotti</p>
                       </div>
                     </label>
                     <button
-                      onClick={() => setExpandedCategories(prev => ({ ...prev, prodotti_finiti: !prev.prodotti_finiti }))}
-                      className="text-slate-500 hover:text-slate-700"
-                    >
+                    onClick={() => setExpandedCategories((prev) => ({ ...prev, prodotti_finiti: !prev.prodotti_finiti }))}
+                    className="text-slate-500 hover:text-slate-700">
+
                       {expandedCategories.prodotti_finiti ? '▼' : '▶'}
                     </button>
                   </div>
 
-                  {expandedCategories.prodotti_finiti && (
-                    <div className="ml-8 space-y-2 max-h-48 overflow-y-auto">
-                      {productsByCategory.prodotti_finiti.map(product => (
-                        <label key={product.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                  {expandedCategories.prodotti_finiti &&
+                <div className="ml-8 space-y-2 max-h-48 overflow-y-auto">
+                      {productsByCategory.prodotti_finiti.map((product) =>
+                  <label key={product.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
                           <input
-                            type="checkbox"
-                            checked={selectedProducts.includes(product.id)}
-                            onChange={() => toggleProduct(product.id)}
-                            className="w-4 h-4 rounded"
-                          />
+                      type="checkbox"
+                      checked={selectedProducts.includes(product.id)}
+                      onChange={() => toggleProduct(product.id)}
+                      className="w-4 h-4 rounded" />
+
                           <span className="text-sm text-slate-700">{product.nome}</span>
                         </label>
-                      ))}
-                    </div>
                   )}
+                    </div>
+                }
                 </div>
               </div>
 
@@ -1610,8 +1610,8 @@ export default function ControlloConsumi() {
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
