@@ -11,8 +11,8 @@ import {
   DollarSign,
   User,
   Calendar,
-  Euro
-} from 'lucide-react';
+  Euro } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, parseISO } from 'date-fns';
 
@@ -31,22 +31,22 @@ export default function Straordinari() {
 
   const { data: straordinariList = [] } = useQuery({
     queryKey: ['straordinari'],
-    queryFn: () => base44.entities.StraordinarioDipendente.list('-updated_date', 100),
+    queryFn: () => base44.entities.StraordinarioDipendente.list('-updated_date', 100)
   });
 
   const { data: employees = [] } = useQuery({
     queryKey: ['employees'],
-    queryFn: () => base44.entities.Employee.list(),
+    queryFn: () => base44.entities.Employee.list()
   });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: disponibilitaConfigs = [] } = useQuery({
     queryKey: ['disponibilita-config'],
-    queryFn: () => base44.entities.DisponibilitaConfig.filter({ is_active: true }),
+    queryFn: () => base44.entities.DisponibilitaConfig.filter({ is_active: true })
   });
 
   const { data: attivitaPagamenti = [] } = useQuery({
@@ -56,7 +56,7 @@ export default function Straordinari() {
         attivita_nome: { $regex: 'Pagamento straordinari' }
       });
       return attivita.sort((a, b) => new Date(b.completato_at) - new Date(a.completato_at));
-    },
+    }
   });
 
   const activeConfig = disponibilitaConfigs[0] || null;
@@ -71,14 +71,14 @@ export default function Straordinari() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['straordinari'] });
       resetForm();
-    },
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.StraordinarioDipendente.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['straordinari'] });
-    },
+    }
   });
 
   const updateDefaultRateMutation = useMutation({
@@ -96,7 +96,7 @@ export default function Straordinari() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disponibilita-config'] });
       setEditingDefaultRate(false);
-    },
+    }
   });
 
   const resetForm = () => {
@@ -135,7 +135,7 @@ export default function Straordinari() {
 
   const handleSelectEmployee = (e) => {
     const employeeId = e.target.value;
-    const employee = employees.find(emp => emp.id === employeeId);
+    const employee = employees.find((emp) => emp.id === employeeId);
     setFormData({
       ...formData,
       dipendente_id: employeeId,
@@ -143,15 +143,15 @@ export default function Straordinari() {
     });
   };
 
-  const getStoreName = (storeId) => stores.find(s => s.id === storeId)?.name || '-';
+  const getStoreName = (storeId) => stores.find((s) => s.id === storeId)?.name || '-';
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-            Costi Straordinari Dipendenti
-          </h1>
-          <p className="text-sm text-slate-500">Gestisci il costo orario dello straordinario per ogni dipendente</p>
+          <h1 className="bg-clip-text text-slate-50 mb-1 text-3xl font-bold from-slate-700 to-slate-900">Costi Straordinari Dipendenti
+
+        </h1>
+          <p className="text-slate-50 text-sm">Gestisci il costo orario dello straordinario per ogni dipendente</p>
         </div>
 
         <NeumorphicCard className="p-6 bg-blue-50 border border-blue-200">
@@ -165,45 +165,45 @@ export default function Straordinari() {
                 Applicata ai dipendenti senza tariffa personalizzata
               </p>
             </div>
-            {!editingDefaultRate ? (
-              <div className="flex items-center gap-3">
+            {!editingDefaultRate ?
+          <div className="flex items-center gap-3">
                 <span className="text-3xl font-bold text-blue-600">
                   €{(activeConfig?.retribuzione_oraria_straordinari || 10).toFixed(2)}/h
                 </span>
                 <button
-                  onClick={() => setEditingDefaultRate(true)}
-                  className="p-2 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
-                >
+              onClick={() => setEditingDefaultRate(true)}
+              className="p-2 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors">
+
                   <Edit className="w-5 h-5" />
                 </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
+              </div> :
+
+          <div className="flex items-center gap-2">
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  defaultValue={activeConfig?.retribuzione_oraria_straordinari || 10}
-                  className="w-32 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-                  id="defaultRate"
-                />
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={activeConfig?.retribuzione_oraria_straordinari || 10}
+              className="w-32 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+              id="defaultRate" />
+
                 <button
-                  onClick={() => {
-                    const input = document.getElementById('defaultRate');
-                    updateDefaultRateMutation.mutate(parseFloat(input.value));
-                  }}
-                  className="p-2 rounded-lg bg-green-500 text-white hover:bg-green-600"
-                >
+              onClick={() => {
+                const input = document.getElementById('defaultRate');
+                updateDefaultRateMutation.mutate(parseFloat(input.value));
+              }}
+              className="p-2 rounded-lg bg-green-500 text-white hover:bg-green-600">
+
                   <Save className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => setEditingDefaultRate(false)}
-                  className="p-2 rounded-lg hover:bg-slate-100"
-                >
+              onClick={() => setEditingDefaultRate(false)}
+              className="p-2 rounded-lg hover:bg-slate-100">
+
                   <X className="w-5 h-5" />
                 </button>
               </div>
-            )}
+          }
           </div>
         </NeumorphicCard>
 
@@ -211,21 +211,21 @@ export default function Straordinari() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-slate-800">Elenco Dipendenti</h2>
             <button
-              onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 font-medium"
-            >
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 font-medium">
+
               <Plus className="w-5 h-5" />
               Aggiungi Costo
             </button>
           </div>
 
-          {straordinariList.length === 0 ? (
-            <div className="text-center py-12">
+          {straordinariList.length === 0 ?
+        <div className="text-center py-12">
               <Clock className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
               <p className="text-slate-500">Nessun costo straordinario configurato</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+            </div> :
+
+        <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-blue-600">
@@ -236,8 +236,8 @@ export default function Straordinari() {
                   </tr>
                 </thead>
                 <tbody>
-                  {straordinariList.map((item) => (
-                    <tr key={item.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                  {straordinariList.map((item) =>
+              <tr key={item.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-slate-400" />
@@ -255,25 +255,25 @@ export default function Straordinari() {
                       <td className="p-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => handleEdit(item)}
-                            className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
-                          >
+                      onClick={() => handleEdit(item)}
+                      className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors">
+
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => deleteMutation.mutate(item.id)}
-                            className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
-                          >
+                      onClick={() => deleteMutation.mutate(item.id)}
+                      className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors">
+
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
                     </tr>
-                  ))}
+              )}
                 </tbody>
               </table>
             </div>
-          )}
+        }
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6">
@@ -284,13 +284,13 @@ export default function Straordinari() {
             </h2>
           </div>
 
-          {attivitaPagamenti.length === 0 ? (
-            <div className="text-center py-12">
+          {attivitaPagamenti.length === 0 ?
+        <div className="text-center py-12">
               <Calendar className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
               <p className="text-slate-500">Nessun pagamento straordinario registrato</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+            </div> :
+
+        <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-green-600">
@@ -302,8 +302,8 @@ export default function Straordinari() {
                   </tr>
                 </thead>
                 <tbody>
-                  {attivitaPagamenti.map((attivita) => (
-                    <tr key={attivita.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                  {attivitaPagamenti.map((attivita) =>
+              <tr key={attivita.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-slate-400" />
@@ -316,8 +316,8 @@ export default function Straordinari() {
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-green-600" />
                           <span className="text-slate-700 font-medium">
-                            {attivita.dipendente_pagato_nome || 
-                             (attivita.attivita_nome ? attivita.attivita_nome.replace('Pagamento straordinari - ', '') : '-')}
+                            {attivita.dipendente_pagato_nome || (
+                      attivita.attivita_nome ? attivita.attivita_nome.replace('Pagamento straordinari - ', '') : '-')}
                           </span>
                         </div>
                       </td>
@@ -333,15 +333,15 @@ export default function Straordinari() {
                         </span>
                       </td>
                     </tr>
-                  ))}
+              )}
                 </tbody>
               </table>
             </div>
-          )}
+        }
         </NeumorphicCard>
 
-        {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showForm &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-slate-800">
@@ -356,17 +356,17 @@ export default function Straordinari() {
                 <div>
                   <label className="text-sm text-slate-600 mb-2 block">Dipendente</label>
                   <select
-                    value={formData.dipendente_id}
-                    onChange={handleSelectEmployee}
-                    required
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                  >
+                value={formData.dipendente_id}
+                onChange={handleSelectEmployee}
+                required
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
                     <option value="">Seleziona dipendente...</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>
+                    {employees.map((emp) =>
+                <option key={emp.id} value={emp.id}>
                         {emp.full_name}
                       </option>
-                    ))}
+                )}
                   </select>
                 </div>
 
@@ -375,47 +375,47 @@ export default function Straordinari() {
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={formData.costo_orario_straordinario}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        costo_orario_straordinario: e.target.value
-                      })}
-                      required
-                      placeholder="Es. 15.50"
-                      className="w-full neumorphic-pressed px-4 py-3 pl-10 rounded-xl text-slate-700 outline-none text-sm"
-                    />
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.costo_orario_straordinario}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    costo_orario_straordinario: e.target.value
+                  })}
+                  required
+                  placeholder="Es. 15.50"
+                  className="w-full neumorphic-pressed px-4 py-3 pl-10 rounded-xl text-slate-700 outline-none text-sm" />
+
                   </div>
                 </div>
 
                 <div>
                   <label className="text-sm text-slate-600 mb-2 block">Note (opzionale)</label>
                   <input
-                    type="text"
-                    value={formData.note}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      note: e.target.value
-                    })}
-                    placeholder="Es. Aumentato da gennaio 2026"
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
-                  />
+                type="text"
+                value={formData.note}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  note: e.target.value
+                })}
+                placeholder="Es. Aumentato da gennaio 2026"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
                 </div>
 
                 <div className="flex gap-3 pt-4">
                   <button
-                    type="button"
-                    onClick={resetForm}
-                    className="flex-1 px-4 py-3 rounded-xl neumorphic-flat text-slate-700 font-medium"
-                  >
+                type="button"
+                onClick={resetForm}
+                className="flex-1 px-4 py-3 rounded-xl neumorphic-flat text-slate-700 font-medium">
+
                     Annulla
                   </button>
                   <button
-                    type="submit"
-                    className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium flex items-center justify-center gap-2"
-                  >
+                type="submit"
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium flex items-center justify-center gap-2">
+
                     <Save className="w-4 h-4" />
                     Salva
                   </button>
@@ -423,7 +423,7 @@ export default function Straordinari() {
               </form>
             </NeumorphicCard>
           </div>
-        )}
-    </div>
-  );
+      }
+    </div>);
+
 }
