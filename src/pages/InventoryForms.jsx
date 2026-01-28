@@ -9,65 +9,65 @@ import {
   ClipboardCheck,
   ArrowRight,
   Truck,
-  Settings
-} from 'lucide-react';
+  Settings } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 
 export default function InventoryForms() {
   const forms = [
-    {
-      title: "Form Inventario",
-      description: "Registra le quantità dell'inventario negozio",
-      icon: ClipboardList,
-      url: createPageUrl("FormInventario"),
-      color: "from-blue-500 to-blue-600"
-    },
-    {
-      title: "Form Cantina",
-      description: "Registra le quantità dell'inventario cantina",
-      icon: ClipboardList,
-      url: createPageUrl("FormCantina"),
-      color: "from-purple-500 to-purple-600"
-    },
-    {
-      title: "Form Teglie Buttate",
-      description: "Registra le teglie rosse e bianche buttate",
-      icon: AlertTriangle,
-      url: createPageUrl("FormTeglieButtate"),
-      color: "from-orange-500 to-red-600"
-    },
-    {
-      title: "Form Preparazioni",
-      description: "Registra i pesi delle preparazioni",
-      icon: ChefHat,
-      url: createPageUrl("FormPreparazioni"),
-      color: "from-green-500 to-emerald-600"
-    },
-    {
-      title: "Spostamenti",
-      description: "Registra trasferimenti prodotti tra negozi",
-      icon: Package,
-      url: createPageUrl("FormSpostamenti"),
-      color: "from-indigo-500 to-purple-600"
-    },
-    {
-      title: "Inventario Store Manager",
-      description: "Gestione inventario Store Manager",
-      icon: Settings,
-      url: createPageUrl("InventarioStoreManager"),
-      color: "from-slate-500 to-slate-700"
-    }
-  ];
+  {
+    title: "Form Inventario",
+    description: "Registra le quantità dell'inventario negozio",
+    icon: ClipboardList,
+    url: createPageUrl("FormInventario"),
+    color: "from-blue-500 to-blue-600"
+  },
+  {
+    title: "Form Cantina",
+    description: "Registra le quantità dell'inventario cantina",
+    icon: ClipboardList,
+    url: createPageUrl("FormCantina"),
+    color: "from-purple-500 to-purple-600"
+  },
+  {
+    title: "Form Teglie Buttate",
+    description: "Registra le teglie rosse e bianche buttate",
+    icon: AlertTriangle,
+    url: createPageUrl("FormTeglieButtate"),
+    color: "from-orange-500 to-red-600"
+  },
+  {
+    title: "Form Preparazioni",
+    description: "Registra i pesi delle preparazioni",
+    icon: ChefHat,
+    url: createPageUrl("FormPreparazioni"),
+    color: "from-green-500 to-emerald-600"
+  },
+  {
+    title: "Spostamenti",
+    description: "Registra trasferimenti prodotti tra negozi",
+    icon: Package,
+    url: createPageUrl("FormSpostamenti"),
+    color: "from-indigo-500 to-purple-600"
+  },
+  {
+    title: "Inventario Store Manager",
+    description: "Gestione inventario Store Manager",
+    icon: Settings,
+    url: createPageUrl("InventarioStoreManager"),
+    color: "from-slate-500 to-slate-700"
+  }];
+
 
   return (
     <ProtectedPage pageName="InventoryForms">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-            Forms Inventario
+          <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Forms Inventario
+
           </h1>
-          <p className="text-sm text-slate-500">Seleziona il form da compilare</p>
+          <p className="text-slate-50 text-sm">Seleziona il form da compilare</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -89,8 +89,8 @@ export default function InventoryForms() {
                     {form.description}
                   </p>
                 </NeumorphicCard>
-              </Link>
-            );
+              </Link>);
+
           })}
         </div>
 
@@ -111,6 +111,6 @@ export default function InventoryForms() {
           </div>
         </NeumorphicCard>
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
