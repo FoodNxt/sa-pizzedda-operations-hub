@@ -884,9 +884,8 @@ export default function Dashboard() {
 
     // Calcola periodo precedente (stessa lunghezza del periodo corrente)
     const daysDiff = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
-    const comparisonDays = comparisonMode === 'weekly' ? 7 : 30;
     const previousEnd = new Date(currentStart.getTime() - 24 * 60 * 60 * 1000);
-    const previousStart = new Date(previousEnd.getTime() - comparisonDays * 24 * 60 * 60 * 1000);
+    const previousStart = new Date(previousEnd.getTime() - daysDiff * 24 * 60 * 60 * 1000);
     const previousStartStr = previousStart.toISOString().split('T')[0];
     const previousEndStr = previousEnd.toISOString().split('T')[0];
 
