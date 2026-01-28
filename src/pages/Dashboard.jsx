@@ -888,15 +888,15 @@ export default function Dashboard() {
     previousCutoffDate.setHours(0, 0, 0, 0);
 
     const filteredCurrent = prodottiVenduti.filter((p) => {
-      if (!p.data_vendita) return false;
-      const itemDate = new Date(p.data_vendita);
+      if (!p.order_date) return false;
+      const itemDate = new Date(p.order_date);
       if (isNaN(itemDate.getTime())) return false;
       return itemDate >= cutoffDate && itemDate <= endFilterDate;
     });
 
     const filteredPrevious = prodottiVenduti.filter((p) => {
-      if (!p.data_vendita) return false;
-      const itemDate = new Date(p.data_vendita);
+      if (!p.order_date) return false;
+      const itemDate = new Date(p.order_date);
       if (isNaN(itemDate.getTime())) return false;
       return itemDate >= previousCutoffDate && itemDate <= previousEndDate;
     });
