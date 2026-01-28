@@ -9,8 +9,8 @@ import {
   Store,
   BarChart3,
   Package,
-  Search
-} from 'lucide-react';
+  Search } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
@@ -31,12 +31,12 @@ export default function ProdottiVenduti() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: prodottiVenduti = [], isLoading } = useQuery({
     queryKey: ['prodotti-venduti'],
-    queryFn: () => base44.entities.ProdottiVenduti.list('-data_vendita', 10000),
+    queryFn: () => base44.entities.ProdottiVenduti.list('-data_vendita', 10000)
   });
 
   // Filter data
@@ -45,7 +45,7 @@ export default function ProdottiVenduti() {
 
     // Store filter
     if (selectedStore !== 'all') {
-      filtered = filtered.filter(p => p.store_id === selectedStore);
+      filtered = filtered.filter((p) => p.store_id === selectedStore);
     }
 
     // Date filter
@@ -58,26 +58,26 @@ export default function ProdottiVenduti() {
 
     if (dateRange === 'today') {
       const todayStr = today.toISOString().split('T')[0];
-      filtered = filtered.filter(p => {
+      filtered = filtered.filter((p) => {
         const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
         return dataStr === todayStr;
       });
     } else if (dateRange === 'week') {
       const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
       const weekAgoStr = weekAgo.toISOString().split('T')[0];
-      filtered = filtered.filter(p => {
+      filtered = filtered.filter((p) => {
         const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
         return dataStr >= weekAgoStr;
       });
     } else if (dateRange === 'month') {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const monthStartStr = monthStart.toISOString().split('T')[0];
-      filtered = filtered.filter(p => {
+      filtered = filtered.filter((p) => {
         const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
         return dataStr >= monthStartStr;
       });
     } else if (dateRange === 'custom' && startDate && endDate) {
-      filtered = filtered.filter(p => {
+      filtered = filtered.filter((p) => {
         const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
         return dataStr >= startDate && dataStr <= endDate;
       });
@@ -156,10 +156,10 @@ export default function ProdottiVenduti() {
     let filtered = prodottiVenduti;
 
     if (selectedStore !== 'all') {
-      filtered = filtered.filter(p => p.store_id === selectedStore);
+      filtered = filtered.filter((p) => p.store_id === selectedStore);
     }
 
-    filtered = filtered.filter(p => {
+    filtered = filtered.filter((p) => {
       const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
       return dataStr >= compareStart && dataStr <= compareEnd;
     });
@@ -170,11 +170,11 @@ export default function ProdottiVenduti() {
   // Calculate totals by product (aggregate by flavor)
   const productTotals = useMemo(() => {
     const totals = {};
-    
-    filteredData.forEach(record => {
+
+    filteredData.forEach((record) => {
       const flavor = record.flavor;
       if (!flavor) return;
-      
+
       if (!totals[flavor]) {
         totals[flavor] = {
           name: flavor,
@@ -185,20 +185,20 @@ export default function ProdottiVenduti() {
       totals[flavor].total += record.total_pizzas_sold || 0;
     });
 
-    return Object.values(totals)
-      .sort((a, b) => b.total - a.total);
+    return Object.values(totals).
+    sort((a, b) => b.total - a.total);
   }, [filteredData]);
 
   // Comparison period totals
   const comparisonTotals = useMemo(() => {
     if (!compareEnabled || comparisonData.length === 0) return {};
-    
+
     const totals = {};
-    
-    comparisonData.forEach(record => {
+
+    comparisonData.forEach((record) => {
       const flavor = record.flavor;
       if (!flavor) return;
-      
+
       if (!totals[flavor]) {
         totals[flavor] = {
           name: flavor,
@@ -215,8 +215,8 @@ export default function ProdottiVenduti() {
   // Category aggregations
   const categoryTotals = useMemo(() => {
     const totals = {};
-    
-    productTotals.forEach(product => {
+
+    productTotals.forEach((product) => {
       const cat = product.category || 'altro';
       if (!totals[cat]) {
         totals[cat] = { category: cat, total: 0, products: [] };
@@ -231,10 +231,10 @@ export default function ProdottiVenduti() {
   // Comparison category totals
   const comparisonCategoryTotals = useMemo(() => {
     if (!compareEnabled) return {};
-    
+
     const totals = {};
-    
-    Object.values(comparisonTotals).forEach(product => {
+
+    Object.values(comparisonTotals).forEach((product) => {
       const cat = product.category || 'altro';
       if (!totals[cat]) {
         totals[cat] = 0;
@@ -257,9 +257,9 @@ export default function ProdottiVenduti() {
 
     const dailyData = {};
 
-    filteredData.forEach(record => {
+    filteredData.forEach((record) => {
       if (record.flavor !== productName) return;
-      
+
       const date = record.data_vendita;
       if (!dailyData[date]) {
         dailyData[date] = 0;
@@ -267,30 +267,30 @@ export default function ProdottiVenduti() {
       dailyData[date] += record.total_pizzas_sold || 0;
     });
 
-    return Object.entries(dailyData)
-      .map(([date, quantity]) => ({ date, quantity }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+    return Object.entries(dailyData).
+    map(([date, quantity]) => ({ date, quantity })).
+    sort((a, b) => a.date.localeCompare(b.date));
   }, [filteredData, productTotals, selectedTrendProduct, top10Products]);
 
   // Search filtered products
   const searchFilteredProducts = useMemo(() => {
     if (!searchTerm) return productTotals;
-    
-    return productTotals.filter(p => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase())
+
+    return productTotals.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [productTotals, searchTerm]);
 
   // Get unique categories
   const availableCategories = useMemo(() => {
-    const cats = new Set(productTotals.map(p => p.category).filter(Boolean));
+    const cats = new Set(productTotals.map((p) => p.category).filter(Boolean));
     return Array.from(cats).sort();
   }, [productTotals]);
 
   // Filter by selected categories
   const categoryFilteredProducts = useMemo(() => {
     if (selectedCategories.length === 0) return searchFilteredProducts;
-    return searchFilteredProducts.filter(p => selectedCategories.includes(p.category));
+    return searchFilteredProducts.filter((p) => selectedCategories.includes(p.category));
   }, [searchFilteredProducts, selectedCategories]);
 
   // Recalculate total for category-filtered products
@@ -300,64 +300,64 @@ export default function ProdottiVenduti() {
   const performers = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+
     // Current period
     const currentStart = new Date(today.getTime() - performersPeriod * 24 * 60 * 60 * 1000);
     const currentStartStr = currentStart.toISOString().split('T')[0];
     const todayStr = today.toISOString().split('T')[0];
-    
+
     // Previous period (same length)
     const previousEnd = new Date(currentStart.getTime() - 24 * 60 * 60 * 1000);
     const previousStart = new Date(previousEnd.getTime() - performersPeriod * 24 * 60 * 60 * 1000);
     const previousStartStr = previousStart.toISOString().split('T')[0];
     const previousEndStr = previousEnd.toISOString().split('T')[0];
-    
+
     // Filter for store
     let dataForStore = prodottiVenduti;
     if (selectedStore !== 'all') {
-      dataForStore = dataForStore.filter(p => p.store_id === selectedStore);
+      dataForStore = dataForStore.filter((p) => p.store_id === selectedStore);
     }
-    
+
     // Current period totals
     const currentTotals = {};
-    dataForStore
-      .filter(p => {
-        const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
-        return dataStr >= currentStartStr && dataStr <= todayStr;
-      })
-      .forEach(record => {
-        const flavor = record.flavor;
-        if (!flavor) return;
-        if (!currentTotals[flavor]) {
-          currentTotals[flavor] = { name: flavor, total: 0, category: record.category || 'altro' };
-        }
-        currentTotals[flavor].total += record.total_pizzas_sold || 0;
-      });
-    
+    dataForStore.
+    filter((p) => {
+      const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+      return dataStr >= currentStartStr && dataStr <= todayStr;
+    }).
+    forEach((record) => {
+      const flavor = record.flavor;
+      if (!flavor) return;
+      if (!currentTotals[flavor]) {
+        currentTotals[flavor] = { name: flavor, total: 0, category: record.category || 'altro' };
+      }
+      currentTotals[flavor].total += record.total_pizzas_sold || 0;
+    });
+
     // Previous period totals
     const previousTotals = {};
-    dataForStore
-      .filter(p => {
-        const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
-        return dataStr >= previousStartStr && dataStr <= previousEndStr;
-      })
-      .forEach(record => {
-        const flavor = record.flavor;
-        if (!flavor) return;
-        if (!previousTotals[flavor]) {
-          previousTotals[flavor] = { name: flavor, total: 0 };
-        }
-        previousTotals[flavor].total += record.total_pizzas_sold || 0;
-      });
-    
+    dataForStore.
+    filter((p) => {
+      const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+      return dataStr >= previousStartStr && dataStr <= previousEndStr;
+    }).
+    forEach((record) => {
+      const flavor = record.flavor;
+      if (!flavor) return;
+      if (!previousTotals[flavor]) {
+        previousTotals[flavor] = { name: flavor, total: 0 };
+      }
+      previousTotals[flavor].total += record.total_pizzas_sold || 0;
+    });
+
     // Calculate deltas
     const deltas = [];
-    Object.keys(currentTotals).forEach(flavor => {
+    Object.keys(currentTotals).forEach((flavor) => {
       const current = currentTotals[flavor].total;
       const previous = previousTotals[flavor]?.total || 0;
       const delta = current - previous;
-      const percentChange = previous > 0 ? ((delta / previous) * 100) : (current > 0 ? 100 : 0);
-      
+      const percentChange = previous > 0 ? delta / previous * 100 : current > 0 ? 100 : 0;
+
       deltas.push({
         name: flavor,
         category: currentTotals[flavor].category,
@@ -367,33 +367,33 @@ export default function ProdottiVenduti() {
         percentChange
       });
     });
-    
+
     // Sort by absolute delta (volume change)
     deltas.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
-    
+
     // Top performers (positive growth)
-    const topPerformers = deltas
-      .filter(d => d.delta > 0)
-      .sort((a, b) => b.delta - a.delta)
-      .slice(0, 10);
-    
+    const topPerformers = deltas.
+    filter((d) => d.delta > 0).
+    sort((a, b) => b.delta - a.delta).
+    slice(0, 10);
+
     // Worst performers (negative growth)
-    const worstPerformers = deltas
-      .filter(d => d.delta < 0)
-      .sort((a, b) => a.delta - b.delta)
-      .slice(0, 10);
-    
+    const worstPerformers = deltas.
+    filter((d) => d.delta < 0).
+    sort((a, b) => a.delta - b.delta).
+    slice(0, 10);
+
     return { topPerformers, worstPerformers };
   }, [prodottiVenduti, performersPeriod, selectedStore]);
 
   // Calculate stats
   const totalSales = productTotals.reduce((sum, p) => sum + p.total, 0);
-  const activeProducts = productTotals.filter(p => p.total > 0).length;
+  const activeProducts = productTotals.filter((p) => p.total > 0).length;
   const avgPerProduct = activeProducts > 0 ? (totalSales / activeProducts).toFixed(1) : 0;
 
   // Comparison stats
   const comparisonTotalSales = compareEnabled ? Object.values(comparisonTotals).reduce((sum, p) => sum + p.total, 0) : 0;
-  const comparisonActiveProducts = compareEnabled ? Object.values(comparisonTotals).filter(p => p.total > 0).length : 0;
+  const comparisonActiveProducts = compareEnabled ? Object.values(comparisonTotals).filter((p) => p.total > 0).length : 0;
   const comparisonAvgPerProduct = compareEnabled && comparisonActiveProducts > 0 ? (comparisonTotalSales / comparisonActiveProducts).toFixed(1) : 0;
 
   // Deltas
@@ -407,9 +407,9 @@ export default function ProdottiVenduti() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <ShoppingCart className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-3xl font-bold text-[#6b6b6b]">Prodotti Venduti</h1>
+          <h1 className="text-slate-50 text-3xl font-bold">Prodotti Venduti</h1>
         </div>
-        <p className="text-[#9b9b9b]">Analisi vendite per prodotto</p>
+        <p className="text-slate-50">Analisi vendite per prodotto</p>
       </div>
 
       {/* Filters */}
@@ -420,12 +420,12 @@ export default function ProdottiVenduti() {
             <select
               value={selectedStore}
               onChange={(e) => setSelectedStore(e.target.value)}
-              className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-            >
+              className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none">
+
               <option value="all">Tutti i Negozi</option>
-              {stores.map(store => (
-                <option key={store.id} value={store.id}>{store.name}</option>
-              ))}
+              {stores.map((store) =>
+              <option key={store.id} value={store.id}>{store.name}</option>
+              )}
             </select>
           </div>
 
@@ -434,8 +434,8 @@ export default function ProdottiVenduti() {
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-            >
+              className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none">
+
               <option value="today">Oggi</option>
               <option value="week">Ultima Settimana</option>
               <option value="month">Questo Mese</option>
@@ -444,29 +444,29 @@ export default function ProdottiVenduti() {
             </select>
           </div>
 
-          {dateRange === 'custom' && (
-            <>
+          {dateRange === 'custom' &&
+          <>
               <div>
                 <label className="text-xs text-[#9b9b9b] mb-1 block">Da</label>
                 <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-                />
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none" />
+
               </div>
 
               <div>
                 <label className="text-xs text-[#9b9b9b] mb-1 block">A</label>
                 <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-                />
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none" />
+
               </div>
             </>
-          )}
+          }
         </div>
 
         {/* Comparison Toggle */}
@@ -476,20 +476,20 @@ export default function ProdottiVenduti() {
               type="checkbox"
               checked={compareEnabled}
               onChange={(e) => setCompareEnabled(e.target.checked)}
-              className="w-4 h-4"
-            />
+              className="w-4 h-4" />
+
             <span className="text-sm font-medium text-[#6b6b6b]">Confronta con altro periodo</span>
           </label>
 
-          {compareEnabled && (
-            <div className="space-y-3">
+          {compareEnabled &&
+          <div className="space-y-3">
               <div>
                 <label className="text-xs text-[#9b9b9b] mb-1 block">Tipo Confronto</label>
                 <select
-                  value={compareMode}
-                  onChange={(e) => setCompareMode(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-                >
+                value={compareMode}
+                onChange={(e) => setCompareMode(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none">
+
                   <option value="previous">Periodo Precedente</option>
                   <option value="lastmonth">Mese Precedente</option>
                   <option value="lastyear">Anno Precedente</option>
@@ -497,31 +497,31 @@ export default function ProdottiVenduti() {
                 </select>
               </div>
 
-              {compareMode === 'custom' && (
-                <div className="flex flex-wrap gap-3">
+              {compareMode === 'custom' &&
+            <div className="flex flex-wrap gap-3">
                   <div>
                     <label className="text-xs text-[#9b9b9b] mb-1 block">Periodo confronto - Da</label>
                     <input
-                      type="date"
-                      value={compareStartDate}
-                      onChange={(e) => setCompareStartDate(e.target.value)}
-                      className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-                    />
+                  type="date"
+                  value={compareStartDate}
+                  onChange={(e) => setCompareStartDate(e.target.value)}
+                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none" />
+
                   </div>
 
                   <div>
                     <label className="text-xs text-[#9b9b9b] mb-1 block">Periodo confronto - A</label>
                     <input
-                      type="date"
-                      value={compareEndDate}
-                      onChange={(e) => setCompareEndDate(e.target.value)}
-                      className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-                    />
+                  type="date"
+                  value={compareEndDate}
+                  onChange={(e) => setCompareEndDate(e.target.value)}
+                  className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none" />
+
                   </div>
                 </div>
-              )}
+            }
             </div>
-          )}
+          }
         </div>
       </NeumorphicCard>
 
@@ -533,15 +533,15 @@ export default function ProdottiVenduti() {
           </div>
           <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{totalSales}</h3>
           <p className="text-sm text-[#9b9b9b]">Vendite Totali</p>
-          {compareEnabled && comparisonTotalSales > 0 && (
-            <div className="mt-2">
+          {compareEnabled && comparisonTotalSales > 0 &&
+          <div className="mt-2">
               <div className={`text-sm font-medium ${deltaSales >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {deltaSales >= 0 ? <TrendingUp className="w-4 h-4 inline" /> : <TrendingDown className="w-4 h-4 inline" />}
-                {deltaSales >= 0 ? '+' : ''}{deltaSales} ({((deltaSales / comparisonTotalSales) * 100).toFixed(1)}%)
+                {deltaSales >= 0 ? '+' : ''}{deltaSales} ({(deltaSales / comparisonTotalSales * 100).toFixed(1)}%)
               </div>
               <div className="text-xs text-slate-400">vs {comparisonTotalSales}</div>
             </div>
-          )}
+          }
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
@@ -550,15 +550,15 @@ export default function ProdottiVenduti() {
           </div>
           <h3 className="text-3xl font-bold text-green-600 mb-1">{activeProducts}</h3>
           <p className="text-sm text-[#9b9b9b]">Prodotti Venduti</p>
-          {compareEnabled && comparisonActiveProducts > 0 && (
-            <div className="mt-2">
+          {compareEnabled && comparisonActiveProducts > 0 &&
+          <div className="mt-2">
               <div className={`text-sm font-medium ${deltaActiveProducts >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {deltaActiveProducts >= 0 ? <TrendingUp className="w-4 h-4 inline" /> : <TrendingDown className="w-4 h-4 inline" />}
                 {deltaActiveProducts >= 0 ? '+' : ''}{deltaActiveProducts}
               </div>
               <div className="text-xs text-slate-400">vs {comparisonActiveProducts}</div>
             </div>
-          )}
+          }
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
@@ -567,15 +567,15 @@ export default function ProdottiVenduti() {
           </div>
           <h3 className="text-3xl font-bold text-blue-600 mb-1">{avgPerProduct}</h3>
           <p className="text-sm text-[#9b9b9b]">Media per Prodotto</p>
-          {compareEnabled && comparisonAvgPerProduct > 0 && (
-            <div className="mt-2">
+          {compareEnabled && comparisonAvgPerProduct > 0 &&
+          <div className="mt-2">
               <div className={`text-sm font-medium ${deltaAvg >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {deltaAvg >= 0 ? <TrendingUp className="w-4 h-4 inline" /> : <TrendingDown className="w-4 h-4 inline" />}
                 {deltaAvg >= 0 ? '+' : ''}{deltaAvg}
               </div>
               <div className="text-xs text-slate-400">vs {comparisonAvgPerProduct}</div>
             </div>
-          )}
+          }
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6 text-center">
@@ -585,42 +585,42 @@ export default function ProdottiVenduti() {
           <h3 className="text-3xl font-bold text-purple-600 mb-1">{filteredData.length}</h3>
           <p className="text-sm text-[#9b9b9b]">Record Filtrati</p>
           <p className="text-xs text-slate-400 mt-1">({prodottiVenduti.length} totali caricati)</p>
-          {compareEnabled && (
-            <div className="mt-2">
+          {compareEnabled &&
+          <div className="mt-2">
               <div className="text-xs text-slate-400">vs {comparisonData.length} record</div>
             </div>
-          )}
+          }
         </NeumorphicCard>
       </div>
 
       {/* Top 10 Chart */}
-      {top10Products.length > 0 && (
-        <NeumorphicCard className="p-6">
+      {top10Products.length > 0 &&
+      <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">🏆 Top 10 Prodotti</h2>
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={top10Products}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e0e5ec" />
-              <XAxis 
-                dataKey="name" 
-                angle={-45}
-                textAnchor="end"
-                height={120}
-                tick={{ fill: '#6b6b6b', fontSize: 12 }}
-              />
+              <XAxis
+              dataKey="name"
+              angle={-45}
+              textAnchor="end"
+              height={120}
+              tick={{ fill: '#6b6b6b', fontSize: 12 }} />
+
               <YAxis tick={{ fill: '#6b6b6b' }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#e0e5ec', 
-                  border: 'none',
-                  borderRadius: '12px',
-                  boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                }}
-              />
+              <Tooltip
+              contentStyle={{
+                backgroundColor: '#e0e5ec',
+                border: 'none',
+                borderRadius: '12px',
+                boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
+              }} />
+
               <Bar dataKey="total" fill="#8b7355" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Top & Worst Performers */}
       <NeumorphicCard className="p-6">
@@ -630,31 +630,31 @@ export default function ProdottiVenduti() {
             <button
               onClick={() => setPerformersPeriod(30)}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                performersPeriod === 30 
-                  ? 'bg-[#8b7355] text-white' 
-                  : 'bg-[#e0e5ec] text-[#6b6b6b]'
-              }`}
-            >
+              performersPeriod === 30 ?
+              'bg-[#8b7355] text-white' :
+              'bg-[#e0e5ec] text-[#6b6b6b]'}`
+              }>
+
               30gg
             </button>
             <button
               onClick={() => setPerformersPeriod(60)}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                performersPeriod === 60 
-                  ? 'bg-[#8b7355] text-white' 
-                  : 'bg-[#e0e5ec] text-[#6b6b6b]'
-              }`}
-            >
+              performersPeriod === 60 ?
+              'bg-[#8b7355] text-white' :
+              'bg-[#e0e5ec] text-[#6b6b6b]'}`
+              }>
+
               60gg
             </button>
             <button
               onClick={() => setPerformersPeriod(90)}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                performersPeriod === 90 
-                  ? 'bg-[#8b7355] text-white' 
-                  : 'bg-[#e0e5ec] text-[#6b6b6b]'
-              }`}
-            >
+              performersPeriod === 90 ?
+              'bg-[#8b7355] text-white' :
+              'bg-[#e0e5ec] text-[#6b6b6b]'}`
+              }>
+
               90gg
             </button>
           </div>
@@ -667,12 +667,12 @@ export default function ProdottiVenduti() {
               <TrendingUp className="w-5 h-5" />
               Top Performers (Crescita)
             </h3>
-            {performers.topPerformers.length === 0 ? (
-              <p className="text-sm text-slate-400">Nessun prodotto in crescita</p>
-            ) : (
-              <div className="space-y-2">
-                {performers.topPerformers.map((product, index) => (
-                  <div key={product.name} className="neumorphic-pressed p-3 rounded-lg">
+            {performers.topPerformers.length === 0 ?
+            <p className="text-sm text-slate-400">Nessun prodotto in crescita</p> :
+
+            <div className="space-y-2">
+                {performers.topPerformers.map((product, index) =>
+              <div key={product.name} className="neumorphic-pressed p-3 rounded-lg">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -689,15 +689,15 @@ export default function ProdottiVenduti() {
                       </div>
                       <div className="text-right">
                         <div className="text-green-600 font-bold text-sm">+{product.delta}</div>
-                        {product.previous > 0 && (
-                          <div className="text-xs text-green-500">+{product.percentChange.toFixed(0)}%</div>
-                        )}
+                        {product.previous > 0 &&
+                    <div className="text-xs text-green-500">+{product.percentChange.toFixed(0)}%</div>
+                    }
                       </div>
                     </div>
                   </div>
-                ))}
+              )}
               </div>
-            )}
+            }
           </div>
 
           {/* Worst Performers */}
@@ -706,12 +706,12 @@ export default function ProdottiVenduti() {
               <TrendingDown className="w-5 h-5" />
               Worst Performers (Calo)
             </h3>
-            {performers.worstPerformers.length === 0 ? (
-              <p className="text-sm text-slate-400">Nessun prodotto in calo</p>
-            ) : (
-              <div className="space-y-2">
-                {performers.worstPerformers.map((product, index) => (
-                  <div key={product.name} className="neumorphic-pressed p-3 rounded-lg">
+            {performers.worstPerformers.length === 0 ?
+            <p className="text-sm text-slate-400">Nessun prodotto in calo</p> :
+
+            <div className="space-y-2">
+                {performers.worstPerformers.map((product, index) =>
+              <div key={product.name} className="neumorphic-pressed p-3 rounded-lg">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
@@ -728,89 +728,89 @@ export default function ProdottiVenduti() {
                       </div>
                       <div className="text-right">
                         <div className="text-red-600 font-bold text-sm">{product.delta}</div>
-                        {product.previous > 0 && (
-                          <div className="text-xs text-red-500">{product.percentChange.toFixed(0)}%</div>
-                        )}
+                        {product.previous > 0 &&
+                    <div className="text-xs text-red-500">{product.percentChange.toFixed(0)}%</div>
+                    }
                       </div>
                     </div>
                   </div>
-                ))}
+              )}
               </div>
-            )}
+            }
           </div>
         </div>
       </NeumorphicCard>
 
       {/* Daily Trend */}
-      {productTotals.length > 0 && (
-        <NeumorphicCard className="p-6">
+      {productTotals.length > 0 &&
+      <NeumorphicCard className="p-6">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <h2 className="text-xl font-bold text-[#6b6b6b]">
               📈 Trend Giornaliero
             </h2>
             <div className="flex items-center gap-3">
               <select
-                value={selectedTrendProduct || (top10Products.length > 0 ? top10Products[0].name : '')}
-                onChange={(e) => setSelectedTrendProduct(e.target.value)}
-                className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none text-sm"
-              >
-                {productTotals.slice(0, 20).map(product => (
-                  <option key={product.name} value={product.name}>{product.name}</option>
-                ))}
+              value={selectedTrendProduct || (top10Products.length > 0 ? top10Products[0].name : '')}
+              onChange={(e) => setSelectedTrendProduct(e.target.value)}
+              className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none text-sm">
+
+                {productTotals.slice(0, 20).map((product) =>
+              <option key={product.name} value={product.name}>{product.name}</option>
+              )}
               </select>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setTrendView('chart')}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    trendView === 'chart' 
-                      ? 'bg-[#8b7355] text-white' 
-                      : 'bg-[#e0e5ec] text-[#6b6b6b]'
-                  }`}
-                >
+                onClick={() => setTrendView('chart')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                trendView === 'chart' ?
+                'bg-[#8b7355] text-white' :
+                'bg-[#e0e5ec] text-[#6b6b6b]'}`
+                }>
+
                   📊 Grafico
                 </button>
                 <button
-                  onClick={() => setTrendView('table')}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    trendView === 'table' 
-                      ? 'bg-[#8b7355] text-white' 
-                      : 'bg-[#e0e5ec] text-[#6b6b6b]'
-                  }`}
-                >
+                onClick={() => setTrendView('table')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                trendView === 'table' ?
+                'bg-[#8b7355] text-white' :
+                'bg-[#e0e5ec] text-[#6b6b6b]'}`
+                }>
+
                   📋 Tabella
                 </button>
               </div>
             </div>
           </div>
 
-          {trendView === 'chart' ? (
-            <ResponsiveContainer width="100%" height={300}>
+          {trendView === 'chart' ?
+        <ResponsiveContainer width="100%" height={300}>
               <LineChart data={dailyTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e0e5ec" />
-                <XAxis 
-                  dataKey="date" 
-                  tick={{ fill: '#6b6b6b', fontSize: 12 }}
-                />
+                <XAxis
+              dataKey="date"
+              tick={{ fill: '#6b6b6b', fontSize: 12 }} />
+
                 <YAxis tick={{ fill: '#6b6b6b' }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#e0e5ec', 
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="quantity" 
-                  stroke="#8b7355" 
-                  strokeWidth={2}
-                  dot={{ fill: '#8b7355', r: 4 }}
-                />
+                <Tooltip
+              contentStyle={{
+                backgroundColor: '#e0e5ec',
+                border: 'none',
+                borderRadius: '12px',
+                boxShadow: '4px 4px 8px #b8bec8, -4px -4px 8px #ffffff'
+              }} />
+
+                <Line
+              type="monotone"
+              dataKey="quantity"
+              stroke="#8b7355"
+              strokeWidth={2}
+              dot={{ fill: '#8b7355', r: 4 }} />
+
               </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="overflow-x-auto">
+            </ResponsiveContainer> :
+
+        <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
@@ -819,24 +819,24 @@ export default function ProdottiVenduti() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dailyTrend.map((item) => (
-                    <tr key={item.date} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                  {dailyTrend.map((item) =>
+              <tr key={item.date} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                       <td className="p-3 text-[#6b6b6b]">{item.date}</td>
                       <td className="p-3 text-right">
                         <span className="font-bold text-[#8b7355]">{item.quantity}</span>
                       </td>
                     </tr>
-                  ))}
+              )}
                 </tbody>
               </table>
             </div>
-          )}
+        }
         </NeumorphicCard>
-      )}
+      }
 
       {/* Category Breakdown */}
-      {categoryTotals.length > 0 && (
-        <NeumorphicCard className="p-6">
+      {categoryTotals.length > 0 &&
+      <NeumorphicCard className="p-6">
           <h2 className="text-xl font-bold text-[#6b6b6b] mb-6">📊 Vendite per Categoria</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -845,21 +845,21 @@ export default function ProdottiVenduti() {
                   <th className="text-left p-3 text-[#9b9b9b] font-medium">Categoria</th>
                   <th className="text-right p-3 text-[#9b9b9b] font-medium">Quantità</th>
                   <th className="text-right p-3 text-[#9b9b9b] font-medium">% del Totale</th>
-                  {compareEnabled && comparisonTotalSales > 0 && (
-                    <>
+                  {compareEnabled && comparisonTotalSales > 0 &&
+                <>
                       <th className="text-right p-3 text-[#9b9b9b] font-medium">Periodo Confronto</th>
                       <th className="text-right p-3 text-[#9b9b9b] font-medium">Delta</th>
                     </>
-                  )}
+                }
                 </tr>
               </thead>
               <tbody>
                 {categoryTotals.map((cat) => {
-                  const comparisonTotal = compareEnabled ? (comparisonCategoryTotals[cat.category] || 0) : 0;
-                  const delta = compareEnabled ? cat.total - comparisonTotal : 0;
-                  
-                  return (
-                    <tr key={cat.category} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                const comparisonTotal = compareEnabled ? comparisonCategoryTotals[cat.category] || 0 : 0;
+                const delta = compareEnabled ? cat.total - comparisonTotal : 0;
+
+                return (
+                  <tr key={cat.category} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                       <td className="p-3">
                         <span className="font-bold text-[#6b6b6b] capitalize">{cat.category}</span>
                         <div className="text-xs text-slate-400 mt-0.5">
@@ -871,11 +871,11 @@ export default function ProdottiVenduti() {
                       </td>
                       <td className="p-3 text-right">
                         <span className="text-[#6b6b6b]">
-                          {((cat.total / totalSales) * 100).toFixed(1)}%
+                          {(cat.total / totalSales * 100).toFixed(1)}%
                         </span>
                       </td>
-                      {compareEnabled && comparisonTotalSales > 0 && (
-                        <>
+                      {compareEnabled && comparisonTotalSales > 0 &&
+                    <>
                           <td className="p-3 text-right">
                             <span className="text-slate-500">{comparisonTotal}</span>
                           </td>
@@ -883,21 +883,21 @@ export default function ProdottiVenduti() {
                             <div className={`font-medium ${delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {delta >= 0 ? <TrendingUp className="w-4 h-4 inline" /> : <TrendingDown className="w-4 h-4 inline" />}
                               {delta >= 0 ? '+' : ''}{delta}
-                              {comparisonTotal > 0 && (
-                                <span className="text-xs ml-1">({((delta / comparisonTotal) * 100).toFixed(1)}%)</span>
-                              )}
+                              {comparisonTotal > 0 &&
+                          <span className="text-xs ml-1">({(delta / comparisonTotal * 100).toFixed(1)}%)</span>
+                          }
                             </div>
                           </td>
                         </>
-                      )}
-                    </tr>
-                  );
-                })}
+                    }
+                    </tr>);
+
+              })}
               </tbody>
             </table>
           </div>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Search */}
       <NeumorphicCard className="p-4">
@@ -908,8 +908,8 @@ export default function ProdottiVenduti() {
             placeholder="Cerca prodotto..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-          />
+            className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
+
         </div>
       </NeumorphicCard>
 
@@ -921,32 +921,32 @@ export default function ProdottiVenduti() {
             <button
               onClick={() => setSelectedCategories([])}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                selectedCategories.length === 0
-                  ? 'bg-[#8b7355] text-white'
-                  : 'bg-[#e0e5ec] text-[#6b6b6b]'
-              }`}
-            >
+              selectedCategories.length === 0 ?
+              'bg-[#8b7355] text-white' :
+              'bg-[#e0e5ec] text-[#6b6b6b]'}`
+              }>
+
               Tutte
             </button>
-            {availableCategories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => {
-                  if (selectedCategories.includes(cat)) {
-                    setSelectedCategories(selectedCategories.filter(c => c !== cat));
-                  } else {
-                    setSelectedCategories([...selectedCategories, cat]);
-                  }
-                }}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                  selectedCategories.includes(cat)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-[#e0e5ec] text-[#6b6b6b]'
-                }`}
-              >
+            {availableCategories.map((cat) =>
+            <button
+              key={cat}
+              onClick={() => {
+                if (selectedCategories.includes(cat)) {
+                  setSelectedCategories(selectedCategories.filter((c) => c !== cat));
+                } else {
+                  setSelectedCategories([...selectedCategories, cat]);
+                }
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+              selectedCategories.includes(cat) ?
+              'bg-blue-600 text-white' :
+              'bg-[#e0e5ec] text-[#6b6b6b]'}`
+              }>
+
                 {cat}
               </button>
-            ))}
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -964,7 +964,7 @@ export default function ProdottiVenduti() {
                 const comparisonProduct = compareEnabled ? comparisonTotals[product.name] : null;
                 const comparisonTotal = comparisonProduct?.total || 0;
                 const delta = compareEnabled ? product.total - comparisonTotal : 0;
-                
+
                 return (
                   <tr key={product.name} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                     <td className="p-3 text-[#9b9b9b]">{index + 1}</td>
@@ -978,24 +978,24 @@ export default function ProdottiVenduti() {
                     </td>
                     <td className="p-3 text-right">
                       <span className="font-bold text-[#8b7355]">{product.total}</span>
-                      {compareEnabled && comparisonTotal > 0 && (
-                        <div className={`text-xs font-medium mt-1 ${delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {delta >= 0 ? '+' : ''}{delta} ({((delta / comparisonTotal) * 100).toFixed(1)}%)
+                      {compareEnabled && comparisonTotal > 0 &&
+                      <div className={`text-xs font-medium mt-1 ${delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {delta >= 0 ? '+' : ''}{delta} ({(delta / comparisonTotal * 100).toFixed(1)}%)
                         </div>
-                      )}
+                      }
                     </td>
                     <td className="p-3 text-right">
                       <span className="text-[#6b6b6b]">
-                        {categoryFilteredTotal > 0 ? ((product.total / categoryFilteredTotal) * 100).toFixed(1) : 0}%
+                        {categoryFilteredTotal > 0 ? (product.total / categoryFilteredTotal * 100).toFixed(1) : 0}%
                       </span>
                     </td>
-                  </tr>
-                );
+                  </tr>);
+
               })}
             </tbody>
           </table>
         </div>
       </NeumorphicCard>
-    </div>
-  );
+    </div>);
+
 }
