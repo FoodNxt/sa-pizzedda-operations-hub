@@ -5,42 +5,42 @@ import {
   DollarSign,
   MinusCircle,
   PlusCircle,
-  FileText
-} from 'lucide-react';
+  FileText } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 
 export default function FinancialForms() {
   const forms = [
-    {
-      title: "Form Conteggio Cassa",
-      description: "Registra il conteggio della cassa",
-      icon: DollarSign,
-      url: createPageUrl("ConteggioCassa"),
-      gradient: "from-blue-500 to-blue-600"
-    },
-    {
-      title: "Form Prelievi",
-      description: "Registra prelievi di contante dalla cassa",
-      icon: MinusCircle,
-      url: createPageUrl("FormPrelievi"),
-      gradient: "from-red-500 to-pink-600"
-    },
-    {
-      title: "Form Deposito",
-      description: "Registra depositi contanti in banca (BPM/Sella)",
-      icon: PlusCircle,
-      url: createPageUrl("FormDeposito"),
-      gradient: "from-green-500 to-emerald-600"
-    },
-    {
-      title: "Pagamenti Contanti",
-      description: "Registra pagamenti effettuati in contanti",
-      icon: DollarSign,
-      url: createPageUrl("FormPagamentiContanti"),
-      gradient: "from-emerald-500 to-teal-600"
-    }
-  ];
+  {
+    title: "Form Conteggio Cassa",
+    description: "Registra il conteggio della cassa",
+    icon: DollarSign,
+    url: createPageUrl("ConteggioCassa"),
+    gradient: "from-blue-500 to-blue-600"
+  },
+  {
+    title: "Form Prelievi",
+    description: "Registra prelievi di contante dalla cassa",
+    icon: MinusCircle,
+    url: createPageUrl("FormPrelievi"),
+    gradient: "from-red-500 to-pink-600"
+  },
+  {
+    title: "Form Deposito",
+    description: "Registra depositi contanti in banca (BPM/Sella)",
+    icon: PlusCircle,
+    url: createPageUrl("FormDeposito"),
+    gradient: "from-green-500 to-emerald-600"
+  },
+  {
+    title: "Pagamenti Contanti",
+    description: "Registra pagamenti effettuati in contanti",
+    icon: DollarSign,
+    url: createPageUrl("FormPagamentiContanti"),
+    gradient: "from-emerald-500 to-teal-600"
+  }];
+
 
   return (
     <ProtectedPage pageName="FinancialForms">
@@ -48,11 +48,11 @@ export default function FinancialForms() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-3">
             <FileText className="w-10 h-10 text-blue-600" />
-            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-              Forms Finanziari
+            <h1 className="bg-clip-text text-slate-50 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Forms Finanziari
+
             </h1>
           </div>
-          <p className="text-sm text-slate-500">Gestione cassa, prelievi e depositi</p>
+          <p className="text-slate-50 text-sm">Gestione cassa, prelievi e depositi</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -71,8 +71,8 @@ export default function FinancialForms() {
                     {form.description}
                   </p>
                 </NeumorphicCard>
-              </Link>
-            );
+              </Link>);
+
           })}
         </div>
 
@@ -91,6 +91,6 @@ export default function FinancialForms() {
           </div>
         </NeumorphicCard>
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
