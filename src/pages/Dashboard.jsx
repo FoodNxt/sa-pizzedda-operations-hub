@@ -865,58 +865,57 @@ export default function Dashboard() {
       return { top3: [], bottom3: [] };
     }
 
-    let cutoffDate, endFilterDate, previousCutoffDate, previousEndDate;
-    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let cutoffDateStr, endDateStr;
+
+    // Calcola periodo corrente
     if (startDate || endDate) {
-      cutoffDate = startDate ? new Date(startDate) : new Date(0);
-      endFilterDate = endDate ? new Date(endDate) : new Date();
+      cutoffDateStr = startDate || '1900-01-01';
+      endDateStr = endDate || today.toISOString().split('T')[0];
     } else {
       const days = parseInt(dateRange);
-      cutoffDate = subDays(new Date(), days);
-      endFilterDate = new Date();
+      const cutoff = new Date(today.getTime() - days * 24 * 60 * 60 * 1000);
+      cutoffDateStr = cutoff.toISOString().split('T')[0];
+      endDateStr = today.toISOString().split('T')[0];
     }
 
-    // Imposta ora a inizio/fine giornata
-    cutoffDate.setHours(0, 0, 0, 0);
-    endFilterDate.setHours(23, 59, 59, 999);
+    // Filtra dati periodo corrente
+    const filteredCurrent = prodottiVenduti.filter((p) => {
+      const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+      return dataStr >= cutoffDateStr && dataStr <= endDateStr;
+    });
 
     // Calcola periodo precedente per confronto
     const comparisonDays = comparisonMode === 'weekly' ? 7 : 30;
-    previousEndDate = subDays(cutoffDate, 1);
-    previousEndDate.setHours(23, 59, 59, 999);
-    previousCutoffDate = subDays(previousEndDate, comparisonDays);
-    previousCutoffDate.setHours(0, 0, 0, 0);
+    const previousEnd = new Date(cutoffDateStr);
+    previousEnd.setDate(previousEnd.getDate() - 1);
+    const previousStart = new Date(previousEnd.getTime() - comparisonDays * 24 * 60 * 60 * 1000);
+    const previousStartStr = previousStart.toISOString().split('T')[0];
+    const previousEndStr = previousEnd.toISOString().split('T')[0];
 
-    const filteredCurrent = prodottiVenduti.filter((p) => {
-      if (!p.order_date) return false;
-      const itemDate = new Date(p.order_date);
-      if (isNaN(itemDate.getTime())) return false;
-      return itemDate >= cutoffDate && itemDate <= endFilterDate;
-    });
-
+    // Filtra dati periodo precedente
     const filteredPrevious = prodottiVenduti.filter((p) => {
-      if (!p.order_date) return false;
-      const itemDate = new Date(p.order_date);
-      if (isNaN(itemDate.getTime())) return false;
-      return itemDate >= previousCutoffDate && itemDate <= previousEndDate;
+      const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+      return dataStr >= previousStartStr && dataStr <= previousEndStr;
     });
 
-    // Aggrega quantità per prodotto
+    // Aggrega per flavor (come in ProdottiVenduti)
     const productMap = {};
     const previousProductMap = {};
 
-    filteredCurrent.forEach((p) => {
-      const key = p.nome_prodotto;
-      if (!key) return;
-      if (!productMap[key]) productMap[key] = 0;
-      productMap[key] += p.quantita || 0;
+    filteredCurrent.forEach((record) => {
+      const flavor = record.flavor;
+      if (!flavor) return;
+      if (!productMap[flavor]) productMap[flavor] = 0;
+      productMap[flavor] += record.total_pizzas_sold || 0;
     });
 
-    filteredPrevious.forEach((p) => {
-      const key = p.nome_prodotto;
-      if (!key) return;
-      if (!previousProductMap[key]) previousProductMap[key] = 0;
-      previousProductMap[key] += p.quantita || 0;
+    filteredPrevious.forEach((record) => {
+      const flavor = record.flavor;
+      if (!flavor) return;
+      if (!previousProductMap[flavor]) previousProductMap[flavor] = 0;
+      previousProductMap[flavor] += record.total_pizzas_sold || 0;
     });
 
     // Calcola variazioni percentuali
