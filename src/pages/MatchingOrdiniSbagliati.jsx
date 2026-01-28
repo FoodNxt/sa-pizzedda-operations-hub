@@ -14,8 +14,8 @@ import {
   Eye,
   ChevronDown,
   ChevronUp,
-  Trash
-} from 'lucide-react';
+  Trash } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format } from 'date-fns';
@@ -38,22 +38,22 @@ export default function MatchingOrdiniSbagliati() {
     queryKey: ['wrong-orders-unmatched'],
     queryFn: async () => {
       const orders = await base44.entities.WrongOrder.list('-order_date');
-      return orders.filter(o => o.store_matched);
-    },
+      return orders.filter((o) => o.store_matched);
+    }
   });
 
   const { data: allMatches = [] } = useQuery({
     queryKey: ['wrong-order-matches'],
-    queryFn: () => base44.entities.WrongOrderMatch.list('-match_date'),
+    queryFn: () => base44.entities.WrongOrderMatch.list('-match_date')
   });
 
   // FIXED: Filter matches to only include current orders
-  const currentOrderIds = new Set(wrongOrders.map(o => o.id));
-  const matches = allMatches.filter(m => currentOrderIds.has(m.wrong_order_id));
+  const currentOrderIds = new Set(wrongOrders.map((o) => o.id));
+  const matches = allMatches.filter((m) => currentOrderIds.has(m.wrong_order_id));
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   // Load shifts from TurnoPlanday (Planday integration)
@@ -62,7 +62,7 @@ export default function MatchingOrdiniSbagliati() {
     queryFn: async () => {
       const turni = await base44.entities.TurnoPlanday.list('-data', 3000);
       // Transform TurnoPlanday to match expected Shift structure
-      return turni.map(turno => ({
+      return turni.map((turno) => ({
         id: turno.id,
         shift_date: turno.data,
         scheduled_start: turno.data && turno.ora_inizio ? `${turno.data}T${turno.ora_inizio}:00` : null,
@@ -73,14 +73,14 @@ export default function MatchingOrdiniSbagliati() {
         employee_group_name: turno.employee_group_name,
         created_date: turno.created_date
       }));
-    },
+    }
   });
 
   const createMatchMutation = useMutation({
     mutationFn: (data) => base44.entities.WrongOrderMatch.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wrong-order-matches'] });
-    },
+    }
   });
 
   const updateMatchMutation = useMutation({
@@ -88,28 +88,28 @@ export default function MatchingOrdiniSbagliati() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wrong-order-matches'] });
       setEditingMatch(null);
-    },
+    }
   });
 
   const deleteMatchMutation = useMutation({
     mutationFn: (id) => base44.entities.WrongOrderMatch.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wrong-order-matches'] });
-    },
+    }
   });
 
   // FIXED: Deduplicate shifts function
   const deduplicateShifts = (shiftsArray) => {
     const uniqueShiftsMap = new Map();
 
-    shiftsArray.forEach(shift => {
+    shiftsArray.forEach((shift) => {
       const normalizedDate = shift.shift_date ? new Date(shift.shift_date).toISOString().split('T')[0] : 'no-date';
       const normalizedStart = shift.scheduled_start ? new Date(shift.scheduled_start).toISOString().substring(11, 16) : 'no-start';
       const normalizedEnd = shift.scheduled_end ? new Date(shift.scheduled_end).toISOString().substring(11, 16) : 'no-end';
-      
+
       // Normalize employee name (trim spaces)
       const normalizedEmployeeName = shift.employee_name?.trim() || 'no-name';
-      
+
       const key = `${normalizedEmployeeName}|${shift.store_id || 'no-store'}|${normalizedDate}|${normalizedStart}|${normalizedEnd}`;
 
       if (!uniqueShiftsMap.has(key)) {
@@ -119,7 +119,7 @@ export default function MatchingOrdiniSbagliati() {
         // If a duplicate is found, keep the one with the earlier created_date (if available)
         // or just the first one encountered if no created_date or created_date is newer
         if (shift.created_date && existing.created_date &&
-            new Date(shift.created_date) < new Date(existing.created_date)) {
+        new Date(shift.created_date) < new Date(existing.created_date)) {
           uniqueShiftsMap.set(key, shift);
         }
       }
@@ -146,7 +146,7 @@ export default function MatchingOrdiniSbagliati() {
 
       for (const order of wrongOrders) {
         // Skip if already matched (i.e., this order ID has any match records)
-        if (matches.some(m => m.wrong_order_id === order.id)) {
+        if (matches.some((m) => m.wrong_order_id === order.id)) {
           log.push(`⏭️ Ordine ${order.order_id} già abbinato, skip`);
           continue;
         }
@@ -164,15 +164,15 @@ export default function MatchingOrdiniSbagliati() {
 
         const orderDateStr = orderDateTime.toISOString().split('T')[0];
         const orderTime = orderDateTime.getTime();
-        
+
         log.push(`   🕐 Timestamp ordine (UTC): ${orderDateTime.toISOString()}`);
         log.push(`   🕐 Timestamp ordine (CET): ${orderDateTime.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}`);
 
         // Filter shifts for this store and date
-        const sameDayShifts = shifts.filter(shift => {
+        const sameDayShifts = shifts.filter((shift) => {
           if (shift.store_id !== order.store_id) return false;
           if (!shift.shift_date) return false;
-          
+
           const shiftDateStr = new Date(shift.shift_date).toISOString().split('T')[0];
           return shiftDateStr === orderDateStr;
         });
@@ -185,25 +185,25 @@ export default function MatchingOrdiniSbagliati() {
 
 
         // FIXED: Filter shifts with exclusions
-        const relevantShifts = uniqueShifts.filter(shift => {
+        const relevantShifts = uniqueShifts.filter((shift) => {
           // EXCLUDE certain shift types
           if (shift.shift_type && excludedShiftTypes.includes(shift.shift_type)) {
             log.push(`   ⛔ Escluso ${shift.employee_name?.trim()} (${shift.id}) - shift_type: ${shift.shift_type}`);
             return false;
           }
-          
+
           // EXCLUDE certain employee groups
           if (shift.employee_group_name && excludedEmployeeGroups.includes(shift.employee_group_name)) {
             log.push(`   ⛔ Escluso ${shift.employee_name?.trim()} (${shift.id}) - employee_group: ${shift.employee_group_name}`);
             return false;
           }
-          
+
           // Must have scheduled_start and scheduled_end for time-based matching
           if (!shift.scheduled_start || !shift.scheduled_end) {
             log.push(`   ⛔ Escluso ${shift.employee_name?.trim()} (${shift.id}) - mancano orari scheduled`);
             return false;
           }
-          
+
           return true;
         });
 
@@ -221,7 +221,7 @@ export default function MatchingOrdiniSbagliati() {
         for (const shift of relevantShifts) {
           const shiftStart = new Date(shift.scheduled_start).getTime();
           const shiftEnd = new Date(shift.scheduled_end).getTime();
-          
+
           const employeeName = shift.employee_name?.trim(); // Trim employee name
 
           log.push(`   👤 ${employeeName} (Shift ID: ${shift.id}):`);
@@ -252,11 +252,11 @@ export default function MatchingOrdiniSbagliati() {
             log.push(`      🔄 Dipendente ${employeeName} già trovato, mantengo primo match`);
           }
         }
-        
+
         if (employeeMatches.size === 0) {
-            log.push(`   ❌ Nessun dipendente in turno durante l'orario esatto dell'ordine ${order.order_id}`);
-            failedCount++;
-            continue; // Move to the next order
+          log.push(`   ❌ Nessun dipendente in turno durante l'orario esatto dell'ordine ${order.order_id}`);
+          failedCount++;
+          continue; // Move to the next order
         }
 
         log.push(`   ✅ Trovati ${employeeMatches.size} dipendenti in turno per ordine ${order.order_id}`);
@@ -299,7 +299,7 @@ export default function MatchingOrdiniSbagliati() {
       console.error('Error during matching:', error);
       log.push(`\n❌ ERRORE GENERALE: ${error.message}`);
       setDebugLog(log);
-      
+
       setMatchResult({
         success: false,
         error: error.message
@@ -339,28 +339,28 @@ export default function MatchingOrdiniSbagliati() {
   };
 
   // Get matched and unmatched orders
-  const matchedOrderIds = new Set(matches.map(m => m.wrong_order_id));
-  const matchedOrders = wrongOrders.filter(o => matchedOrderIds.has(o.id));
-  const unmatchedOrders = wrongOrders.filter(o => !matchedOrderIds.has(o.id));
+  const matchedOrderIds = new Set(matches.map((m) => m.wrong_order_id));
+  const matchedOrders = wrongOrders.filter((o) => matchedOrderIds.has(o.id));
+  const unmatchedOrders = wrongOrders.filter((o) => !matchedOrderIds.has(o.id));
 
   const stats = {
     totalOrders: wrongOrders.length,
     matchedOrders: matchedOrders.length, // Count of unique orders that have at least one match
     unmatchedOrders: unmatchedOrders.length,
     totalMatches: matches.length, // Total number of match records (can be > matchedOrders if multiple employees per order)
-    highConfidence: matches.filter(m => m.match_confidence === 'high').length,
-    mediumConfidence: matches.filter(m => m.match_confidence === 'medium').length,
-    lowConfidence: matches.filter(m => m.match_confidence === 'low').length,
-    manualMatches: matches.filter(m => m.match_method === 'manual').length
+    highConfidence: matches.filter((m) => m.match_confidence === 'high').length,
+    mediumConfidence: matches.filter((m) => m.match_confidence === 'medium').length,
+    lowConfidence: matches.filter((m) => m.match_confidence === 'low').length,
+    manualMatches: matches.filter((m) => m.match_method === 'manual').length
   };
 
   const getConfidenceBadgeColor = (confidence) => {
-    switch(confidence) {
-      case 'high': return 'bg-green-100 text-green-700';
-      case 'medium': return 'bg-yellow-100 text-yellow-700';
-      case 'low': return 'bg-orange-100 text-orange-700';
-      case 'manual': return 'bg-blue-100 text-blue-700';
-      default: return 'bg-gray-100 text-gray-700';
+    switch (confidence) {
+      case 'high':return 'bg-green-100 text-green-700';
+      case 'medium':return 'bg-yellow-100 text-yellow-700';
+      case 'low':return 'bg-orange-100 text-orange-700';
+      case 'manual':return 'bg-blue-100 text-blue-700';
+      default:return 'bg-gray-100 text-gray-700';
     }
   };
 
@@ -380,26 +380,26 @@ export default function MatchingOrdiniSbagliati() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">🔗 Matching Ordini Sbagliati</h1>
-            <p className="text-[#9b9b9b]">Abbina ordini sbagliati ai dipendenti in turno</p>
+            <h1 className="text-slate-50 mb-2 text-3xl font-bold">🔗 Matching Ordini Sbagliati</h1>
+            <p className="text-slate-50">Abbina ordini sbagliati ai dipendenti in turno</p>
           </div>
           <NeumorphicButton
             onClick={handleAutoMatch}
             disabled={matching || wrongOrders.length === 0}
             variant="primary"
-            className="flex items-center gap-2"
-          >
-            {matching ? (
-              <>
+            className="flex items-center gap-2">
+
+            {matching ?
+            <>
                 <Loader2 className="w-5 h-5 animate-spin" />
                 Matching...
-              </>
-            ) : (
-              <>
+              </> :
+
+            <>
                 <LinkIcon className="w-5 h-5" />
                 Fai Match
               </>
-            )}
+            }
           </NeumorphicButton>
         </div>
       </div>
@@ -441,15 +441,15 @@ export default function MatchingOrdiniSbagliati() {
       </div>
 
       {/* NEW: Debug Log */}
-      {debugLog.length > 0 && (
-        <NeumorphicCard className="p-6 bg-gray-50">
+      {debugLog.length > 0 &&
+      <NeumorphicCard className="p-6 bg-gray-50">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-[#6b6b6b]">📋 Log Matching</h3>
             <button
-              onClick={() => setDebugLog([])}
-              className="neumorphic-flat p-2 rounded-lg text-xs text-[#9b9b9b] hover:text-red-600 transition-colors"
-              title="Cancella log"
-            >
+            onClick={() => setDebugLog([])}
+            className="neumorphic-flat p-2 rounded-lg text-xs text-[#9b9b9b] hover:text-red-600 transition-colors"
+            title="Cancella log">
+
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -459,40 +459,40 @@ export default function MatchingOrdiniSbagliati() {
             </pre>
           </div>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Match Result */}
-      {matchResult && (
-        <NeumorphicCard className={`p-6 ${matchResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
+      {matchResult &&
+      <NeumorphicCard className={`p-6 ${matchResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
           <div className="flex items-start gap-3">
-            {matchResult.success ? (
-              <CheckCircle className="w-6 h-6 text-green-600 mt-1" />
-            ) : (
-              <AlertCircle className="w-6 h-6 text-red-600 mt-1" />
-            )}
+            {matchResult.success ?
+          <CheckCircle className="w-6 h-6 text-green-600 mt-1" /> :
+
+          <AlertCircle className="w-6 h-6 text-red-600 mt-1" />
+          }
             <div className="flex-1">
               <h3 className={`text-xl font-bold mb-2 ${matchResult.success ? 'text-green-700' : 'text-red-700'}`}>
                 {matchResult.success ? '✅ Matching Completato!' : '❌ Errore Matching'}
               </h3>
               
-              {matchResult.success ? (
-                <div className="space-y-2">
+              {matchResult.success ?
+            <div className="space-y-2">
                   <p className="text-green-700">
                     <strong>{matchResult.matchedCount}</strong> ordini abbinati con successo
                   </p>
-                  {matchResult.failedCount > 0 && (
-                    <p className="text-orange-600">
+                  {matchResult.failedCount > 0 &&
+              <p className="text-orange-600">
                       {matchResult.failedCount} ordini non abbinati (controlla il log sopra per dettagli)
                     </p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-red-700">{matchResult.error}</p>
-              )}
+              }
+                </div> :
+
+            <p className="text-red-700">{matchResult.error}</p>
+            }
             </div>
           </div>
         </NeumorphicCard>
-      )}
+      }
 
       {/* Confidence Stats */}
       <NeumorphicCard className="p-6">
@@ -515,74 +515,74 @@ export default function MatchingOrdiniSbagliati() {
           <button
             onClick={() => setViewMode('matched')}
             className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
-              viewMode === 'matched'
-                ? 'neumorphic-pressed text-[#8b7355]'
-                : 'neumorphic-flat text-[#9b9b9b]'
-            }`}
-          >
+            viewMode === 'matched' ?
+            'neumorphic-pressed text-[#8b7355]' :
+            'neumorphic-flat text-[#9b9b9b]'}`
+            }>
+
             ✅ Abbinati ({stats.matchedOrders})
           </button>
           <button
             onClick={() => setViewMode('unmatched')}
             className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
-              viewMode === 'unmatched'
-                ? 'neumorphic-pressed text-[#8b7355]'
-                : 'neumorphic-flat text-[#9b9b9b]'
-            }`}
-          >
+            viewMode === 'unmatched' ?
+            'neumorphic-pressed text-[#8b7355]' :
+            'neumorphic-flat text-[#9b9b9b]'}`
+            }>
+
             ⚠️ Non Abbinati ({stats.unmatchedOrders})
           </button>
         </div>
       </NeumorphicCard>
 
       {/* Matched Orders List */}
-      {viewMode === 'matched' && (
-        <NeumorphicCard className="p-6">
+      {viewMode === 'matched' &&
+      <NeumorphicCard className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-[#6b6b6b]">Ordini Abbinati</h2>
-            {matchedOrders.length > 10 && (
-              <button
-                onClick={() => setShowAllMatched(!showAllMatched)}
-                className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
-              >
-                {showAllMatched ? (
-                  <>
+            {matchedOrders.length > 10 &&
+          <button
+            onClick={() => setShowAllMatched(!showAllMatched)}
+            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2">
+
+                {showAllMatched ?
+            <>
                     <ChevronUp className="w-4 h-4" />
                     Mostra meno
-                  </>
-                ) : (
-                  <>
+                  </> :
+
+            <>
                     <ChevronDown className="w-4 h-4" />
                     Mostra tutti ({matchedOrders.length})
                   </>
-                )}
+            }
               </button>
-            )}
+          }
           </div>
 
-          {matchedOrders.length === 0 ? (
-            <div className="text-center py-12">
+          {matchedOrders.length === 0 ?
+        <div className="text-center py-12">
               <CheckCircle className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
               <p className="text-[#6b6b6b] font-medium">Nessun ordine abbinato</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
+            </div> :
+
+        <div className="space-y-4">
               {matchedOrders.slice(0, showAllMatched ? undefined : 10).map((order) => {
-                const orderMatches = matchesByOrder[order.id] || [];
-                return (
-                  <div 
-                    key={order.id} 
-                    className="neumorphic-flat p-5 rounded-xl cursor-pointer hover:shadow-lg transition-all"
-                    onClick={() => setSelectedOrder(order)}
-                  >
+            const orderMatches = matchesByOrder[order.id] || [];
+            return (
+              <div
+                key={order.id}
+                className="neumorphic-flat p-5 rounded-xl cursor-pointer hover:shadow-lg transition-all"
+                onClick={() => setSelectedOrder(order)}>
+
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            order.platform === 'glovo' 
-                              ? 'bg-orange-100 text-orange-700' 
-                              : 'bg-teal-100 text-teal-700'
-                          }`}>
+                      order.platform === 'glovo' ?
+                      'bg-orange-100 text-orange-700' :
+                      'bg-teal-100 text-teal-700'}`
+                      }>
                             {order.platform}
                           </span>
                           <span className="font-mono text-sm text-[#6b6b6b]">{order.order_id}</span>
@@ -604,72 +604,72 @@ export default function MatchingOrdiniSbagliati() {
                         Abbinato a {orderMatches.length} dipendente/i:
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {orderMatches.map((match) => (
-                          <span key={match.id} className="text-sm font-medium text-[#6b6b6b] bg-blue-100 px-3 py-1 rounded-full">
+                        {orderMatches.map((match) =>
+                    <span key={match.id} className="text-sm font-medium text-[#6b6b6b] bg-blue-100 px-3 py-1 rounded-full">
                             {match.matched_employee_name}
                             <span className={`ml-2 text-xs ${getConfidenceBadgeColor(match.match_confidence).split(' ')[1]}`}>
                               ({match.match_confidence === 'high' ? 'Alta' :
-                                match.match_confidence === 'medium' ? 'Media' :
-                                match.match_confidence === 'low' ? 'Bassa' : 'Manuale'})
+                        match.match_confidence === 'medium' ? 'Media' :
+                        match.match_confidence === 'low' ? 'Bassa' : 'Manuale'})
                             </span>
                           </span>
-                        ))}
+                    )}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  </div>);
+
+          })}
             </div>
-          )}
+        }
         </NeumorphicCard>
-      )}
+      }
 
       {/* Unmatched Orders List */}
-      {viewMode === 'unmatched' && (
-        <NeumorphicCard className="p-6">
+      {viewMode === 'unmatched' &&
+      <NeumorphicCard className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-[#6b6b6b]">Ordini Non Abbinati</h2>
-            {unmatchedOrders.length > 10 && (
-              <button
-                onClick={() => setShowAllUnmatched(!showAllUnmatched)}
-                className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
-              >
-                {showAllUnmatched ? (
-                  <>
+            {unmatchedOrders.length > 10 &&
+          <button
+            onClick={() => setShowAllUnmatched(!showAllUnmatched)}
+            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2">
+
+                {showAllUnmatched ?
+            <>
                     <ChevronUp className="w-4 h-4" />
                     Mostra meno
-                  </>
-                ) : (
-                  <>
+                  </> :
+
+            <>
                     <ChevronDown className="w-4 h-4" />
                     Mostra tutti ({unmatchedOrders.length})
                   </>
-                )}
+            }
               </button>
-            )}
+          }
           </div>
 
-          {unmatchedOrders.length === 0 ? (
-            <div className="text-center py-12">
+          {unmatchedOrders.length === 0 ?
+        <div className="text-center py-12">
               <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
               <p className="text-[#6b6b6b] font-medium">Tutti gli ordini sono abbinati! 🎉</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {unmatchedOrders.slice(0, showAllUnmatched ? undefined : 10).map((order) => (
-                <div 
-                  key={order.id} 
-                  className="neumorphic-flat p-5 rounded-xl border-2 border-orange-200 cursor-pointer hover:shadow-lg transition-all"
-                  onClick={() => setSelectedOrder(order)}
-                >
+            </div> :
+
+        <div className="space-y-4">
+              {unmatchedOrders.slice(0, showAllUnmatched ? undefined : 10).map((order) =>
+          <div
+            key={order.id}
+            className="neumorphic-flat p-5 rounded-xl border-2 border-orange-200 cursor-pointer hover:shadow-lg transition-all"
+            onClick={() => setSelectedOrder(order)}>
+
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          order.platform === 'glovo' 
-                            ? 'bg-orange-100 text-orange-700' 
-                            : 'bg-teal-100 text-teal-700'
-                        }`}>
+                  order.platform === 'glovo' ?
+                  'bg-orange-100 text-orange-700' :
+                  'bg-teal-100 text-teal-700'}`
+                  }>
                           {order.platform}
                         </span>
                         <span className="font-mono text-sm text-[#6b6b6b]">{order.order_id}</span>
@@ -686,22 +686,22 @@ export default function MatchingOrdiniSbagliati() {
                     <Eye className="w-5 h-5 text-[#8b7355]" />
                   </div>
                 </div>
-              ))}
-            </div>
           )}
+            </div>
+        }
         </NeumorphicCard>
-      )}
+      }
 
       {/* NEW: Order Details Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {selectedOrder &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-[#6b6b6b]">Dettagli Ordine</h2>
               <button
-                onClick={() => setSelectedOrder(null)}
-                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-              >
+              onClick={() => setSelectedOrder(null)}
+              className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
+
                 <X className="w-5 h-5 text-[#9b9b9b]" />
               </button>
             </div>
@@ -737,63 +737,63 @@ export default function MatchingOrdiniSbagliati() {
                     <p className="text-[#9b9b9b]">Rimborso</p>
                     <p className="font-bold text-red-600">€{selectedOrder.refund_value?.toFixed(2) || '0.00'}</p>
                   </div>
-                  {selectedOrder.customer_refund_status && (
-                    <div className="col-span-2">
+                  {selectedOrder.customer_refund_status &&
+                <div className="col-span-2">
                       <p className="text-[#9b9b9b]">Stato Rimborso</p>
                       <p className="font-medium text-[#6b6b6b]">{selectedOrder.customer_refund_status}</p>
                     </div>
-                  )}
-                  {selectedOrder.complaint_reason && (
-                    <div className="col-span-2">
+                }
+                  {selectedOrder.complaint_reason &&
+                <div className="col-span-2">
                       <p className="text-[#9b9b9b]">Motivo Reclamo</p>
                       <p className="font-medium text-[#6b6b6b]">{selectedOrder.complaint_reason}</p>
                     </div>
-                  )}
+                }
                 </div>
               </div>
 
               {/* Matched Employees */}
-              {matchesByOrder[selectedOrder.id] && matchesByOrder[selectedOrder.id].length > 0 && (
-                <div className="neumorphic-pressed p-4 rounded-xl">
+              {matchesByOrder[selectedOrder.id] && matchesByOrder[selectedOrder.id].length > 0 &&
+            <div className="neumorphic-pressed p-4 rounded-xl">
                   <h3 className="font-bold text-[#6b6b6b] mb-3">
                     Dipendenti Abbinati ({matchesByOrder[selectedOrder.id].length})
                   </h3>
                   <div className="space-y-2">
                     {matchesByOrder[selectedOrder.id].map((match) => {
-                     const matchedShift = shifts.find(s => s.id === match.matched_shift_id);
-                     const shiftStart = matchedShift?.scheduled_start ? format(new Date(matchedShift.scheduled_start), 'HH:mm') : '-';
-                     const shiftEnd = matchedShift?.scheduled_end ? format(new Date(matchedShift.scheduled_end), 'HH:mm') : '-';
+                  const matchedShift = shifts.find((s) => s.id === match.matched_shift_id);
+                  const shiftStart = matchedShift?.scheduled_start ? format(new Date(matchedShift.scheduled_start), 'HH:mm') : '-';
+                  const shiftEnd = matchedShift?.scheduled_end ? format(new Date(matchedShift.scheduled_end), 'HH:mm') : '-';
 
-                     return (
-                       <div key={match.id} className="neumorphic-flat p-3 rounded-lg">
-                         {editingMatch?.id === match.id ? (
-                           <div className="space-y-3">
+                  return (
+                    <div key={match.id} className="neumorphic-flat p-3 rounded-lg">
+                         {editingMatch?.id === match.id ?
+                      <div className="space-y-3">
                              <input
-                               type="text"
-                               value={newEmployeeName}
-                               onChange={(e) => setNewEmployeeName(e.target.value)}
-                               className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-[#6b6b6b] outline-none"
-                               placeholder="Nome dipendente"
-                             />
+                          type="text"
+                          value={newEmployeeName}
+                          onChange={(e) => setNewEmployeeName(e.target.value)}
+                          className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-[#6b6b6b] outline-none"
+                          placeholder="Nome dipendente" />
+
                              <div className="flex gap-2">
                                <button
-                                 onClick={handleSaveEdit}
-                                 className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center gap-2"
-                               >
+                            onClick={handleSaveEdit}
+                            className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm text-green-600 hover:bg-green-50 transition-colors flex items-center justify-center gap-2">
+
                                  <Save className="w-4 h-4" />
                                  Salva
                                </button>
                                <button
-                                 onClick={() => setEditingMatch(null)}
-                                 className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm text-[#9b9b9b] hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-                               >
+                            onClick={() => setEditingMatch(null)}
+                            className="flex-1 neumorphic-flat px-3 py-2 rounded-lg text-sm text-[#9b9b9b] hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
+
                                  <X className="w-4 h-4" />
                                  Annulla
                                </button>
                              </div>
-                           </div>
-                         ) : (
-                           <div className="flex items-center justify-between">
+                           </div> :
+
+                      <div className="flex items-center justify-between">
                              <div className="flex-1">
                                <p className="font-medium text-[#6b6b6b]">{match.matched_employee_name}</p>
                                <p className="text-xs text-[#9b9b9b]">
@@ -803,39 +803,39 @@ export default function MatchingOrdiniSbagliati() {
                              <div className="flex items-center gap-2">
                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${getConfidenceBadgeColor(match.match_confidence)}`}>
                                  {match.match_confidence === 'high' ? 'Alta' :
-                                  match.match_confidence === 'medium' ? 'Media' :
-                                  match.match_confidence === 'low' ? 'Bassa' :
-                                  'Manuale'}
+                            match.match_confidence === 'medium' ? 'Media' :
+                            match.match_confidence === 'low' ? 'Bassa' :
+                            'Manuale'}
                                </span>
                                <button
-                                 onClick={() => handleEditMatch(match)}
-                                 className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                               >
+                            onClick={() => handleEditMatch(match)}
+                            className="neumorphic-flat p-2 rounded-lg hover:bg-blue-50 transition-colors">
+
                                  <Edit className="w-4 h-4 text-blue-600" />
                                </button>
                                <button
-                                 onClick={() => {
-                                   if (confirm(`Eliminare l'abbinamento con ${match.matched_employee_name}?`)) {
-                                     deleteMatchMutation.mutate(match.id);
-                                   }
-                                 }}
-                                 className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
-                               >
+                            onClick={() => {
+                              if (confirm(`Eliminare l'abbinamento con ${match.matched_employee_name}?`)) {
+                                deleteMatchMutation.mutate(match.id);
+                              }
+                            }}
+                            className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
+
                                  <Trash className="w-4 h-4 text-red-600" />
                                </button>
                              </div>
                            </div>
-                         )}
-                       </div>
-                     );
-                    })}
+                      }
+                       </div>);
+
+                })}
                   </div>
                 </div>
-              )}
+            }
             </div>
           </NeumorphicCard>
         </div>
-      )}
+      }
 
       {/* Info */}
       <NeumorphicCard className="p-6 bg-blue-50">
@@ -855,6 +855,6 @@ export default function MatchingOrdiniSbagliati() {
           </div>
         </div>
       </NeumorphicCard>
-    </div>
-  );
+    </div>);
+
 }
