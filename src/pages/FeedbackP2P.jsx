@@ -28,7 +28,7 @@ export default function FeedbackP2P() {
   const queryClient = useQueryClient();
 
   React.useEffect(() => {
-    base44.auth.me().then(user => {
+    base44.auth.me().then((user) => {
       setCurrentUser(user);
       const normalizedUserType = user.user_type === 'user' ? 'dipendente' : user.user_type;
       if (normalizedUserType === 'dipendente') {
@@ -39,30 +39,30 @@ export default function FeedbackP2P() {
 
   const { data: questions = [] } = useQuery({
     queryKey: ['p2p-questions'],
-    queryFn: () => base44.entities.P2PFeedbackQuestion.list('question_order'),
+    queryFn: () => base44.entities.P2PFeedbackQuestion.list('question_order')
   });
 
   const { data: responses = [] } = useQuery({
     queryKey: ['p2p-responses'],
-    queryFn: () => base44.entities.P2PFeedbackResponse.list('-submitted_date'),
+    queryFn: () => base44.entities.P2PFeedbackResponse.list('-submitted_date')
   });
 
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list(),
+    queryFn: () => base44.entities.Shift.list()
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['dipendenti-users'],
     queryFn: async () => {
       const allUsers = await base44.entities.User.list();
-      return allUsers.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
-    },
+      return allUsers.filter((u) => u.user_type === 'dipendente' || u.user_type === 'user');
+    }
   });
 
   const { data: feedbackConfig = [] } = useQuery({
     queryKey: ['p2p-feedback-config'],
-    queryFn: () => base44.entities.P2PFeedbackConfig.list(),
+    queryFn: () => base44.entities.P2PFeedbackConfig.list()
   });
 
   const saveConfigMutation = useMutation({
@@ -77,7 +77,7 @@ export default function FeedbackP2P() {
       queryClient.invalidateQueries({ queryKey: ['p2p-feedback-config'] });
       setShowConfigModal(false);
       alert('Configurazione salvata!');
-    },
+    }
   });
 
   const createQuestionMutation = useMutation({
@@ -85,7 +85,7 @@ export default function FeedbackP2P() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['p2p-questions'] });
       resetQuestionForm();
-    },
+    }
   });
 
   const updateQuestionMutation = useMutation({
@@ -93,14 +93,14 @@ export default function FeedbackP2P() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['p2p-questions'] });
       resetQuestionForm();
-    },
+    }
   });
 
   const deleteQuestionMutation = useMutation({
     mutationFn: (id) => base44.entities.P2PFeedbackQuestion.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['p2p-questions'] });
-    },
+    }
   });
 
   const submitResponseMutation = useMutation({
@@ -148,16 +148,16 @@ export default function FeedbackP2P() {
     if (!currentUser) return [];
 
     const employeeName = currentUser.nome_cognome || currentUser.full_name || currentUser.email;
-    
+
     // Use last_sent_date from config, or default to 7 days ago
     const lastSentDate = feedbackConfig[0]?.last_sent_date;
     const referenceDate = lastSentDate ? parseISO(lastSentDate) : new Date();
-    
+
     // Get shifts from 7 days before the form was sent
     const sevenDaysBeforeForm = new Date(referenceDate);
     sevenDaysBeforeForm.setDate(sevenDaysBeforeForm.getDate() - 7);
 
-    const myShifts = shifts.filter(s => {
+    const myShifts = shifts.filter((s) => {
       if (s.employee_name !== employeeName || !s.shift_date) return false;
       try {
         const shiftDate = parseISO(s.shift_date);
@@ -169,38 +169,38 @@ export default function FeedbackP2P() {
     });
 
     const colleaguesSet = new Set();
-    myShifts.forEach(myShift => {
-      shifts.forEach(otherShift => {
+    myShifts.forEach((myShift) => {
+      shifts.forEach((otherShift) => {
         if (otherShift.employee_name !== employeeName &&
-            otherShift.shift_date === myShift.shift_date &&
-            otherShift.store_id === myShift.store_id) {
+        otherShift.shift_date === myShift.shift_date &&
+        otherShift.store_id === myShift.store_id) {
           colleaguesSet.add(otherShift.employee_name);
         }
       });
     });
 
     // Filter out colleagues already reviewed for this cycle (based on last_sent_date)
-    const alreadyReviewed = responses
-      .filter(r => {
-        if (r.reviewer_id !== currentUser.id) return false;
-        // If form was sent, only count reviews after that date
-        if (lastSentDate && r.submitted_date) {
-          try {
-            const submittedDate = new Date(r.submitted_date);
-            const sentDate = new Date(lastSentDate);
-            return submittedDate >= sentDate;
-          } catch (e) {
-            return false;
-          }
+    const alreadyReviewed = responses.
+    filter((r) => {
+      if (r.reviewer_id !== currentUser.id) return false;
+      // If form was sent, only count reviews after that date
+      if (lastSentDate && r.submitted_date) {
+        try {
+          const submittedDate = new Date(r.submitted_date);
+          const sentDate = new Date(lastSentDate);
+          return submittedDate >= sentDate;
+        } catch (e) {
+          return false;
         }
-        return true;
-      })
-      .map(r => r.reviewed_name);
+      }
+      return true;
+    }).
+    map((r) => r.reviewed_name);
 
-    return Array.from(colleaguesSet).filter(name => !alreadyReviewed.includes(name));
+    return Array.from(colleaguesSet).filter((name) => !alreadyReviewed.includes(name));
   }, [currentUser, shifts, responses, feedbackConfig]);
 
-  const normalizedUserType = currentUser ? (currentUser.user_type === 'user' ? 'dipendente' : currentUser.user_type) : null;
+  const normalizedUserType = currentUser ? currentUser.user_type === 'user' ? 'dipendente' : currentUser.user_type : null;
   const isAdmin = normalizedUserType === 'admin' || normalizedUserType === 'manager';
 
   if (!currentUser) {
@@ -209,150 +209,150 @@ export default function FeedbackP2P() {
         <div className="max-w-7xl mx-auto space-y-6">
           <p>Caricamento...</p>
         </div>
-      </ProtectedPage>
-    );
+      </ProtectedPage>);
+
   }
 
   return (
     <ProtectedPage pageName="FeedbackP2P">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
-            Feedback P2P
+          <h1 className="bg-clip-text text-slate-50 mb-1 text-3xl font-bold from-slate-700 to-slate-900">Feedback P2P
+
           </h1>
-          <p className="text-sm text-slate-500">Valutazione tra colleghi</p>
+          <p className="text-slate-50 text-sm">Valutazione tra colleghi</p>
         </div>
 
-        {isAdmin && (
-          <NeumorphicCard className="p-6">
+        {isAdmin &&
+        <NeumorphicCard className="p-6">
             <div className="flex gap-2 mb-6 flex-wrap">
               <button
-                onClick={() => setActiveTab('admin')}
-                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
-                  activeTab === 'admin' 
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
-                    : 'nav-button text-slate-700'
-                }`}
-              >
+              onClick={() => setActiveTab('admin')}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
+              activeTab === 'admin' ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'nav-button text-slate-700'}`
+              }>
+
                 Gestione Form
               </button>
               <button
-                onClick={() => setActiveTab('responses')}
-                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
-                  activeTab === 'responses' 
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
-                    : 'nav-button text-slate-700'
-                }`}
-              >
+              onClick={() => setActiveTab('responses')}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
+              activeTab === 'responses' ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'nav-button text-slate-700'}`
+              }>
+
                 Risposte
               </button>
               <button
-                onClick={() => setActiveTab('sent')}
-                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
-                  activeTab === 'sent' 
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
-                    : 'nav-button text-slate-700'
-                }`}
-              >
+              onClick={() => setActiveTab('sent')}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
+              activeTab === 'sent' ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'nav-button text-slate-700'}`
+              }>
+
                 Form Inviati
               </button>
               <button
-                onClick={() => setActiveTab('config')}
-                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
-                  activeTab === 'config' 
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
-                    : 'nav-button text-slate-700'
-                }`}
-              >
+              onClick={() => setActiveTab('config')}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all ${
+              activeTab === 'config' ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'nav-button text-slate-700'}`
+              }>
+
                 Configurazione
               </button>
             </div>
 
-            {activeTab === 'admin' && (
-              <>
+            {activeTab === 'admin' &&
+          <>
                 <div className="mb-6 flex gap-3">
                   <NeumorphicButton
-                    onClick={() => setShowQuestionForm(true)}
-                    variant="primary"
-                    className="flex items-center gap-2"
-                  >
+                onClick={() => setShowQuestionForm(true)}
+                variant="primary"
+                className="flex items-center gap-2">
+
                     <Plus className="w-5 h-5" />
                     Aggiungi Metrica
                   </NeumorphicButton>
                   <NeumorphicButton
-                    onClick={() => setShowSendNowModal(true)}
-                    className="flex items-center gap-2"
-                  >
+                onClick={() => setShowSendNowModal(true)}
+                className="flex items-center gap-2">
+
                     <Send className="w-5 h-5" />
                     Invia Ora
                   </NeumorphicButton>
                 </div>
 
                 <div className="space-y-3">
-                  {questions.length === 0 ? (
-                    <div className="text-center py-12">
+                  {questions.length === 0 ?
+              <div className="text-center py-12">
                       <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                       <p className="text-slate-500">Nessuna domanda creata</p>
-                    </div>
-                  ) : (
-                    questions.map(q => (
-                      <NeumorphicCard key={q.id} className="p-4">
+                    </div> :
+
+              questions.map((q) =>
+              <NeumorphicCard key={q.id} className="p-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <span className="text-xs font-bold text-slate-500">#{q.question_order}</span>
                               <h3 className="font-bold text-slate-800">{q.metric_name}</h3>
                             </div>
-                            {q.metric_description && (
-                              <p className="text-sm text-slate-600">{q.metric_description}</p>
-                            )}
+                            {q.metric_description &&
+                    <p className="text-sm text-slate-600">{q.metric_description}</p>
+                    }
                             <p className="text-xs text-purple-600 mt-2">Punteggio: 1-5</p>
                           </div>
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleEditQuestion(q)}
-                              className="nav-button p-2 rounded-lg"
-                            >
+                      onClick={() => handleEditQuestion(q)}
+                      className="nav-button p-2 rounded-lg">
+
                               <Edit className="w-4 h-4 text-blue-600" />
                             </button>
                             <button
-                              onClick={() => {
-                                if (confirm('Eliminare questa metrica?')) {
-                                  deleteQuestionMutation.mutate(q.id);
-                                }
-                              }}
-                              className="nav-button p-2 rounded-lg"
-                            >
+                      onClick={() => {
+                        if (confirm('Eliminare questa metrica?')) {
+                          deleteQuestionMutation.mutate(q.id);
+                        }
+                      }}
+                      className="nav-button p-2 rounded-lg">
+
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </button>
                           </div>
                         </div>
                       </NeumorphicCard>
-                    ))
-                  )}
+              )
+              }
                 </div>
               </>
-            )}
+          }
 
-            {activeTab === 'responses' && (
-              <ResponsesTab 
-                responses={responses} 
-                users={users}
-                questions={questions}
-              />
-            )}
+            {activeTab === 'responses' &&
+          <ResponsesTab
+            responses={responses}
+            users={users}
+            questions={questions} />
 
-            {activeTab === 'sent' && (
-              <FormsSentTab 
-                feedbackConfig={feedbackConfig} 
-                responses={responses} 
-                users={users} 
-                shifts={shifts} 
-              />
-            )}
+          }
 
-            {activeTab === 'config' && (
-              <div className="space-y-4">
+            {activeTab === 'sent' &&
+          <FormsSentTab
+            feedbackConfig={feedbackConfig}
+            responses={responses}
+            users={users}
+            shifts={shifts} />
+
+          }
+
+            {activeTab === 'config' &&
+          <div className="space-y-4">
                 <NeumorphicCard className="p-6">
                   <h3 className="text-lg font-bold text-slate-800 mb-4">Frequenza Invio Feedback</h3>
                   <div className="space-y-4">
@@ -361,29 +361,29 @@ export default function FeedbackP2P() {
                         Frequenza
                       </label>
                       <select
-                        value={feedbackConfig[0]?.frequency_type || 'weekly'}
-                        onChange={(e) => setConfigForm({ ...configForm, frequency_type: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      >
+                    value={feedbackConfig[0]?.frequency_type || 'weekly'}
+                    onChange={(e) => setConfigForm({ ...configForm, frequency_type: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                         <option value="weekly">Settimanale</option>
                         <option value="monthly">Mensile</option>
                         <option value="custom_days">Personalizzato</option>
                       </select>
                     </div>
-                    {(feedbackConfig[0]?.frequency_type === 'custom_days' || configForm.frequency_type === 'custom_days') && (
-                      <div>
+                    {(feedbackConfig[0]?.frequency_type === 'custom_days' || configForm.frequency_type === 'custom_days') &&
+                <div>
                         <label className="text-sm font-medium text-slate-700 mb-2 block">
                           Intervallo (giorni)
                         </label>
                         <input
-                          type="number"
-                          min="1"
-                          value={configForm.custom_days_interval}
-                          onChange={(e) => setConfigForm({ ...configForm, custom_days_interval: parseInt(e.target.value) || 7 })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                        />
+                    type="number"
+                    min="1"
+                    value={configForm.custom_days_interval}
+                    onChange={(e) => setConfigForm({ ...configForm, custom_days_interval: parseInt(e.target.value) || 7 })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                       </div>
-                    )}
+                }
                     <NeumorphicButton onClick={() => saveConfigMutation.mutate(configForm)} variant="primary" className="w-full">
                       <Save className="w-5 h-5 mr-2" />
                       Salva Configurazione
@@ -391,25 +391,25 @@ export default function FeedbackP2P() {
                   </div>
                 </NeumorphicCard>
               </div>
-            )}
+          }
           </NeumorphicCard>
-        )}
+        }
 
-        {normalizedUserType === 'dipendente' && (
-          <DipendenteView
-            currentUser={currentUser}
-            questions={questions.filter(q => q.is_active)}
-            colleagues={getLastWeekColleagues}
-            users={users}
-            shifts={shifts}
-            responses={responses}
-            feedbackConfig={feedbackConfig}
-            onSubmit={(data) => submitResponseMutation.mutate(data)}
-          />
-        )}
+        {normalizedUserType === 'dipendente' &&
+        <DipendenteView
+          currentUser={currentUser}
+          questions={questions.filter((q) => q.is_active)}
+          colleagues={getLastWeekColleagues}
+          users={users}
+          shifts={shifts}
+          responses={responses}
+          feedbackConfig={feedbackConfig}
+          onSubmit={(data) => submitResponseMutation.mutate(data)} />
 
-        {showSendNowModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        }
+
+        {showSendNowModal &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-md w-full p-6">
               <div className="flex justify-between mb-4">
                 <h2 className="text-xl font-bold">Invia Feedback Ora</h2>
@@ -419,29 +419,29 @@ export default function FeedbackP2P() {
                 Inviando il feedback ora, tutti i dipendenti riceveranno una notifica per valutare i colleghi.
               </p>
               <NeumorphicButton
-                onClick={async () => {
-                  const config = feedbackConfig[0];
-                  if (config) {
-                    await base44.entities.P2PFeedbackConfig.update(config.id, {
-                      last_sent_date: new Date().toISOString().split('T')[0]
-                    });
-                  }
-                  setShowSendNowModal(false);
-                  alert('Promemoria inviato ai dipendenti!');
-                  queryClient.invalidateQueries({ queryKey: ['p2p-feedback-config'] });
-                }}
-                variant="primary"
-                className="w-full"
-              >
+              onClick={async () => {
+                const config = feedbackConfig[0];
+                if (config) {
+                  await base44.entities.P2PFeedbackConfig.update(config.id, {
+                    last_sent_date: new Date().toISOString().split('T')[0]
+                  });
+                }
+                setShowSendNowModal(false);
+                alert('Promemoria inviato ai dipendenti!');
+                queryClient.invalidateQueries({ queryKey: ['p2p-feedback-config'] });
+              }}
+              variant="primary"
+              className="w-full">
+
                 <Send className="w-5 h-5 mr-2" />
                 Invia Promemoria
               </NeumorphicButton>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
-        {showQuestionForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showQuestionForm &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <NeumorphicCard className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -459,13 +459,13 @@ export default function FeedbackP2P() {
                       Nome Metrica
                     </label>
                     <input
-                      type="text"
-                      value={questionForm.metric_name}
-                      onChange={(e) => setQuestionForm({ ...questionForm, metric_name: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      placeholder="es. Puntualità, Lavoro di squadra"
-                      required
-                    />
+                    type="text"
+                    value={questionForm.metric_name}
+                    onChange={(e) => setQuestionForm({ ...questionForm, metric_name: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="es. Puntualità, Lavoro di squadra"
+                    required />
+
                   </div>
 
                   <div>
@@ -473,12 +473,12 @@ export default function FeedbackP2P() {
                       Descrizione (opzionale)
                     </label>
                     <input
-                      type="text"
-                      value={questionForm.metric_description}
-                      onChange={(e) => setQuestionForm({ ...questionForm, metric_description: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      placeholder="es. Arriva sempre in orario"
-                    />
+                    type="text"
+                    value={questionForm.metric_description}
+                    onChange={(e) => setQuestionForm({ ...questionForm, metric_description: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="es. Arriva sempre in orario" />
+
                   </div>
 
                   <div>
@@ -486,12 +486,12 @@ export default function FeedbackP2P() {
                       Ordine
                     </label>
                     <input
-                      type="number"
-                      value={questionForm.question_order}
-                      onChange={(e) => setQuestionForm({ ...questionForm, question_order: parseInt(e.target.value) || 1 })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      required
-                    />
+                    type="number"
+                    value={questionForm.question_order}
+                    onChange={(e) => setQuestionForm({ ...questionForm, question_order: parseInt(e.target.value) || 1 })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    required />
+
                   </div>
 
                   <div className="neumorphic-flat p-4 rounded-xl bg-purple-50">
@@ -513,10 +513,10 @@ export default function FeedbackP2P() {
               </NeumorphicCard>
             </div>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
 
 function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, shifts, responses, feedbackConfig }) {
@@ -524,22 +524,22 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
   const [answers, setAnswers] = useState({});
   const [notes, setNotes] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Get shared shifts with selected colleague
   const getSharedShifts = useMemo(() => {
     if (!selectedColleague || !currentUser) return [];
-    
+
     const employeeName = currentUser.nome_cognome || currentUser.full_name || currentUser.email;
-    
+
     // Use last_sent_date from config, or default to now
     const lastSentDate = feedbackConfig[0]?.last_sent_date;
     const referenceDate = lastSentDate ? parseISO(lastSentDate) : new Date();
-    
+
     // Get shifts from 7 days before the form was sent
     const sevenDaysBeforeForm = new Date(referenceDate);
     sevenDaysBeforeForm.setDate(sevenDaysBeforeForm.getDate() - 7);
-    
-    const myShifts = shifts.filter(s => {
+
+    const myShifts = shifts.filter((s) => {
       if (s.employee_name !== employeeName || !s.shift_date) return false;
       try {
         const shiftDate = parseISO(s.shift_date);
@@ -549,13 +549,13 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
         return false;
       }
     });
-    
+
     const sharedShifts = [];
-    myShifts.forEach(myShift => {
-      const colleagueShift = shifts.find(s => 
-        s.employee_name === selectedColleague &&
-        s.shift_date === myShift.shift_date &&
-        s.store_id === myShift.store_id
+    myShifts.forEach((myShift) => {
+      const colleagueShift = shifts.find((s) =>
+      s.employee_name === selectedColleague &&
+      s.shift_date === myShift.shift_date &&
+      s.store_id === myShift.store_id
       );
       if (colleagueShift) {
         sharedShifts.push({
@@ -568,26 +568,26 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
         });
       }
     });
-    
+
     return sharedShifts.sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [selectedColleague, currentUser, shifts, feedbackConfig]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Check all questions are answered
-    const allAnswered = questions.every(q => answers[q.id]);
+    const allAnswered = questions.every((q) => answers[q.id]);
     if (!allAnswered) {
       alert('Per favore, rispondi a tutte le domande prima di inviare.');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
-      const colleague = users.find(u => (u.nome_cognome || u.full_name || u.email) === selectedColleague);
-      
-      const responseData = questions.map(q => ({
+      const colleague = users.find((u) => (u.nome_cognome || u.full_name || u.email) === selectedColleague);
+
+      const responseData = questions.map((q) => ({
         metric_id: q.id,
         metric_name: q.metric_name,
         score: parseInt(answers[q.id]),
@@ -608,7 +608,7 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
         responses: responseData,
         submitted_date: new Date().toISOString()
       };
-      
+
       await onSubmit(submissionData);
 
       alert('✅ Feedback inviato con successo!');
@@ -628,8 +628,8 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
       <NeumorphicCard className="p-12 text-center">
         <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
         <p className="text-slate-500">Nessun form disponibile al momento</p>
-      </NeumorphicCard>
-    );
+      </NeumorphicCard>);
+
   }
 
   if (colleagues.length === 0) {
@@ -638,8 +638,8 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
         <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-slate-800 mb-2">Tutto completo! 🎉</h3>
         <p className="text-slate-500">Hai già valutato tutti i colleghi con cui hai lavorato la settimana scorsa</p>
-      </NeumorphicCard>
-    );
+      </NeumorphicCard>);
+
   }
 
   return (
@@ -649,157 +649,157 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
         Seleziona un collega con cui hai lavorato la settimana scorsa e completa il questionario
       </p>
 
-      {!selectedColleague ? (
-        <div className="space-y-6">
+      {!selectedColleague ?
+      <div className="space-y-6">
           {(() => {
-            const lastSentDate = feedbackConfig[0]?.last_sent_date;
-            
-            const completedThisCycle = responses.filter(r => {
-              if (r.reviewer_id !== currentUser.id) return false;
-              // If form was sent, only count reviews after that date
-              if (lastSentDate && r.submitted_date) {
-                try {
-                  const submittedDate = new Date(r.submitted_date);
-                  const sentDate = new Date(lastSentDate);
-                  return submittedDate >= sentDate;
-                } catch (e) {
-                  return false;
-                }
-              }
-              return true;
-            });
+          const lastSentDate = feedbackConfig[0]?.last_sent_date;
 
-            return (
-              <>
-                {lastSentDate && (
-                  <div className="neumorphic-flat p-4 rounded-xl bg-blue-50">
+          const completedThisCycle = responses.filter((r) => {
+            if (r.reviewer_id !== currentUser.id) return false;
+            // If form was sent, only count reviews after that date
+            if (lastSentDate && r.submitted_date) {
+              try {
+                const submittedDate = new Date(r.submitted_date);
+                const sentDate = new Date(lastSentDate);
+                return submittedDate >= sentDate;
+              } catch (e) {
+                return false;
+              }
+            }
+            return true;
+          });
+
+          return (
+            <>
+                {lastSentDate &&
+              <div className="neumorphic-flat p-4 rounded-xl bg-blue-50">
                     <p className="text-sm text-blue-800">
-                      <strong>📅 Form inviato il:</strong> {new Date(lastSentDate).toLocaleDateString('it-IT', { 
-                        weekday: 'long', 
-                        day: 'numeric', 
-                        month: 'long', 
-                        year: 'numeric' 
-                      })}
+                      <strong>📅 Form inviato il:</strong> {new Date(lastSentDate).toLocaleDateString('it-IT', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
                     </p>
                     <p className="text-xs text-blue-600 mt-1">
                       Valuta i colleghi con cui hai lavorato nei 7 giorni precedenti
                     </p>
                   </div>
-                )}
+              }
                 
-                {completedThisCycle.length > 0 && (
-                  <div className="neumorphic-flat p-4 rounded-xl bg-green-50">
+                {completedThisCycle.length > 0 &&
+              <div className="neumorphic-flat p-4 rounded-xl bg-green-50">
                     <div className="flex items-center gap-2 mb-2">
                       <CheckCircle className="w-5 h-5 text-green-600" />
                       <h3 className="font-bold text-green-800">Valutazioni Completate ({completedThisCycle.length})</h3>
                     </div>
                     <div className="space-y-1">
-                      {completedThisCycle.map(resp => (
-                        <div key={resp.id} className="flex items-center justify-between text-sm">
+                      {completedThisCycle.map((resp) =>
+                  <div key={resp.id} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-4 h-4 text-green-600" />
                             <span className="text-green-800 font-medium">{resp.reviewed_name}</span>
                           </div>
                           <span className="text-xs text-green-600">
                             {(() => {
-                              try {
-                                return new Date(resp.submitted_date).toLocaleString('it-IT', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                });
-                              } catch (e) {
-                                return 'N/A';
-                              }
-                            })()}
+                        try {
+                          return new Date(resp.submitted_date).toLocaleString('it-IT', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+                        } catch (e) {
+                          return 'N/A';
+                        }
+                      })()}
                           </span>
                         </div>
-                      ))}
+                  )}
                     </div>
                   </div>
-                )}
-              </>
-            );
-          })()}
+              }
+              </>);
+
+        })()}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {colleagues.map(colleague => (
-              <button
-                key={colleague}
-                onClick={() => setSelectedColleague(colleague)}
-                className="nav-button p-4 rounded-xl text-left hover:shadow-lg transition-all"
-              >
+            {colleagues.map((colleague) =>
+          <button
+            key={colleague}
+            onClick={() => setSelectedColleague(colleague)}
+            className="nav-button p-4 rounded-xl text-left hover:shadow-lg transition-all">
+
                 <p className="font-bold text-slate-800">{colleague}</p>
               </button>
-            ))}
+          )}
           </div>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        </div> :
+
+      <form onSubmit={handleSubmit} className="space-y-4">
           <div className="neumorphic-pressed p-4 rounded-xl mb-6">
             <p className="text-sm text-slate-500">Stai valutando</p>
             <p className="text-lg font-bold text-slate-800 mb-3">{selectedColleague}</p>
             
-            {getSharedShifts.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-slate-300">
+            {getSharedShifts.length > 0 &&
+          <div className="mt-3 pt-3 border-t border-slate-300">
                 <p className="text-xs text-slate-500 mb-2 font-medium">Turni condivisi la settimana scorsa:</p>
                 <div className="space-y-2">
-                  {getSharedShifts.map((shift, idx) => (
-                    <div key={idx} className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg">
+                  {getSharedShifts.map((shift, idx) =>
+              <div key={idx} className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-bold text-slate-700">
                           {(() => {
-                            try {
-                              return new Date(shift.date).toLocaleDateString('it-IT', { 
-                                weekday: 'short', 
-                                day: 'numeric', 
-                                month: 'short' 
-                              });
-                            } catch (e) {
-                              return shift.date;
-                            }
-                          })()}
+                      try {
+                        return new Date(shift.date).toLocaleDateString('it-IT', {
+                          weekday: 'short',
+                          day: 'numeric',
+                          month: 'short'
+                        });
+                      } catch (e) {
+                        return shift.date;
+                      }
+                    })()}
                         </span>
                         <span className="text-blue-600">• {shift.store}</span>
                       </div>
                       <div className="text-xs text-slate-500">
-                        {shift.myStart && shift.myEnd && (
-                          <span>
+                        {shift.myStart && shift.myEnd &&
+                  <span>
                             {new Date(shift.myStart).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} - {new Date(shift.myEnd).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                           </span>
-                        )}
+                  }
                       </div>
                     </div>
-                  ))}
+              )}
                 </div>
               </div>
-            )}
+          }
           </div>
 
-          {questions.map(q => (
-            <div key={q.id} className="neumorphic-flat p-4 rounded-xl">
+          {questions.map((q) =>
+        <div key={q.id} className="neumorphic-flat p-4 rounded-xl">
               <label className="text-sm font-medium text-slate-700 mb-2 block">
                 {q.metric_name}
-                {q.metric_description && (
-                  <span className="text-xs text-slate-500 block mt-1">{q.metric_description}</span>
-                )}
+                {q.metric_description &&
+            <span className="text-xs text-slate-500 block mt-1">{q.metric_description}</span>
+            }
               </label>
               <div className="flex gap-2 justify-between">
-                {[1, 2, 3, 4, 5].map(score => (
-                  <button
-                    key={score}
-                    type="button"
-                    onClick={() => setAnswers({ ...answers, [q.id]: score })}
-                    className={`flex-1 py-3 px-2 rounded-xl text-center font-bold transition-all ${
-                      answers[q.id] === score
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                        : 'nav-button text-slate-700'
-                    }`}
-                  >
+                {[1, 2, 3, 4, 5].map((score) =>
+            <button
+              key={score}
+              type="button"
+              onClick={() => setAnswers({ ...answers, [q.id]: score })}
+              className={`flex-1 py-3 px-2 rounded-xl text-center font-bold transition-all ${
+              answers[q.id] === score ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'nav-button text-slate-700'}`
+              }>
+
                     {score}
                   </button>
-                ))}
+            )}
               </div>
               <div className="flex justify-between mt-1 px-1 mb-3">
                 <span className="text-xs text-slate-500">Basso</span>
@@ -807,45 +807,45 @@ function DipendenteView({ currentUser, questions, colleagues, users, onSubmit, s
               </div>
               <div>
                 <input
-                  type="text"
-                  value={notes[q.id] || ''}
-                  onChange={(e) => setNotes({ ...notes, [q.id]: e.target.value })}
-                  placeholder="Note (opzionale)"
-                  className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
-                />
+              type="text"
+              value={notes[q.id] || ''}
+              onChange={(e) => setNotes({ ...notes, [q.id]: e.target.value })}
+              placeholder="Note (opzionale)"
+              className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+
               </div>
             </div>
-          ))}
+        )}
 
           <div className="flex gap-3 pt-4">
-            <NeumorphicButton 
-              type="button" 
-              onClick={() => { setSelectedColleague(null); setAnswers({}); }}
-              className="flex-1"
-              disabled={isSubmitting}
-            >
+            <NeumorphicButton
+            type="button"
+            onClick={() => {setSelectedColleague(null);setAnswers({});}}
+            className="flex-1"
+            disabled={isSubmitting}>
+
               Annulla
             </NeumorphicButton>
-            <NeumorphicButton 
-              type="submit" 
-              variant="primary" 
-              className="flex-1"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>Invio in corso...</>
-              ) : (
-                <>
+            <NeumorphicButton
+            type="submit"
+            variant="primary"
+            className="flex-1"
+            disabled={isSubmitting}>
+
+              {isSubmitting ?
+            <>Invio in corso...</> :
+
+            <>
                   <Send className="w-5 h-5 mr-2" />
                   Invia Feedback
                 </>
-              )}
+            }
             </NeumorphicButton>
           </div>
         </form>
-      )}
-    </NeumorphicCard>
-  );
+      }
+    </NeumorphicCard>);
+
 }
 
 function ResponsesTab({ responses, users, questions }) {
@@ -863,8 +863,8 @@ function ResponsesTab({ responses, users, questions }) {
   // Get unique reviewed employees with their stats
   const reviewedEmployees = useMemo(() => {
     const employeeMap = {};
-    
-    responses.forEach(r => {
+
+    responses.forEach((r) => {
       const name = r.reviewed_name;
       if (!employeeMap[name]) {
         employeeMap[name] = {
@@ -876,11 +876,11 @@ function ResponsesTab({ responses, users, questions }) {
           allFeedback: []
         };
       }
-      
+
       employeeMap[name].totalResponses++;
       employeeMap[name].allFeedback.push(r);
-      
-      r.responses?.forEach(resp => {
+
+      r.responses?.forEach((resp) => {
         const metricName = resp.metric_name || resp.question_text || 'Unknown';
         if (!employeeMap[name].metricTotals[metricName]) {
           employeeMap[name].metricTotals[metricName] = 0;
@@ -892,17 +892,17 @@ function ResponsesTab({ responses, users, questions }) {
     });
 
     // Calculate averages
-    Object.values(employeeMap).forEach(emp => {
+    Object.values(employeeMap).forEach((emp) => {
       emp.metricAverages = {};
       let totalSum = 0;
       let totalCount = 0;
-      
-      Object.keys(emp.metricTotals).forEach(metric => {
+
+      Object.keys(emp.metricTotals).forEach((metric) => {
         emp.metricAverages[metric] = (emp.metricTotals[metric] / emp.metricCounts[metric]).toFixed(1);
         totalSum += emp.metricTotals[metric];
         totalCount += emp.metricCounts[metric];
       });
-      
+
       emp.overallAverage = totalCount > 0 ? (totalSum / totalCount).toFixed(1) : '0';
     });
 
@@ -915,28 +915,28 @@ function ResponsesTab({ responses, users, questions }) {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setViewMode('singole')}
-            className="px-4 py-2 rounded-xl font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
-          >
+            className="px-4 py-2 rounded-xl font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
+
             Risposte Singole
           </button>
           <button
             onClick={() => setViewMode('dipendente')}
-            className="px-4 py-2 rounded-xl font-medium nav-button text-slate-700"
-          >
+            className="px-4 py-2 rounded-xl font-medium nav-button text-slate-700">
+
             Per Dipendente
           </button>
         </div>
 
-        {responses.length === 0 ? (
-          <div className="text-center py-12">
+        {responses.length === 0 ?
+        <div className="text-center py-12">
             <CheckCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-500">Nessuna risposta ricevuta</p>
-          </div>
-        ) : (
-          responses.map(r => {
-            const avgScore = getResponseAverage(r);
-            return (
-              <NeumorphicCard key={r.id} className="p-4">
+          </div> :
+
+        responses.map((r) => {
+          const avgScore = getResponseAverage(r);
+          return (
+            <NeumorphicCard key={r.id} className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex-1">
                     <p className="font-bold text-slate-800">{r.reviewer_name}</p>
@@ -949,48 +949,48 @@ function ResponsesTab({ responses, users, questions }) {
                     </div>
                     <span className="text-xs text-slate-500">
                       {(() => {
-                        try {
-                          return new Date(r.submitted_date).toLocaleDateString('it-IT');
-                        } catch (e) {
-                          return 'N/A';
-                        }
-                      })()}
+                      try {
+                        return new Date(r.submitted_date).toLocaleDateString('it-IT');
+                      } catch (e) {
+                        return 'N/A';
+                      }
+                    })()}
                     </span>
                   </div>
                 </div>
                 <div className="space-y-1">
-                 {r.responses?.map((resp, idx) => (
-                   <div key={idx} className="flex items-center justify-between">
+                 {r.responses?.map((resp, idx) =>
+                <div key={idx} className="flex items-center justify-between">
                      <span className="text-xs text-slate-600">{resp.metric_name || resp.question_text}:</span>
                      <div className="flex items-center gap-1">
-                       {[...Array(5)].map((_, i) => (
-                         <Star
-                           key={i}
-                           className={`w-3 h-3 ${
-                             i < (resp.score || 0)
-                               ? 'text-yellow-500 fill-yellow-500'
-                               : 'text-gray-300'
-                           }`}
-                         />
-                       ))}
+                       {[...Array(5)].map((_, i) =>
+                    <Star
+                      key={i}
+                      className={`w-3 h-3 ${
+                      i < (resp.score || 0) ?
+                      'text-yellow-500 fill-yellow-500' :
+                      'text-gray-300'}`
+                      } />
+
+                    )}
                        <span className="text-xs font-bold text-slate-800 ml-1">
                          {resp.score || resp.answer}
                        </span>
-                       {resp.note && (
-                         <span className="text-xs text-slate-500 ml-2 italic">
+                       {resp.note &&
+                    <span className="text-xs text-slate-500 ml-2 italic">
                            "{resp.note}"
                          </span>
-                       )}
+                    }
                      </div>
                    </div>
-                 ))}
+                )}
                 </div>
-              </NeumorphicCard>
-            );
-          })
-        )}
-      </div>
-    );
+              </NeumorphicCard>);
+
+        })
+        }
+      </div>);
+
   }
 
   // Dipendente view
@@ -999,27 +999,27 @@ function ResponsesTab({ responses, users, questions }) {
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setViewMode('singole')}
-          className="px-4 py-2 rounded-xl font-medium nav-button text-slate-700"
-        >
+          className="px-4 py-2 rounded-xl font-medium nav-button text-slate-700">
+
           Risposte Singole
         </button>
         <button
           onClick={() => setViewMode('dipendente')}
-          className="px-4 py-2 rounded-xl font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg"
-        >
+          className="px-4 py-2 rounded-xl font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg">
+
           Per Dipendente
         </button>
       </div>
 
-      {reviewedEmployees.length === 0 ? (
-        <div className="text-center py-12">
+      {reviewedEmployees.length === 0 ?
+      <div className="text-center py-12">
           <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500">Nessun feedback ricevuto</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {reviewedEmployees.map(emp => (
-            <NeumorphicCard key={emp.name} className="p-4">
+        </div> :
+
+      <div className="space-y-3">
+          {reviewedEmployees.map((emp) =>
+        <NeumorphicCard key={emp.name} className="p-4">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <h3 className="font-bold text-slate-800 text-lg">{emp.name}</h3>
@@ -1035,32 +1035,32 @@ function ResponsesTab({ responses, users, questions }) {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-                {Object.entries(emp.metricAverages).map(([metric, avg]) => (
-                  <div key={metric} className="neumorphic-pressed p-3 rounded-xl">
+                {Object.entries(emp.metricAverages).map(([metric, avg]) =>
+            <div key={metric} className="neumorphic-pressed p-3 rounded-xl">
                     <p className="text-xs text-slate-500 mb-1 truncate" title={metric}>{metric}</p>
                     <div className="flex items-center gap-1">
                       <span className="text-lg font-bold text-slate-800">{avg}</span>
                       <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                     </div>
                   </div>
-                ))}
+            )}
               </div>
 
               <NeumorphicButton
-                onClick={() => setShowDetailModal(emp)}
-                className="w-full flex items-center justify-center gap-2"
-              >
+            onClick={() => setShowDetailModal(emp)}
+            className="w-full flex items-center justify-center gap-2">
+
                 <Eye className="w-4 h-4" />
                 Vedi tutti i feedback
               </NeumorphicButton>
             </NeumorphicCard>
-          ))}
+        )}
         </div>
-      )}
+      }
 
       {/* Detail Modal */}
-      {showDetailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {showDetailModal &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -1068,9 +1068,9 @@ function ResponsesTab({ responses, users, questions }) {
                 <p className="text-sm text-slate-500">{showDetailModal.totalResponses} valutazioni ricevute</p>
               </div>
               <button
-                onClick={() => setShowDetailModal(null)}
-                className="nav-button p-2 rounded-lg"
-              >
+              onClick={() => setShowDetailModal(null)}
+              className="nav-button p-2 rounded-lg">
+
                 <X className="w-5 h-5 text-slate-600" />
               </button>
             </div>
@@ -1086,9 +1086,9 @@ function ResponsesTab({ responses, users, questions }) {
             <h3 className="text-lg font-bold text-slate-800 mb-4">Tutti i Feedback Ricevuti</h3>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {showDetailModal.allFeedback.map((fb, idx) => {
-                const avgScore = getResponseAverage(fb);
-                return (
-                  <div key={idx} className="neumorphic-flat p-4 rounded-xl">
+              const avgScore = getResponseAverage(fb);
+              return (
+                <div key={idx} className="neumorphic-flat p-4 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
                       <p className="font-medium text-slate-800">Da: {fb.reviewer_name}</p>
                       <div className="flex items-center gap-2">
@@ -1098,48 +1098,48 @@ function ResponsesTab({ responses, users, questions }) {
                     </div>
                     <p className="text-xs text-slate-500 mb-2">
                       {(() => {
-                        try {
-                          return new Date(fb.submitted_date).toLocaleDateString('it-IT', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                          });
-                        } catch (e) {
-                          return 'N/A';
-                        }
-                      })()}
+                      try {
+                        return new Date(fb.submitted_date).toLocaleDateString('it-IT', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        });
+                      } catch (e) {
+                        return 'N/A';
+                      }
+                    })()}
                     </p>
                     <div className="space-y-1">
-                      {fb.responses?.map((resp, i) => (
-                        <div key={i} className="flex items-center justify-between text-sm">
+                      {fb.responses?.map((resp, i) =>
+                    <div key={i} className="flex items-center justify-between text-sm">
                           <span className="text-slate-600">{resp.metric_name || resp.question_text}:</span>
                           <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, j) => (
-                              <Star
-                                key={j}
-                                className={`w-3 h-3 ${
-                                  j < (resp.score || 0)
-                                    ? 'text-yellow-500 fill-yellow-500'
-                                    : 'text-gray-300'
-                                }`}
-                              />
-                            ))}
-                            {resp.note && (
-                              <span className="text-xs text-slate-500 ml-2 italic">"{resp.note}"</span>
-                            )}
+                            {[...Array(5)].map((_, j) =>
+                        <Star
+                          key={j}
+                          className={`w-3 h-3 ${
+                          j < (resp.score || 0) ?
+                          'text-yellow-500 fill-yellow-500' :
+                          'text-gray-300'}`
+                          } />
+
+                        )}
+                            {resp.note &&
+                        <span className="text-xs text-slate-500 ml-2 italic">"{resp.note}"</span>
+                        }
                           </div>
                         </div>
-                      ))}
+                    )}
                     </div>
-                  </div>
-                );
-              })}
+                  </div>);
+
+            })}
             </div>
           </NeumorphicCard>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
 
 function FormsSentTab({ feedbackConfig, responses, users, shifts }) {
@@ -1147,24 +1147,24 @@ function FormsSentTab({ feedbackConfig, responses, users, shifts }) {
 
   const formsSent = React.useMemo(() => {
     const sent = [];
-    
+
     // Get all form send dates from config
     if (feedbackConfig[0]?.last_sent_date) {
       const lastSentDate = feedbackConfig[0].last_sent_date;
       const sentDate = parseISO(lastSentDate);
-      
+
       // Get 7 days before form was sent
       const sevenDaysBefore = new Date(sentDate);
       sevenDaysBefore.setDate(sevenDaysBefore.getDate() - 7);
-      
+
       // For each user, check if they completed all evaluations
-      const dipendenti = users.filter(u => u.user_type === 'dipendente' || u.user_type === 'user');
-      
-      const completionData = dipendenti.map(user => {
+      const dipendenti = users.filter((u) => u.user_type === 'dipendente' || u.user_type === 'user');
+
+      const completionData = dipendenti.map((user) => {
         const employeeName = user.nome_cognome || user.full_name || user.email;
-        
+
         // Get shifts in the evaluation period
-        const userShifts = shifts.filter(s => {
+        const userShifts = shifts.filter((s) => {
           if (s.employee_name !== employeeName || !s.shift_date) return false;
           try {
             const shiftDate = parseISO(s.shift_date);
@@ -1174,23 +1174,23 @@ function FormsSentTab({ feedbackConfig, responses, users, shifts }) {
             return false;
           }
         });
-        
+
         // Get colleagues from those shifts
         const colleaguesSet = new Set();
-        userShifts.forEach(myShift => {
-          shifts.forEach(otherShift => {
+        userShifts.forEach((myShift) => {
+          shifts.forEach((otherShift) => {
             if (otherShift.employee_name !== employeeName &&
-                otherShift.shift_date === myShift.shift_date &&
-                otherShift.store_id === myShift.store_id) {
+            otherShift.shift_date === myShift.shift_date &&
+            otherShift.store_id === myShift.store_id) {
               colleaguesSet.add(otherShift.employee_name);
             }
           });
         });
-        
+
         const colleaguesToEvaluate = Array.from(colleaguesSet);
-        
+
         // Get evaluations done by this user after last sent date
-        const evaluationsDone = responses.filter(r => {
+        const evaluationsDone = responses.filter((r) => {
           if (r.reviewer_id !== user.id) return false;
           if (r.submitted_date) {
             try {
@@ -1202,10 +1202,10 @@ function FormsSentTab({ feedbackConfig, responses, users, shifts }) {
           }
           return false;
         });
-        
-        const completed = colleaguesToEvaluate.length > 0 && 
-                         evaluationsDone.length === colleaguesToEvaluate.length;
-        
+
+        const completed = colleaguesToEvaluate.length > 0 &&
+        evaluationsDone.length === colleaguesToEvaluate.length;
+
         return {
           user,
           employeeName,
@@ -1214,13 +1214,13 @@ function FormsSentTab({ feedbackConfig, responses, users, shifts }) {
           completed
         };
       });
-      
+
       sent.push({
         sentDate: lastSentDate,
         completionData
       });
     }
-    
+
     return sent;
   }, [feedbackConfig, responses, users, shifts]);
 
@@ -1229,17 +1229,17 @@ function FormsSentTab({ feedbackConfig, responses, users, shifts }) {
       <div className="text-center py-12">
         <Send className="w-16 h-16 text-slate-300 mx-auto mb-4" />
         <p className="text-slate-500">Nessun form inviato ancora</p>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
     <div className="space-y-4">
       {formsSent.map((form, idx) => {
-        const completedCount = form.completionData.filter(d => d.completed).length;
-        const totalCount = form.completionData.filter(d => d.colleaguesToEvaluate.length > 0).length;
-        const completionPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-        
+        const completedCount = form.completionData.filter((d) => d.completed).length;
+        const totalCount = form.completionData.filter((d) => d.colleaguesToEvaluate.length > 0).length;
+        const completionPercentage = totalCount > 0 ? completedCount / totalCount * 100 : 0;
+
         return (
           <NeumorphicCard key={idx} className="p-6">
             <div className="flex items-start justify-between mb-4">
@@ -1263,8 +1263,8 @@ function FormsSentTab({ feedbackConfig, responses, users, shifts }) {
               </div>
               <NeumorphicButton
                 onClick={() => setSelectedFormDetails(form)}
-                className="flex items-center gap-2"
-              >
+                className="flex items-center gap-2">
+
                 <Eye className="w-4 h-4" />
                 Dettagli
               </NeumorphicButton>
@@ -1287,41 +1287,41 @@ function FormsSentTab({ feedbackConfig, responses, users, shifts }) {
             
             <div className="mt-4">
               <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-green-500 to-emerald-600 transition-all duration-500"
-                  style={{ width: `${completionPercentage}%` }}
-                />
+                  style={{ width: `${completionPercentage}%` }} />
+
               </div>
             </div>
-          </NeumorphicCard>
-        );
+          </NeumorphicCard>);
+
       })}
       
-      {selectedFormDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {selectedFormDetails &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-slate-800">
                 Dettagli Completamento
               </h2>
               <button
-                onClick={() => setSelectedFormDetails(null)}
-                className="nav-button p-2 rounded-lg"
-              >
+              onClick={() => setSelectedFormDetails(null)}
+              className="nav-button p-2 rounded-lg">
+
                 <X className="w-5 h-5 text-slate-600" />
               </button>
             </div>
             
             <div className="space-y-2">
-              {selectedFormDetails.completionData
-                .filter(d => d.colleaguesToEvaluate.length > 0)
-                .map((data, idx) => (
-                  <div 
-                    key={idx} 
-                    className={`neumorphic-pressed p-4 rounded-xl ${
-                      data.completed ? 'border-2 border-green-200' : 'border-2 border-orange-200'
-                    }`}
-                  >
+              {selectedFormDetails.completionData.
+            filter((d) => d.colleaguesToEvaluate.length > 0).
+            map((data, idx) =>
+            <div
+              key={idx}
+              className={`neumorphic-pressed p-4 rounded-xl ${
+              data.completed ? 'border-2 border-green-200' : 'border-2 border-orange-200'}`
+              }>
+
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <p className="font-bold text-slate-800">{data.employeeName}</p>
@@ -1331,31 +1331,31 @@ function FormsSentTab({ feedbackConfig, responses, users, shifts }) {
                         <p className="text-sm text-slate-600">
                           Valutazioni completate: {data.evaluationsDone}
                         </p>
-                        {data.colleaguesToEvaluate.length > 0 && (
-                          <div className="mt-2">
+                        {data.colleaguesToEvaluate.length > 0 &&
+                  <div className="mt-2">
                             <p className="text-xs text-slate-500">
                               Colleghi: {data.colleaguesToEvaluate.join(', ')}
                             </p>
                           </div>
-                        )}
+                  }
                       </div>
-                      {data.completed ? (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1">
+                      {data.completed ?
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-1">
                           <CheckCircle className="w-3 h-3" />
                           Completato
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                        </span> :
+
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
                           {data.evaluationsDone}/{data.colleaguesToEvaluate.length}
                         </span>
-                      )}
+                }
                     </div>
                   </div>
-                ))}
+            )}
             </div>
           </NeumorphicCard>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
