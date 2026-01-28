@@ -12,11 +12,11 @@ export default function MarketingSettings() {
 
   const { data: configs = [] } = useQuery({
     queryKey: ['marketing-configs'],
-    queryFn: () => base44.entities.MarketingConfig.list(),
+    queryFn: () => base44.entities.MarketingConfig.list()
   });
 
-  const googleConfig = configs.find(c => c.config_name === 'google_ads');
-  const metaConfig = configs.find(c => c.config_name === 'meta_ads');
+  const googleConfig = configs.find((c) => c.config_name === 'google_ads');
+  const metaConfig = configs.find((c) => c.config_name === 'meta_ads');
 
   const [googleForm, setGoogleForm] = useState({
     developer_token: '',
@@ -46,7 +46,7 @@ export default function MarketingSettings() {
 
   const saveMutation = useMutation({
     mutationFn: async ({ configName, credentials }) => {
-      const existing = configs.find(c => c.config_name === configName);
+      const existing = configs.find((c) => c.config_name === configName);
       if (existing) {
         return await base44.entities.MarketingConfig.update(existing.id, { credentials });
       } else {
@@ -81,18 +81,18 @@ export default function MarketingSettings() {
   };
 
   const toggleShow = (field) => {
-    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
+    setShowPasswords((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
   return (
     <ProtectedPage pageName="MarketingSettings" requiredUserTypes={['admin']}>
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2 flex items-center gap-3">
-            <Settings className="w-8 h-8" />
-            Configurazione Marketing
+          <h1 className="text-slate-50 mb-2 text-3xl font-bold flex items-center gap-3">Configurazione Marketing
+
+
           </h1>
-          <p className="text-[#9b9b9b]">Inserisci le credenziali per Google Ads e Meta Ads</p>
+          <p className="text-slate-50">Inserisci le credenziali per Google Ads e Meta Ads</p>
         </div>
 
         {/* Google Ads Configuration */}
@@ -109,8 +109,8 @@ export default function MarketingSettings() {
                   value={googleForm.developer_token}
                   onChange={(e) => setGoogleForm({ ...googleForm, developer_token: e.target.value })}
                   className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  placeholder="Ottienilo da https://ads.google.com/aw/apicenter"
-                />
+                  placeholder="Ottienilo da https://ads.google.com/aw/apicenter" />
+
                 <button onClick={() => toggleShow('google_dev')} className="neumorphic-flat p-3 rounded-xl">
                   {showPasswords.google_dev ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -124,8 +124,8 @@ export default function MarketingSettings() {
                 value={googleForm.client_id}
                 onChange={(e) => setGoogleForm({ ...googleForm, client_id: e.target.value })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                placeholder="Da Google Cloud Console → Credentials"
-              />
+                placeholder="Da Google Cloud Console → Credentials" />
+
             </div>
 
             <div>
@@ -136,8 +136,8 @@ export default function MarketingSettings() {
                   value={googleForm.client_secret}
                   onChange={(e) => setGoogleForm({ ...googleForm, client_secret: e.target.value })}
                   className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  placeholder="Da Google Cloud Console"
-                />
+                  placeholder="Da Google Cloud Console" />
+
                 <button onClick={() => toggleShow('google_secret')} className="neumorphic-flat p-3 rounded-xl">
                   {showPasswords.google_secret ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -152,8 +152,8 @@ export default function MarketingSettings() {
                   value={googleForm.refresh_token}
                   onChange={(e) => setGoogleForm({ ...googleForm, refresh_token: e.target.value })}
                   className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  placeholder="Generalo con OAuth Playground"
-                />
+                  placeholder="Generalo con OAuth Playground" />
+
                 <button onClick={() => toggleShow('google_refresh')} className="neumorphic-flat p-3 rounded-xl">
                   {showPasswords.google_refresh ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -167,8 +167,8 @@ export default function MarketingSettings() {
                 value={googleForm.customer_id}
                 onChange={(e) => setGoogleForm({ ...googleForm, customer_id: e.target.value })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                placeholder="1234567890 (senza trattini)"
-              />
+                placeholder="1234567890 (senza trattini)" />
+
             </div>
 
             <NeumorphicButton onClick={handleSaveGoogle} className="w-full flex items-center justify-center gap-2">
@@ -192,8 +192,8 @@ export default function MarketingSettings() {
                   value={metaForm.access_token}
                   onChange={(e) => setMetaForm({ ...metaForm, access_token: e.target.value })}
                   className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  placeholder="Da https://developers.facebook.com/tools/explorer/"
-                />
+                  placeholder="Da https://developers.facebook.com/tools/explorer/" />
+
                 <button onClick={() => toggleShow('meta_token')} className="neumorphic-flat p-3 rounded-xl">
                   {showPasswords.meta_token ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -208,8 +208,8 @@ export default function MarketingSettings() {
                 value={metaForm.ad_account_id}
                 onChange={(e) => setMetaForm({ ...metaForm, ad_account_id: e.target.value })}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                placeholder="act_XXXXXXXXXX"
-              />
+                placeholder="act_XXXXXXXXXX" />
+
               <p className="text-xs text-[#9b9b9b] mt-1">Trovalo in Meta Business Manager → Impostazioni</p>
             </div>
 
@@ -239,6 +239,6 @@ export default function MarketingSettings() {
           </div>
         </NeumorphicCard>
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
