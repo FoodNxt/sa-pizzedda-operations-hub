@@ -56,11 +56,11 @@ export default function Ritardi() {
   const dateRangeStart = useMemo(() => {
     const now = new Date();
     switch (dateRange) {
-      case '30': {
-        const d = new Date();
-        d.setDate(d.getDate() - 30);
-        return d;
-      }
+      case '30':{
+          const d = new Date();
+          d.setDate(d.getDate() - 30);
+          return d;
+        }
       case 'month':
         return startOfMonth(new Date());
       case '180':
@@ -74,77 +74,77 @@ export default function Ritardi() {
 
   // Filter turni by date and store
   const filteredTurni = useMemo(() => {
-    return turni
-      .map(t => {
-        // Prendo minuti_ritardo_reale dal database, o lo calcolo se non c'è
-        let minutiRitardoReale = t.minuti_ritardo_reale || 0;
-        
-        // Se non c'è ritardo reale nel database, calcolalo
-        if (minutiRitardoReale === 0 && t.timbratura_entrata && t.ora_inizio) {
-          try {
-            const clockInTime = new Date(t.timbratura_entrata);
-            const [oraInizioHH, oraInizioMM] = t.ora_inizio.split(':').map(Number);
-            const scheduledStart = new Date(clockInTime);
-            scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
-            const delayMs = clockInTime - scheduledStart;
-            minutiRitardoReale = Math.max(0, Math.floor(delayMs / 60000));
-          } catch (e) {
-            // Skip in caso di errore
-          }
+    return turni.
+    map((t) => {
+      // Prendo minuti_ritardo_reale dal database, o lo calcolo se non c'è
+      let minutiRitardoReale = t.minuti_ritardo_reale || 0;
+
+      // Se non c'è ritardo reale nel database, calcolalo
+      if (minutiRitardoReale === 0 && t.timbratura_entrata && t.ora_inizio) {
+        try {
+          const clockInTime = new Date(t.timbratura_entrata);
+          const [oraInizioHH, oraInizioMM] = t.ora_inizio.split(':').map(Number);
+          const scheduledStart = new Date(clockInTime);
+          scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+          const delayMs = clockInTime - scheduledStart;
+          minutiRitardoReale = Math.max(0, Math.floor(delayMs / 60000));
+        } catch (e) {
+
+
+          // Skip in caso di errore
+        }}
+      // SEMPRE ricalcola il conteggiato basandosi sul reale e configurazione
+      let minutiRitardoConteggiato = 0;
+      const tolleranza = timbraturaConfig?.tolleranza_ritardo_minuti || 0;
+
+      if (minutiRitardoReale > tolleranza) {
+        const ritardoDopoPenalita = minutiRitardoReale - tolleranza;
+
+        if (timbraturaConfig?.arrotonda_ritardo) {
+          const arrotondamento = timbraturaConfig?.arrotondamento_minuti || 15;
+          minutiRitardoConteggiato = Math.ceil(ritardoDopoPenalita / arrotondamento) * arrotondamento;
+        } else {
+          minutiRitardoConteggiato = ritardoDopoPenalita;
         }
-        
-        // SEMPRE ricalcola il conteggiato basandosi sul reale e configurazione
-        let minutiRitardoConteggiato = 0;
-        const tolleranza = timbraturaConfig?.tolleranza_ritardo_minuti || 0;
-        
-        if (minutiRitardoReale > tolleranza) {
-          const ritardoDopoPenalita = minutiRitardoReale - tolleranza;
-          
-          if (timbraturaConfig?.arrotonda_ritardo) {
-            const arrotondamento = timbraturaConfig?.arrotondamento_minuti || 15;
-            minutiRitardoConteggiato = Math.ceil(ritardoDopoPenalita / arrotondamento) * arrotondamento;
-          } else {
-            minutiRitardoConteggiato = ritardoDopoPenalita;
-          }
-        }
-        
-        return {
-          ...t,
-          minuti_ritardo_reale: minutiRitardoReale,
-          minuti_ritardo_conteggiato: minutiRitardoConteggiato
-        };
-      })
-      .filter(t => {
-        // Deve avere timbratura entrata
-        if (!t.timbratura_entrata) return false;
-        
-        // Deve avere ritardo
-        if (t.minuti_ritardo_reale <= 0) return false;
-        
-        // Filtro store
-        const matchStore = selectedStore === "all" || t.store_id === selectedStore;
-        if (!matchStore) return false;
-        
-        // Filtro data
-        if (dateRangeStart) {
-          const turnoDate = new Date(t.data);
-          if (turnoDate < dateRangeStart) return false;
-        }
-        
-        return true;
-      });
+      }
+
+      return {
+        ...t,
+        minuti_ritardo_reale: minutiRitardoReale,
+        minuti_ritardo_conteggiato: minutiRitardoConteggiato
+      };
+    }).
+    filter((t) => {
+      // Deve avere timbratura entrata
+      if (!t.timbratura_entrata) return false;
+
+      // Deve avere ritardo
+      if (t.minuti_ritardo_reale <= 0) return false;
+
+      // Filtro store
+      const matchStore = selectedStore === "all" || t.store_id === selectedStore;
+      if (!matchStore) return false;
+
+      // Filtro data
+      if (dateRangeStart) {
+        const turnoDate = new Date(t.data);
+        if (turnoDate < dateRangeStart) return false;
+      }
+
+      return true;
+    });
   }, [turni, selectedStore, dateRangeStart, timbraturaConfig]);
 
   // Calcola statistiche per store
   const statsPerStore = useMemo(() => {
     const stats = {};
 
-    stores.forEach(store => {
-      const turniStore = filteredTurni.filter(t => t.store_id === store.id);
+    stores.forEach((store) => {
+      const turniStore = filteredTurni.filter((t) => t.store_id === store.id);
       const totalRitardi = turniStore.length;
       const minutiReali = turniStore.reduce((sum, t) => sum + (t.minuti_ritardo_reale || 0), 0);
       const minutiConteggiati = turniStore.reduce((sum, t) => sum + (t.minuti_ritardo_conteggiato || 0), 0);
-      
+
       stats[store.id] = {
         storeName: store.name,
         totalRitardi,
@@ -157,18 +157,18 @@ export default function Ritardi() {
       };
     });
 
-    return Object.values(stats).filter(s => s.totalRitardi > 0);
+    return Object.values(stats).filter((s) => s.totalRitardi > 0);
   }, [stores, filteredTurni]);
 
   // Calcola statistiche per dipendente
   const statsPerDipendente = useMemo(() => {
     const stats = {};
 
-    filteredTurni.forEach(turno => {
+    filteredTurni.forEach((turno) => {
       if (!turno.dipendente_id) return;
 
       if (!stats[turno.dipendente_id]) {
-        const user = users.find(u => u.id === turno.dipendente_id);
+        const user = users.find((u) => u.id === turno.dipendente_id);
         stats[turno.dipendente_id] = {
           dipendenteId: turno.dipendente_id,
           dipendenteNome: turno.dipendente_nome || user?.nome_cognome || user?.full_name || 'Sconosciuto',
@@ -186,7 +186,7 @@ export default function Ritardi() {
       // Per store
       if (!stats[turno.dipendente_id].turniPerStore[turno.store_id]) {
         stats[turno.dipendente_id].turniPerStore[turno.store_id] = {
-          storeName: stores.find(s => s.id === turno.store_id)?.name || 'Sconosciuto',
+          storeName: stores.find((s) => s.id === turno.store_id)?.name || 'Sconosciuto',
           count: 0,
           minutiReali: 0,
           minutiConteggiati: 0
@@ -197,22 +197,22 @@ export default function Ritardi() {
       stats[turno.dipendente_id].turniPerStore[turno.store_id].minutiConteggiati += turno.minuti_ritardo_conteggiato || 0;
     });
 
-    return Object.values(stats)
-      .map(s => ({
-        ...s,
-        oreReali: (s.minutiReali / 60).toFixed(1),
-        oreConteggiate: (s.minutiConteggiati / 60).toFixed(1),
-        mediaMinutiReali: s.totalRitardi > 0 ? (s.minutiReali / s.totalRitardi).toFixed(1) : 0,
-        mediaMinutiConteggiati: s.totalRitardi > 0 ? (s.minutiConteggiati / s.totalRitardi).toFixed(1) : 0
-      }))
-      .sort((a, b) => b.minutiConteggiati - a.minutiConteggiati);
+    return Object.values(stats).
+    map((s) => ({
+      ...s,
+      oreReali: (s.minutiReali / 60).toFixed(1),
+      oreConteggiate: (s.minutiConteggiati / 60).toFixed(1),
+      mediaMinutiReali: s.totalRitardi > 0 ? (s.minutiReali / s.totalRitardi).toFixed(1) : 0,
+      mediaMinutiConteggiati: s.totalRitardi > 0 ? (s.minutiConteggiati / s.totalRitardi).toFixed(1) : 0
+    })).
+    sort((a, b) => b.minutiConteggiati - a.minutiConteggiati);
   }, [filteredTurni, users, stores]);
 
   // Trend temporale
   const trendData = useMemo(() => {
     const grouped = {};
 
-    filteredTurni.forEach(turno => {
+    filteredTurni.forEach((turno) => {
       const date = turno.data;
       if (!grouped[date]) {
         grouped[date] = {
@@ -227,13 +227,13 @@ export default function Ritardi() {
       grouped[date].minutiConteggiati += turno.minuti_ritardo_conteggiato || 0;
     });
 
-    return Object.values(grouped)
-      .map(g => ({
-        ...g,
-        mediaMinutiReali: g.totalRitardi > 0 ? (g.minutiReali / g.totalRitardi).toFixed(1) : 0,
-        mediaMinutiConteggiati: g.totalRitardi > 0 ? (g.minutiConteggiati / g.totalRitardi).toFixed(1) : 0
-      }))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    return Object.values(grouped).
+    map((g) => ({
+      ...g,
+      mediaMinutiReali: g.totalRitardi > 0 ? (g.minutiReali / g.totalRitardi).toFixed(1) : 0,
+      mediaMinutiConteggiati: g.totalRitardi > 0 ? (g.minutiConteggiati / g.totalRitardi).toFixed(1) : 0
+    })).
+    sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [filteredTurni]);
 
   // Statistiche complessive
@@ -245,7 +245,7 @@ export default function Ritardi() {
     const oreConteggiate = (minutiConteggiati / 60).toFixed(1);
     const mediaMinutiReali = totalRitardi > 0 ? (minutiReali / totalRitardi).toFixed(1) : 0;
     const mediaMinutiConteggiati = totalRitardi > 0 ? (minutiConteggiati / totalRitardi).toFixed(1) : 0;
-    const dipendentiConRitardi = new Set(filteredTurni.map(t => t.dipendente_id).filter(Boolean)).size;
+    const dipendentiConRitardi = new Set(filteredTurni.map((t) => t.dipendente_id).filter(Boolean)).size;
 
     return {
       totalRitardi,
@@ -265,16 +265,16 @@ export default function Ritardi() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-              Analisi Ritardi
+            <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Analisi Ritardi
+
             </h1>
-            <p className="text-slate-500 mt-1">Monitoraggio ritardi per locale e dipendente</p>
+            <p className="text-slate-50 mt-1">Monitoraggio ritardi per locale e dipendente</p>
           </div>
           <button
             onClick={handleRecalculateDelays}
             disabled={isRecalculating}
-            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
-          >
+            className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50">
+
             {isRecalculating ? '⏳ Ricalcolo...' : '🔄 Ricalcola Ritardi'}
           </button>
         </div>
@@ -289,12 +289,12 @@ export default function Ritardi() {
               <select
                 value={selectedStore}
                 onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700 outline-none"
-              >
+                className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700 outline-none">
+
                 <option value="all">Tutti i locali</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id}>{store.name}</option>
-                ))}
+                {stores.map((store) =>
+                <option key={store.id} value={store.id}>{store.name}</option>
+                )}
               </select>
             </div>
 
@@ -305,8 +305,8 @@ export default function Ritardi() {
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700 outline-none"
-              >
+                className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700 outline-none">
+
                 <option value="30">Ultimi 30 giorni</option>
                 <option value="month">Mese in corso</option>
                 <option value="180">Ultimi 6 mesi</option>
@@ -321,8 +321,8 @@ export default function Ritardi() {
               <select
                 value={viewMode}
                 onChange={(e) => setViewMode(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700 outline-none"
-              >
+                className="w-full neumorphic-pressed px-4 py-2 rounded-lg text-slate-700 outline-none">
+
                 <option value="store">Per Locale</option>
                 <option value="dipendente">Per Dipendente</option>
               </select>
@@ -394,81 +394,81 @@ export default function Ritardi() {
         </div>
 
         {/* Trend Chart */}
-        {trendData.length > 0 && (
-          <NeumorphicCard className="p-6">
+        {trendData.length > 0 &&
+        <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-slate-700 mb-4">Trend Temporale Ritardi</h2>
             <div className="w-full overflow-x-auto">
               <div style={{ minWidth: '600px' }}>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={trendData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="#64748b"
-                      tick={{ fontSize: 11 }}
-                      tickFormatter={(date) => format(parseISO(date), 'dd/MM')}
-                    />
-                    <YAxis 
-                      stroke="#64748b"
-                      tick={{ fontSize: 11 }}
-                      label={{ value: 'Ritardi', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        background: 'rgba(248, 250, 252, 0.95)', 
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        fontSize: '11px'
-                      }}
-                      labelFormatter={(date) => format(parseISO(date), 'dd MMMM yyyy', { locale: it })}
-                    />
+                    <XAxis
+                    dataKey="date"
+                    stroke="#64748b"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(date) => format(parseISO(date), 'dd/MM')} />
+
+                    <YAxis
+                    stroke="#64748b"
+                    tick={{ fontSize: 11 }}
+                    label={{ value: 'Ritardi', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }} />
+
+                    <Tooltip
+                    contentStyle={{
+                      background: 'rgba(248, 250, 252, 0.95)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      fontSize: '11px'
+                    }}
+                    labelFormatter={(date) => format(parseISO(date), 'dd MMMM yyyy', { locale: it })} />
+
                     <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="totalRitardi" 
-                      stroke="#ef4444" 
-                      strokeWidth={2}
-                      name="Ritardi"
-                      dot={{ fill: '#ef4444', r: 3 }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="mediaMinutiReali" 
-                      stroke="#f59e0b" 
-                      strokeWidth={2}
-                      name="Media Min. Reali"
-                      dot={{ fill: '#f59e0b', r: 3 }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="mediaMinutiConteggiati" 
-                      stroke="#8b5cf6" 
-                      strokeWidth={2}
-                      name="Media Min. Cont."
-                      dot={{ fill: '#8b5cf6', r: 3 }}
-                    />
+                    <Line
+                    type="monotone"
+                    dataKey="totalRitardi"
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                    name="Ritardi"
+                    dot={{ fill: '#ef4444', r: 3 }} />
+
+                    <Line
+                    type="monotone"
+                    dataKey="mediaMinutiReali"
+                    stroke="#f59e0b"
+                    strokeWidth={2}
+                    name="Media Min. Reali"
+                    dot={{ fill: '#f59e0b', r: 3 }} />
+
+                    <Line
+                    type="monotone"
+                    dataKey="mediaMinutiConteggiati"
+                    stroke="#8b5cf6"
+                    strokeWidth={2}
+                    name="Media Min. Cont."
+                    dot={{ fill: '#8b5cf6', r: 3 }} />
+
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
           </NeumorphicCard>
-        )}
+        }
 
         {/* Stats per Store */}
-        {viewMode === 'store' && (
-          <NeumorphicCard className="p-6">
+        {viewMode === 'store' &&
+        <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
               <MapPin className="w-6 h-6 text-blue-600" />
               Analisi per Locale
             </h2>
             
-            {statsPerStore.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
+            {statsPerStore.length === 0 ?
+          <div className="text-center py-8 text-slate-500">
                 Nessun ritardo registrato nel periodo selezionato
-              </div>
-            ) : (
-              <div className="space-y-4">
+              </div> :
+
+          <div className="space-y-4">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
@@ -482,8 +482,8 @@ export default function Ritardi() {
                       </tr>
                     </thead>
                     <tbody>
-                      {statsPerStore.map(stat => (
-                        <tr key={stat.storeName} className="border-b border-slate-100 hover:bg-slate-50">
+                      {statsPerStore.map((stat) =>
+                  <tr key={stat.storeName} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 px-4 text-sm text-slate-700 font-medium">{stat.storeName}</td>
                           <td className="py-3 px-4 text-sm text-red-600 text-right font-bold">{stat.totalRitardi}</td>
                           <td className="py-3 px-4 text-sm text-orange-600 text-right font-medium">{stat.minutiReali}</td>
@@ -491,7 +491,7 @@ export default function Ritardi() {
                           <td className="py-3 px-4 text-sm text-blue-600 text-right font-bold">{stat.mediaMinutiReali}m</td>
                           <td className="py-3 px-4 text-sm text-purple-600 text-right font-bold">{stat.mediaMinutiConteggiati}m</td>
                         </tr>
-                      ))}
+                  )}
                     </tbody>
                   </table>
                 </div>
@@ -501,54 +501,54 @@ export default function Ritardi() {
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={statsPerStore}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                      <XAxis 
-                        dataKey="storeName" 
-                        stroke="#64748b"
-                        tick={{ fontSize: 11 }}
-                        angle={-45}
-                        textAnchor="end"
-                        height={80}
-                      />
-                      <YAxis 
-                        stroke="#64748b"
-                        tick={{ fontSize: 11 }}
-                        label={{ value: 'Ritardi', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          background: 'rgba(248, 250, 252, 0.95)', 
-                          border: 'none',
-                          borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          fontSize: '11px'
-                        }}
-                      />
+                      <XAxis
+                    dataKey="storeName"
+                    stroke="#64748b"
+                    tick={{ fontSize: 11 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80} />
+
+                      <YAxis
+                    stroke="#64748b"
+                    tick={{ fontSize: 11 }}
+                    label={{ value: 'Ritardi', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }} />
+
+                      <Tooltip
+                    contentStyle={{
+                      background: 'rgba(248, 250, 252, 0.95)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      fontSize: '11px'
+                    }} />
+
                       <Legend wrapperStyle={{ fontSize: '11px' }} />
                       <Bar dataKey="totalRitardi" fill="#ef4444" name="Ritardi" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
-            )}
+          }
           </NeumorphicCard>
-        )}
+        }
 
         {/* Stats per Dipendente */}
-        {viewMode === 'dipendente' && (
-          <NeumorphicCard className="p-6">
+        {viewMode === 'dipendente' &&
+        <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
               <User className="w-6 h-6 text-blue-600" />
               Analisi per Dipendente
             </h2>
             
-            {statsPerDipendente.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
+            {statsPerDipendente.length === 0 ?
+          <div className="text-center py-8 text-slate-500">
                 Nessun ritardo registrato nel periodo selezionato
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {statsPerDipendente.map(stat => (
-                  <div key={stat.dipendenteId} className="neumorphic-pressed p-4 rounded-xl">
+              </div> :
+
+          <div className="space-y-4">
+                {statsPerDipendente.map((stat) =>
+            <div key={stat.dipendenteId} className="neumorphic-pressed p-4 rounded-xl">
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <h3 className="font-bold text-slate-800">{stat.dipendenteNome}</h3>
@@ -573,27 +573,27 @@ export default function Ritardi() {
                     </div>
 
                     {/* Breakdown per store */}
-                    {Object.keys(stat.turniPerStore).length > 1 && (
-                      <div className="mt-3 pt-3 border-t border-slate-200">
+                    {Object.keys(stat.turniPerStore).length > 1 &&
+              <div className="mt-3 pt-3 border-t border-slate-200">
                         <p className="text-xs font-medium text-slate-600 mb-2">Dettaglio per locale:</p>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {Object.values(stat.turniPerStore).map(storeData => (
-                            <div key={storeData.storeName} className="text-xs bg-slate-50 rounded-lg p-2">
+                          {Object.values(stat.turniPerStore).map((storeData) =>
+                  <div key={storeData.storeName} className="text-xs bg-slate-50 rounded-lg p-2">
                               <p className="font-medium text-slate-700">{storeData.storeName}</p>
                               <p className="text-slate-600">{storeData.count} ritardi</p>
                               <p className="text-orange-600">Reali: {storeData.minutiReali}m</p>
                               <p className="text-amber-600">Cont.: {storeData.minutiConteggiati}m</p>
                             </div>
-                          ))}
+                  )}
                         </div>
                       </div>
-                    )}
+              }
                   </div>
-                ))}
-              </div>
             )}
+              </div>
+          }
           </NeumorphicCard>
-        )}
+        }
 
         {/* Top 10 worst delays */}
         <NeumorphicCard className="p-6">
@@ -602,12 +602,12 @@ export default function Ritardi() {
             I 10 Ritardi Più Lunghi
           </h2>
           
-          {filteredTurni.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
+          {filteredTurni.length === 0 ?
+          <div className="text-center py-8 text-slate-500">
               Nessun ritardo registrato
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+            </div> :
+
+          <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-slate-300">
@@ -620,16 +620,16 @@ export default function Ritardi() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...filteredTurni]
-                    .sort((a, b) => (b.minuti_ritardo_conteggiato || 0) - (a.minuti_ritardo_conteggiato || 0))
-                    .slice(0, 10)
-                    .map(turno => {
-                      const minutiReali = turno.minuti_ritardo_reale || 0;
-                      const minutiConteggiati = turno.minuti_ritardo_conteggiato || 0;
-                      const store = stores.find(s => s.id === turno.store_id);
-                      
-                      return (
-                        <tr key={turno.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  {[...filteredTurni].
+                sort((a, b) => (b.minuti_ritardo_conteggiato || 0) - (a.minuti_ritardo_conteggiato || 0)).
+                slice(0, 10).
+                map((turno) => {
+                  const minutiReali = turno.minuti_ritardo_reale || 0;
+                  const minutiConteggiati = turno.minuti_ritardo_conteggiato || 0;
+                  const store = stores.find((s) => s.id === turno.store_id);
+
+                  return (
+                    <tr key={turno.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 px-4 text-sm text-slate-600">
                             {format(parseISO(turno.data), 'dd/MM/yyyy', { locale: it })}
                           </td>
@@ -652,15 +652,15 @@ export default function Ritardi() {
                               {minutiConteggiati}m
                             </span>
                           </td>
-                        </tr>
-                      );
-                    })}
+                        </tr>);
+
+                })}
                 </tbody>
               </table>
             </div>
-          )}
+          }
         </NeumorphicCard>
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
