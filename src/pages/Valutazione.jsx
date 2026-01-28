@@ -2,18 +2,18 @@ import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import {
-   AlertCircle,
-   Clock,
-   Star,
-   TrendingUp,
-   Eye,
-   X,
-   User,
-   Calendar,
-   AlertTriangle,
-   Filter,
-   Sparkles
- } from 'lucide-react';
+  AlertCircle,
+  Clock,
+  Star,
+  TrendingUp,
+  Eye,
+  X,
+  User,
+  Calendar,
+  AlertTriangle,
+  Filter,
+  Sparkles } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { parseISO, isValid, format as formatDate, subDays, subMonths } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -32,31 +32,31 @@ export default function Valutazione() {
     queryFn: async () => {
       const u = await base44.auth.me();
       return u;
-    },
+    }
   });
 
   // Fetch shifts (same as DashboardStoreManager)
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts'],
-    queryFn: () => base44.entities.Shift.list('-shift_date'),
+    queryFn: () => base44.entities.Shift.list('-shift_date')
   });
 
   // Fetch reviews
   const { data: reviews = [] } = useQuery({
     queryKey: ['reviews'],
-    queryFn: () => base44.entities.Review.list('-review_date'),
+    queryFn: () => base44.entities.Review.list('-review_date')
   });
 
   // Fetch wrong orders
   const { data: wrongOrders = [] } = useQuery({
     queryKey: ['wrong-orders'],
-    queryFn: () => base44.entities.WrongOrder.list('-created_date'),
+    queryFn: () => base44.entities.WrongOrder.list('-created_date')
   });
 
   // Fetch wrong order matches
   const { data: wrongOrderMatches = [] } = useQuery({
     queryKey: ['wrong-order-matches'],
-    queryFn: () => base44.entities.WrongOrderMatch.list(),
+    queryFn: () => base44.entities.WrongOrderMatch.list()
   });
 
   // Match shifts and reviews by nome_cognome from User entity
@@ -118,33 +118,33 @@ export default function Valutazione() {
   };
 
   // Fetch cleaning inspections
-   const { data: cleaningInspections = [] } = useQuery({
-     queryKey: ['cleaning-inspections'],
-     queryFn: () => base44.entities.CleaningInspection.list('-inspection_date'),
-   });
+  const { data: cleaningInspections = [] } = useQuery({
+    queryKey: ['cleaning-inspections'],
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date')
+  });
 
   // Calculate user store IDs (SAME AS DASHBOARDSTOREMANAGER)
   const userStoreIds = useMemo(() => {
     if (!user || !shifts.length) return [];
-    return [...new Set(shifts.filter(s => s.employee_id_external === user.employee_id_external).map(s => s.store_id).filter(Boolean))];
+    return [...new Set(shifts.filter((s) => s.employee_id_external === user.employee_id_external).map((s) => s.store_id).filter(Boolean))];
   }, [user, shifts]);
 
   // Filter shifts for current user with date range (SAME AS DASHBOARDSTOREMANAGER)
-   const myShifts = useMemo(() => {
-     if (!user || !shifts.length) return [];
-     return shifts.filter(s => {
-       const date = new Date(s.shift_date);
-       return s.employee_id_external === user.employee_id_external && date >= monthStart && date <= monthEnd;
-     });
-   }, [user, shifts, monthStart, monthEnd]);
+  const myShifts = useMemo(() => {
+    if (!user || !shifts.length) return [];
+    return shifts.filter((s) => {
+      const date = new Date(s.shift_date);
+      return s.employee_id_external === user.employee_id_external && date >= monthStart && date <= monthEnd;
+    });
+  }, [user, shifts, monthStart, monthEnd]);
 
   // Filter reviews assigned to current user with date range
   const myReviews = useMemo(() => {
     if (!user || !reviews.length) return [];
     const userDisplayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
-    return reviews.filter(r => {
+    return reviews.filter((r) => {
       if (!r.employee_assigned_name) return false;
-      const assignedNames = r.employee_assigned_name.split(',').map(n => n.trim().toLowerCase());
+      const assignedNames = r.employee_assigned_name.split(',').map((n) => n.trim().toLowerCase());
       if (!assignedNames.includes(userDisplayName)) return false;
       // Apply date filter
       try {
@@ -162,11 +162,11 @@ export default function Valutazione() {
     const userDisplayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
 
     // Find all matches for this employee
-    const matchedOrderIds = wrongOrderMatches
-      .filter(m => m.matched_employee_name?.toLowerCase().trim() === userDisplayName)
-      .map(m => m.wrong_order_id);
+    const matchedOrderIds = wrongOrderMatches.
+    filter((m) => m.matched_employee_name?.toLowerCase().trim() === userDisplayName).
+    map((m) => m.wrong_order_id);
 
-    return wrongOrders.filter(wo => {
+    return wrongOrders.filter((wo) => {
       if (!matchedOrderIds.includes(wo.id)) return false;
       // Apply date filter
       try {
@@ -194,42 +194,42 @@ export default function Valutazione() {
       };
     }
 
-    const lateShifts = myShifts.filter(s => s.ritardo === true);
-     const missingClockIns = myShifts.filter(s => s.stato === 'programmato' && new Date(s.shift_date) < new Date());
-     const googleReviews = myReviews.filter(r => r.source === 'google');
+    const lateShifts = myShifts.filter((s) => s.ritardo === true);
+    const missingClockIns = myShifts.filter((s) => s.stato === 'programmato' && new Date(s.shift_date) < new Date());
+    const googleReviews = myReviews.filter((r) => r.source === 'google');
 
-     // Count only shifts with both clock-in and clock-out
-     const totalShifts = myShifts.filter(s => s.actual_start && s.actual_end).length;
+    // Count only shifts with both clock-in and clock-out
+    const totalShifts = myShifts.filter((s) => s.actual_start && s.actual_end).length;
 
-     // Calculate TOTAL delay minutes (same as Store Manager: sum of minuti_di_ritardo)
-     const totalDelayMinutes = myShifts.reduce((acc, s) => acc + (s.minuti_di_ritardo || 0), 0);
-     const latePercentage = totalShifts > 0
-       ? (lateShifts.length / totalShifts) * 100
-       : 0;
+    // Calculate TOTAL delay minutes (same as Store Manager: sum of minuti_di_ritardo)
+    const totalDelayMinutes = myShifts.reduce((acc, s) => acc + (s.minuti_di_ritardo || 0), 0);
+    const latePercentage = totalShifts > 0 ?
+    lateShifts.length / totalShifts * 100 :
+    0;
 
     // Calculate average rating
-    const averageRating = googleReviews.length > 0
-      ? googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length
-      : 0;
+    const averageRating = googleReviews.length > 0 ?
+    googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length :
+    0;
 
-     // Calculate cleaning score (same as Store Manager - based on stores where user works)
-     const myCleaningInspections = cleaningInspections.filter(i => {
-       // Include inspections from the stores where the user works
-       if (!userStoreIds.includes(i.store_id)) return false;
-       try {
-         const inspDate = new Date(i.inspection_date);
-         return inspDate >= monthStart && inspDate <= monthEnd;
-       } catch (e) {
-         return true;
-       }
-     });
-     const avgCleaningScore = myCleaningInspections.length > 0
-       ? myCleaningInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / myCleaningInspections.length
-       : 0;
+    // Calculate cleaning score (same as Store Manager - based on stores where user works)
+    const myCleaningInspections = cleaningInspections.filter((i) => {
+      // Include inspections from the stores where the user works
+      if (!userStoreIds.includes(i.store_id)) return false;
+      try {
+        const inspDate = new Date(i.inspection_date);
+        return inspDate >= monthStart && inspDate <= monthEnd;
+      } catch (e) {
+        return true;
+      }
+    });
+    const avgCleaningScore = myCleaningInspections.length > 0 ?
+    myCleaningInspections.reduce((sum, i) => sum + (i.overall_score || 0), 0) / myCleaningInspections.length :
+    0;
 
     // Calculate overall score (same formula as admin page)
     let overallScore = 100;
-    
+
     // Get weights (default to 1 if not found)
     const getWeight = (metricName) => {
       // We don't have metricWeights here, use defaults that match admin
@@ -242,30 +242,30 @@ export default function Valutazione() {
       };
       return defaults[metricName] || 1;
     };
-    
+
     const w_ordini = getWeight('ordini_sbagliati');
     const w_ritardi = getWeight('ritardi');
     const w_timbrature = getWeight('timbrature_mancanti');
     const w_num_recensioni = getWeight('numero_recensioni');
     const w_punteggio_recensioni = getWeight('punteggio_recensioni');
-    
+
     // Deduct points for negative metrics
-    overallScore -= (myWrongOrders.length * w_ordini);
-    overallScore -= (lateShifts.length * w_ritardi);
-    overallScore -= (missingClockIns.length * w_timbrature);
-    
+    overallScore -= myWrongOrders.length * w_ordini;
+    overallScore -= lateShifts.length * w_ritardi;
+    overallScore -= missingClockIns.length * w_timbrature;
+
     // Reduce score if average review rating is below 5
     if (googleReviews.length > 0 && averageRating < 5) {
       const reviewPenalty = (5 - averageRating) * w_punteggio_recensioni;
       overallScore -= reviewPenalty;
     }
-    
+
     // Small bonus for having reviews (max +5)
     if (googleReviews.length > 0) {
       const reviewBonus = Math.min(googleReviews.length * w_num_recensioni, 5);
       overallScore += reviewBonus;
     }
-    
+
     overallScore = Math.max(0, Math.min(100, overallScore));
 
     return {
@@ -281,7 +281,7 @@ export default function Valutazione() {
       totalDelayMinutes,
       overallScore: Math.round(overallScore)
     };
-    }, [user, matchedEmployee, myShifts, myReviews, myWrongOrders, cleaningInspections, filterDate, userStoreIds]);
+  }, [user, matchedEmployee, myShifts, myReviews, myWrongOrders, cleaningInspections, filterDate, userStoreIds]);
 
   if (userLoading) {
     return (
@@ -289,8 +289,8 @@ export default function Valutazione() {
         <div className="neumorphic-card p-8">
           <p className="text-[#9b9b9b]">Caricamento...</p>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   if (!matchedEmployee) {
@@ -308,16 +308,16 @@ export default function Valutazione() {
             Per visualizzare la tua valutazione, completa prima il tuo profilo nella sezione "Profilo"
           </p>
         </NeumorphicCard>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">La Tua Valutazione</h1>
-        <p className="text-[#9b9b9b]">Monitora i tuoi turni, timbrature e recensioni</p>
+        <h1 className="text-slate-50 mb-2 text-3xl font-bold">La Tua Valutazione</h1>
+        <p className="text-slate-50">Monitora i tuoi turni, timbrature e recensioni</p>
       </div>
 
       {/* Month Selector Filter */}
@@ -329,8 +329,8 @@ export default function Valutazione() {
             type="month"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none"
-          />
+            className="neumorphic-pressed px-4 py-2 rounded-xl text-[#6b6b6b] outline-none" />
+
         </div>
       </NeumorphicCard>
 
@@ -343,9 +343,9 @@ export default function Valutazione() {
           <div className="flex-1 min-w-0">
             <h2 className="text-xl sm:text-2xl font-bold text-[#6b6b6b] truncate">{matchedEmployee.full_name}</h2>
             <p className="text-sm sm:text-base text-[#9b9b9b]">{matchedEmployee.function_name || 'Dipendente'}</p>
-            {matchedEmployee.employee_group && (
-              <p className="text-xs sm:text-sm text-[#9b9b9b]">Gruppo: {matchedEmployee.employee_group}</p>
-            )}
+            {matchedEmployee.employee_group &&
+            <p className="text-xs sm:text-sm text-[#9b9b9b]">Gruppo: {matchedEmployee.employee_group}</p>
+            }
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             <div className="neumorphic-pressed px-3 py-2 rounded-xl flex-1 sm:flex-initial text-center">
@@ -355,10 +355,10 @@ export default function Valutazione() {
             <div className="neumorphic-pressed px-3 py-2 rounded-xl flex-1 sm:flex-initial text-center">
               <p className="text-xs text-[#9b9b9b]">Score</p>
               <p className={`text-lg sm:text-2xl font-bold ${
-                employeeData.overallScore >= 80 ? 'text-green-600' :
-                employeeData.overallScore >= 60 ? 'text-yellow-600' :
-                'text-red-600'
-              }`}>
+              employeeData.overallScore >= 80 ? 'text-green-600' :
+              employeeData.overallScore >= 60 ? 'text-yellow-600' :
+              'text-red-600'}`
+              }>
                 {employeeData.overallScore}
               </p>
             </div>
@@ -415,10 +415,10 @@ export default function Valutazione() {
              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600 fill-cyan-600" />
            </div>
            <h3 className={`text-xl sm:text-2xl font-bold mb-1 ${
-             employeeData.avgCleaningScore >= 80 ? 'text-green-600' :
-             employeeData.avgCleaningScore >= 60 ? 'text-yellow-600' :
-             'text-red-600'
-           }`}>
+          employeeData.avgCleaningScore >= 80 ? 'text-green-600' :
+          employeeData.avgCleaningScore >= 60 ? 'text-yellow-600' :
+          'text-red-600'}`
+          }>
              {employeeData.avgCleaningScore > 0 ? Math.round(employeeData.avgCleaningScore) : '-'}
            </h3>
            <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Score Pulizie</p>
@@ -434,20 +434,20 @@ export default function Valutazione() {
               {expandedView === 'late' ? 'Tutti i Turni in Ritardo' : 'Ultimi 5 Turni in Ritardo'}
             </h2>
           </div>
-          {employeeData.lateShifts.length > 5 && (
-            <button
-              onClick={() => setExpandedView(expandedView === 'late' ? null : 'late')}
-              className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
-            >
+          {employeeData.lateShifts.length > 5 &&
+          <button
+            onClick={() => setExpandedView(expandedView === 'late' ? null : 'late')}
+            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2">
+
               {expandedView === 'late' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutti ({employeeData.lateShifts.length})</>}
             </button>
-          )}
+          }
         </div>
 
-        {employeeData.lateShifts.length > 0 ? (
-          <div className={`space-y-3 ${expandedView === 'late' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
-            {(expandedView === 'late' ? employeeData.lateShifts : employeeData.lateShifts.slice(0, 5)).map((shift, index) => (
-              <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
+        {employeeData.lateShifts.length > 0 ?
+        <div className={`space-y-3 ${expandedView === 'late' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+            {(expandedView === 'late' ? employeeData.lateShifts : employeeData.lateShifts.slice(0, 5)).map((shift, index) =>
+          <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
@@ -461,14 +461,14 @@ export default function Valutazione() {
                 {shift.minuti_di_ritardo && <div className="mt-1 text-xs">Minuti ritardo: {shift.minuti_di_ritardo}</div>}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
+          )}
+          </div> :
+
+        <div className="text-center py-8">
             <TrendingUp className="w-12 h-12 text-green-600 mx-auto mb-3" />
             <p className="text-[#6b6b6b] font-medium">Nessun ritardo registrato! 🎉</p>
           </div>
-        )}
+        }
       </NeumorphicCard>
 
       {/* Timbrature Mancanti */}
@@ -480,20 +480,20 @@ export default function Valutazione() {
               {expandedView === 'missing' ? 'Tutte le Timbrature Mancanti' : 'Ultime 5 Timbrature Mancanti'}
             </h2>
           </div>
-          {employeeData.missingClockIns.length > 5 && (
-            <button
-              onClick={() => setExpandedView(expandedView === 'missing' ? null : 'missing')}
-              className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
-            >
+          {employeeData.missingClockIns.length > 5 &&
+          <button
+            onClick={() => setExpandedView(expandedView === 'missing' ? null : 'missing')}
+            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2">
+
               {expandedView === 'missing' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutte ({employeeData.missingClockIns.length})</>}
             </button>
-          )}
+          }
         </div>
 
-        {employeeData.missingClockIns.length > 0 ? (
-          <div className={`space-y-3 ${expandedView === 'missing' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
-            {(expandedView === 'missing' ? employeeData.missingClockIns : employeeData.missingClockIns.slice(0, 5)).map((shift, index) => (
-              <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl border-2 border-orange-200">
+        {employeeData.missingClockIns.length > 0 ?
+        <div className={`space-y-3 ${expandedView === 'missing' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+            {(expandedView === 'missing' ? employeeData.missingClockIns : employeeData.missingClockIns.slice(0, 5)).map((shift, index) =>
+          <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl border-2 border-orange-200">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
@@ -506,14 +506,14 @@ export default function Valutazione() {
                     <strong>Orario Previsto:</strong> {shift.scheduled_start ? safeFormatTime(shift.scheduled_start) : 'N/A'} - {shift.scheduled_end ? safeFormatTime(shift.scheduled_end) : 'N/A'}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
+          )}
+          </div> :
+
+        <div className="text-center py-8">
             <TrendingUp className="w-12 h-12 text-green-600 mx-auto mb-3" />
             <p className="text-[#6b6b6b] font-medium">Nessuna timbratura mancante! 🎉</p>
           </div>
-        )}
+        }
       </NeumorphicCard>
 
       {/* Ordini Sbagliati */}
@@ -525,20 +525,20 @@ export default function Valutazione() {
               {expandedView === 'wrongOrders' ? 'Tutti gli Ordini Sbagliati' : 'Ultimi 5 Ordini Sbagliati'}
             </h2>
           </div>
-          {employeeData.wrongOrders.length > 5 && (
-            <button
-              onClick={() => setExpandedView(expandedView === 'wrongOrders' ? null : 'wrongOrders')}
-              className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
-            >
+          {employeeData.wrongOrders.length > 5 &&
+          <button
+            onClick={() => setExpandedView(expandedView === 'wrongOrders' ? null : 'wrongOrders')}
+            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2">
+
               {expandedView === 'wrongOrders' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutti ({employeeData.wrongOrders.length})</>}
             </button>
-          )}
+          }
         </div>
 
-        {employeeData.wrongOrders.length > 0 ? (
-          <div className={`space-y-3 ${expandedView === 'wrongOrders' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
-            {(expandedView === 'wrongOrders' ? employeeData.wrongOrders : employeeData.wrongOrders.slice(0, 5)).map((order, index) => (
-              <div key={`${order.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl border-2 border-purple-200">
+        {employeeData.wrongOrders.length > 0 ?
+        <div className={`space-y-3 ${expandedView === 'wrongOrders' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+            {(expandedView === 'wrongOrders' ? employeeData.wrongOrders : employeeData.wrongOrders.slice(0, 5)).map((order, index) =>
+          <div key={`${order.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl border-2 border-purple-200">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
@@ -550,34 +550,34 @@ export default function Valutazione() {
                     {order.platform?.charAt(0).toUpperCase() + order.platform?.slice(1) || 'Platform'}
                   </span>
                 </div>
-                {order.order_id && (
-                  <div className="text-sm text-[#9b9b9b] mb-1">
+                {order.order_id &&
+            <div className="text-sm text-[#9b9b9b] mb-1">
                     <strong>ID Ordine:</strong> {order.order_id}
                   </div>
-                )}
-                {order.description && (
-                  <p className="text-sm text-[#6b6b6b]">{order.description}</p>
-                )}
-                {order.refund_amount && (
-                  <div className="text-sm text-red-600 mt-1">
+            }
+                {order.description &&
+            <p className="text-sm text-[#6b6b6b]">{order.description}</p>
+            }
+                {order.refund_amount &&
+            <div className="text-sm text-red-600 mt-1">
                     <strong>Rimborso:</strong> €{order.refund_amount.toFixed(2)}
                   </div>
-                )}
+            }
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
+          )}
+          </div> :
+
+        <div className="text-center py-8">
             <TrendingUp className="w-12 h-12 text-green-600 mx-auto mb-3" />
             <p className="text-[#6b6b6b] font-medium">Nessun ordine sbagliato! 🎉</p>
             <p className="text-sm text-[#9b9b9b] mt-1">Ottimo lavoro!</p>
           </div>
-        )}
+        }
       </NeumorphicCard>
 
       {/* Score Pulizie */}
-       {employeeData.myCleaningInspections && employeeData.myCleaningInspections.length > 0 && (
-         <NeumorphicCard className="p-6">
+       {employeeData.myCleaningInspections && employeeData.myCleaningInspections.length > 0 &&
+      <NeumorphicCard className="p-6">
            <div className="flex items-center justify-between mb-4">
              <div className="flex items-center gap-3">
                <Sparkles className="w-6 h-6 text-cyan-600" />
@@ -585,19 +585,19 @@ export default function Valutazione() {
                  {expandedView === 'cleanings' ? 'Tutti i Controlli Pulizie' : 'Ultimi 5 Controlli Pulizie'}
                </h2>
              </div>
-             {employeeData.myCleaningInspections.length > 5 && (
-               <button
-                 onClick={() => setExpandedView(expandedView === 'cleanings' ? null : 'cleanings')}
-                 className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
-               >
+             {employeeData.myCleaningInspections.length > 5 &&
+          <button
+            onClick={() => setExpandedView(expandedView === 'cleanings' ? null : 'cleanings')}
+            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2">
+
                  {expandedView === 'cleanings' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutti ({employeeData.myCleaningInspections.length})</>}
                </button>
-             )}
+          }
            </div>
 
            <div className={`space-y-3 ${expandedView === 'cleanings' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
-             {(expandedView === 'cleanings' ? employeeData.myCleaningInspections : employeeData.myCleaningInspections.slice(0, 5)).map((inspection, index) => (
-               <div key={`${inspection.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
+             {(expandedView === 'cleanings' ? employeeData.myCleaningInspections : employeeData.myCleaningInspections.slice(0, 5)).map((inspection, index) =>
+          <div key={`${inspection.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
                  <div className="flex items-center justify-between mb-2">
                    <div className="flex items-center gap-2">
                      <Calendar className="w-4 h-4 text-[#9b9b9b]" />
@@ -605,10 +605,10 @@ export default function Valutazione() {
                      {inspection.store_name && <span className="text-sm text-[#9b9b9b]">• {inspection.store_name}</span>}
                    </div>
                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                     inspection.overall_score >= 80 ? 'bg-green-100 text-green-700' :
-                     inspection.overall_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                     'bg-red-100 text-red-700'
-                   }`}>
+              inspection.overall_score >= 80 ? 'bg-green-100 text-green-700' :
+              inspection.overall_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
+              'bg-red-100 text-red-700'}`
+              }>
                      {inspection.overall_score || 0}/100
                    </span>
                  </div>
@@ -616,10 +616,10 @@ export default function Valutazione() {
                    <strong>Ruolo:</strong> {inspection.inspector_role}
                  </div>
                </div>
-             ))}
+          )}
            </div>
          </NeumorphicCard>
-       )}
+      }
 
       {/* Recensioni Google */}
        <NeumorphicCard className="p-6">
@@ -630,26 +630,26 @@ export default function Valutazione() {
               {expandedView === 'reviews' ? 'Tutte le Recensioni Google' : 'Ultime 5 Recensioni Google'}
             </h2>
           </div>
-          {employeeData.googleReviews.length > 5 && (
-            <button
-              onClick={() => setExpandedView(expandedView === 'reviews' ? null : 'reviews')}
-              className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2"
-            >
+          {employeeData.googleReviews.length > 5 &&
+          <button
+            onClick={() => setExpandedView(expandedView === 'reviews' ? null : 'reviews')}
+            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2">
+
               {expandedView === 'reviews' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutte ({employeeData.googleReviews.length})</>}
             </button>
-          )}
+          }
         </div>
 
-        {employeeData.googleReviews.length > 0 ? (
-          <div className={`space-y-3 ${expandedView === 'reviews' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
-            {(expandedView === 'reviews' ? employeeData.googleReviews : employeeData.googleReviews.slice(0, 5)).map((review, index) => (
-              <div key={`${review.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
+        {employeeData.googleReviews.length > 0 ?
+        <div className={`space-y-3 ${expandedView === 'reviews' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
+            {(expandedView === 'reviews' ? employeeData.googleReviews : employeeData.googleReviews.slice(0, 5)).map((review, index) =>
+          <div key={`${review.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-[#6b6b6b]">{review.customer_name || 'Anonimo'}</span>
                   <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
-                    ))}
+                    {[...Array(5)].map((_, i) =>
+                <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+                )}
                   </div>
                 </div>
                 {review.comment && <p className="text-sm text-[#6b6b6b] mb-2">{review.comment}</p>}
@@ -658,15 +658,15 @@ export default function Valutazione() {
                   {review.store_name && <span>• {review.store_name}</span>}
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
+          )}
+          </div> :
+
+        <div className="text-center py-8">
             <Star className="w-12 h-12 text-[#9b9b9b] mx-auto mb-3" />
             <p className="text-[#6b6b6b] font-medium">Nessuna recensione ancora</p>
           </div>
-        )}
+        }
       </NeumorphicCard>
-    </div>
-  );
+    </div>);
+
 }
