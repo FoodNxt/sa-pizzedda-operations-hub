@@ -18,7 +18,7 @@ export default function PrecottureAdmin() {
   const [dateRange, setDateRange] = useState('week');
   const { data: configTeglieData = [] } = useQuery({
     queryKey: ['config-teglie'],
-    queryFn: () => base44.entities.ConfigurazioneTeglieCalcolo.list(),
+    queryFn: () => base44.entities.ConfigurazioneTeglieCalcolo.list()
   });
 
   const [teglieConfig, setTeglieConfig] = useState({
@@ -29,7 +29,7 @@ export default function PrecottureAdmin() {
 
   // Carica configurazione salvata
   React.useEffect(() => {
-    const activeConfig = configTeglieData.find(c => c.is_active);
+    const activeConfig = configTeglieData.find((c) => c.is_active);
     if (activeConfig) {
       setTeglieConfig({
         categorie: activeConfig.categorie || ['pizza'],
@@ -49,12 +49,12 @@ export default function PrecottureAdmin() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: impasti = [] } = useQuery({
     queryKey: ['gestione-impasti'],
-    queryFn: () => base44.entities.GestioneImpasti.list(),
+    queryFn: () => base44.entities.GestioneImpasti.list()
   });
 
   const { data: precottureForm = [] } = useQuery({
@@ -70,9 +70,9 @@ export default function PrecottureAdmin() {
       const last100days = moment().subtract(100, 'days').format('YYYY-MM-DD');
       const today = moment().format('YYYY-MM-DD');
       return base44.entities.ProdottiVenduti.filter({
-        data_vendita: { 
-          $gte: last100days, 
-          $lte: today 
+        data_vendita: {
+          $gte: last100days,
+          $lte: today
         }
       });
     },
@@ -84,7 +84,7 @@ export default function PrecottureAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gestione-impasti'] });
       setEditingRow(null);
-    },
+    }
   });
 
   const updateMutation = useMutation({
@@ -92,14 +92,14 @@ export default function PrecottureAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gestione-impasti'] });
       setEditingRow(null);
-    },
+    }
   });
 
   const deletePrecottureFormMutation = useMutation({
     mutationFn: (id) => base44.entities.PrecottureForm.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['precotture-form-storico'] });
-    },
+    }
   });
 
   const saveConfigTeglieeMutation = useMutation({
@@ -115,23 +115,23 @@ export default function PrecottureAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['config-teglie'] });
       alert('Configurazione salvata con successo!');
-    },
+    }
   });
 
   const filteredImpasti = useMemo(() => {
     if (!selectedStore) return [];
-    return impasti.filter(i => i.store_id === selectedStore || i.store_name === selectedStore);
+    return impasti.filter((i) => i.store_id === selectedStore || i.store_name === selectedStore);
   }, [impasti, selectedStore]);
 
   const getDataForDay = (giorno) => {
-    return filteredImpasti.find(i => i.giorno_settimana === giorno);
+    return filteredImpasti.find((i) => i.giorno_settimana === giorno);
   };
 
   const getTotaleGiornaliero = (data) => {
     if (!data) return 0;
-    return (data.pranzo_rosse || 0) +
-           (data.pomeriggio_rosse || 0) +
-           (data.cena_rosse || 0);
+    return (data.pranzo_rosse || 0) + (
+    data.pomeriggio_rosse || 0) + (
+    data.cena_rosse || 0);
   };
 
   const getImpastoPer3Giorni = (giornoIndex) => {
@@ -170,7 +170,7 @@ export default function PrecottureAdmin() {
   };
 
   const handleSave = async (giorno) => {
-    const store = stores.find(s => s.id === selectedStore);
+    const store = stores.find((s) => s.id === selectedStore);
     const existing = getDataForDay(giorno);
 
     // Calculate values based on total and percentages
@@ -219,7 +219,7 @@ export default function PrecottureAdmin() {
       return;
     }
 
-    const store = stores.find(s => s.id === selectedStore);
+    const store = stores.find((s) => s.id === selectedStore);
     const existing = getDataForDay(giorno);
 
     // Usa le percentuali esistenti se presenti, altrimenti i default
@@ -257,7 +257,7 @@ export default function PrecottureAdmin() {
   };
 
   const filteredStorico = useMemo(() => {
-    return precottureForm.filter(p => {
+    return precottureForm.filter((p) => {
       if (selectedStore && p.store_id !== selectedStore) return false;
       const dateFilter = getDateFilter();
       if (dateFilter && moment(p.created_date).isBefore(dateFilter)) return false;
@@ -267,9 +267,9 @@ export default function PrecottureAdmin() {
 
   const storicoStats = useMemo(() => {
     if (filteredStorico.length === 0) return null;
-    
+
     const totaleRosse = filteredStorico.reduce((sum, p) => sum + (p.rosse_da_fare || 0), 0);
-    
+
     return {
       totaleForm: filteredStorico.length,
       totaleRosse,
@@ -278,12 +278,12 @@ export default function PrecottureAdmin() {
   }, [filteredStorico]);
 
   const getStoreName = (storeId) => {
-    return stores.find(s => s.id === storeId)?.name || storeId;
+    return stores.find((s) => s.id === storeId)?.name || storeId;
   };
 
   // Teglie vendute calculations
   const teglieVendute = useMemo(() => {
-    const filtered = prodottiVenduti.filter(p => {
+    const filtered = prodottiVenduti.filter((p) => {
       // Filter by store (for table view)
       if (selectedStore && p.store_id !== selectedStore) return false;
       // Filter by category
@@ -293,7 +293,7 @@ export default function PrecottureAdmin() {
 
     // Group by store and date
     const dailyData = {};
-    filtered.forEach(p => {
+    filtered.forEach((p) => {
       const key = `${p.store_id}_${p.data_vendita}`;
       if (!dailyData[key]) {
         dailyData[key] = {
@@ -307,7 +307,7 @@ export default function PrecottureAdmin() {
     });
 
     // Calculate teglie
-    const result = Object.values(dailyData).map(d => ({
+    const result = Object.values(dailyData).map((d) => ({
       ...d,
       teglie: (d.totale_unita / teglieConfig.unita_per_teglia).toFixed(2),
       day_of_week: moment(d.data).format('dddd')
@@ -318,7 +318,7 @@ export default function PrecottureAdmin() {
 
   // All teglie without store filter (for chart)
   const allTeglieVendute = useMemo(() => {
-    const filtered = prodottiVenduti.filter(p => {
+    const filtered = prodottiVenduti.filter((p) => {
       if (!teglieConfig.categorie.includes(p.category)) return false;
       // Filter by selected date range
       if (p.data_vendita < teglieStartDate || p.data_vendita > teglieEndDate) return false;
@@ -326,7 +326,7 @@ export default function PrecottureAdmin() {
     });
 
     const dailyData = {};
-    filtered.forEach(p => {
+    filtered.forEach((p) => {
       const key = `${p.store_id}_${p.data_vendita}`;
       if (!dailyData[key]) {
         dailyData[key] = {
@@ -350,7 +350,7 @@ export default function PrecottureAdmin() {
       'sunday': 'Domenica'
     };
 
-    const result = Object.values(dailyData).map(d => {
+    const result = Object.values(dailyData).map((d) => {
       const dayNameEng = moment(d.data).format('dddd').toLowerCase();
       const dayNameIta = dayMapping[dayNameEng] || 'Lunedì';
       return {
@@ -365,15 +365,15 @@ export default function PrecottureAdmin() {
 
   // Media per giorno della settimana (per singolo store)
   const mediaPerGiorno = useMemo(() => {
-    const dataToUse = selectedStoreForMedia 
-      ? allTeglieVendute.filter(t => t.store_id === selectedStoreForMedia)
-      : allTeglieVendute;
+    const dataToUse = selectedStoreForMedia ?
+    allTeglieVendute.filter((t) => t.store_id === selectedStoreForMedia) :
+    allTeglieVendute;
 
     const byDay = {};
-    dataToUse.forEach(t => {
+    dataToUse.forEach((t) => {
       // Escludi giorni con 0 teglie vendute
       if (parseFloat(t.teglie) === 0) return;
-      
+
       if (!byDay[t.day_of_week]) {
         byDay[t.day_of_week] = { count: 0, total: 0 };
       }
@@ -382,7 +382,7 @@ export default function PrecottureAdmin() {
     });
 
     // Ritorna tutti i giorni della settimana nell'ordine corretto
-    return giorni.map(giorno => ({
+    return giorni.map((giorno) => ({
       day: giorno,
       media: byDay[giorno] ? (byDay[giorno].total / byDay[giorno].count).toFixed(2) : '0.00'
     }));
@@ -390,65 +390,65 @@ export default function PrecottureAdmin() {
 
   // Trend chart data - multistore support with day-of-week filter
   const teglieChartData = useMemo(() => {
-    const storesToShow = selectedStoresForChart.length > 0 ? selectedStoresForChart : 
-                        (selectedStore ? [selectedStore] : []);
+    const storesToShow = selectedStoresForChart.length > 0 ? selectedStoresForChart :
+    selectedStore ? [selectedStore] : [];
 
     // Filter by day of week if in 'day' mode
-    const filteredData = chartViewMode === 'day' 
-      ? allTeglieVendute.filter(t => t.day_of_week === selectedDayOfWeek)
-      : allTeglieVendute;
+    const filteredData = chartViewMode === 'day' ?
+    allTeglieVendute.filter((t) => t.day_of_week === selectedDayOfWeek) :
+    allTeglieVendute;
 
     if (storesToShow.length === 0) {
       // Show all stores combined
       const byDate = {};
-      filteredData.forEach(t => {
+      filteredData.forEach((t) => {
         if (!byDate[t.data]) {
           byDate[t.data] = 0;
         }
         byDate[t.data] += parseFloat(t.teglie);
       });
 
-      return Object.entries(byDate)
-        .map(([date, teglie]) => ({
-          date: moment(date).format('DD/MM'),
-          totale: parseFloat(teglie.toFixed(2))
-        }))
-        .sort((a, b) => moment(a.date, 'DD/MM').diff(moment(b.date, 'DD/MM')));
+      return Object.entries(byDate).
+      map(([date, teglie]) => ({
+        date: moment(date).format('DD/MM'),
+        totale: parseFloat(teglie.toFixed(2))
+      })).
+      sort((a, b) => moment(a.date, 'DD/MM').diff(moment(b.date, 'DD/MM')));
     }
 
     // Group by date with multiple stores
     const byDate = {};
-    filteredData.forEach(t => {
+    filteredData.forEach((t) => {
       if (!storesToShow.includes(t.store_id)) return;
-      
+
       if (!byDate[t.data]) {
         byDate[t.data] = {};
       }
       byDate[t.data][t.store_name] = parseFloat(t.teglie);
     });
 
-    return Object.entries(byDate)
-      .map(([date, storeData]) => ({
-        date: moment(date).format('DD/MM'),
-        ...storeData
-      }))
-      .sort((a, b) => moment(a.date, 'DD/MM').diff(moment(b.date, 'DD/MM')));
+    return Object.entries(byDate).
+    map(([date, storeData]) => ({
+      date: moment(date).format('DD/MM'),
+      ...storeData
+    })).
+    sort((a, b) => moment(a.date, 'DD/MM').diff(moment(b.date, 'DD/MM')));
   }, [allTeglieVendute, selectedStoresForChart, selectedStore, chartViewMode, selectedDayOfWeek]);
 
   // Get unique store names for legend
   const chartStoreNames = useMemo(() => {
     if (teglieChartData.length === 0) return [];
     const firstRow = teglieChartData[0];
-    return Object.keys(firstRow).filter(k => k !== 'date' && k !== 'totale');
+    return Object.keys(firstRow).filter((k) => k !== 'date' && k !== 'totale');
   }, [teglieChartData]);
 
   // Calculate Y-axis domain for chart
   const chartYDomain = useMemo(() => {
     if (teglieChartData.length === 0) return [0, 100];
-    
+
     let maxValue = 0;
-    teglieChartData.forEach(row => {
-      Object.keys(row).forEach(key => {
+    teglieChartData.forEach((row) => {
+      Object.keys(row).forEach((key) => {
         if (key !== 'date') {
           maxValue = Math.max(maxValue, parseFloat(row[key]) || 0);
         }
@@ -461,21 +461,21 @@ export default function PrecottureAdmin() {
   // Media ultimi giorni per giorno della settimana (per store selezionato in configurazione)
   const calcMediaUltimiGiorni = (numGiorni) => {
     if (!selectedStore) return {};
-    
+
     const daysAgo = moment().subtract(numGiorni, 'days').format('YYYY-MM-DD');
     const today = moment().format('YYYY-MM-DD');
-    
+
     const dayMapping = {
       'Monday': 'Lunedì',
-      'Tuesday': 'Martedì', 
+      'Tuesday': 'Martedì',
       'Wednesday': 'Mercoledì',
       'Thursday': 'Giovedì',
       'Friday': 'Venerdì',
       'Saturday': 'Sabato',
       'Sunday': 'Domenica'
     };
-    
-    const filtered = prodottiVenduti.filter(p => {
+
+    const filtered = prodottiVenduti.filter((p) => {
       if (p.store_id !== selectedStore) return false;
       if (p.data_vendita < daysAgo || p.data_vendita > today) return false;
       if (!teglieConfig.categorie.includes(p.category)) return false;
@@ -483,7 +483,7 @@ export default function PrecottureAdmin() {
     });
 
     const dailyData = {};
-    filtered.forEach(p => {
+    filtered.forEach((p) => {
       if (!dailyData[p.data_vendita]) {
         dailyData[p.data_vendita] = 0;
       }
@@ -494,11 +494,11 @@ export default function PrecottureAdmin() {
     Object.entries(dailyData).forEach(([data, totale_unita]) => {
       // Escludi giorni con 0 pizze vendute
       if (totale_unita === 0) return;
-      
+
       const teglie = totale_unita / teglieConfig.unita_per_teglia;
       const dayNameEng = moment(data).format('dddd');
       const dayNameIta = dayMapping[dayNameEng];
-      
+
       if (dayNameIta) {
         if (!byDay[dayNameIta]) {
           byDay[dayNameIta] = { count: 0, total: 0 };
@@ -532,10 +532,10 @@ export default function PrecottureAdmin() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-              Gestione Precotture
+            <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Gestione Precotture
+
             </h1>
-            <p className="text-slate-500 mt-1">Configura precotture e visualizza lo storico</p>
+            <p className="text-slate-50 mt-1">Configura precotture e visualizza lo storico</p>
           </div>
         </div>
 
@@ -544,33 +544,33 @@ export default function PrecottureAdmin() {
           <button
             onClick={() => setActiveTab('configurazione')}
             className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              activeTab === 'configurazione'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                : 'neumorphic-flat text-slate-700'
-            }`}
-          >
+            activeTab === 'configurazione' ?
+            'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+            'neumorphic-flat text-slate-700'}`
+            }>
+
             <ChefHat className="w-4 h-4" />
             Configurazione
           </button>
           <button
             onClick={() => setActiveTab('storico')}
             className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              activeTab === 'storico'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                : 'neumorphic-flat text-slate-700'
-            }`}
-          >
+            activeTab === 'storico' ?
+            'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+            'neumorphic-flat text-slate-700'}`
+            }>
+
             <History className="w-4 h-4" />
             Storico Compilazioni
           </button>
           <button
             onClick={() => setActiveTab('teglie-vendute')}
             className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
-              activeTab === 'teglie-vendute'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                : 'neumorphic-flat text-slate-700'
-            }`}
-          >
+            activeTab === 'teglie-vendute' ?
+            'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+            'neumorphic-flat text-slate-700'}`
+            }>
+
             <Pizza className="w-4 h-4" />
             Teglie Vendute
           </button>
@@ -587,45 +587,45 @@ export default function PrecottureAdmin() {
               <select
                 value={selectedStore}
                 onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-              >
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                 <option value="">-- Tutti i negozi --</option>
-                {stores.map(store => (
-                  <option key={store.id} value={store.id}>{store.name}</option>
-                ))}
+                {stores.map((store) =>
+                <option key={store.id} value={store.id}>{store.name}</option>
+                )}
               </select>
             </div>
-            {activeTab === 'storico' && (
-              <div>
+            {activeTab === 'storico' &&
+            <div>
                 <label className="text-sm font-medium text-slate-700 mb-2 block">Periodo</label>
                 <div className="flex gap-2">
                   {[
-                    { value: 'today', label: 'Oggi' },
-                    { value: 'week', label: '7 giorni' },
-                    { value: 'month', label: '30 giorni' },
-                    { value: 'all', label: 'Tutto' }
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setDateRange(opt.value)}
-                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                        dateRange === opt.value
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                          : 'neumorphic-flat text-slate-700'
-                      }`}
-                    >
+                { value: 'today', label: 'Oggi' },
+                { value: 'week', label: '7 giorni' },
+                { value: 'month', label: '30 giorni' },
+                { value: 'all', label: 'Tutto' }].
+                map((opt) =>
+                <button
+                  key={opt.value}
+                  onClick={() => setDateRange(opt.value)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  dateRange === opt.value ?
+                  'bg-gradient-to-r from-blue-500 to-blue-600 text-white' :
+                  'neumorphic-flat text-slate-700'}`
+                  }>
+
                       {opt.label}
                     </button>
-                  ))}
+                )}
                 </div>
               </div>
-            )}
+            }
           </div>
         </NeumorphicCard>
 
         {/* Tab Configurazione */}
-        {activeTab === 'configurazione' && selectedStore && (
-          <>
+        {activeTab === 'configurazione' && selectedStore &&
+        <>
             <NeumorphicCard className="p-6 bg-blue-50">
               <h3 className="text-lg font-bold text-blue-800 mb-3">ℹ️ Come funziona la colonna "Impasto 3 Giorni"</h3>
               <div className="space-y-2 text-sm text-blue-900">
@@ -650,26 +650,26 @@ export default function PrecottureAdmin() {
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
-                      type="checkbox"
-                      checked={teglieConfig.aggiornamento_automatico}
-                      onChange={async (e) => {
-                        const isEnabled = e.target.checked;
-                        const newConfig = { ...teglieConfig, aggiornamento_automatico: isEnabled };
-                        setTeglieConfig(newConfig);
-                        await saveConfigTeglieeMutation.mutateAsync(newConfig);
-                        
-                        // Se attivato, aggiorna tutti i giorni con la media 60gg
-                        if (isEnabled) {
-                          for (const giorno of giorni) {
-                            const mediaGiorno = mediaUltimi60Giorni[giorno];
-                            if (mediaGiorno > 0) {
-                              await handleAggiornaConMedia(giorno);
-                            }
+                    type="checkbox"
+                    checked={teglieConfig.aggiornamento_automatico}
+                    onChange={async (e) => {
+                      const isEnabled = e.target.checked;
+                      const newConfig = { ...teglieConfig, aggiornamento_automatico: isEnabled };
+                      setTeglieConfig(newConfig);
+                      await saveConfigTeglieeMutation.mutateAsync(newConfig);
+
+                      // Se attivato, aggiorna tutti i giorni con la media 60gg
+                      if (isEnabled) {
+                        for (const giorno of giorni) {
+                          const mediaGiorno = mediaUltimi60Giorni[giorno];
+                          if (mediaGiorno > 0) {
+                            await handleAggiornaConMedia(giorno);
                           }
                         }
-                      }}
-                      className="w-5 h-5 text-blue-600 rounded"
-                    />
+                      }
+                    }}
+                    className="w-5 h-5 text-blue-600 rounded" />
+
                     <span className="text-sm font-medium text-slate-700">Abilita Aggiornamento Automatico</span>
                   </label>
                 </div>
@@ -690,45 +690,45 @@ export default function PrecottureAdmin() {
                   <thead>
                     <tr className="border-b-2 border-slate-200">
                       <th className="text-left py-3 px-2 font-semibold text-slate-700">Giorno</th>
-                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-blue-50">Media<br/>30gg</th>
-                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-indigo-50">Media<br/>60gg</th>
-                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-cyan-50">Media<br/>90gg</th>
-                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pranzo<br/>Rosse</th>
-                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pomeriggio<br/>Rosse</th>
-                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Cena<br/>Rosse</th>
-                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-green-50">Totale<br/>Giornata</th>
-                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-purple-50">Scostamento<br/>da Media</th>
-                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-yellow-50">Impasto<br/>3 Giorni</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-blue-50">Media<br />30gg</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-indigo-50">Media<br />60gg</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-cyan-50">Media<br />90gg</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pranzo<br />Rosse</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pomeriggio<br />Rosse</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Cena<br />Rosse</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-green-50">Totale<br />Giornata</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-purple-50">Scostamento<br />da Media</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-yellow-50">Impasto<br />3 Giorni</th>
                       <th className="text-center py-3 px-2">Azioni</th>
                     </tr>
                   </thead>
                   <tbody>
                     {giorni.map((giorno, idx) => {
-                      const data = getDataForDay(giorno);
-                      const isEditing = editingRow === giorno;
-                      const mediaGiorno30 = parseFloat(mediaUltimi30Giorni[giorno]) || 0;
-                      const mediaGiorno60 = parseFloat(mediaUltimi60Giorni[giorno]) || 0;
-                      const mediaGiorno90 = parseFloat(mediaUltimi90Giorni[giorno]) || 0;
-                      const mediaGiorno = mediaGiorno60;
-                      
-                      let totaleGiorno;
-                      if (isEditing) {
-                        const tot = parseFloat(editData.totale_giornata) || 0;
-                        const percPranzo = parseFloat(editData.percentuale_pranzo) || 0;
-                        const percPomeriggio = parseFloat(editData.percentuale_pomeriggio) || 0;
-                        const percCena = parseFloat(editData.percentuale_cena) || 0;
-                        totaleGiorno = Math.round(tot * (percPranzo / 100)) + 
-                                      Math.round(tot * (percPomeriggio / 100)) + 
-                                      Math.round(tot * (percCena / 100));
-                      } else {
-                        totaleGiorno = getTotaleGiornaliero(data);
-                      }
-                      
-                      const scostamento = totaleGiorno - mediaGiorno;
-                      const impasto3Giorni = getImpastoPer3Giorni(idx);
+                    const data = getDataForDay(giorno);
+                    const isEditing = editingRow === giorno;
+                    const mediaGiorno30 = parseFloat(mediaUltimi30Giorni[giorno]) || 0;
+                    const mediaGiorno60 = parseFloat(mediaUltimi60Giorni[giorno]) || 0;
+                    const mediaGiorno90 = parseFloat(mediaUltimi90Giorni[giorno]) || 0;
+                    const mediaGiorno = mediaGiorno60;
 
-                      return (
-                        <tr key={giorno} className="border-b border-slate-100 hover:bg-slate-50">
+                    let totaleGiorno;
+                    if (isEditing) {
+                      const tot = parseFloat(editData.totale_giornata) || 0;
+                      const percPranzo = parseFloat(editData.percentuale_pranzo) || 0;
+                      const percPomeriggio = parseFloat(editData.percentuale_pomeriggio) || 0;
+                      const percCena = parseFloat(editData.percentuale_cena) || 0;
+                      totaleGiorno = Math.round(tot * (percPranzo / 100)) +
+                      Math.round(tot * (percPomeriggio / 100)) +
+                      Math.round(tot * (percCena / 100));
+                    } else {
+                      totaleGiorno = getTotaleGiornaliero(data);
+                    }
+
+                    const scostamento = totaleGiorno - mediaGiorno;
+                    const impasto3Giorni = getImpastoPer3Giorni(idx);
+
+                    return (
+                      <tr key={giorno} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 px-2 font-medium text-slate-700">
                             <div className="flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-slate-400" />
@@ -744,31 +744,31 @@ export default function PrecottureAdmin() {
                           <td className="text-center py-2 px-2 font-medium text-cyan-700 bg-cyan-50">
                             {mediaGiorno90 > 0 ? mediaGiorno90.toFixed(1) : '-'}
                           </td>
-                          {isEditing ? (
-                            <>
+                          {isEditing ?
+                        <>
                               <td colSpan="3" className="py-2 px-2">
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2">
                                     <label className="text-xs text-slate-600 w-20">Totale:</label>
                                     <input
-                                      type="number"
-                                      min="0"
-                                      value={editData.totale_giornata || 0}
-                                      onChange={(e) => setEditData({...editData, totale_giornata: parseFloat(e.target.value) || 0})}
-                                      className="w-20 text-center neumorphic-pressed px-2 py-1 rounded-lg"
-                                    />
+                                  type="number"
+                                  min="0"
+                                  value={editData.totale_giornata || 0}
+                                  onChange={(e) => setEditData({ ...editData, totale_giornata: parseFloat(e.target.value) || 0 })}
+                                  className="w-20 text-center neumorphic-pressed px-2 py-1 rounded-lg" />
+
                                   </div>
                                   <div className="grid grid-cols-3 gap-1 text-xs">
                                    <div>
                                      <label className="text-slate-500">Pranzo %</label>
                                      <input
-                                       type="number"
-                                       min="0"
-                                       max="100"
-                                       value={editData.percentuale_pranzo || 0}
-                                       onChange={(e) => setEditData({...editData, percentuale_pranzo: parseFloat(e.target.value) || 0})}
-                                       className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
-                                     />
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={editData.percentuale_pranzo || 0}
+                                    onChange={(e) => setEditData({ ...editData, percentuale_pranzo: parseFloat(e.target.value) || 0 })}
+                                    className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1" />
+
                                      <p className="text-slate-400 mt-1">
                                        = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_pranzo || 0) / 100))}
                                      </p>
@@ -776,13 +776,13 @@ export default function PrecottureAdmin() {
                                    <div>
                                      <label className="text-slate-500">Pomeriggio %</label>
                                      <input
-                                       type="number"
-                                       min="0"
-                                       max="100"
-                                       value={editData.percentuale_pomeriggio || 0}
-                                       onChange={(e) => setEditData({...editData, percentuale_pomeriggio: parseFloat(e.target.value) || 0})}
-                                       className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
-                                     />
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={editData.percentuale_pomeriggio || 0}
+                                    onChange={(e) => setEditData({ ...editData, percentuale_pomeriggio: parseFloat(e.target.value) || 0 })}
+                                    className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1" />
+
                                      <p className="text-slate-400 mt-1">
                                        = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_pomeriggio || 0) / 100))}
                                      </p>
@@ -790,41 +790,41 @@ export default function PrecottureAdmin() {
                                    <div>
                                      <label className="text-slate-500">Cena %</label>
                                      <input
-                                       type="number"
-                                       min="0"
-                                       max="100"
-                                       value={editData.percentuale_cena || 0}
-                                       onChange={(e) => setEditData({...editData, percentuale_cena: parseFloat(e.target.value) || 0})}
-                                       className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1"
-                                     />
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={editData.percentuale_cena || 0}
+                                    onChange={(e) => setEditData({ ...editData, percentuale_cena: parseFloat(e.target.value) || 0 })}
+                                    className="w-full text-center neumorphic-pressed px-1 py-1 rounded-lg mt-1" />
+
                                      <p className="text-slate-400 mt-1">
                                        = {Math.round((editData.totale_giornata || 0) * ((editData.percentuale_cena || 0) / 100))}
                                      </p>
                                    </div>
                                   </div>
                                   {(() => {
-                                   const somma = (parseFloat(editData.percentuale_pranzo) || 0) + 
-                                                 (parseFloat(editData.percentuale_pomeriggio) || 0) + 
-                                                 (parseFloat(editData.percentuale_cena) || 0);
-                                   const isValid = Math.abs(somma - 100) < 0.1;
-                                   return (
-                                     <div className={`mt-2 px-2 py-1 rounded-lg text-center text-xs font-medium ${
-                                       isValid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                     }`}>
+                                const somma = (parseFloat(editData.percentuale_pranzo) || 0) + (
+                                parseFloat(editData.percentuale_pomeriggio) || 0) + (
+                                parseFloat(editData.percentuale_cena) || 0);
+                                const isValid = Math.abs(somma - 100) < 0.1;
+                                return (
+                                  <div className={`mt-2 px-2 py-1 rounded-lg text-center text-xs font-medium ${
+                                  isValid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`
+                                  }>
                                        Totale: {somma.toFixed(1)}% {isValid ? '✓' : '⚠️ Deve essere 100%'}
-                                     </div>
-                                   );
-                                  })()}
+                                     </div>);
+
+                              })()}
                                 </div>
                               </td>
-                            </>
-                          ) : (
-                            <>
+                            </> :
+
+                        <>
                               <td className="text-center py-2 px-2 bg-red-50">{data?.pranzo_rosse || 0}</td>
                               <td className="text-center py-2 px-2 bg-red-50">{data?.pomeriggio_rosse || 0}</td>
                               <td className="text-center py-2 px-2 bg-red-50">{data?.cena_rosse || 0}</td>
                             </>
-                          )}
+                        }
                           <td className="text-center py-2 px-2 font-bold text-green-700 bg-green-50">{totaleGiorno}</td>
                           <td className="text-center py-2 px-2 font-bold bg-purple-50">
                             <span className={scostamento > 0 ? 'text-green-600' : scostamento < 0 ? 'text-red-600' : 'text-slate-600'}>
@@ -833,64 +833,64 @@ export default function PrecottureAdmin() {
                           </td>
                           <td className="text-center py-2 px-2 font-bold text-yellow-700 bg-yellow-50">{impasto3Giorni}</td>
                           <td className="text-center py-2 px-2">
-                            {isEditing ? (
-                              <div className="flex items-center justify-center gap-1">
+                            {isEditing ?
+                          <div className="flex items-center justify-center gap-1">
                                 <button
-                                  onClick={() => handleSave(giorno)}
-                                  className="nav-button p-2 rounded-lg hover:bg-green-50"
-                                  title="Salva"
-                                >
+                              onClick={() => handleSave(giorno)}
+                              className="nav-button p-2 rounded-lg hover:bg-green-50"
+                              title="Salva">
+
                                   <Save className="w-4 h-4 text-green-600" />
                                 </button>
                                 <button
-                                  onClick={() => setEditingRow(null)}
-                                  className="nav-button p-2 rounded-lg hover:bg-red-50"
-                                  title="Annulla"
-                                >
+                              onClick={() => setEditingRow(null)}
+                              className="nav-button p-2 rounded-lg hover:bg-red-50"
+                              title="Annulla">
+
                                   <X className="w-4 h-4 text-red-600" />
                                 </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-center gap-1">
+                              </div> :
+
+                          <div className="flex items-center justify-center gap-1">
                                 <button
-                                  onClick={() => handleEdit(giorno, data)}
-                                  className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                                  title="Modifica"
-                                >
+                              onClick={() => handleEdit(giorno, data)}
+                              className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                              title="Modifica">
+
                                   <Edit className="w-4 h-4 text-blue-600" />
                                 </button>
-                                {mediaGiorno60 > 0 && (
-                                  <button
-                                    onClick={() => handleAggiornaConMedia(giorno)}
-                                    className="nav-button p-2 rounded-lg hover:bg-purple-50"
-                                    title="Aggiorna con media 60gg"
-                                  >
+                                {mediaGiorno60 > 0 &&
+                            <button
+                              onClick={() => handleAggiornaConMedia(giorno)}
+                              className="nav-button p-2 rounded-lg hover:bg-purple-50"
+                              title="Aggiorna con media 60gg">
+
                                     <TrendingUp className="w-4 h-4 text-purple-600" />
                                   </button>
-                                )}
+                            }
                               </div>
-                            )}
+                          }
                           </td>
-                        </tr>
-                      );
-                    })}
+                        </tr>);
+
+                  })}
                   </tbody>
                 </table>
               </div>
             </NeumorphicCard>
           </>
-        )}
+        }
 
-        {activeTab === 'configurazione' && !selectedStore && (
-          <NeumorphicCard className="p-8 text-center">
+        {activeTab === 'configurazione' && !selectedStore &&
+        <NeumorphicCard className="p-8 text-center">
             <Store className="w-16 h-16 mx-auto mb-4 text-slate-300" />
             <p className="text-slate-500">Seleziona un negozio per configurare le precotture</p>
           </NeumorphicCard>
-        )}
+        }
 
         {/* Tab Teglie Vendute */}
-        {activeTab === 'teglie-vendute' && (
-          <>
+        {activeTab === 'teglie-vendute' &&
+        <>
             {/* Configurazione */}
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -899,40 +899,40 @@ export default function PrecottureAdmin() {
                   Configurazione Calcolo Teglie
                 </h2>
                 <button
-                  onClick={() => setShowTeglieConfig(!showTeglieConfig)}
-                  className="nav-button px-4 py-2 rounded-lg text-sm"
-                >
+                onClick={() => setShowTeglieConfig(!showTeglieConfig)}
+                className="nav-button px-4 py-2 rounded-lg text-sm">
+
                   {showTeglieConfig ? 'Nascondi' : 'Mostra'} Configurazione
                 </button>
               </div>
 
-              {showTeglieConfig && (
-                <div className="space-y-4 pt-4 border-t border-slate-200">
+              {showTeglieConfig &&
+            <div className="space-y-4 pt-4 border-t border-slate-200">
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">
                       Categorie da considerare
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {['pizza', 'dolce', 'bibita', 'birra'].map(cat => (
-                        <button
-                          key={cat}
-                          onClick={() => {
-                            setTeglieConfig(prev => ({
-                              ...prev,
-                              categorie: prev.categorie.includes(cat)
-                                ? prev.categorie.filter(c => c !== cat)
-                                : [...prev.categorie, cat]
-                            }));
-                          }}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                            teglieConfig.categorie.includes(cat)
-                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                              : 'neumorphic-flat text-slate-700'
-                          }`}
-                        >
+                      {['pizza', 'dolce', 'bibita', 'birra'].map((cat) =>
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setTeglieConfig((prev) => ({
+                        ...prev,
+                        categorie: prev.categorie.includes(cat) ?
+                        prev.categorie.filter((c) => c !== cat) :
+                        [...prev.categorie, cat]
+                      }));
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    teglieConfig.categorie.includes(cat) ?
+                    'bg-gradient-to-r from-blue-500 to-blue-600 text-white' :
+                    'neumorphic-flat text-slate-700'}`
+                    }>
+
                           {cat.charAt(0).toUpperCase() + cat.slice(1)}
                         </button>
-                      ))}
+                  )}
                     </div>
                   </div>
 
@@ -941,12 +941,12 @@ export default function PrecottureAdmin() {
                       Unità per teglia
                     </label>
                     <input
-                      type="number"
-                      min="1"
-                      value={teglieConfig.unita_per_teglia}
-                      onChange={(e) => setTeglieConfig(prev => ({ ...prev, unita_per_teglia: parseInt(e.target.value) || 1 }))}
-                      className="w-32 neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                    />
+                  type="number"
+                  min="1"
+                  value={teglieConfig.unita_per_teglia}
+                  onChange={(e) => setTeglieConfig((prev) => ({ ...prev, unita_per_teglia: parseInt(e.target.value) || 1 }))}
+                  className="w-32 neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none" />
+
                     <p className="text-xs text-slate-500 mt-1">
                       Numero di unità che compongono una teglia
                     </p>
@@ -954,17 +954,17 @@ export default function PrecottureAdmin() {
 
                   <div className="pt-3 border-t border-slate-200">
                     <NeumorphicButton
-                      onClick={() => saveConfigTeglieeMutation.mutate(teglieConfig)}
-                      disabled={saveConfigTeglieeMutation.isPending || teglieConfig.categorie.length === 0}
-                      variant="primary"
-                      className="flex items-center gap-2"
-                    >
+                  onClick={() => saveConfigTeglieeMutation.mutate(teglieConfig)}
+                  disabled={saveConfigTeglieeMutation.isPending || teglieConfig.categorie.length === 0}
+                  variant="primary"
+                  className="flex items-center gap-2">
+
                       <Save className="w-4 h-4" />
                       {saveConfigTeglieeMutation.isPending ? 'Salvataggio...' : 'Salva Configurazione'}
                     </NeumorphicButton>
                   </div>
                 </div>
-              )}
+            }
             </NeumorphicCard>
 
             {/* Date Range */}
@@ -974,20 +974,20 @@ export default function PrecottureAdmin() {
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Data inizio</label>
                   <input
-                    type="date"
-                    value={teglieStartDate}
-                    onChange={(e) => setTeglieStartDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                  />
+                  type="date"
+                  value={teglieStartDate}
+                  onChange={(e) => setTeglieStartDate(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none" />
+
                 </div>
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Data fine</label>
                   <input
-                    type="date"
-                    value={teglieEndDate}
-                    onChange={(e) => setTeglieEndDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
-                  />
+                  type="date"
+                  value={teglieEndDate}
+                  onChange={(e) => setTeglieEndDate(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none" />
+
                 </div>
               </div>
             </NeumorphicCard>
@@ -1005,9 +1005,9 @@ export default function PrecottureAdmin() {
               <NeumorphicCard className="p-6 text-center">
                 <TrendingUp className="w-8 h-8 text-green-600 mx-auto mb-2" />
                 <p className="text-3xl font-bold text-slate-800">
-                  {teglieVendute.length > 0 
-                    ? (teglieVendute.reduce((sum, t) => sum + parseFloat(t.teglie), 0) / teglieVendute.length).toFixed(1)
-                    : '0'}
+                  {teglieVendute.length > 0 ?
+                (teglieVendute.reduce((sum, t) => sum + parseFloat(t.teglie), 0) / teglieVendute.length).toFixed(1) :
+                '0'}
                 </p>
                 <p className="text-xs text-slate-500 mt-1">Media Giornaliera</p>
               </NeumorphicCard>
@@ -1028,129 +1028,129 @@ export default function PrecottureAdmin() {
                   <h3 className="text-sm font-medium text-slate-700 mb-3">Vista grafico</h3>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setChartViewMode('timeline')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        chartViewMode === 'timeline'
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                          : 'neumorphic-flat text-slate-700'
-                      }`}
-                    >
+                    onClick={() => setChartViewMode('timeline')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    chartViewMode === 'timeline' ?
+                    'bg-gradient-to-r from-blue-500 to-blue-600 text-white' :
+                    'neumorphic-flat text-slate-700'}`
+                    }>
+
                       Trend Temporale
                     </button>
                     <button
-                      onClick={() => setChartViewMode('day')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        chartViewMode === 'day'
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                          : 'neumorphic-flat text-slate-700'
-                      }`}
-                    >
+                    onClick={() => setChartViewMode('day')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    chartViewMode === 'day' ?
+                    'bg-gradient-to-r from-blue-500 to-blue-600 text-white' :
+                    'neumorphic-flat text-slate-700'}`
+                    }>
+
                       Trend per Giorno Settimana
                     </button>
                   </div>
                 </div>
 
-                {chartViewMode === 'day' && (
-                  <div>
+                {chartViewMode === 'day' &&
+              <div>
                     <h3 className="text-sm font-medium text-slate-700 mb-3">Seleziona giorno della settimana</h3>
                     <div className="flex flex-wrap gap-2">
-                      {giorni.map(giorno => (
-                        <button
-                          key={giorno}
-                          onClick={() => setSelectedDayOfWeek(giorno)}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                            selectedDayOfWeek === giorno
-                              ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
-                              : 'neumorphic-flat text-slate-700'
-                          }`}
-                        >
+                      {giorni.map((giorno) =>
+                  <button
+                    key={giorno}
+                    onClick={() => setSelectedDayOfWeek(giorno)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    selectedDayOfWeek === giorno ?
+                    'bg-gradient-to-r from-purple-500 to-purple-600 text-white' :
+                    'neumorphic-flat text-slate-700'}`
+                    }>
+
                           {giorno}
                         </button>
-                      ))}
+                  )}
                     </div>
                   </div>
-                )}
+              }
 
                 <div>
                   <h3 className="text-sm font-medium text-slate-700 mb-3">Negozi da visualizzare nel grafico</h3>
                   <div className="flex flex-wrap gap-2">
-                    {stores.map(store => (
-                      <button
-                        key={store.id}
-                        onClick={() => {
-                          setSelectedStoresForChart(prev => 
-                            prev.includes(store.id)
-                              ? prev.filter(id => id !== store.id)
-                              : [...prev, store.id]
-                          );
-                        }}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                          selectedStoresForChart.includes(store.id)
-                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                            : 'neumorphic-flat text-slate-700'
-                        }`}
-                      >
+                    {stores.map((store) =>
+                  <button
+                    key={store.id}
+                    onClick={() => {
+                      setSelectedStoresForChart((prev) =>
+                      prev.includes(store.id) ?
+                      prev.filter((id) => id !== store.id) :
+                      [...prev, store.id]
+                      );
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    selectedStoresForChart.includes(store.id) ?
+                    'bg-gradient-to-r from-blue-500 to-blue-600 text-white' :
+                    'neumorphic-flat text-slate-700'}`
+                    }>
+
                         {store.name}
                       </button>
-                    ))}
-                    {selectedStoresForChart.length > 0 && (
-                      <button
-                        onClick={() => setSelectedStoresForChart([])}
-                        className="px-4 py-2 rounded-lg text-sm font-medium neumorphic-flat text-red-600"
-                      >
+                  )}
+                    {selectedStoresForChart.length > 0 &&
+                  <button
+                    onClick={() => setSelectedStoresForChart([])}
+                    className="px-4 py-2 rounded-lg text-sm font-medium neumorphic-flat text-red-600">
+
                         Mostra Tutti
                       </button>
-                    )}
+                  }
                   </div>
                 </div>
               </div>
             </NeumorphicCard>
 
             {/* Chart */}
-            {teglieChartData.length > 0 && (
-              <NeumorphicCard className="p-6">
+            {teglieChartData.length > 0 &&
+          <NeumorphicCard className="p-6">
                 <h3 className="text-lg font-bold text-slate-800 mb-4">
-                  {chartViewMode === 'day' 
-                    ? `Trend ${selectedDayOfWeek} nel Tempo` 
-                    : 'Trend Giornaliero'}
+                  {chartViewMode === 'day' ?
+              `Trend ${selectedDayOfWeek} nel Tempo` :
+              'Trend Giornaliero'}
                 </h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={teglieChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="date" stroke="#64748b" />
-                      <YAxis 
-                        stroke="#64748b" 
-                        label={{ value: 'Teglie', angle: -90, position: 'insideLeft' }}
-                        domain={chartYDomain}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#f8fafc', 
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px'
-                        }} 
-                      />
+                      <YAxis
+                    stroke="#64748b"
+                    label={{ value: 'Teglie', angle: -90, position: 'insideLeft' }}
+                    domain={chartYDomain} />
+
+                      <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }} />
+
                       <Legend />
-                      {chartStoreNames.length > 0 ? (
-                        chartStoreNames.map((storeName, idx) => (
-                          <Line 
-                            key={storeName}
-                            type="monotone" 
-                            dataKey={storeName} 
-                            stroke={['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'][idx % 6]}
-                            strokeWidth={2} 
-                            name={storeName}
-                          />
-                        ))
-                      ) : (
-                        <Line type="monotone" dataKey="totale" stroke="#3b82f6" strokeWidth={2} name="Totale Teglie" />
-                      )}
+                      {chartStoreNames.length > 0 ?
+                  chartStoreNames.map((storeName, idx) =>
+                  <Line
+                    key={storeName}
+                    type="monotone"
+                    dataKey={storeName}
+                    stroke={['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'][idx % 6]}
+                    strokeWidth={2}
+                    name={storeName} />
+
+                  ) :
+
+                  <Line type="monotone" dataKey="totale" stroke="#3b82f6" strokeWidth={2} name="Totale Teglie" />
+                  }
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               </NeumorphicCard>
-            )}
+          }
 
             {/* Media per giorno della settimana */}
             <NeumorphicCard className="p-6">
@@ -1159,32 +1159,32 @@ export default function PrecottureAdmin() {
                   <div className="flex items-center gap-2">
                     <label className="text-sm text-slate-600">Negozio:</label>
                     <select
-                      value={selectedStoreForMedia}
-                      onChange={(e) => setSelectedStoreForMedia(e.target.value)}
-                      className="neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none"
-                    >
+                  value={selectedStoreForMedia}
+                  onChange={(e) => setSelectedStoreForMedia(e.target.value)}
+                  className="neumorphic-pressed px-3 py-2 rounded-lg text-sm text-slate-700 outline-none">
+
                       <option value="">Tutti i negozi</option>
-                      {stores.map(store => (
-                        <option key={store.id} value={store.id}>{store.name}</option>
-                      ))}
+                      {stores.map((store) =>
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                  )}
                     </select>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                  {mediaPerGiorno.map(d => (
-                    <div key={d.day} className="neumorphic-pressed p-4 rounded-xl text-center">
+                  {mediaPerGiorno.map((d) =>
+              <div key={d.day} className="neumorphic-pressed p-4 rounded-xl text-center">
                       <p className="text-xs text-slate-500 mb-1">{d.day}</p>
                       <p className="text-2xl font-bold text-blue-600">{d.media}</p>
                       <p className="text-xs text-slate-400">teglie</p>
                     </div>
-                  ))}
+              )}
                 </div>
               </NeumorphicCard>
 
             {/* Tabella dettagliata */}
-            {teglieVendute.length > 0 && (
-              <NeumorphicCard className="p-6">
+            {teglieVendute.length > 0 &&
+          <NeumorphicCard className="p-6">
                 <h3 className="text-lg font-bold text-slate-800 mb-4">Dettaglio Giornaliero</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -1198,19 +1198,19 @@ export default function PrecottureAdmin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {teglieVendute.map((t, idx) => (
-                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                      {teglieVendute.map((t, idx) =>
+                  <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 px-2 text-slate-700">
                             {moment(t.data).format('DD/MM/YYYY')}
                           </td>
                           <td className="py-3 px-2 text-slate-600">
                             {t.day_of_week}
                           </td>
-                          {!selectedStore && (
-                            <td className="py-3 px-2 font-medium text-slate-800">
+                          {!selectedStore &&
+                    <td className="py-3 px-2 font-medium text-slate-800">
                               {t.store_name}
                             </td>
-                          )}
+                    }
                           <td className="py-3 px-2 text-right text-slate-700">
                             {t.totale_unita}
                           </td>
@@ -1218,30 +1218,30 @@ export default function PrecottureAdmin() {
                             {t.teglie}
                           </td>
                         </tr>
-                      ))}
+                  )}
                     </tbody>
                   </table>
                 </div>
               </NeumorphicCard>
-            )}
+          }
 
-            {teglieVendute.length === 0 && (
-              <NeumorphicCard className="p-12 text-center">
+            {teglieVendute.length === 0 &&
+          <NeumorphicCard className="p-12 text-center">
                 <Pizza className="w-16 h-16 text-slate-300 mx-auto mb-4 opacity-50" />
                 <h3 className="text-xl font-bold text-slate-800 mb-2">Nessun dato disponibile</h3>
                 <p className="text-slate-500">
                   Seleziona un periodo e configura le categorie per visualizzare i dati
                 </p>
               </NeumorphicCard>
-            )}
+          }
           </>
-        )}
+        }
 
         {/* Tab Storico */}
-        {activeTab === 'storico' && (
-          <>
-            {storicoStats && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {activeTab === 'storico' &&
+        <>
+            {storicoStats &&
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <NeumorphicCard className="p-4 text-center">
                   <p className="text-2xl font-bold text-slate-800">{storicoStats.totaleForm}</p>
                   <p className="text-xs text-slate-500">Form compilati</p>
@@ -1255,15 +1255,15 @@ export default function PrecottureAdmin() {
                   <p className="text-xs text-slate-500">Media Rosse</p>
                 </NeumorphicCard>
               </div>
-            )}
+          }
 
             <NeumorphicCard className="p-6">
               <h2 className="text-xl font-bold text-slate-800 mb-4">Storico Form Precotture</h2>
               
-              {filteredStorico.length === 0 ? (
-                <p className="text-slate-500 text-center py-8">Nessun form trovato</p>
-              ) : (
-                <div className="overflow-x-auto">
+              {filteredStorico.length === 0 ?
+            <p className="text-slate-500 text-center py-8">Nessun form trovato</p> :
+
+            <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b-2 border-slate-200">
@@ -1278,8 +1278,8 @@ export default function PrecottureAdmin() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredStorico.map(form => (
-                        <tr key={form.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      {filteredStorico.map((form) =>
+                  <tr key={form.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="py-3 px-2 text-slate-700">
                             {moment(form.data_compilazione).format('DD/MM/YYYY HH:mm')}
                           </td>
@@ -1292,10 +1292,10 @@ export default function PrecottureAdmin() {
                           </td>
                           <td className="py-3 px-2 text-center">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              form.turno === 'pranzo' ? 'bg-blue-100 text-blue-700' :
-                              form.turno === 'pomeriggio' ? 'bg-orange-100 text-orange-700' :
-                              'bg-purple-100 text-purple-700'
-                            }`}>
+                      form.turno === 'pranzo' ? 'bg-blue-100 text-blue-700' :
+                      form.turno === 'pomeriggio' ? 'bg-orange-100 text-orange-700' :
+                      'bg-purple-100 text-purple-700'}`
+                      }>
                               {form.turno || '-'}
                             </span>
                           </td>
@@ -1310,27 +1310,27 @@ export default function PrecottureAdmin() {
                           </td>
                           <td className="py-3 px-2 text-center">
                             <button
-                              onClick={() => {
-                                if (confirm('Eliminare questa registrazione?')) {
-                                  deletePrecottureFormMutation.mutate(form.id);
-                                }
-                              }}
-                              className="nav-button p-2 rounded-lg hover:bg-red-50"
-                              title="Elimina"
-                            >
+                        onClick={() => {
+                          if (confirm('Eliminare questa registrazione?')) {
+                            deletePrecottureFormMutation.mutate(form.id);
+                          }
+                        }}
+                        className="nav-button p-2 rounded-lg hover:bg-red-50"
+                        title="Elimina">
+
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </button>
                           </td>
                         </tr>
-                      ))}
+                  )}
                     </tbody>
                   </table>
                 </div>
-              )}
+            }
             </NeumorphicCard>
           </>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
