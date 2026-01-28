@@ -121,7 +121,6 @@ import MarketingSettings from './pages/MarketingSettings';
 import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
 import MateriePrime from './pages/MateriePrime';
 import Meta from './pages/Meta';
-import Meteo from './pages/Meteo';
 import NotificheMail from './pages/NotificheMail';
 import OrderItemsSetup from './pages/OrderItemsSetup';
 import Ordini from './pages/Ordini';
@@ -250,7 +249,6 @@ export const PAGES = {
     "MatchingOrdiniSbagliati": MatchingOrdiniSbagliati,
     "MateriePrime": MateriePrime,
     "Meta": Meta,
-    "Meteo": Meteo,
     "NotificheMail": NotificheMail,
     "OrderItemsSetup": OrderItemsSetup,
     "Ordini": Ordini,
