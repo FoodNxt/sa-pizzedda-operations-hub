@@ -28,8 +28,8 @@ import {
   Lightbulb,
   Loader2,
   MapPin,
-  User
-} from 'lucide-react';
+  User } from
+'lucide-react';
 import { format, differenceInDays, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -83,35 +83,35 @@ export default function Activation() {
 
   const { data: activations = [] } = useQuery({
     queryKey: ['activations'],
-    queryFn: () => base44.entities.Activation.list('-data_completamento_target'),
+    queryFn: () => base44.entities.Activation.list('-data_completamento_target')
   });
 
   const { data: categories = [] } = useQuery({
     queryKey: ['activation-categories'],
-    queryFn: () => base44.entities.ActivationCategoria.list('ordine'),
+    queryFn: () => base44.entities.ActivationCategoria.list('ordine')
   });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list(),
+    queryFn: () => base44.entities.Store.list()
   });
 
   const { data: subattivita = [] } = useQuery({
     queryKey: ['subattivita'],
-    queryFn: () => base44.entities.SubAttivita.list('ordine'),
+    queryFn: () => base44.entities.SubAttivita.list('ordine')
   });
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => base44.auth.me()
   });
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['all-users'],
     queryFn: async () => {
       const users = await base44.entities.User.list();
-      return users.filter(u => u.user_type === 'admin' || u.user_type === 'manager');
-    },
+      return users.filter((u) => u.user_type === 'admin' || u.user_type === 'manager');
+    }
   });
 
   const createMutation = useMutation({
@@ -119,7 +119,7 @@ export default function Activation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activations'] });
       resetForm();
-    },
+    }
   });
 
   const updateMutation = useMutation({
@@ -127,14 +127,14 @@ export default function Activation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activations'] });
       resetForm();
-    },
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Activation.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activations'] });
-    },
+    }
   });
 
   const createCategoryMutation = useMutation({
@@ -142,7 +142,7 @@ export default function Activation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activation-categories'] });
       resetCategoryForm();
-    },
+    }
   });
 
   const updateCategoryMutation = useMutation({
@@ -150,14 +150,14 @@ export default function Activation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activation-categories'] });
       resetCategoryForm();
-    },
+    }
   });
 
   const deleteCategoryMutation = useMutation({
     mutationFn: (id) => base44.entities.ActivationCategoria.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['activation-categories'] });
-    },
+    }
   });
 
   const createSubattivitaMutation = useMutation({
@@ -165,21 +165,21 @@ export default function Activation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subattivita'] });
       setNewChecklistItem('');
-    },
+    }
   });
 
   const updateSubattivitaMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.SubAttivita.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subattivita'] });
-    },
+    }
   });
 
   const deleteSubattivitaMutation = useMutation({
     mutationFn: (id) => base44.entities.SubAttivita.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subattivita'] });
-    },
+    }
   });
 
   const resetForm = () => {
@@ -241,9 +241,9 @@ export default function Activation() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const storeIds = selectAllStores ? [] : formData.stores_ids;
-    const storeNames = selectAllStores ? [] : formData.stores_ids.map(id => stores.find(s => s.id === id)?.name).filter(Boolean);
+    const storeNames = selectAllStores ? [] : formData.stores_ids.map((id) => stores.find((s) => s.id === id)?.name).filter(Boolean);
 
     const data = {
       ...formData,
@@ -269,39 +269,39 @@ export default function Activation() {
   };
 
   const toggleStore = (storeId) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      stores_ids: prev.stores_ids.includes(storeId)
-        ? prev.stores_ids.filter(id => id !== storeId)
-        : [...prev.stores_ids, storeId]
+      stores_ids: prev.stores_ids.includes(storeId) ?
+      prev.stores_ids.filter((id) => id !== storeId) :
+      [...prev.stores_ids, storeId]
     }));
   };
 
   const toggleCategory = (categoryId) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      categorie_ids: prev.categorie_ids.includes(categoryId)
-        ? prev.categorie_ids.filter(id => id !== categoryId)
-        : [...prev.categorie_ids, categoryId]
+      categorie_ids: prev.categorie_ids.includes(categoryId) ?
+      prev.categorie_ids.filter((id) => id !== categoryId) :
+      [...prev.categorie_ids, categoryId]
     }));
   };
 
   const toggleAllStores = () => {
     if (selectAllStores) {
       setSelectAllStores(false);
-      setFormData(prev => ({ ...prev, stores_ids: [] }));
+      setFormData((prev) => ({ ...prev, stores_ids: [] }));
     } else {
       setSelectAllStores(true);
-      setFormData(prev => ({ ...prev, stores_ids: [] }));
+      setFormData((prev) => ({ ...prev, stores_ids: [] }));
     }
   };
 
   // Vista per persona
   const activationsByPerson = useMemo(() => {
     const grouped = {};
-    
+
     // Group assigned activations
-    activations.forEach(act => {
+    activations.forEach((act) => {
       if (act.assegnato_a_id && act.assegnato_a_nome) {
         if (!grouped[act.assegnato_a_id]) {
           grouped[act.assegnato_a_id] = {
@@ -312,16 +312,16 @@ export default function Activation() {
         grouped[act.assegnato_a_id].activations.push(act);
       }
     });
-    
+
     // Add unassigned activations
-    const unassigned = activations.filter(act => !act.assegnato_a_id);
+    const unassigned = activations.filter((act) => !act.assegnato_a_id);
     if (unassigned.length > 0) {
       grouped['unassigned'] = {
         nome: 'Non Assegnate',
         activations: unassigned
       };
     }
-    
+
     return grouped;
   }, [activations, allUsers]);
 
@@ -336,12 +336,12 @@ export default function Activation() {
       start = startOfMonth(currentDate);
       end = endOfMonth(currentDate);
       const monthDays = eachDayOfInterval({ start, end });
-      
+
       // Add empty cells for days before the month starts (to align with weekStartsOn: 1)
       const firstDayOfMonth = start.getDay();
       const emptyCellsCount = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
       const emptyCells = Array(emptyCellsCount).fill(null);
-      
+
       days = [...emptyCells, ...monthDays];
     }
 
@@ -350,24 +350,24 @@ export default function Activation() {
 
   const activationsByDay = useMemo(() => {
     const map = {};
-    calendarData.days.forEach(day => {
+    calendarData.days.forEach((day) => {
       if (!day) return; // Skip empty cells
-      
+
       const dayKey = format(day, 'yyyy-MM-dd');
-      let filtered = activations.filter(a => {
+      let filtered = activations.filter((a) => {
         const start = a.data_inizio ? parseISO(a.data_inizio) : parseISO(a.data_completamento_target);
         const end = parseISO(a.data_completamento_target);
         return day >= start && day <= end;
       });
-      
+
       // Applica filtri categoria e activation
       if (calendarCategoryFilter !== 'all') {
-        filtered = filtered.filter(a => a.categorie_ids?.includes(calendarCategoryFilter));
+        filtered = filtered.filter((a) => a.categorie_ids?.includes(calendarCategoryFilter));
       }
       if (calendarActivationFilter !== 'all') {
-        filtered = filtered.filter(a => a.id === calendarActivationFilter);
+        filtered = filtered.filter((a) => a.id === calendarActivationFilter);
       }
-      
+
       map[dayKey] = filtered;
     });
     return map;
@@ -377,15 +377,15 @@ export default function Activation() {
     const map = {};
     if (calendarActivationFilter !== 'all') {
       // Mostra sottoattività solo se filtrata per activation singola
-      calendarData.days.forEach(day => {
+      calendarData.days.forEach((day) => {
         if (!day) return; // Skip empty cells
-        
+
         const dayKey = format(day, 'yyyy-MM-dd');
-        map[dayKey] = subattivita.filter(s => {
-          const activation = activations.find(a => a.id === s.activation_id);
-          return s.activation_id === calendarActivationFilter && 
-                 s.data_target && 
-                 format(parseISO(s.data_target), 'yyyy-MM-dd') === dayKey;
+        map[dayKey] = subattivita.filter((s) => {
+          const activation = activations.find((a) => a.id === s.activation_id);
+          return s.activation_id === calendarActivationFilter &&
+          s.data_target &&
+          format(parseISO(s.data_target), 'yyyy-MM-dd') === dayKey;
         });
       });
     }
@@ -394,32 +394,32 @@ export default function Activation() {
 
   const activationsByCategory = useMemo(() => {
     const grouped = {};
-    categories.forEach(cat => {
-      grouped[cat.id] = activations.filter(a => a.categorie_ids?.includes(cat.id));
+    categories.forEach((cat) => {
+      grouped[cat.id] = activations.filter((a) => a.categorie_ids?.includes(cat.id));
     });
-    grouped['uncategorized'] = activations.filter(a => !a.categorie_ids || a.categorie_ids.length === 0);
+    grouped['uncategorized'] = activations.filter((a) => !a.categorie_ids || a.categorie_ids.length === 0);
     return grouped;
   }, [activations, categories]);
 
   const getStatoColor = (stato) => {
-    switch(stato) {
-      case 'in_corso': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'completata': return 'bg-green-100 text-green-700 border-green-200';
-      case 'annullata': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    switch (stato) {
+      case 'in_corso':return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'completata':return 'bg-green-100 text-green-700 border-green-200';
+      case 'annullata':return 'bg-red-100 text-red-700 border-red-200';
+      default:return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
   const getStatoIcon = (stato) => {
-    switch(stato) {
-      case 'in_corso': return <Clock className="w-4 h-4" />;
-      case 'completata': return <CheckCircle className="w-4 h-4" />;
-      case 'annullata': return <XCircle className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
+    switch (stato) {
+      case 'in_corso':return <Clock className="w-4 h-4" />;
+      case 'completata':return <CheckCircle className="w-4 h-4" />;
+      case 'annullata':return <XCircle className="w-4 h-4" />;
+      default:return <Clock className="w-4 h-4" />;
     }
   };
 
-  const getCategoryName = (categoryId) => categories.find(c => c.id === categoryId)?.nome || '';
+  const getCategoryName = (categoryId) => categories.find((c) => c.id === categoryId)?.nome || '';
 
   const handleToggleSubattivita = (subattivitaId, currentStatus) => {
     const userData = user?.nome_cognome || user?.full_name || user?.email;
@@ -436,12 +436,12 @@ export default function Activation() {
   const handleAddChecklistItem = () => {
     const activationId = selectedActivationForChecklist?.id || editingActivation?.id;
     if (!newChecklistItem.trim() || !activationId) return;
-    
+
     const maxOrdine = Math.max(
       0,
-      ...subattivita
-        .filter(s => s.activation_id === activationId)
-        .map(s => s.ordine || 0)
+      ...subattivita.
+      filter((s) => s.activation_id === activationId).
+      map((s) => s.ordine || 0)
     );
 
     createSubattivitaMutation.mutate({
@@ -465,7 +465,7 @@ export default function Activation() {
 
   const handleSaveSubattivita = () => {
     if (!editingSubattivita || !editingSubattivitaData.titolo.trim()) return;
-    
+
     updateSubattivitaMutation.mutate({
       id: editingSubattivita.id,
       data: editingSubattivitaData
@@ -485,14 +485,14 @@ export default function Activation() {
   };
 
   const togglePersonCard = (personId) => {
-    setExpandedPersonCards(prev => ({
+    setExpandedPersonCards((prev) => ({
       ...prev,
       [personId]: !prev[personId]
     }));
   };
 
   const toggleCompletedCard = (activationId) => {
-    setCollapsedCompletedCards(prev => ({
+    setCollapsedCompletedCards((prev) => ({
       ...prev,
       [activationId]: !prev[activationId]
     }));
@@ -501,20 +501,20 @@ export default function Activation() {
   const handleGetSuggestions = async () => {
     setLoadingSuggestions(true);
     try {
-      const monthStart = calendarView === 'week' 
-        ? format(calendarData.start, 'yyyy-MM-dd')
-        : format(startOfMonth(currentDate), 'yyyy-MM-dd');
-      const monthEnd = calendarView === 'week'
-        ? format(calendarData.end, 'yyyy-MM-dd')
-        : format(endOfMonth(currentDate), 'yyyy-MM-dd');
+      const monthStart = calendarView === 'week' ?
+      format(calendarData.start, 'yyyy-MM-dd') :
+      format(startOfMonth(currentDate), 'yyyy-MM-dd');
+      const monthEnd = calendarView === 'week' ?
+      format(calendarData.end, 'yyyy-MM-dd') :
+      format(endOfMonth(currentDate), 'yyyy-MM-dd');
 
-      const excludedEventsText = dismissedEvents.length > 0 
-        ? `\n\nNON includere i seguenti eventi già suggeriti in precedenza: ${dismissedEvents.join(', ')}`
-        : '';
+      const excludedEventsText = dismissedEvents.length > 0 ?
+      `\n\nNON includere i seguenti eventi già suggeriti in precedenza: ${dismissedEvents.join(', ')}` :
+      '';
 
-      const cityContext = selectedCity 
-        ? `\n\nConcentrati anche su eventi locali specifici per la città di ${selectedCity}.`
-        : '';
+      const cityContext = selectedCity ?
+      `\n\nConcentrati anche su eventi locali specifici per la città di ${selectedCity}.` :
+      '';
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: `Per il paese "${selectedCountry}"${selectedCity ? ` e in particolare per la città di ${selectedCity}` : ''}, elenca tutte le festività nazionali, ricorrenze importanti ed eventi culturali significativi tra ${monthStart} e ${monthEnd}. Per ogni evento, fornisci:
@@ -560,7 +560,7 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
   };
 
   const handleCreateActivationFromEvent = (event) => {
-    setDismissedEvents(prev => [...prev, event.nome]);
+    setDismissedEvents((prev) => [...prev, event.nome]);
     setFormData({
       nome: event.nome,
       descrizione: `${event.descrizione}\n\n${event.suggerimento_marketing}`,
@@ -573,17 +573,17 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
       assegnato_a_nome: ''
     });
     setSelectAllStores(true);
-    setSuggestedEvents(prev => prev.filter(e => e.nome !== event.nome));
+    setSuggestedEvents((prev) => prev.filter((e) => e.nome !== event.nome));
     setShowSuggestionsModal(false);
     setShowForm(true);
   };
 
   const handleDismissEvent = async (event) => {
-    setDismissedEvents(prev => [...prev, event.nome]);
-    setSuggestedEvents(prev => prev.filter(e => e.nome !== event.nome));
+    setDismissedEvents((prev) => [...prev, event.nome]);
+    setSuggestedEvents((prev) => prev.filter((e) => e.nome !== event.nome));
 
     // Find or create "Eventi AI scartati" category
-    let scartatiCategory = categories.find(c => c.nome === 'Eventi AI scartati');
+    let scartatiCategory = categories.find((c) => c.nome === 'Eventi AI scartati');
     if (!scartatiCategory) {
       scartatiCategory = await base44.entities.ActivationCategoria.create({
         nome: 'Eventi AI scartati',
@@ -615,22 +615,22 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">Marketing Activation</h1>
-            <p className="text-slate-500">Gestisci le activation di marketing</p>
+            <h1 className="text-slate-50 mb-2 text-3xl font-bold">Marketing Activation</h1>
+            <p className="text-slate-50">Gestisci le activation di marketing</p>
           </div>
           <div className="flex gap-2">
             <NeumorphicButton
               onClick={() => setShowCategoryForm(true)}
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Tag className="w-5 h-5" />
               Categorie
             </NeumorphicButton>
             <NeumorphicButton
               onClick={() => setShowForm(true)}
               variant="primary"
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+
               <Plus className="w-5 h-5" />
               Nuova Activation
             </NeumorphicButton>
@@ -642,60 +642,60 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
           <NeumorphicButton
             onClick={() => setActiveView('lista')}
             variant={activeView === 'lista' ? 'primary' : 'default'}
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <List className="w-4 h-4" />
             Lista
           </NeumorphicButton>
           <NeumorphicButton
             onClick={() => setActiveView('per_persona')}
             variant={activeView === 'per_persona' ? 'primary' : 'default'}
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <User className="w-4 h-4" />
             Per Persona
           </NeumorphicButton>
           <NeumorphicButton
             onClick={() => setActiveView('calendario')}
             variant={activeView === 'calendario' ? 'primary' : 'default'}
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <Calendar className="w-4 h-4" />
             Calendario
           </NeumorphicButton>
           <NeumorphicButton
             onClick={() => setActiveView('categorie')}
             variant={activeView === 'categorie' ? 'primary' : 'default'}
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <Folder className="w-4 h-4" />
             Per Categoria
           </NeumorphicButton>
         </div>
 
         {/* Category Form Modal */}
-        {showCategoryForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showCategoryForm &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-2xl w-full p-6">
               <h2 className="text-2xl font-bold text-slate-800 mb-6">
                 {editingCategory ? 'Modifica Categoria' : 'Gestisci Categorie'}
               </h2>
 
               {/* Existing categories */}
-              {!editingCategory && (
-                <div className="mb-6">
+              {!editingCategory &&
+            <div className="mb-6">
                   <h3 className="text-sm font-bold text-slate-700 mb-3">Categorie Esistenti</h3>
-                  {categories.length === 0 ? (
-                    <p className="text-sm text-slate-500 text-center py-4">Nessuna categoria creata</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {categories.map(cat => (
-                        <div key={cat.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+                  {categories.length === 0 ?
+              <p className="text-sm text-slate-500 text-center py-4">Nessuna categoria creata</p> :
+
+              <div className="space-y-2">
+                      {categories.map((cat) =>
+                <div key={cat.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div
-                              className="w-6 h-6 rounded-lg"
-                              style={{ backgroundColor: cat.colore }}
-                            />
+                      className="w-6 h-6 rounded-lg"
+                      style={{ backgroundColor: cat.colore }} />
+
                             <div>
                               <p className="font-medium text-slate-800">{cat.nome}</p>
                               {cat.descrizione && <p className="text-xs text-slate-500">{cat.descrizione}</p>}
@@ -703,94 +703,94 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                           </div>
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleEditCategory(cat)}
-                              className="p-2 rounded-lg hover:bg-blue-50"
-                            >
+                      onClick={() => handleEditCategory(cat)}
+                      className="p-2 rounded-lg hover:bg-blue-50">
+
                               <Edit className="w-4 h-4 text-blue-600" />
                             </button>
                             <button
-                              onClick={() => {
-                                if (confirm('Eliminare questa categoria?')) {
-                                  deleteCategoryMutation.mutate(cat.id);
-                                }
-                              }}
-                              className="p-2 rounded-lg hover:bg-red-50"
-                            >
+                      onClick={() => {
+                        if (confirm('Eliminare questa categoria?')) {
+                          deleteCategoryMutation.mutate(cat.id);
+                        }
+                      }}
+                      className="p-2 rounded-lg hover:bg-red-50">
+
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </button>
                           </div>
                         </div>
-                      ))}
+                )}
                     </div>
-                  )}
+              }
                 </div>
-              )}
+            }
 
               {/* Category form */}
               <form onSubmit={handleCategorySubmit} className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Nome Categoria *</label>
                   <input
-                    type="text"
-                    required
-                    value={categoryForm.nome}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, nome: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    placeholder="es. Promo Settimanali"
-                  />
+                  type="text"
+                  required
+                  value={categoryForm.nome}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, nome: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                  placeholder="es. Promo Settimanali" />
+
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Colore *</label>
                   <div className="flex gap-3 items-center">
                     <input
-                      type="color"
-                      value={categoryForm.colore}
-                      onChange={(e) => setCategoryForm({ ...categoryForm, colore: e.target.value })}
-                      className="w-16 h-12 rounded-xl cursor-pointer"
-                    />
+                    type="color"
+                    value={categoryForm.colore}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, colore: e.target.value })}
+                    className="w-16 h-12 rounded-xl cursor-pointer" />
+
                     <input
-                      type="text"
-                      value={categoryForm.colore}
-                      onChange={(e) => setCategoryForm({ ...categoryForm, colore: e.target.value })}
-                      className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      placeholder="#3B82F6"
-                    />
+                    type="text"
+                    value={categoryForm.colore}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, colore: e.target.value })}
+                    className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="#3B82F6" />
+
                   </div>
                 </div>
 
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">Descrizione</label>
                   <input
-                    type="text"
-                    value={categoryForm.descrizione}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, descrizione: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                  />
+                  type="text"
+                  value={categoryForm.descrizione}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, descrizione: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                 </div>
 
                 <div className="flex gap-3 pt-4">
                   <NeumorphicButton type="button" onClick={resetCategoryForm} className="flex-1">
                     {editingCategory ? 'Annulla' : 'Chiudi'}
                   </NeumorphicButton>
-                  {(editingCategory || categories.length === 0 || !editingCategory) && (
-                    <NeumorphicButton
-                      type="submit"
-                      variant="primary"
-                      className="flex-1"
-                    >
+                  {(editingCategory || categories.length === 0 || !editingCategory) &&
+                <NeumorphicButton
+                  type="submit"
+                  variant="primary"
+                  className="flex-1">
+
                       {editingCategory ? 'Aggiorna' : 'Crea Categoria'}
                     </NeumorphicButton>
-                  )}
+                }
                 </div>
               </form>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Form Modal */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showForm &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="max-w-2xl w-full my-4 max-h-[90vh] overflow-y-auto">
               <NeumorphicCard className="p-6">
                 <h2 className="text-2xl font-bold text-slate-800 mb-6">
@@ -803,13 +803,13 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       Nome Activation *
                     </label>
                     <input
-                      type="text"
-                      required
-                      value={formData.nome}
-                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      placeholder="es. Lancio Nuova Pizza"
-                    />
+                    type="text"
+                    required
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="es. Lancio Nuova Pizza" />
+
                   </div>
 
                   <div>
@@ -817,11 +817,11 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       Descrizione
                     </label>
                     <textarea
-                      value={formData.descrizione}
-                      onChange={(e) => setFormData({ ...formData, descrizione: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-24"
-                      placeholder="Descrivi l'activation..."
-                    />
+                    value={formData.descrizione}
+                    onChange={(e) => setFormData({ ...formData, descrizione: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-24"
+                    placeholder="Descrivi l'activation..." />
+
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -830,23 +830,23 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                         Data Inizio
                       </label>
                       <input
-                        type="date"
-                        value={formData.data_inizio}
-                        onChange={(e) => setFormData({ ...formData, data_inizio: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      />
+                      type="date"
+                      value={formData.data_inizio}
+                      onChange={(e) => setFormData({ ...formData, data_inizio: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                     </div>
                     <div>
                       <label className="text-sm font-medium text-slate-700 mb-2 block">
                         Data Target Completamento *
                       </label>
                       <input
-                        type="date"
-                        required
-                        value={formData.data_completamento_target}
-                        onChange={(e) => setFormData({ ...formData, data_completamento_target: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      />
+                      type="date"
+                      required
+                      value={formData.data_completamento_target}
+                      onChange={(e) => setFormData({ ...formData, data_completamento_target: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                     </div>
                   </div>
 
@@ -855,10 +855,10 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       Stato
                     </label>
                     <select
-                      value={formData.stato}
-                      onChange={(e) => setFormData({ ...formData, stato: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    >
+                    value={formData.stato}
+                    onChange={(e) => setFormData({ ...formData, stato: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                       <option value="in_corso">In Corso</option>
                       <option value="completata">Completata</option>
                       <option value="annullata">Annullata</option>
@@ -868,53 +868,53 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">Assegnato a</label>
                     <select
-                      value={formData.assegnato_a_id}
-                      onChange={(e) => {
-                        const selectedUser = allUsers.find(u => u.id === e.target.value);
-                        setFormData({ 
-                          ...formData, 
-                          assegnato_a_id: e.target.value,
-                          assegnato_a_nome: selectedUser ? (selectedUser.nome_cognome || selectedUser.full_name || selectedUser.email) : ''
-                        });
-                      }}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    >
+                    value={formData.assegnato_a_id}
+                    onChange={(e) => {
+                      const selectedUser = allUsers.find((u) => u.id === e.target.value);
+                      setFormData({
+                        ...formData,
+                        assegnato_a_id: e.target.value,
+                        assegnato_a_nome: selectedUser ? selectedUser.nome_cognome || selectedUser.full_name || selectedUser.email : ''
+                      });
+                    }}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                       <option value="">Non assegnato</option>
-                      {allUsers.map(u => (
-                        <option key={u.id} value={u.id}>
+                      {allUsers.map((u) =>
+                    <option key={u.id} value={u.id}>
                           {u.nome_cognome || u.full_name || u.email} ({u.user_type === 'admin' ? 'Admin' : 'Manager'})
                         </option>
-                      ))}
+                    )}
                     </select>
                   </div>
 
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">Categorie</label>
-                    {categories.length === 0 ? (
-                      <p className="text-sm text-slate-500">Nessuna categoria disponibile</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {categories.map(cat => (
-                          <button
-                            key={cat.id}
-                            type="button"
-                            onClick={() => toggleCategory(cat.id)}
-                            className={`px-3 py-2 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
-                              formData.categorie_ids.includes(cat.id)
-                                ? 'text-white shadow-lg'
-                                : 'neumorphic-flat text-slate-700'
-                            }`}
-                            style={formData.categorie_ids.includes(cat.id) ? { backgroundColor: cat.colore } : {}}
-                          >
+                    {categories.length === 0 ?
+                  <p className="text-sm text-slate-500">Nessuna categoria disponibile</p> :
+
+                  <div className="flex flex-wrap gap-2">
+                        {categories.map((cat) =>
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => toggleCategory(cat.id)}
+                      className={`px-3 py-2 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
+                      formData.categorie_ids.includes(cat.id) ?
+                      'text-white shadow-lg' :
+                      'neumorphic-flat text-slate-700'}`
+                      }
+                      style={formData.categorie_ids.includes(cat.id) ? { backgroundColor: cat.colore } : {}}>
+
                             <div
-                              className="w-4 h-4 rounded"
-                              style={{ backgroundColor: cat.colore }}
-                            />
+                        className="w-4 h-4 rounded"
+                        style={{ backgroundColor: cat.colore }} />
+
                             {cat.nome}
                           </button>
-                        ))}
-                      </div>
                     )}
+                      </div>
+                  }
                   </div>
 
                   <div>
@@ -923,45 +923,45 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                         Locali Assegnati
                       </label>
                       <button
-                        type="button"
-                        onClick={toggleAllStores}
-                        className={`text-sm px-3 py-1 rounded-lg ${
-                          selectAllStores ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'
-                        }`}
-                      >
+                      type="button"
+                      onClick={toggleAllStores}
+                      className={`text-sm px-3 py-1 rounded-lg ${
+                      selectAllStores ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'}`
+                      }>
+
                         {selectAllStores ? '✓ Tutti i locali' : 'Seleziona tutti'}
                       </button>
                     </div>
                     
-                    {!selectAllStores && (
-                      <div className="flex flex-wrap gap-2">
-                        {stores.map(store => (
-                          <button
-                            key={store.id}
-                            type="button"
-                            onClick={() => toggleStore(store.id)}
-                            className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                              formData.stores_ids.includes(store.id)
-                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                                : 'neumorphic-flat text-slate-700'
-                            }`}
-                          >
+                    {!selectAllStores &&
+                  <div className="flex flex-wrap gap-2">
+                        {stores.map((store) =>
+                    <button
+                      key={store.id}
+                      type="button"
+                      onClick={() => toggleStore(store.id)}
+                      className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                      formData.stores_ids.includes(store.id) ?
+                      'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                      'neumorphic-flat text-slate-700'}`
+                      }>
+
                             {store.name}
                           </button>
-                        ))}
-                      </div>
                     )}
+                      </div>
+                  }
                     
-                    {selectAllStores && (
-                      <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                    {selectAllStores &&
+                  <div className="neumorphic-pressed p-4 rounded-xl text-center">
                         <p className="text-sm text-slate-600">Tutti i locali sono selezionati</p>
                       </div>
-                    )}
+                  }
                   </div>
 
                   {/* Checklist section in form */}
-                  {editingActivation && (
-                    <div className="border-t pt-4 mt-4">
+                  {editingActivation &&
+                <div className="border-t pt-4 mt-4">
                       <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
                         <CheckSquare className="w-4 h-4" />
                         Sottoattività / Checklist
@@ -971,179 +971,179 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       <div className="mb-3 space-y-2">
                         <div className="flex gap-2">
                           <input
-                            type="text"
-                            value={newChecklistItem}
-                            onChange={(e) => setNewChecklistItem(e.target.value)}
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleAddChecklistItem();
-                              }
-                            }}
-                            placeholder="Aggiungi sottoattività..."
-                            className="flex-1 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-                          />
+                        type="text"
+                        value={newChecklistItem}
+                        onChange={(e) => setNewChecklistItem(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddChecklistItem();
+                          }
+                        }}
+                        placeholder="Aggiungi sottoattività..."
+                        className="flex-1 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm" />
+
                           <button
-                            type="button"
-                            onClick={handleAddChecklistItem}
-                            disabled={!newChecklistItem.trim()}
-                            className="px-3 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white disabled:opacity-50"
-                          >
+                        type="button"
+                        onClick={handleAddChecklistItem}
+                        disabled={!newChecklistItem.trim()}
+                        className="px-3 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white disabled:opacity-50">
+
                             <Plus className="w-4 h-4" />
                           </button>
                         </div>
                         <input
-                          type="date"
-                          value={newSubattivitaData.data_target}
-                          onChange={(e) => setNewSubattivitaData({ ...newSubattivitaData, data_target: e.target.value })}
-                          placeholder="Data target (opzionale)"
-                          className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-                        />
+                      type="date"
+                      value={newSubattivitaData.data_target}
+                      onChange={(e) => setNewSubattivitaData({ ...newSubattivitaData, data_target: e.target.value })}
+                      placeholder="Data target (opzionale)"
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm" />
+
                       </div>
 
                       {/* Checklist items */}
                       <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {subattivita
-                          .filter(s => s.activation_id === editingActivation.id)
-                          .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
-                          .map(item => (
-                            <div key={item.id}>
-                              {editingSubattivita?.id === item.id ? (
-                                <div className="neumorphic-pressed p-2 rounded-lg space-y-2">
+                        {subattivita.
+                    filter((s) => s.activation_id === editingActivation.id).
+                    sort((a, b) => (a.ordine || 0) - (b.ordine || 0)).
+                    map((item) =>
+                    <div key={item.id}>
+                              {editingSubattivita?.id === item.id ?
+                      <div className="neumorphic-pressed p-2 rounded-lg space-y-2">
                                   <input
-                                    type="text"
-                                    value={editingSubattivitaData.titolo}
-                                    onChange={(e) => setEditingSubattivitaData({ ...editingSubattivitaData, titolo: e.target.value })}
-                                    className="w-full neumorphic-pressed px-2 py-1 rounded text-sm outline-none"
-                                  />
+                          type="text"
+                          value={editingSubattivitaData.titolo}
+                          onChange={(e) => setEditingSubattivitaData({ ...editingSubattivitaData, titolo: e.target.value })}
+                          className="w-full neumorphic-pressed px-2 py-1 rounded text-sm outline-none" />
+
                                   <input
-                                    type="date"
-                                    value={editingSubattivitaData.data_target}
-                                    onChange={(e) => setEditingSubattivitaData({ ...editingSubattivitaData, data_target: e.target.value })}
-                                    className="w-full neumorphic-pressed px-2 py-1 rounded text-sm outline-none"
-                                  />
+                          type="date"
+                          value={editingSubattivitaData.data_target}
+                          onChange={(e) => setEditingSubattivitaData({ ...editingSubattivitaData, data_target: e.target.value })}
+                          className="w-full neumorphic-pressed px-2 py-1 rounded text-sm outline-none" />
+
                                   <select
-                                    value={editingSubattivitaData.assegnato_a_id}
-                                    onChange={(e) => {
-                                      const selectedUser = allUsers.find(u => u.id === e.target.value);
-                                      setEditingSubattivitaData({
-                                        ...editingSubattivitaData,
-                                        assegnato_a_id: e.target.value,
-                                        assegnato_a_nome: selectedUser ? (selectedUser.nome_cognome || selectedUser.full_name || selectedUser.email) : ''
-                                      });
-                                    }}
-                                    className="w-full neumorphic-pressed px-2 py-1 rounded text-sm outline-none"
-                                  >
+                          value={editingSubattivitaData.assegnato_a_id}
+                          onChange={(e) => {
+                            const selectedUser = allUsers.find((u) => u.id === e.target.value);
+                            setEditingSubattivitaData({
+                              ...editingSubattivitaData,
+                              assegnato_a_id: e.target.value,
+                              assegnato_a_nome: selectedUser ? selectedUser.nome_cognome || selectedUser.full_name || selectedUser.email : ''
+                            });
+                          }}
+                          className="w-full neumorphic-pressed px-2 py-1 rounded text-sm outline-none">
+
                                     <option value="">Non assegnato</option>
-                                    {allUsers.map(u => (
-                                      <option key={u.id} value={u.id}>
+                                    {allUsers.map((u) =>
+                          <option key={u.id} value={u.id}>
                                         {u.nome_cognome || u.full_name || u.email}
                                       </option>
-                                    ))}
+                          )}
                                   </select>
                                   <div className="flex gap-2">
                                     <button
-                                      type="button"
-                                      onClick={handleSaveSubattivita}
-                                      className="flex-1 px-2 py-1 rounded bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-medium"
-                                    >
+                            type="button"
+                            onClick={handleSaveSubattivita}
+                            className="flex-1 px-2 py-1 rounded bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-medium">
+
                                       Salva
                                     </button>
                                     <button
-                                      type="button"
-                                      onClick={() => setEditingSubattivita(null)}
-                                      className="flex-1 px-2 py-1 rounded bg-slate-300 text-slate-700 text-xs font-medium"
-                                    >
+                            type="button"
+                            onClick={() => setEditingSubattivita(null)}
+                            className="flex-1 px-2 py-1 rounded bg-slate-300 text-slate-700 text-xs font-medium">
+
                                       Annulla
                                     </button>
                                   </div>
-                                </div>
-                              ) : (
-                                <div className="neumorphic-pressed p-2 rounded-lg flex items-center justify-between text-sm">
+                                </div> :
+
+                      <div className="neumorphic-pressed p-2 rounded-lg flex items-center justify-between text-sm">
                                   <div className="flex items-center gap-2 flex-1">
                                     <button
-                                      type="button"
-                                      onClick={() => handleToggleSubattivita(item.id, item.completata)}
-                                    >
-                                      {item.completata ? (
-                                        <CheckSquare className="w-4 h-4 text-green-600" />
-                                      ) : (
-                                        <Square className="w-4 h-4 text-slate-400" />
-                                      )}
+                            type="button"
+                            onClick={() => handleToggleSubattivita(item.id, item.completata)}>
+
+                                      {item.completata ?
+                            <CheckSquare className="w-4 h-4 text-green-600" /> :
+
+                            <Square className="w-4 h-4 text-slate-400" />
+                            }
                                     </button>
                                     <div className="flex-1">
                                       <span className={item.completata ? 'line-through text-slate-500' : 'text-slate-800'}>
                                         {item.titolo}
                                       </span>
-                                      {item.data_target && (
-                                        <div className="text-xs text-slate-500">
+                                      {item.data_target &&
+                            <div className="text-xs text-slate-500">
                                           📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}
                                         </div>
-                                      )}
+                            }
                                     </div>
                                   </div>
                                   <div className="flex gap-1">
                                     <button
-                                      type="button"
-                                      onClick={() => handleEditSubattivita(item)}
-                                      className="p-1 rounded hover:bg-blue-50"
-                                    >
+                            type="button"
+                            onClick={() => handleEditSubattivita(item)}
+                            className="p-1 rounded hover:bg-blue-50">
+
                                       <Edit className="w-3 h-3 text-blue-600" />
                                     </button>
                                     <button
-                                      type="button"
-                                      onClick={() => deleteSubattivitaMutation.mutate(item.id)}
-                                      className="p-1 rounded hover:bg-red-50"
-                                    >
+                            type="button"
+                            onClick={() => deleteSubattivitaMutation.mutate(item.id)}
+                            className="p-1 rounded hover:bg-red-50">
+
                                       <Trash2 className="w-3 h-3 text-red-600" />
                                     </button>
                                   </div>
                                 </div>
-                              )}
+                      }
                             </div>
-                          ))}
-                        {subattivita.filter(s => s.activation_id === editingActivation.id).length === 0 && (
-                          <p className="text-center text-slate-400 py-4 text-xs">Nessuna sottoattività</p>
-                        )}
+                    )}
+                        {subattivita.filter((s) => s.activation_id === editingActivation.id).length === 0 &&
+                    <p className="text-center text-slate-400 py-4 text-xs">Nessuna sottoattività</p>
+                    }
                       </div>
 
                       {/* Progress */}
-                      {subattivita.filter(s => s.activation_id === editingActivation.id).length > 0 && (
-                        <div className="mt-3">
+                      {subattivita.filter((s) => s.activation_id === editingActivation.id).length > 0 &&
+                  <div className="mt-3">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-xs text-slate-600">Progresso</span>
                             <span className="text-xs font-bold text-blue-600">
-                              {subattivita.filter(s => s.activation_id === editingActivation.id && s.completata).length}
+                              {subattivita.filter((s) => s.activation_id === editingActivation.id && s.completata).length}
                               {' / '}
-                              {subattivita.filter(s => s.activation_id === editingActivation.id).length}
+                              {subattivita.filter((s) => s.activation_id === editingActivation.id).length}
                             </span>
                           </div>
                           <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
-                              style={{
-                                width: `${
-                                  (subattivita.filter(s => s.activation_id === editingActivation.id && s.completata).length /
-                                  subattivita.filter(s => s.activation_id === editingActivation.id).length) * 100
-                                }%`
-                              }}
-                            />
+                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                        style={{
+                          width: `${
+                          subattivita.filter((s) => s.activation_id === editingActivation.id && s.completata).length /
+                          subattivita.filter((s) => s.activation_id === editingActivation.id).length * 100}%`
+
+                        }} />
+
                           </div>
                         </div>
-                      )}
+                  }
                     </div>
-                  )}
+                }
 
                   <div className="flex gap-3 pt-4">
                     <NeumorphicButton type="button" onClick={resetForm} className="flex-1">
                       Annulla
                     </NeumorphicButton>
                     <NeumorphicButton
-                      type="submit"
-                      variant="primary"
-                      className="flex-1"
-                      disabled={createMutation.isPending || updateMutation.isPending}
-                    >
+                    type="submit"
+                    variant="primary"
+                    className="flex-1"
+                    disabled={createMutation.isPending || updateMutation.isPending}>
+
                       {editingActivation ? 'Aggiorna' : 'Crea'}
                     </NeumorphicButton>
                   </div>
@@ -1151,22 +1151,22 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
               </NeumorphicCard>
             </div>
           </div>
-        )}
+        }
 
         {/* Lista View */}
-        {activeView === 'lista' && (
-          <NeumorphicCard className="p-6">
+        {activeView === 'lista' &&
+        <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-slate-800 mb-4">Tutte le Activation</h2>
             
-            {activations.length === 0 ? (
-              <div className="text-center py-12">
+            {activations.length === 0 ?
+          <div className="text-center py-12">
                 <Zap className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500">Nessuna activation creata</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {activations.map(activation => (
-                  <div key={activation.id} className="neumorphic-pressed p-5 rounded-xl">
+              </div> :
+
+          <div className="space-y-3">
+                {activations.map((activation) =>
+            <div key={activation.id} className="neumorphic-pressed p-5 rounded-xl">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -1176,121 +1176,121 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                             {activation.stato.replace('_', ' ').toUpperCase()}
                           </span>
                         </div>
-                        {activation.descrizione && (
-                          <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
-                        )}
+                        {activation.descrizione &&
+                  <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
+                  }
                         <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                          {activation.data_inizio && (
-                            <div className="flex items-center gap-1">
+                          {activation.data_inizio &&
+                    <div className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               Inizio: {format(parseISO(activation.data_inizio), 'dd MMM yyyy', { locale: it })}
                             </div>
-                          )}
+                    }
                           <div className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}
                           </div>
-                          {activation.assegnato_a_nome && (
-                            <div className="flex items-center gap-1">
+                          {activation.assegnato_a_nome &&
+                    <div className="flex items-center gap-1">
                               <User className="w-3 h-3" />
                               Assegnato: {activation.assegnato_a_nome}
                             </div>
-                          )}
+                    }
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {activation.categorie_ids && activation.categorie_ids.length > 0 && (
-                            activation.categorie_ids.map(catId => {
-                              const cat = categories.find(c => c.id === catId);
-                              if (!cat) return null;
-                              return (
-                                <span
-                                  key={catId}
-                                  className="text-xs px-2 py-1 rounded-full text-white font-medium"
-                                  style={{ backgroundColor: cat.colore }}
-                                >
+                          {activation.categorie_ids && activation.categorie_ids.length > 0 &&
+                    activation.categorie_ids.map((catId) => {
+                      const cat = categories.find((c) => c.id === catId);
+                      if (!cat) return null;
+                      return (
+                        <span
+                          key={catId}
+                          className="text-xs px-2 py-1 rounded-full text-white font-medium"
+                          style={{ backgroundColor: cat.colore }}>
+
                                   {cat.nome}
-                                </span>
-                              );
-                            })
-                          )}
-                          {activation.stores_ids && activation.stores_ids.length > 0 ? (
-                            activation.stores_names?.map((name, idx) => (
-                              <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                </span>);
+
+                    })
+                    }
+                          {activation.stores_ids && activation.stores_ids.length > 0 ?
+                    activation.stores_names?.map((name, idx) =>
+                    <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                                 {name}
                               </span>
-                            ))
-                          ) : (
-                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                    ) :
+
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
                               Tutti i locali
                             </span>
-                          )}
+                    }
                         </div>
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => {
-                            setSelectedActivationForChecklist(activation);
-                            setShowChecklistModal(true);
-                          }}
-                          className="nav-button p-2 rounded-lg hover:bg-green-50"
-                        >
+                    onClick={() => {
+                      setSelectedActivationForChecklist(activation);
+                      setShowChecklistModal(true);
+                    }}
+                    className="nav-button p-2 rounded-lg hover:bg-green-50">
+
                           <CheckSquare className="w-4 h-4 text-green-600" />
                         </button>
                         <button
-                          onClick={() => handleEdit(activation)}
-                          className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                        >
+                    onClick={() => handleEdit(activation)}
+                    className="nav-button p-2 rounded-lg hover:bg-blue-50">
+
                           <Edit className="w-4 h-4 text-blue-600" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (confirm('Eliminare questa activation?')) {
-                              deleteMutation.mutate(activation.id);
-                            }
-                          }}
-                          className="nav-button p-2 rounded-lg hover:bg-red-50"
-                        >
+                    onClick={() => {
+                      if (confirm('Eliminare questa activation?')) {
+                        deleteMutation.mutate(activation.id);
+                      }
+                    }}
+                    className="nav-button p-2 rounded-lg hover:bg-red-50">
+
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </button>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
             )}
+              </div>
+          }
           </NeumorphicCard>
-        )}
+        }
 
         {/* Vista Per Persona */}
-        {activeView === 'per_persona' && (
-          <div className="space-y-4">
-            {Object.keys(activationsByPerson).length === 0 ? (
-              <NeumorphicCard className="p-12 text-center">
+        {activeView === 'per_persona' &&
+        <div className="space-y-4">
+            {Object.keys(activationsByPerson).length === 0 ?
+          <NeumorphicCard className="p-12 text-center">
                 <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500">Nessuna activation da visualizzare</p>
-              </NeumorphicCard>
-            ) : (
-              Object.entries(activationsByPerson)
-                .sort(([keyA], [keyB]) => {
-                  // Non assegnate sempre per ultime
-                  if (keyA === 'unassigned') return 1;
-                  if (keyB === 'unassigned') return -1;
-                  return 0;
-                })
-                .map(([personId, data]) => {
-                  const isExpanded = expandedPersonCards[personId] ?? true;
-                  const completedCount = data.activations.filter(a => a.stato === 'completata').length;
-                  const inProgressCount = data.activations.filter(a => a.stato === 'in_corso' || a.stato === 'annullata').length;
-                  
-                  return (
-                  <NeumorphicCard key={personId} className="p-6">
+              </NeumorphicCard> :
+
+          Object.entries(activationsByPerson).
+          sort(([keyA], [keyB]) => {
+            // Non assegnate sempre per ultime
+            if (keyA === 'unassigned') return 1;
+            if (keyB === 'unassigned') return -1;
+            return 0;
+          }).
+          map(([personId, data]) => {
+            const isExpanded = expandedPersonCards[personId] ?? true;
+            const completedCount = data.activations.filter((a) => a.stato === 'completata').length;
+            const inProgressCount = data.activations.filter((a) => a.stato === 'in_corso' || a.stato === 'annullata').length;
+
+            return (
+              <NeumorphicCard key={personId} className="p-6">
                     <button
-                      onClick={() => togglePersonCard(personId)}
-                      className="w-full flex items-center gap-3 mb-4 hover:opacity-80 transition-opacity"
-                    >
+                  onClick={() => togglePersonCard(personId)}
+                  className="w-full flex items-center gap-3 mb-4 hover:opacity-80 transition-opacity">
+
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        personId === 'unassigned' ? 'bg-slate-300' : 'bg-gradient-to-br from-blue-500 to-blue-600'
-                      }`}>
+                  personId === 'unassigned' ? 'bg-slate-300' : 'bg-gradient-to-br from-blue-500 to-blue-600'}`
+                  }>
                         <User className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1 text-left">
@@ -1299,134 +1299,134 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                           {inProgressCount} in corso • {completedCount} completate
                         </p>
                       </div>
-                      {isExpanded ? (
-                        <ChevronDown className="w-5 h-5 text-slate-500" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-slate-500" />
-                      )}
+                      {isExpanded ?
+                  <ChevronDown className="w-5 h-5 text-slate-500" /> :
+
+                  <ChevronRight className="w-5 h-5 text-slate-500" />
+                  }
                     </button>
 
-                    {isExpanded && (
-                      <div className="space-y-3">
-                        {data.activations.map(activation => {
-                          const subattivitaList = subattivita.filter(s => s.activation_id === activation.id);
-                          const subattivitaComplete = subattivitaList.filter(s => s.completata).length;
-                          const isCompleted = activation.stato === 'completata';
-                          const isCollapsed = collapsedCompletedCards[activation.id] ?? isCompleted;
-                        
-                        return (
-                          <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
+                    {isExpanded &&
+                <div className="space-y-3">
+                        {data.activations.map((activation) => {
+                    const subattivitaList = subattivita.filter((s) => s.activation_id === activation.id);
+                    const subattivitaComplete = subattivitaList.filter((s) => s.completata).length;
+                    const isCompleted = activation.stato === 'completata';
+                    const isCollapsed = collapsedCompletedCards[activation.id] ?? isCompleted;
+
+                    return (
+                      <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                  {isCompleted && (
-                                    <button
-                                      onClick={() => toggleCompletedCard(activation.id)}
-                                      className="p-1 rounded hover:bg-slate-200"
-                                    >
-                                      {isCollapsed ? (
-                                        <ChevronRight className="w-4 h-4 text-slate-400" />
-                                      ) : (
-                                        <ChevronDown className="w-4 h-4 text-slate-400" />
-                                      )}
+                                  {isCompleted &&
+                              <button
+                                onClick={() => toggleCompletedCard(activation.id)}
+                                className="p-1 rounded hover:bg-slate-200">
+
+                                      {isCollapsed ?
+                                <ChevronRight className="w-4 h-4 text-slate-400" /> :
+
+                                <ChevronDown className="w-4 h-4 text-slate-400" />
+                                }
                                     </button>
-                                  )}
+                              }
                                   <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
                                   <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
                                     {getStatoIcon(activation.stato)}
                                     {activation.stato.replace('_', ' ').toUpperCase()}
                                   </span>
                                 </div>
-                                {activation.descrizione && (
-                                  <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
-                                )}
+                                {activation.descrizione &&
+                            <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
+                            }
                                 <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                                  {activation.data_inizio && (
-                                    <div className="flex items-center gap-1">
+                                  {activation.data_inizio &&
+                              <div className="flex items-center gap-1">
                                       <Calendar className="w-3 h-3" />
                                       Inizio: {format(parseISO(activation.data_inizio), 'dd MMM yyyy', { locale: it })}
                                     </div>
-                                  )}
+                              }
                                   <div className="flex items-center gap-1">
                                     <Calendar className="w-3 h-3" />
                                     Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}
                                   </div>
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-2">
-                                  {activation.categorie_ids && activation.categorie_ids.length > 0 && (
-                                    activation.categorie_ids.map(catId => {
-                                      const cat = categories.find(c => c.id === catId);
-                                      if (!cat) return null;
-                                      return (
-                                        <span
-                                          key={catId}
-                                          className="text-xs px-2 py-1 rounded-full text-white font-medium"
-                                          style={{ backgroundColor: cat.colore }}
-                                        >
+                                  {activation.categorie_ids && activation.categorie_ids.length > 0 &&
+                              activation.categorie_ids.map((catId) => {
+                                const cat = categories.find((c) => c.id === catId);
+                                if (!cat) return null;
+                                return (
+                                  <span
+                                    key={catId}
+                                    className="text-xs px-2 py-1 rounded-full text-white font-medium"
+                                    style={{ backgroundColor: cat.colore }}>
+
                                           {cat.nome}
-                                        </span>
-                                      );
-                                    })
-                                  )}
-                                  {activation.stores_ids && activation.stores_ids.length > 0 ? (
-                                    activation.stores_names?.map((name, idx) => (
-                                      <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                        </span>);
+
+                              })
+                              }
+                                  {activation.stores_ids && activation.stores_ids.length > 0 ?
+                              activation.stores_names?.map((name, idx) =>
+                              <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                                         {name}
                                       </span>
-                                    ))
-                                  ) : (
-                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                              ) :
+
+                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
                                       Tutti i locali
                                     </span>
-                                  )}
+                              }
                                 </div>
                               </div>
                               <div className="flex gap-2 flex-shrink-0">
-                                {activation.stato !== 'completata' && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (confirm('Segnare questa activation come completata?')) {
-                                        handleMarkActivationComplete(activation.id);
-                                      }
-                                    }}
-                                    className="nav-button p-2 rounded-lg hover:bg-green-50"
-                                    title="Segna come completata"
-                                  >
+                                {activation.stato !== 'completata' &&
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm('Segnare questa activation come completata?')) {
+                                  handleMarkActivationComplete(activation.id);
+                                }
+                              }}
+                              className="nav-button p-2 rounded-lg hover:bg-green-50"
+                              title="Segna come completata">
+
                                     <CheckCircle className="w-4 h-4 text-green-600" />
                                   </button>
-                                )}
+                            }
                                 <button
-                                  onClick={() => {
-                                    setSelectedActivationForChecklist(activation);
-                                    setShowChecklistModal(true);
-                                  }}
-                                  className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                                >
+                              onClick={() => {
+                                setSelectedActivationForChecklist(activation);
+                                setShowChecklistModal(true);
+                              }}
+                              className="nav-button p-2 rounded-lg hover:bg-blue-50">
+
                                   <CheckSquare className="w-4 h-4 text-blue-600" />
                                 </button>
                                 <button
-                                  onClick={() => handleEdit(activation)}
-                                  className="nav-button p-2 rounded-lg hover:bg-blue-50"
-                                >
+                              onClick={() => handleEdit(activation)}
+                              className="nav-button p-2 rounded-lg hover:bg-blue-50">
+
                                   <Edit className="w-4 h-4 text-blue-600" />
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    if (confirm('Eliminare questa activation?')) {
-                                      deleteMutation.mutate(activation.id);
-                                    }
-                                  }}
-                                  className="nav-button p-2 rounded-lg hover:bg-red-50"
-                                >
+                              onClick={() => {
+                                if (confirm('Eliminare questa activation?')) {
+                                  deleteMutation.mutate(activation.id);
+                                }
+                              }}
+                              className="nav-button p-2 rounded-lg hover:bg-red-50">
+
                                   <Trash2 className="w-4 h-4 text-red-600" />
                                 </button>
                               </div>
                             </div>
 
                             {/* Sottoattività - show only if card is not collapsed */}
-                            {!isCollapsed && subattivitaList.length > 0 && (
-                              <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
+                            {!isCollapsed && subattivitaList.length > 0 &&
+                        <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
                                 <div className="flex items-center justify-between mb-2">
                                   <p className="text-xs font-medium text-slate-600">Sottoattività:</p>
                                   <p className="text-xs font-bold text-blue-600">
@@ -1434,108 +1434,108 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                                   </p>
                                 </div>
                                 <div className="space-y-1">
-                                  {subattivitaList
-                                    .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
-                                    .map(item => (
-                                      <div key={item.id} className="flex items-start gap-2 text-xs">
+                                  {subattivitaList.
+                            sort((a, b) => (a.ordine || 0) - (b.ordine || 0)).
+                            map((item) =>
+                            <div key={item.id} className="flex items-start gap-2 text-xs">
                                         <span className="mt-1">
-                                          {item.completata ? (
-                                            <CheckSquare className="w-3 h-3 text-green-600" />
-                                          ) : (
-                                            <Square className="w-3 h-3 text-slate-400" />
-                                          )}
+                                          {item.completata ?
+                                <CheckSquare className="w-3 h-3 text-green-600" /> :
+
+                                <Square className="w-3 h-3 text-slate-400" />
+                                }
                                         </span>
                                         <div className="flex-1">
                                           <p className={item.completata ? 'line-through text-slate-500' : 'text-slate-700'}>
                                             {item.titolo}
                                           </p>
-                                          {item.data_target && (
-                                            <p className="text-slate-500">📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}</p>
-                                          )}
+                                          {item.data_target &&
+                                <p className="text-slate-500">📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}</p>
+                                }
                                         </div>
                                       </div>
-                                    ))}
+                            )}
                                 </div>
                                 <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-2">
                                   <div
-                                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
-                                    style={{ width: `${(subattivitaComplete / subattivitaList.length) * 100}%` }}
-                                  />
+                              className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                              style={{ width: `${subattivitaComplete / subattivitaList.length * 100}%` }} />
+
                                 </div>
                               </div>
-                            )}
+                        }
+                            </div>);
+
+                  })}
                             </div>
-                            );
-                            })}
+                }
+                            </NeumorphicCard>);
+
+          })
+          }
                             </div>
-                            )}
-                            </NeumorphicCard>
-                            );
-                            })
-                            )}
-                            </div>
-                            )}
+        }
 
         {/* Calendario View */}
-        {activeView === 'calendario' && (
-          <NeumorphicCard className="p-6">
+        {activeView === 'calendario' &&
+        <NeumorphicCard className="p-6">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <h2 className="text-xl font-bold text-slate-800">Vista Calendario</h2>
               <div className="flex items-center gap-2 flex-wrap">
                 <select
-                  value={calendarView}
-                  onChange={(e) => setCalendarView(e.target.value)}
-                  className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none"
-                >
+                value={calendarView}
+                onChange={(e) => setCalendarView(e.target.value)}
+                className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none">
+
                   <option value="week">Settimana</option>
                   <option value="month">Mese</option>
                 </select>
                 <select
-                  value={calendarCategoryFilter}
-                  onChange={(e) => setCalendarCategoryFilter(e.target.value)}
-                  className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none"
-                >
+                value={calendarCategoryFilter}
+                onChange={(e) => setCalendarCategoryFilter(e.target.value)}
+                className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none">
+
                   <option value="all">Tutte le categorie</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                  ))}
+                  {categories.map((cat) =>
+                <option key={cat.id} value={cat.id}>{cat.nome}</option>
+                )}
                 </select>
                 <select
-                  value={calendarActivationFilter}
-                  onChange={(e) => setCalendarActivationFilter(e.target.value)}
-                  className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none"
-                >
+                value={calendarActivationFilter}
+                onChange={(e) => setCalendarActivationFilter(e.target.value)}
+                className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none">
+
                   <option value="all">Tutte le activation</option>
-                  {activations.map(act => (
-                    <option key={act.id} value={act.id}>{act.nome}</option>
-                  ))}
+                  {activations.map((act) =>
+                <option key={act.id} value={act.id}>{act.nome}</option>
+                )}
                 </select>
                 <NeumorphicButton
-                  onClick={() => {
-                    if (calendarView === 'week') {
-                      setCurrentDate(subWeeks(currentDate, 1));
-                    } else {
-                      setCurrentDate(subMonths(currentDate, 1));
-                    }
-                  }}
-                >
+                onClick={() => {
+                  if (calendarView === 'week') {
+                    setCurrentDate(subWeeks(currentDate, 1));
+                  } else {
+                    setCurrentDate(subMonths(currentDate, 1));
+                  }
+                }}>
+
                   <ChevronLeft className="w-4 h-4" />
                 </NeumorphicButton>
                 <NeumorphicButton
-                  onClick={() => setCurrentDate(new Date())}
-                  className="px-4"
-                >
+                onClick={() => setCurrentDate(new Date())}
+                className="px-4">
+
                   Oggi
                 </NeumorphicButton>
                 <NeumorphicButton
-                  onClick={() => {
-                    if (calendarView === 'week') {
-                      setCurrentDate(addWeeks(currentDate, 1));
-                    } else {
-                      setCurrentDate(addMonths(currentDate, 1));
-                    }
-                  }}
-                >
+                onClick={() => {
+                  if (calendarView === 'week') {
+                    setCurrentDate(addWeeks(currentDate, 1));
+                  } else {
+                    setCurrentDate(addMonths(currentDate, 1));
+                  }
+                }}>
+
                   <ChevronRight className="w-4 h-4" />
                 </NeumorphicButton>
               </div>
@@ -1543,14 +1543,14 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
 
             <div className="flex items-center justify-between mb-4">
               <p className="text-lg font-bold text-slate-700 capitalize">
-                {calendarView === 'week' 
-                  ? `${format(calendarData.start, 'dd MMM', { locale: it })} - ${format(calendarData.end, 'dd MMM yyyy', { locale: it })}`
-                  : format(currentDate, 'MMMM yyyy', { locale: it })}
+                {calendarView === 'week' ?
+              `${format(calendarData.start, 'dd MMM', { locale: it })} - ${format(calendarData.end, 'dd MMM yyyy', { locale: it })}` :
+              format(currentDate, 'MMMM yyyy', { locale: it })}
               </p>
               <NeumorphicButton
-                onClick={() => setShowSuggestionsModal(true)}
-                className="flex items-center gap-2"
-              >
+              onClick={() => setShowSuggestionsModal(true)}
+              className="flex items-center gap-2">
+
                 <Lightbulb className="w-4 h-4" />
                 Suggerimenti
               </NeumorphicButton>
@@ -1558,118 +1558,118 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
 
             <div className={`grid ${calendarView === 'week' ? 'grid-cols-7' : 'grid-cols-7'} gap-2`}>
               {/* Header giorni */}
-              {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
-                <div key={day} className={`text-center font-bold text-slate-600 p-2 ${calendarView === 'week' ? 'text-sm' : 'text-xs'}`}>
+              {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((day) =>
+            <div key={day} className={`text-center font-bold text-slate-600 p-2 ${calendarView === 'week' ? 'text-sm' : 'text-xs'}`}>
                   {day}
                 </div>
-              ))}
+            )}
 
               {/* Calendar cells */}
               {calendarData.days.map((day, idx) => {
-                if (!day) {
-                  // Empty cell for padding
-                  return <div key={`empty-${idx}`} className="neumorphic-pressed p-2 rounded-xl min-h-24 bg-slate-100" />;
-                }
-                
-                const dayKey = format(day, 'yyyy-MM-dd');
-                const dayActivations = activationsByDay[dayKey] || [];
-                const isToday = isSameDay(day, new Date());
-                const isExpanded = expandedCalendarCell === dayKey;
+              if (!day) {
+                // Empty cell for padding
+                return <div key={`empty-${idx}`} className="neumorphic-pressed p-2 rounded-xl min-h-24 bg-slate-100" />;
+              }
 
-                return (
-                  <div
-                    key={dayKey}
-                    className={`neumorphic-pressed p-2 rounded-xl min-h-24 relative ${
-                      isToday ? 'border-2 border-blue-500 bg-blue-50' : ''
-                    } ${isExpanded ? 'col-span-2 row-span-2 z-10' : ''}`}
-                  >
+              const dayKey = format(day, 'yyyy-MM-dd');
+              const dayActivations = activationsByDay[dayKey] || [];
+              const isToday = isSameDay(day, new Date());
+              const isExpanded = expandedCalendarCell === dayKey;
+
+              return (
+                <div
+                  key={dayKey}
+                  className={`neumorphic-pressed p-2 rounded-xl min-h-24 relative ${
+                  isToday ? 'border-2 border-blue-500 bg-blue-50' : ''} ${
+                  isExpanded ? 'col-span-2 row-span-2 z-10' : ''}`}>
+
                     <div className={`text-center text-sm font-bold mb-2 flex items-center justify-between ${
-                      isToday ? 'text-blue-600' : 'text-slate-700'
-                    }`}>
+                  isToday ? 'text-blue-600' : 'text-slate-700'}`
+                  }>
                       <span>{format(day, 'd')}</span>
-                      {dayActivations.length > 0 && (
-                        <button
-                          onClick={() => setExpandedCalendarCell(isExpanded ? null : dayKey)}
-                          className="text-xs hover:bg-slate-200 rounded px-1"
-                        >
+                      {dayActivations.length > 0 &&
+                    <button
+                      onClick={() => setExpandedCalendarCell(isExpanded ? null : dayKey)}
+                      className="text-xs hover:bg-slate-200 rounded px-1">
+
                           {isExpanded ? '−' : '+'}
                         </button>
-                      )}
+                    }
                     </div>
                     <div className="space-y-1">
-                       {(isExpanded ? dayActivations : dayActivations.slice(0, 3)).map(act => {
-                         const categoryColor = act.categorie_ids?.[0] 
-                           ? categories.find(c => c.id === act.categorie_ids[0])?.colore 
-                           : '#60a5fa';
-                         return (
-                           <div key={act.id}>
+                       {(isExpanded ? dayActivations : dayActivations.slice(0, 3)).map((act) => {
+                      const categoryColor = act.categorie_ids?.[0] ?
+                      categories.find((c) => c.id === act.categorie_ids[0])?.colore :
+                      '#60a5fa';
+                      return (
+                        <div key={act.id}>
                              <div
-                               className={`text-xs px-2 py-1 rounded text-white cursor-pointer ${
-                                 isExpanded ? '' : 'truncate'
-                               }`}
-                               style={{ backgroundColor: categoryColor }}
-                               title={act.nome}
-                               onClick={() => {
-                                 setViewOnlyActivation(act);
-                                 setShowViewOnlyModal(true);
-                               }}
-                             >
+                            className={`text-xs px-2 py-1 rounded text-white cursor-pointer ${
+                            isExpanded ? '' : 'truncate'}`
+                            }
+                            style={{ backgroundColor: categoryColor }}
+                            title={act.nome}
+                            onClick={() => {
+                              setViewOnlyActivation(act);
+                              setShowViewOnlyModal(true);
+                            }}>
+
                                {act.nome}
                              </div>
-                             {calendarActivationFilter === act.id && (
-                               <div className="text-xs space-y-0.5 mt-1 pl-1 border-l border-slate-300">
-                                 {subattivita
-                                   .filter(s => s.activation_id === act.id && dayKey === format(parseISO(s.data_target), 'yyyy-MM-dd'))
-                                   .map(sub => (
-                                     <div key={sub.id} className="text-slate-600 text-[11px]">
+                             {calendarActivationFilter === act.id &&
+                          <div className="text-xs space-y-0.5 mt-1 pl-1 border-l border-slate-300">
+                                 {subattivita.
+                            filter((s) => s.activation_id === act.id && dayKey === format(parseISO(s.data_target), 'yyyy-MM-dd')).
+                            map((sub) =>
+                            <div key={sub.id} className="text-slate-600 text-[11px]">
                                        {sub.completata ? '✓' : '○'} {sub.titolo}
                                      </div>
-                                   ))}
+                            )}
                                </div>
-                             )}
-                           </div>
-                         );
-                       })}
-                       {!isExpanded && dayActivations.length > 3 && (
-                         <div className="text-xs text-slate-500 text-center">
+                          }
+                           </div>);
+
+                    })}
+                       {!isExpanded && dayActivations.length > 3 &&
+                    <div className="text-xs text-slate-500 text-center">
                            +{dayActivations.length - 3}
                          </div>
-                       )}
+                    }
                      </div>
-                  </div>
-                );
-              })}
+                  </div>);
+
+            })}
             </div>
           </NeumorphicCard>
-        )}
+        }
 
         {/* Vista per Categoria */}
-        {activeView === 'categorie' && (
-          <div className="space-y-4">
-            {categories.map(category => (
-              <NeumorphicCard key={category.id} className="p-6">
+        {activeView === 'categorie' &&
+        <div className="space-y-4">
+            {categories.map((category) =>
+          <NeumorphicCard key={category.id} className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div
-                    className="w-8 h-8 rounded-xl"
-                    style={{ backgroundColor: category.colore }}
-                  />
+                className="w-8 h-8 rounded-xl"
+                style={{ backgroundColor: category.colore }} />
+
                   <div>
                     <h2 className="text-xl font-bold text-slate-800">{category.nome}</h2>
-                    {category.descrizione && (
-                      <p className="text-sm text-slate-500">{category.descrizione}</p>
-                    )}
+                    {category.descrizione &&
+                <p className="text-sm text-slate-500">{category.descrizione}</p>
+                }
                   </div>
                   <span className="ml-auto text-sm text-slate-500">
                     {activationsByCategory[category.id]?.length || 0} activation
                   </span>
                 </div>
 
-                {activationsByCategory[category.id]?.length === 0 ? (
-                  <p className="text-slate-400 text-sm text-center py-6">Nessuna activation in questa categoria</p>
-                ) : (
-                  <div className="space-y-3">
-                    {activationsByCategory[category.id]?.map(activation => (
-                      <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
+                {activationsByCategory[category.id]?.length === 0 ?
+            <p className="text-slate-400 text-sm text-center py-6">Nessuna activation in questa categoria</p> :
+
+            <div className="space-y-3">
+                    {activationsByCategory[category.id]?.map((activation) =>
+              <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
@@ -1679,16 +1679,16 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                               </span>
                             </div>
                             <div className="flex flex-wrap gap-3 text-xs text-slate-500 mb-2">
-                              {activation.data_inizio && (
-                                <span>Inizio: {format(parseISO(activation.data_inizio), 'dd/MM/yy')}</span>
-                              )}
+                              {activation.data_inizio &&
+                      <span>Inizio: {format(parseISO(activation.data_inizio), 'dd/MM/yy')}</span>
+                      }
                               <span>Target: {format(parseISO(activation.data_completamento_target), 'dd/MM/yy')}</span>
-                              {activation.assegnato_a_nome && (
-                                <span className="flex items-center gap-1 text-slate-600 bg-slate-100 px-2 py-1 rounded">
+                              {activation.assegnato_a_nome &&
+                      <span className="flex items-center gap-1 text-slate-600 bg-slate-100 px-2 py-1 rounded">
                                   <User className="w-3 h-3" />
                                   {activation.assegnato_a_nome}
                                 </span>
-                              )}
+                      }
                             </div>
                           </div>
                           <div className="flex gap-2 ml-2">
@@ -1699,51 +1699,51 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                         </div>
 
                         {/* Sottoattività */}
-                        {subattivita.filter(s => s.activation_id === activation.id).length > 0 && (
-                          <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
+                        {subattivita.filter((s) => s.activation_id === activation.id).length > 0 &&
+                <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
                             <p className="text-xs font-medium text-slate-600 mb-2">Sottoattività:</p>
                             <div className="space-y-1">
-                              {subattivita
-                                .filter(s => s.activation_id === activation.id)
-                                .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
-                                .map(item => (
-                                  <div key={item.id} className="flex items-start gap-2 text-xs">
+                              {subattivita.
+                    filter((s) => s.activation_id === activation.id).
+                    sort((a, b) => (a.ordine || 0) - (b.ordine || 0)).
+                    map((item) =>
+                    <div key={item.id} className="flex items-start gap-2 text-xs">
                                     <span className="mt-1">
-                                      {item.completata ? (
-                                        <CheckSquare className="w-3 h-3 text-green-600" />
-                                      ) : (
-                                        <Square className="w-3 h-3 text-slate-400" />
-                                      )}
+                                      {item.completata ?
+                        <CheckSquare className="w-3 h-3 text-green-600" /> :
+
+                        <Square className="w-3 h-3 text-slate-400" />
+                        }
                                     </span>
                                     <div className="flex-1">
                                       <p className={item.completata ? 'line-through text-slate-500' : 'text-slate-700'}>
                                         {item.titolo}
                                       </p>
-                                      {item.data_target && (
-                                        <p className="text-slate-500">📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}</p>
-                                      )}
-                                      {item.assegnato_a_nome && (
-                                        <p className="text-slate-500">👤 {item.assegnato_a_nome}</p>
-                                      )}
-                                      {item.completata && item.completata_da && (
-                                        <p className="text-slate-400">✓ {item.completata_da}</p>
-                                      )}
+                                      {item.data_target &&
+                        <p className="text-slate-500">📅 {format(parseISO(item.data_target), 'dd/MM/yyyy')}</p>
+                        }
+                                      {item.assegnato_a_nome &&
+                        <p className="text-slate-500">👤 {item.assegnato_a_nome}</p>
+                        }
+                                      {item.completata && item.completata_da &&
+                        <p className="text-slate-400">✓ {item.completata_da}</p>
+                        }
                                     </div>
                                   </div>
-                                ))}
+                    )}
                             </div>
                           </div>
-                        )}
+                }
                       </div>
-                    ))}
+              )}
                   </div>
-                )}
+            }
               </NeumorphicCard>
-            ))}
+          )}
 
             {/* Uncategorized */}
-            {activationsByCategory['uncategorized']?.length > 0 && (
-              <NeumorphicCard className="p-6">
+            {activationsByCategory['uncategorized']?.length > 0 &&
+          <NeumorphicCard className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 rounded-xl bg-slate-300" />
                   <div>
@@ -1755,8 +1755,8 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                 </div>
 
                 <div className="space-y-2">
-                  {activationsByCategory['uncategorized'].map(activation => (
-                    <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
+                  {activationsByCategory['uncategorized'].map((activation) =>
+              <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -1766,20 +1766,20 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                             </span>
                           </div>
                           <div className="flex gap-3 text-xs text-slate-500">
-                            {activation.data_inizio && (
-                              <span>Inizio: {format(parseISO(activation.data_inizio), 'dd/MM/yy')}</span>
-                            )}
+                            {activation.data_inizio &&
+                      <span>Inizio: {format(parseISO(activation.data_inizio), 'dd/MM/yy')}</span>
+                      }
                             <span>Target: {format(parseISO(activation.data_completamento_target), 'dd/MM/yy')}</span>
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => {
-                              setSelectedActivationForChecklist(activation);
-                              setShowChecklistModal(true);
-                            }}
-                            className="p-2 rounded-lg hover:bg-green-50"
-                          >
+                      onClick={() => {
+                        setSelectedActivationForChecklist(activation);
+                        setShowChecklistModal(true);
+                      }}
+                      className="p-2 rounded-lg hover:bg-green-50">
+
                             <CheckSquare className="w-4 h-4 text-green-600" />
                           </button>
                           <button onClick={() => handleEdit(activation)} className="p-2 rounded-lg hover:bg-blue-50">
@@ -1788,16 +1788,16 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                         </div>
                       </div>
                     </div>
-                  ))}
+              )}
                 </div>
               </NeumorphicCard>
-            )}
+          }
           </div>
-        )}
+        }
 
         {/* View Only Modal (from calendar) */}
-        {showViewOnlyModal && viewOnlyActivation && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showViewOnlyModal && viewOnlyActivation &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-2xl w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-slate-800">
@@ -1805,21 +1805,21 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                 </h2>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
-                      setShowViewOnlyModal(false);
-                      handleEdit(viewOnlyActivation);
-                    }}
-                    className="p-2 rounded-lg hover:bg-blue-50"
-                  >
+                  onClick={() => {
+                    setShowViewOnlyModal(false);
+                    handleEdit(viewOnlyActivation);
+                  }}
+                  className="p-2 rounded-lg hover:bg-blue-50">
+
                     <Edit className="w-5 h-5 text-blue-600" />
                   </button>
                   <button
-                    onClick={() => {
-                      setShowViewOnlyModal(false);
-                      setViewOnlyActivation(null);
-                    }}
-                    className="p-2 rounded-lg hover:bg-slate-100"
-                  >
+                  onClick={() => {
+                    setShowViewOnlyModal(false);
+                    setViewOnlyActivation(null);
+                  }}
+                  className="p-2 rounded-lg hover:bg-slate-100">
+
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -1827,19 +1827,19 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
 
               {/* Info */}
               <div className="mb-4 space-y-2">
-                {viewOnlyActivation.descrizione && (
-                  <p className="text-sm text-slate-600">{viewOnlyActivation.descrizione}</p>
-                )}
+                {viewOnlyActivation.descrizione &&
+              <p className="text-sm text-slate-600">{viewOnlyActivation.descrizione}</p>
+              }
                 <div className="flex items-center gap-3 text-sm">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatoColor(viewOnlyActivation.stato)}`}>
                     {getStatoIcon(viewOnlyActivation.stato)}
                     {viewOnlyActivation.stato.replace('_', ' ').toUpperCase()}
                   </span>
-                  {viewOnlyActivation.data_inizio && (
-                    <span className="text-slate-500">
+                  {viewOnlyActivation.data_inizio &&
+                <span className="text-slate-500">
                       Inizio: {format(parseISO(viewOnlyActivation.data_inizio), 'dd/MM/yyyy')}
                     </span>
-                  )}
+                }
                   <span className="text-slate-500">
                     Target: {format(parseISO(viewOnlyActivation.data_completamento_target), 'dd/MM/yyyy')}
                   </span>
@@ -1847,23 +1847,23 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
               </div>
 
               {/* Categories */}
-              {viewOnlyActivation.categorie_ids && viewOnlyActivation.categorie_ids.length > 0 && (
-                <div className="mb-4 flex gap-2">
-                  {viewOnlyActivation.categorie_ids.map(catId => {
-                    const cat = categories.find(c => c.id === catId);
-                    if (!cat) return null;
-                    return (
-                      <span
-                        key={catId}
-                        className="text-xs px-3 py-1 rounded-full text-white font-medium"
-                        style={{ backgroundColor: cat.colore }}
-                      >
+              {viewOnlyActivation.categorie_ids && viewOnlyActivation.categorie_ids.length > 0 &&
+            <div className="mb-4 flex gap-2">
+                  {viewOnlyActivation.categorie_ids.map((catId) => {
+                const cat = categories.find((c) => c.id === catId);
+                if (!cat) return null;
+                return (
+                  <span
+                    key={catId}
+                    className="text-xs px-3 py-1 rounded-full text-white font-medium"
+                    style={{ backgroundColor: cat.colore }}>
+
                         {cat.nome}
-                      </span>
-                    );
-                  })}
+                      </span>);
+
+              })}
                 </div>
-              )}
+            }
 
               {/* Checklist (read-only with toggle) */}
               <div className="border-t pt-4">
@@ -1875,112 +1875,112 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                 {/* Add new item */}
                 <div className="mb-3 flex gap-2">
                   <input
-                    type="text"
-                    value={newChecklistItem}
-                    onChange={(e) => setNewChecklistItem(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        setSelectedActivationForChecklist(viewOnlyActivation);
-                        handleAddChecklistItem();
-                      }
-                    }}
-                    placeholder="Aggiungi sottoattività..."
-                    className="flex-1 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
-                  />
-                  <button
-                    onClick={() => {
+                  type="text"
+                  value={newChecklistItem}
+                  onChange={(e) => setNewChecklistItem(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
                       setSelectedActivationForChecklist(viewOnlyActivation);
                       handleAddChecklistItem();
-                    }}
-                    disabled={!newChecklistItem.trim()}
-                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white disabled:opacity-50"
-                  >
+                    }
+                  }}
+                  placeholder="Aggiungi sottoattività..."
+                  className="flex-1 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm" />
+
+                  <button
+                  onClick={() => {
+                    setSelectedActivationForChecklist(viewOnlyActivation);
+                    handleAddChecklistItem();
+                  }}
+                  disabled={!newChecklistItem.trim()}
+                  className="px-3 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white disabled:opacity-50">
+
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
 
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {subattivita
-                    .filter(s => s.activation_id === viewOnlyActivation.id)
-                    .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
-                    .map(item => (
-                      <div
-                        key={item.id}
-                        className="neumorphic-pressed p-3 rounded-xl flex items-center gap-3"
-                      >
+                  {subattivita.
+                filter((s) => s.activation_id === viewOnlyActivation.id).
+                sort((a, b) => (a.ordine || 0) - (b.ordine || 0)).
+                map((item) =>
+                <div
+                  key={item.id}
+                  className="neumorphic-pressed p-3 rounded-xl flex items-center gap-3">
+
                         <button
-                          onClick={() => handleToggleSubattivita(item.id, item.completata)}
-                          className="flex-shrink-0"
-                        >
-                          {item.completata ? (
-                            <CheckSquare className="w-5 h-5 text-green-600" />
-                          ) : (
-                            <Square className="w-5 h-5 text-slate-400" />
-                          )}
+                    onClick={() => handleToggleSubattivita(item.id, item.completata)}
+                    className="flex-shrink-0">
+
+                          {item.completata ?
+                    <CheckSquare className="w-5 h-5 text-green-600" /> :
+
+                    <Square className="w-5 h-5 text-slate-400" />
+                    }
                         </button>
                         <div className="flex-1">
                           <p className={`text-sm ${item.completata ? 'line-through text-slate-500' : 'text-slate-800'}`}>
                             {item.titolo}
                           </p>
-                          {item.completata && item.completata_da && (
-                            <p className="text-xs text-slate-400">
+                          {item.completata && item.completata_da &&
+                    <p className="text-xs text-slate-400">
                               ✓ {item.completata_da} • {format(parseISO(item.completata_il), 'dd/MM HH:mm')}
                             </p>
-                          )}
+                    }
                         </div>
                       </div>
-                    ))}
-                  {subattivita.filter(s => s.activation_id === viewOnlyActivation.id).length === 0 && (
-                    <p className="text-center text-slate-400 py-8 text-sm">Nessuna sottoattività</p>
-                  )}
+                )}
+                  {subattivita.filter((s) => s.activation_id === viewOnlyActivation.id).length === 0 &&
+                <p className="text-center text-slate-400 py-8 text-sm">Nessuna sottoattività</p>
+                }
                 </div>
 
                 {/* Progress */}
-                {subattivita.filter(s => s.activation_id === viewOnlyActivation.id).length > 0 && (
-                  <div className="mt-4">
+                {subattivita.filter((s) => s.activation_id === viewOnlyActivation.id).length > 0 &&
+              <div className="mt-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-slate-600">Progresso</span>
                       <span className="text-sm font-bold text-green-600">
-                        {subattivita.filter(s => s.activation_id === viewOnlyActivation.id && s.completata).length}
+                        {subattivita.filter((s) => s.activation_id === viewOnlyActivation.id && s.completata).length}
                         {' / '}
-                        {subattivita.filter(s => s.activation_id === viewOnlyActivation.id).length}
+                        {subattivita.filter((s) => s.activation_id === viewOnlyActivation.id).length}
                       </span>
                     </div>
                     <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
-                        style={{
-                          width: `${
-                            (subattivita.filter(s => s.activation_id === viewOnlyActivation.id && s.completata).length /
-                            subattivita.filter(s => s.activation_id === viewOnlyActivation.id).length) * 100
-                          }%`
-                        }}
-                      />
+                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all"
+                    style={{
+                      width: `${
+                      subattivita.filter((s) => s.activation_id === viewOnlyActivation.id && s.completata).length /
+                      subattivita.filter((s) => s.activation_id === viewOnlyActivation.id).length * 100}%`
+
+                    }} />
+
                     </div>
                   </div>
-                )}
+              }
               </div>
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Checklist Modal */}
-        {showChecklistModal && selectedActivationForChecklist && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showChecklistModal && selectedActivationForChecklist &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-2xl w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold text-slate-800">
                   Checklist: {selectedActivationForChecklist.nome}
                 </h2>
                 <button
-                  onClick={() => {
-                    setShowChecklistModal(false);
-                    setSelectedActivationForChecklist(null);
-                    setNewChecklistItem('');
-                  }}
-                  className="p-2 rounded-lg hover:bg-slate-100"
-                >
+                onClick={() => {
+                  setShowChecklistModal(false);
+                  setSelectedActivationForChecklist(null);
+                  setNewChecklistItem('');
+                }}
+                className="p-2 rounded-lg hover:bg-slate-100">
+
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1988,117 +1988,117 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
               {/* Add new item */}
               <div className="mb-4 flex gap-2">
                 <input
-                  type="text"
-                  value={newChecklistItem}
-                  onChange={(e) => setNewChecklistItem(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleAddChecklistItem();
-                    }
-                  }}
-                  placeholder="Aggiungi sottoattività..."
-                  className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                />
+                type="text"
+                value={newChecklistItem}
+                onChange={(e) => setNewChecklistItem(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddChecklistItem();
+                  }
+                }}
+                placeholder="Aggiungi sottoattività..."
+                className="flex-1 neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                 <NeumorphicButton
-                  onClick={handleAddChecklistItem}
-                  variant="primary"
-                  disabled={!newChecklistItem.trim()}
-                >
+                onClick={handleAddChecklistItem}
+                variant="primary"
+                disabled={!newChecklistItem.trim()}>
+
                   <Plus className="w-5 h-5" />
                 </NeumorphicButton>
               </div>
 
               {/* Checklist items */}
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {subattivita
-                  .filter(s => s.activation_id === selectedActivationForChecklist.id)
-                  .sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
-                  .map(item => (
-                    <div
-                      key={item.id}
-                      className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between"
-                    >
+                {subattivita.
+              filter((s) => s.activation_id === selectedActivationForChecklist.id).
+              sort((a, b) => (a.ordine || 0) - (b.ordine || 0)).
+              map((item) =>
+              <div
+                key={item.id}
+                className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+
                       <div className="flex items-center gap-3 flex-1">
                         <button
-                          onClick={() => handleToggleSubattivita(item.id, item.completata)}
-                          className="flex-shrink-0"
-                        >
-                          {item.completata ? (
-                            <CheckSquare className="w-5 h-5 text-green-600" />
-                          ) : (
-                            <Square className="w-5 h-5 text-slate-400" />
-                          )}
+                    onClick={() => handleToggleSubattivita(item.id, item.completata)}
+                    className="flex-shrink-0">
+
+                          {item.completata ?
+                    <CheckSquare className="w-5 h-5 text-green-600" /> :
+
+                    <Square className="w-5 h-5 text-slate-400" />
+                    }
                         </button>
                         <div className="flex-1">
                           <p className={`text-sm ${item.completata ? 'line-through text-slate-500' : 'text-slate-800'}`}>
                             {item.titolo}
                           </p>
-                          {item.completata && item.completata_da && (
-                            <p className="text-xs text-slate-400">
+                          {item.completata && item.completata_da &&
+                    <p className="text-xs text-slate-400">
                               ✓ {item.completata_da} • {format(parseISO(item.completata_il), 'dd/MM HH:mm')}
                             </p>
-                          )}
+                    }
                         </div>
                       </div>
                       <button
-                        onClick={() => {
-                          if (confirm('Eliminare questa sottoattività?')) {
-                            deleteSubattivitaMutation.mutate(item.id);
-                          }
-                        }}
-                        className="p-2 rounded-lg hover:bg-red-50"
-                      >
+                  onClick={() => {
+                    if (confirm('Eliminare questa sottoattività?')) {
+                      deleteSubattivitaMutation.mutate(item.id);
+                    }
+                  }}
+                  className="p-2 rounded-lg hover:bg-red-50">
+
                         <Trash2 className="w-4 h-4 text-red-600" />
                       </button>
                     </div>
-                  ))}
-                {subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id).length === 0 && (
-                  <p className="text-center text-slate-500 py-8">Nessuna sottoattività. Aggiungine una!</p>
-                )}
+              )}
+                {subattivita.filter((s) => s.activation_id === selectedActivationForChecklist.id).length === 0 &&
+              <p className="text-center text-slate-500 py-8">Nessuna sottoattività. Aggiungine una!</p>
+              }
               </div>
 
               {/* Progress */}
-              {subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id).length > 0 && (
-                <div className="mt-4 pt-4 border-t border-slate-200">
+              {subattivita.filter((s) => s.activation_id === selectedActivationForChecklist.id).length > 0 &&
+            <div className="mt-4 pt-4 border-t border-slate-200">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-slate-600">Progresso</span>
                     <span className="text-sm font-bold text-blue-600">
-                      {subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id && s.completata).length}
+                      {subattivita.filter((s) => s.activation_id === selectedActivationForChecklist.id && s.completata).length}
                       {' / '}
-                      {subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id).length}
+                      {subattivita.filter((s) => s.activation_id === selectedActivationForChecklist.id).length}
                     </span>
                   </div>
                   <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
-                      style={{
-                        width: `${
-                          (subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id && s.completata).length /
-                          subattivita.filter(s => s.activation_id === selectedActivationForChecklist.id).length) * 100
-                        }%`
-                      }}
-                    />
+                  className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all"
+                  style={{
+                    width: `${
+                    subattivita.filter((s) => s.activation_id === selectedActivationForChecklist.id && s.completata).length /
+                    subattivita.filter((s) => s.activation_id === selectedActivationForChecklist.id).length * 100}%`
+
+                  }} />
+
                   </div>
                 </div>
-              )}
+            }
             </NeumorphicCard>
           </div>
-        )}
+        }
 
         {/* Suggestions Modal */}
-        {showSuggestionsModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        {showSuggestionsModal &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="max-w-4xl w-full my-8">
               <NeumorphicCard className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-slate-800">Suggerimenti Eventi</h2>
                   <button
-                    onClick={() => {
-                      setShowSuggestionsModal(false);
-                      setSuggestedEvents([]);
-                    }}
-                    className="p-2 rounded-lg hover:bg-slate-100"
-                  >
+                  onClick={() => {
+                    setShowSuggestionsModal(false);
+                    setSuggestedEvents([]);
+                  }}
+                  className="p-2 rounded-lg hover:bg-slate-100">
+
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -2107,10 +2107,10 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">Paese</label>
                     <select
-                      value={selectedCountry}
-                      onChange={(e) => setSelectedCountry(e.target.value)}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    >
+                    value={selectedCountry}
+                    onChange={(e) => setSelectedCountry(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                       <option value="Italia">🇮🇹 Italia</option>
                       <option value="Francia">🇫🇷 Francia</option>
                       <option value="Spagna">🇪🇸 Spagna</option>
@@ -2126,43 +2126,43 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       Città (opzionale)
                     </label>
                     <input
-                      type="text"
-                      value={selectedCity}
-                      onChange={(e) => setSelectedCity(e.target.value)}
-                      placeholder="Es. Milano, Roma, Napoli..."
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    />
+                    type="text"
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    placeholder="Es. Milano, Roma, Napoli..."
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                     <p className="text-xs text-slate-500 mt-1">
                       Specifica una città per eventi locali specifici
                     </p>
                   </div>
 
                   <NeumorphicButton
-                    onClick={handleGetSuggestions}
-                    variant="primary"
-                    disabled={loadingSuggestions}
-                    className="w-full flex items-center justify-center gap-2"
-                  >
-                    {loadingSuggestions ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Lightbulb className="w-5 h-5" />
-                    )}
+                  onClick={handleGetSuggestions}
+                  variant="primary"
+                  disabled={loadingSuggestions}
+                  className="w-full flex items-center justify-center gap-2">
+
+                    {loadingSuggestions ?
+                  <Loader2 className="w-5 h-5 animate-spin" /> :
+
+                  <Lightbulb className="w-5 h-5" />
+                  }
                     Genera Suggerimenti
                   </NeumorphicButton>
                 </div>
 
-                {loadingSuggestions && (
-                  <div className="text-center py-12">
+                {loadingSuggestions &&
+              <div className="text-center py-12">
                     <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
                     <p className="text-slate-500">Sto cercando eventi e festività...</p>
                   </div>
-                )}
+              }
 
-                {!loadingSuggestions && suggestedEvents.length > 0 && (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {suggestedEvents.map((event, idx) => (
-                      <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                {!loadingSuggestions && suggestedEvents.length > 0 &&
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {suggestedEvents.map((event, idx) =>
+                <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
                             <h3 className="font-bold text-slate-800 mb-1">{event.nome}</h3>
@@ -2179,38 +2179,38 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                           </div>
                           <div className="ml-3 flex flex-col gap-2">
                             <NeumorphicButton
-                              onClick={() => handleCreateActivationFromEvent(event)}
-                              variant="primary"
-                              className="flex items-center gap-1 text-sm"
-                            >
+                        onClick={() => handleCreateActivationFromEvent(event)}
+                        variant="primary"
+                        className="flex items-center gap-1 text-sm">
+
                               <Plus className="w-4 h-4" />
                               Crea
                             </NeumorphicButton>
                             <NeumorphicButton
-                              onClick={() => handleDismissEvent(event)}
-                              className="flex items-center gap-1 text-sm"
-                            >
+                        onClick={() => handleDismissEvent(event)}
+                        className="flex items-center gap-1 text-sm">
+
                               <X className="w-4 h-4" />
                               Scarta
                             </NeumorphicButton>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
                 )}
+                  </div>
+              }
 
-                {!loadingSuggestions && suggestedEvents.length === 0 && (
-                  <div className="text-center py-12">
+                {!loadingSuggestions && suggestedEvents.length === 0 &&
+              <div className="text-center py-12">
                     <MapPin className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-500">Seleziona un paese e clicca "Genera"</p>
                   </div>
-                )}
+              }
               </NeumorphicCard>
             </div>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
