@@ -13,8 +13,8 @@ import {
   Save,
   Plus,
   Trash2,
-  FileClock
-} from 'lucide-react';
+  FileClock } from
+'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
@@ -27,17 +27,17 @@ function PeriodoProvaTab() {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list()
   });
 
   const { data: shifts = [] } = useQuery({
     queryKey: ['shifts-planday'],
-    queryFn: () => base44.entities.TurnoPlanday.list(),
+    queryFn: () => base44.entities.TurnoPlanday.list()
   });
 
   const { data: configs = [], isLoading: isLoadingConfig } = useQuery({
     queryKey: ['periodoProvaConfig'],
-    queryFn: () => base44.entities.PeriodoProvaConfig.list(),
+    queryFn: () => base44.entities.PeriodoProvaConfig.list()
   });
 
   const currentConfig = configs[0];
@@ -52,41 +52,41 @@ function PeriodoProvaTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['periodoProvaConfig'] });
       alert('Configurazione salvata!');
-    },
+    }
   });
 
-  const dipendenteConContratto = users.filter(u => {
+  const dipendenteConContratto = users.filter((u) => {
     if (u.user_type !== 'dipendente' && u.user_type !== 'user') return false;
     if (!u.data_inizio_contratto) return false;
-    
+
     try {
       const dataInizio = new Date(u.data_inizio_contratto);
       const oggi = new Date();
       return dataInizio <= oggi;
-    } catch(e) {
+    } catch (e) {
       return false;
     }
   });
 
   const employeeAlerts = useMemo(() => {
     if (isLoadingConfig) return [];
-    
+
     const turniProvaPerMese = currentConfig?.giorni_prova_per_mese || 10; // default 10 turni per mese
 
-    return dipendenteConContratto.map(user => {
+    return dipendenteConContratto.map((user) => {
       const dataInizio = new Date(user.data_inizio_contratto);
       const nomeCompleto = user.nome_cognome || user.full_name || '';
-      
+
       const contractDuration = user.durata_contratto_mesi || 0;
       const turniProvaTotali = contractDuration * turniProvaPerMese;
 
-      const shiftsFromContractStart = shifts.filter(shift => {
+      const shiftsFromContractStart = shifts.filter((shift) => {
         if (shift.dipendente_id !== user.id) return false;
-        
+
         try {
           const shiftDate = new Date(shift.data);
           return shiftDate >= dataInizio;
-        } catch(e) { return false; }
+        } catch (e) {return false;}
       });
 
       const numeroTurniEffettuati = shiftsFromContractStart.length;
@@ -102,15 +102,15 @@ function PeriodoProvaTab() {
         inPeriodoProva,
         shiftsFromContractStart
       };
-    }).filter(item => item.inPeriodoProva)
-      .sort((a, b) => a.turniRimanenti - b.turniRimanenti);
+    }).filter((item) => item.inPeriodoProva).
+    sort((a, b) => a.turniRimanenti - b.turniRimanenti);
   }, [dipendenteConContratto, shifts, configs, isLoadingConfig, currentConfig]);
 
   const stats = {
     totaleDipendenti: dipendenteConContratto.length,
     totaleInProva: employeeAlerts.length,
-    critici: employeeAlerts.filter(e => e.turniRimanenti <= 3).length,
-    attenzione: employeeAlerts.filter(e => e.turniRimanenti > 3 && e.turniRimanenti <= 6).length
+    critici: employeeAlerts.filter((e) => e.turniRimanenti <= 3).length,
+    attenzione: employeeAlerts.filter((e) => e.turniRimanenti > 3 && e.turniRimanenti <= 6).length
   };
 
   const getSeverityColor = (turniRimanenti) => {
@@ -137,26 +137,26 @@ function PeriodoProvaTab() {
                     {showConfig ? 'Nascondi' : 'Configura'}
                 </NeumorphicButton>
             </div>
-            {showConfig && (
-                <div className="space-y-4">
+            {showConfig &&
+        <div className="space-y-4">
                     <div className="neumorphic-pressed p-4 rounded-xl">
                         <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                             Turni di prova per ogni mese di contratto
                         </label>
                         <div className="flex items-center gap-3">
                             <input
-                                type="number"
-                                min="1"
-                                placeholder="Es: 10"
-                                value={turniPerMese || currentConfig?.giorni_prova_per_mese || ''}
-                                onChange={(e) => setTurniPerMese(e.target.value)}
-                                className="neumorphic-pressed px-4 py-3 rounded-lg flex-1 outline-none"
-                            />
-                            <NeumorphicButton 
-                                onClick={() => saveConfigMutation.mutate({ giorni_prova_per_mese: parseInt(turniPerMese) || 10 })} 
-                                variant="primary"
-                                disabled={saveConfigMutation.isPending}
-                            >
+                type="number"
+                min="1"
+                placeholder="Es: 10"
+                value={turniPerMese || currentConfig?.giorni_prova_per_mese || ''}
+                onChange={(e) => setTurniPerMese(e.target.value)}
+                className="neumorphic-pressed px-4 py-3 rounded-lg flex-1 outline-none" />
+
+                            <NeumorphicButton
+                onClick={() => saveConfigMutation.mutate({ giorni_prova_per_mese: parseInt(turniPerMese) || 10 })}
+                variant="primary"
+                disabled={saveConfigMutation.isPending}>
+
                                 <Save className="w-4 h-4 mr-2" />
                                 Salva
                             </NeumorphicButton>
@@ -165,15 +165,15 @@ function PeriodoProvaTab() {
                             Esempio: Se imposti 10, un contratto di 6 mesi avrà 60 turni di prova (6 × 10)
                         </p>
                     </div>
-                    {currentConfig && (
-                        <div className="neumorphic-flat p-3 rounded-lg bg-blue-50">
+                    {currentConfig &&
+          <div className="neumorphic-flat p-3 rounded-lg bg-blue-50">
                             <p className="text-sm text-blue-800">
                                 <strong>Configurazione attuale:</strong> {currentConfig.giorni_prova_per_mese} turni per mese
                             </p>
                         </div>
-                    )}
+          }
                 </div>
-            )}
+        }
         </NeumorphicCard>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -182,17 +182,17 @@ function PeriodoProvaTab() {
 
         <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Dipendenti in Periodo di Prova</h2>
-            {employeeAlerts.length === 0 ? (
-                <div className="text-center py-12">
+            {employeeAlerts.length === 0 ?
+        <div className="text-center py-12">
                 <AlertTriangle className="w-16 h-16 text-green-600 mx-auto mb-4 opacity-50" />
                 <h3 className="text-xl font-bold text-green-700 mb-2">Nessun dipendente in prova!</h3>
                 <p className="text-[#6b6b6b]">
                     Non ci sono dipendenti attualmente in periodo di prova.
                 </p>
-                </div>
-            ) : (
-                <div className="space-y-3">{employeeAlerts.map((alert, idx) => (
-                    <div key={idx} className={`neumorphic-pressed p-5 rounded-xl border-2 ${getSeverityColor(alert.turniRimanenti)}`}>
+                </div> :
+
+        <div className="space-y-3">{employeeAlerts.map((alert, idx) =>
+          <div key={idx} className={`neumorphic-pressed p-5 rounded-xl border-2 ${getSeverityColor(alert.turniRimanenti)}`}>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-3">
@@ -207,12 +207,12 @@ function PeriodoProvaTab() {
                                 </h3>
                                 <div className="flex items-center gap-2 text-sm text-[#9b9b9b]">
                                   <span>{alert.user.email}</span>
-                                  {alert.user.ruoli_dipendente && alert.user.ruoli_dipendente.length > 0 && (
-                                    <>
+                                  {alert.user.ruoli_dipendente && alert.user.ruoli_dipendente.length > 0 &&
+                      <>
                                       <span>•</span>
                                       <span>{alert.user.ruoli_dipendente.join(', ')}</span>
                                     </>
-                                  )}
+                      }
                                 </div>
                               </div>
                               <div className="text-right">
@@ -260,30 +260,30 @@ function PeriodoProvaTab() {
                           </div>
 
                           <button
-                            onClick={() => setViewingUser(alert)}
-                            className="neumorphic-flat p-2 rounded-lg hover:bg-purple-50 transition-colors ml-4"
-                            title="Visualizza dettagli"
-                          >
+                onClick={() => setViewingUser(alert)}
+                className="neumorphic-flat p-2 rounded-lg hover:bg-purple-50 transition-colors ml-4"
+                title="Visualizza dettagli">
+
                             <Eye className="w-5 h-5 text-purple-600" />
                           </button>
                         </div>
                     </div>
-                ))}</div>
-            )}
+          )}</div>
+        }
         </NeumorphicCard>
-    </div>
-  );
+    </div>);
+
 }
 
 function ContrattiInScadenzaTab() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list()
   });
 
   const { data: uscite = [] } = useQuery({
     queryKey: ['uscite'],
-    queryFn: () => base44.entities.Uscita.list(),
+    queryFn: () => base44.entities.Uscita.list()
   });
 
   const expiringContracts = useMemo(() => {
@@ -291,53 +291,53 @@ function ContrattiInScadenzaTab() {
     const trentaGiorni = new Date();
     trentaGiorni.setDate(oggi.getDate() + 30);
 
-    return users
-      .filter(user => {
-        // Escludi dipendenti che hanno un'uscita registrata
-        if (uscite.some(u => u.dipendente_id === user.id)) return false;
-        
-        if (!user.data_inizio_contratto) return false;
-        
-        // Check if user has explicit end date or duration
-        if (user.data_fine_contratto) return true;
-        if (user.durata_contratto_mesi && user.durata_contratto_mesi > 0) return true;
-        
-        return false;
-      })
-      .map(user => {
-        let dataFine;
-        
-        if (user.data_fine_contratto) {
-          // Use explicit end date
-          dataFine = new Date(user.data_fine_contratto);
-        } else if (user.durata_contratto_mesi && user.durata_contratto_mesi > 0) {
-          // Calculate from start date + duration
-          const dataInizio = new Date(user.data_inizio_contratto);
-          dataFine = new Date(dataInizio);
-          dataFine.setMonth(dataFine.getMonth() + parseInt(user.durata_contratto_mesi));
-        }
-        
-        const giorniRimanenti = Math.floor((dataFine - oggi) / (1000 * 60 * 60 * 24));
-        return { ...user, data_fine_contratto: dataFine, giorni_rimanenti: giorniRimanenti };
-      })
-      .filter(user => user.data_fine_contratto >= oggi && user.data_fine_contratto <= trentaGiorni)
-      .sort((a, b) => a.giorni_rimanenti - b.giorni_rimanenti);
+    return users.
+    filter((user) => {
+      // Escludi dipendenti che hanno un'uscita registrata
+      if (uscite.some((u) => u.dipendente_id === user.id)) return false;
+
+      if (!user.data_inizio_contratto) return false;
+
+      // Check if user has explicit end date or duration
+      if (user.data_fine_contratto) return true;
+      if (user.durata_contratto_mesi && user.durata_contratto_mesi > 0) return true;
+
+      return false;
+    }).
+    map((user) => {
+      let dataFine;
+
+      if (user.data_fine_contratto) {
+        // Use explicit end date
+        dataFine = new Date(user.data_fine_contratto);
+      } else if (user.durata_contratto_mesi && user.durata_contratto_mesi > 0) {
+        // Calculate from start date + duration
+        const dataInizio = new Date(user.data_inizio_contratto);
+        dataFine = new Date(dataInizio);
+        dataFine.setMonth(dataFine.getMonth() + parseInt(user.durata_contratto_mesi));
+      }
+
+      const giorniRimanenti = Math.floor((dataFine - oggi) / (1000 * 60 * 60 * 24));
+      return { ...user, data_fine_contratto: dataFine, giorni_rimanenti: giorniRimanenti };
+    }).
+    filter((user) => user.data_fine_contratto >= oggi && user.data_fine_contratto <= trentaGiorni).
+    sort((a, b) => a.giorni_rimanenti - b.giorni_rimanenti);
   }, [users, uscite]);
-  
+
   if (isLoading) return <div>Caricamento...</div>;
 
   return (
     <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Contratti in Scadenza (Prossimi 30 giorni)</h2>
-        {expiringContracts.length === 0 ? (
-            <div className="text-center py-12">
+        {expiringContracts.length === 0 ?
+      <div className="text-center py-12">
                 <FileClock className="w-16 h-16 text-green-600 mx-auto mb-4 opacity-50" />
                 <h3 className="text-xl font-bold text-green-700 mb-2">Nessun contratto in scadenza!</h3>
-            </div>
-        ) : (
-            <div className="space-y-3">
-                {expiringContracts.map(user => (
-                    <div key={user.id} className="neumorphic-pressed p-5 rounded-xl">
+            </div> :
+
+      <div className="space-y-3">
+                {expiringContracts.map((user) =>
+        <div key={user.id} className="neumorphic-pressed p-5 rounded-xl">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-bold text-[#6b6b6b]">{user.nome_cognome || user.full_name}</h3>
@@ -349,11 +349,11 @@ function ContrattiInScadenzaTab() {
                             </div>
                         </div>
                     </div>
-                ))}
-            </div>
         )}
-    </NeumorphicCard>
-  )
+            </div>
+      }
+    </NeumorphicCard>);
+
 }
 
 export default function Alerts() {
@@ -364,9 +364,9 @@ export default function Alerts() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <AlertTriangle className="w-10 h-10 text-orange-600" />
-          <h1 className="text-3xl font-bold text-[#6b6b6b]">Alerts HR</h1>
+          <h1 className="text-slate-50 text-3xl font-bold">Alerts HR</h1>
         </div>
-        <p className="text-[#9b9b9b]">Monitoraggio scadenze e periodi di prova</p>
+        <p className="text-slate-50">Monitoraggio scadenze e periodi di prova</p>
       </div>
 
       <div className="flex gap-2 mb-6">
@@ -376,6 +376,6 @@ export default function Alerts() {
 
       {activeTab === 'prova' && <PeriodoProvaTab />}
       {activeTab === 'scadenza' && <ContrattiInScadenzaTab />}
-    </div>
-  );
+    </div>);
+
 }
