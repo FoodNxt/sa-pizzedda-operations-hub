@@ -14,8 +14,8 @@ import {
   Link as LinkIcon,
   Building,
   Euro,
-  X
-} from 'lucide-react';
+  X } from
+'lucide-react';
 
 export default function Contatti() {
   const [showForm, setShowForm] = useState(false);
@@ -45,7 +45,7 @@ export default function Contatti() {
 
   const { data: contatti = [] } = useQuery({
     queryKey: ['contatti-marketing'],
-    queryFn: () => base44.entities.ContattoMarketing.list(),
+    queryFn: () => base44.entities.ContattoMarketing.list()
   });
 
   const createMutation = useMutation({
@@ -53,7 +53,7 @@ export default function Contatti() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contatti-marketing'] });
       resetForm();
-    },
+    }
   });
 
   const updateMutation = useMutation({
@@ -61,14 +61,14 @@ export default function Contatti() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contatti-marketing'] });
       resetForm();
-    },
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.ContattoMarketing.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contatti-marketing'] });
-    },
+    }
   });
 
   const resetForm = () => {
@@ -128,16 +128,16 @@ export default function Contatti() {
 
   const handleAggiungiProposta = () => {
     if (!nuovaProposta.descrizione.trim()) return;
-    
+
     setFormData({
       ...formData,
       proposte_commerciali: [
-        ...formData.proposte_commerciali,
-        {
-          descrizione: nuovaProposta.descrizione,
-          prezzo: nuovaProposta.prezzo ? parseFloat(nuovaProposta.prezzo) : 0
-        }
-      ]
+      ...formData.proposte_commerciali,
+      {
+        descrizione: nuovaProposta.descrizione,
+        prezzo: nuovaProposta.prezzo ? parseFloat(nuovaProposta.prezzo) : 0
+      }]
+
     });
     setNuovaProposta({ descrizione: '', prezzo: '' });
   };
@@ -150,28 +150,28 @@ export default function Contatti() {
   };
 
   const categorieStats = {
-    'Food influencers': contatti.filter(c => c.categoria === 'Food influencers').length,
-    'PR': contatti.filter(c => c.categoria === 'PR').length,
-    'Adv': contatti.filter(c => c.categoria === 'Adv').length
+    'Food influencers': contatti.filter((c) => c.categoria === 'Food influencers').length,
+    'PR': contatti.filter((c) => c.categoria === 'PR').length,
+    'Adv': contatti.filter((c) => c.categoria === 'Adv').length
   };
 
-  const contattiByCategoria = contatti.filter(c => c.categoria === activeTab);
+  const contattiByCategoria = contatti.filter((c) => c.categoria === activeTab);
 
   const getCategoriaColor = (categoria) => {
-    switch(categoria) {
-      case 'Food influencers': return 'bg-purple-100 text-purple-700';
-      case 'PR': return 'bg-blue-100 text-blue-700';
-      case 'Adv': return 'bg-green-100 text-green-700';
-      default: return 'bg-gray-100 text-gray-700';
+    switch (categoria) {
+      case 'Food influencers':return 'bg-purple-100 text-purple-700';
+      case 'PR':return 'bg-blue-100 text-blue-700';
+      case 'Adv':return 'bg-green-100 text-green-700';
+      default:return 'bg-gray-100 text-gray-700';
     }
   };
 
   const getCategoriaIcon = (categoria) => {
-    switch(categoria) {
-      case 'Food influencers': return '👨‍🍳';
-      case 'PR': return '📢';
-      case 'Adv': return '📺';
-      default: return '📋';
+    switch (categoria) {
+      case 'Food influencers':return '👨‍🍳';
+      case 'PR':return '📢';
+      case 'Adv':return '📺';
+      default:return '📋';
     }
   };
 
@@ -181,8 +181,8 @@ export default function Contatti() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">Contatti Marketing</h1>
-            <p className="text-slate-500">Gestisci i tuoi contatti per influencer, PR e advertising</p>
+            <h1 className="text-slate-50 mb-2 text-3xl font-bold">Contatti Marketing</h1>
+            <p className="text-slate-50">Gestisci i tuoi contatti per influencer, PR e advertising</p>
           </div>
           <NeumorphicButton
             onClick={() => {
@@ -190,8 +190,8 @@ export default function Contatti() {
               setShowForm(true);
             }}
             variant="primary"
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <Plus className="w-5 h-5" />
             Nuovo Contatto
           </NeumorphicButton>
@@ -221,18 +221,18 @@ export default function Contatti() {
         {/* Category Tabs */}
         <NeumorphicCard className="p-6">
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {['Food influencers', 'PR', 'Adv'].map((categoria) => (
-              <NeumorphicButton
-                key={categoria}
-                onClick={() => setActiveTab(categoria)}
-                variant={activeTab === categoria ? 'primary' : 'default'}
-                className="flex items-center gap-2"
-              >
+            {['Food influencers', 'PR', 'Adv'].map((categoria) =>
+            <NeumorphicButton
+              key={categoria}
+              onClick={() => setActiveTab(categoria)}
+              variant={activeTab === categoria ? 'primary' : 'default'}
+              className="flex items-center gap-2">
+
                 <span>{getCategoriaIcon(categoria)}</span>
                 {categoria}
                 <span className="text-xs opacity-75">({categorieStats[categoria]})</span>
               </NeumorphicButton>
-            ))}
+            )}
           </div>
         </NeumorphicCard>
 
@@ -243,135 +243,135 @@ export default function Contatti() {
             {activeTab}
           </h2>
 
-          {contattiByCategoria.length === 0 ? (
-            <div className="text-center py-12">
+          {contattiByCategoria.length === 0 ?
+          <div className="text-center py-12">
               <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <p className="text-slate-500">Nessun contatto in questa categoria</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {contattiByCategoria.map((contatto) => (
-                <div key={contatto.id} className="neumorphic-pressed p-5 rounded-xl">
+            </div> :
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {contattiByCategoria.map((contatto) =>
+            <div key={contatto.id} className="neumorphic-pressed p-5 rounded-xl">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-slate-800 mb-1">
                         {contatto.nome} {contatto.cognome}
                       </h3>
-                      {contatto.societa && (
-                        <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
+                      {contatto.societa &&
+                  <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
                           <Building className="w-4 h-4" />
                           {contatto.societa}
                         </div>
-                      )}
+                  }
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleEdit(contatto)}
-                        className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                      >
+                    onClick={() => handleEdit(contatto)}
+                    className="p-2 rounded-lg hover:bg-blue-50 transition-colors">
+
                         <Edit className="w-4 h-4 text-blue-600" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm(`Eliminare ${contatto.nome} ${contatto.cognome}?`)) {
-                            deleteMutation.mutate(contatto.id);
-                          }
-                        }}
-                        className="p-2 rounded-lg hover:bg-red-50 transition-colors"
-                      >
+                    onClick={() => {
+                      if (confirm(`Eliminare ${contatto.nome} ${contatto.cognome}?`)) {
+                        deleteMutation.mutate(contatto.id);
+                      }
+                    }}
+                    className="p-2 rounded-lg hover:bg-red-50 transition-colors">
+
                         <Trash2 className="w-4 h-4 text-red-600" />
                       </button>
                     </div>
                   </div>
 
                   <div className="space-y-2 text-sm">
-                    {contatto.email && (
-                      <div className="flex items-center gap-2 text-slate-600">
+                    {contatto.email &&
+                <div className="flex items-center gap-2 text-slate-600">
                         <Mail className="w-4 h-4" />
                         <a href={`mailto:${contatto.email}`} className="hover:text-blue-600 transition-colors">
                           {contatto.email}
                         </a>
                       </div>
-                    )}
-                    {contatto.telefono && (
-                      <div className="flex items-center gap-2 text-slate-600">
+                }
+                    {contatto.telefono &&
+                <div className="flex items-center gap-2 text-slate-600">
                         <Phone className="w-4 h-4" />
                         <a href={`tel:${contatto.telefono}`} className="hover:text-blue-600 transition-colors">
                           {contatto.telefono}
                         </a>
                       </div>
-                    )}
-                    {contatto.link && (
-                      <div className="flex items-center gap-2 text-slate-600">
+                }
+                    {contatto.link &&
+                <div className="flex items-center gap-2 text-slate-600">
                         <LinkIcon className="w-4 h-4" />
-                        <a 
-                          href={contatto.link} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="hover:text-blue-600 transition-colors truncate"
-                        >
+                        <a
+                    href={contatto.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-600 transition-colors truncate">
+
                           {contatto.link}
                         </a>
                       </div>
-                    )}
+                }
                   </div>
 
-                  {contatto.categoria === 'Food influencers' && (
-                    <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-                      {contatto.followers && (
-                        <div>
+                  {contatto.categoria === 'Food influencers' &&
+              <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
+                      {contatto.followers &&
+                <div>
                           <p className="text-xs font-bold text-slate-700">Followers</p>
                           <p className="text-lg font-bold text-purple-600">
                             {contatto.followers.toLocaleString()}
                           </p>
                         </div>
-                      )}
-                      {contatto.mai_visitato ? (
-                        <div>
+                }
+                      {contatto.mai_visitato ?
+                <div>
                           <p className="text-xs text-slate-500">❌ Non è mai venuto in negozio</p>
-                        </div>
-                      ) : contatto.data_visita_negozio ? (
-                        <div>
+                        </div> :
+                contatto.data_visita_negozio ?
+                <div>
                           <p className="text-xs text-slate-500">
                             ✓ Visita: {new Date(contatto.data_visita_negozio).toLocaleDateString('it-IT')}
                             {contatto.negozio_visitato && ` • ${contatto.negozio_visitato}`}
                           </p>
-                        </div>
-                      ) : null}
+                        </div> :
+                null}
                     </div>
-                  )}
+              }
 
-                  {contatto.proposte_commerciali && contatto.proposte_commerciali.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-200">
+                  {contatto.proposte_commerciali && contatto.proposte_commerciali.length > 0 &&
+              <div className="mt-3 pt-3 border-t border-slate-200">
                       <p className="text-xs font-bold text-slate-700 mb-2">Proposte Commerciali</p>
                       <div className="space-y-2">
-                        {contatto.proposte_commerciali.map((proposta, idx) => (
-                          <div key={idx} className="bg-slate-50 p-2 rounded-lg">
+                        {contatto.proposte_commerciali.map((proposta, idx) =>
+                  <div key={idx} className="bg-slate-50 p-2 rounded-lg">
                             <p className="text-sm text-slate-600 mb-1">{proposta.descrizione}</p>
                             <div className="flex items-center gap-2 text-green-600 font-bold text-sm">
                               <Euro className="w-3 h-3" />
                               {proposta.prezzo.toFixed(2)}
                             </div>
                           </div>
-                        ))}
+                  )}
                       </div>
                     </div>
-                  )}
+              }
 
-                  {contatto.note && (
-                    <div className="mt-3 pt-3 border-t border-slate-200">
+                  {contatto.note &&
+              <div className="mt-3 pt-3 border-t border-slate-200">
                       <p className="text-xs text-slate-500">{contatto.note}</p>
                     </div>
-                  )}
+              }
                 </div>
-              ))}
+            )}
             </div>
-          )}
+          }
         </NeumorphicCard>
 
         {/* Form Modal */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        {showForm &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <NeumorphicCard className="p-6 my-8">
                 <div className="flex items-center justify-between mb-6">
@@ -379,9 +379,9 @@ export default function Contatti() {
                     {editingContatto ? 'Modifica Contatto' : 'Nuovo Contatto'}
                   </h2>
                   <button
-                    onClick={resetForm}
-                    className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                  >
+                  onClick={resetForm}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
+
                     <X className="w-5 h-5 text-slate-500" />
                   </button>
                 </div>
@@ -392,11 +392,11 @@ export default function Contatti() {
                       Categoria *
                     </label>
                     <select
-                      required
-                      value={formData.categoria}
-                      onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                    >
+                    required
+                    value={formData.categoria}
+                    onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+
                       <option value="Food influencers">👨‍🍳 Food influencers</option>
                       <option value="PR">📢 PR</option>
                       <option value="Adv">📺 Adv</option>
@@ -409,13 +409,13 @@ export default function Contatti() {
                         Nome *
                       </label>
                       <input
-                        type="text"
-                        required
-                        value={formData.nome}
-                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                        placeholder="Mario"
-                      />
+                      type="text"
+                      required
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="Mario" />
+
                     </div>
 
                     <div>
@@ -423,13 +423,13 @@ export default function Contatti() {
                         Cognome *
                       </label>
                       <input
-                        type="text"
-                        required
-                        value={formData.cognome}
-                        onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                        placeholder="Rossi"
-                      />
+                      type="text"
+                      required
+                      value={formData.cognome}
+                      onChange={(e) => setFormData({ ...formData, cognome: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="Rossi" />
+
                     </div>
                   </div>
 
@@ -438,12 +438,12 @@ export default function Contatti() {
                       Email
                     </label>
                     <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      placeholder="mario.rossi@example.com"
-                    />
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="mario.rossi@example.com" />
+
                   </div>
 
                   <div>
@@ -451,12 +451,12 @@ export default function Contatti() {
                       Telefono
                     </label>
                     <input
-                      type="tel"
-                      value={formData.telefono}
-                      onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      placeholder="+39 333 1234567"
-                    />
+                    type="tel"
+                    value={formData.telefono}
+                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="+39 333 1234567" />
+
                   </div>
 
                   <div>
@@ -464,12 +464,12 @@ export default function Contatti() {
                       Link (Social/Sito)
                     </label>
                     <input
-                      type="url"
-                      value={formData.link}
-                      onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      placeholder="https://instagram.com/username"
-                    />
+                    type="url"
+                    value={formData.link}
+                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="https://instagram.com/username" />
+
                   </div>
 
                   <div>
@@ -477,27 +477,27 @@ export default function Contatti() {
                       Società
                     </label>
                     <input
-                      type="text"
-                      value={formData.societa}
-                      onChange={(e) => setFormData({ ...formData, societa: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                      placeholder="Nome società"
-                    />
+                    type="text"
+                    value={formData.societa}
+                    onChange={(e) => setFormData({ ...formData, societa: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="Nome società" />
+
                   </div>
 
-                  {formData.categoria === 'Food influencers' && (
-                    <>
+                  {formData.categoria === 'Food influencers' &&
+                <>
                       <div>
                         <label className="text-sm font-medium text-slate-700 mb-2 block">
                           Numero Followers
                         </label>
                         <input
-                          type="number"
-                          value={formData.followers}
-                          onChange={(e) => setFormData({ ...formData, followers: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                          placeholder="es. 50000"
-                        />
+                      type="number"
+                      value={formData.followers}
+                      onChange={(e) => setFormData({ ...formData, followers: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                      placeholder="es. 50000" />
+
                       </div>
 
                       <div className="border-t pt-4 mt-4">
@@ -506,31 +506,31 @@ export default function Contatti() {
                         <div className="flex items-center gap-3 mb-4">
                           <label className="flex items-center gap-2 cursor-pointer">
                             <input
-                              type="checkbox"
-                              checked={formData.mai_visitato}
-                              onChange={(e) => setFormData({ 
-                                ...formData, 
-                                mai_visitato: e.target.checked,
-                                data_visita_negozio: e.target.checked ? '' : formData.data_visita_negozio
-                              })}
-                              className="w-4 h-4"
-                            />
+                          type="checkbox"
+                          checked={formData.mai_visitato}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            mai_visitato: e.target.checked,
+                            data_visita_negozio: e.target.checked ? '' : formData.data_visita_negozio
+                          })}
+                          className="w-4 h-4" />
+
                             <span className="text-sm text-slate-700">Non è mai venuto in negozio</span>
                           </label>
                         </div>
 
-                        {!formData.mai_visitato && (
-                          <>
+                        {!formData.mai_visitato &&
+                    <>
                             <div className="mb-3">
                               <label className="text-sm font-medium text-slate-700 mb-2 block">
                                 Data Visita
                               </label>
                               <input
-                                type="date"
-                                value={formData.data_visita_negozio}
-                                onChange={(e) => setFormData({ ...formData, data_visita_negozio: e.target.value })}
-                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                              />
+                          type="date"
+                          value={formData.data_visita_negozio}
+                          onChange={(e) => setFormData({ ...formData, data_visita_negozio: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+
                             </div>
 
                             <div>
@@ -538,27 +538,27 @@ export default function Contatti() {
                                 Negozio Visitato
                               </label>
                               <input
-                                type="text"
-                                value={formData.negozio_visitato}
-                                onChange={(e) => setFormData({ ...formData, negozio_visitato: e.target.value })}
-                                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                                placeholder="Nome del negozio"
-                              />
+                          type="text"
+                          value={formData.negozio_visitato}
+                          onChange={(e) => setFormData({ ...formData, negozio_visitato: e.target.value })}
+                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                          placeholder="Nome del negozio" />
+
                             </div>
                           </>
-                        )}
+                    }
                       </div>
                     </>
-                  )}
+                }
 
                   <div className="border-t pt-4 mt-4">
                     <h3 className="text-sm font-bold text-slate-700 mb-3">Proposte Commerciali</h3>
                     
                     {/* Lista proposte esistenti */}
-                    {formData.proposte_commerciali.length > 0 && (
-                      <div className="space-y-2 mb-4">
-                        {formData.proposte_commerciali.map((proposta, idx) => (
-                          <div key={idx} className="neumorphic-pressed p-3 rounded-xl flex items-start justify-between">
+                    {formData.proposte_commerciali.length > 0 &&
+                  <div className="space-y-2 mb-4">
+                        {formData.proposte_commerciali.map((proposta, idx) =>
+                    <div key={idx} className="neumorphic-pressed p-3 rounded-xl flex items-start justify-between">
                             <div className="flex-1">
                               <p className="text-sm text-slate-700 font-medium mb-1">{proposta.descrizione}</p>
                               <div className="flex items-center gap-2 text-green-600 font-bold text-sm">
@@ -567,16 +567,16 @@ export default function Contatti() {
                               </div>
                             </div>
                             <button
-                              type="button"
-                              onClick={() => handleRimuoviProposta(idx)}
-                              className="p-2 rounded-lg hover:bg-red-50 transition-colors"
-                            >
+                        type="button"
+                        onClick={() => handleRimuoviProposta(idx)}
+                        className="p-2 rounded-lg hover:bg-red-50 transition-colors">
+
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </button>
                           </div>
-                        ))}
-                      </div>
                     )}
+                      </div>
+                  }
 
                     {/* Form per nuova proposta */}
                     <div className="space-y-3 neumorphic-pressed p-4 rounded-xl">
@@ -585,11 +585,11 @@ export default function Contatti() {
                           Descrizione
                         </label>
                         <textarea
-                          value={nuovaProposta.descrizione}
-                          onChange={(e) => setNuovaProposta({ ...nuovaProposta, descrizione: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-20"
-                          placeholder="Descrizione della proposta..."
-                        />
+                        value={nuovaProposta.descrizione}
+                        onChange={(e) => setNuovaProposta({ ...nuovaProposta, descrizione: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-20"
+                        placeholder="Descrizione della proposta..." />
+
                       </div>
 
                       <div>
@@ -597,21 +597,21 @@ export default function Contatti() {
                           Prezzo (€)
                         </label>
                         <input
-                          type="number"
-                          step="0.01"
-                          value={nuovaProposta.prezzo}
-                          onChange={(e) => setNuovaProposta({ ...nuovaProposta, prezzo: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                          placeholder="0.00"
-                        />
+                        type="number"
+                        step="0.01"
+                        value={nuovaProposta.prezzo}
+                        onChange={(e) => setNuovaProposta({ ...nuovaProposta, prezzo: e.target.value })}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                        placeholder="0.00" />
+
                       </div>
 
                       <NeumorphicButton
-                        type="button"
-                        onClick={handleAggiungiProposta}
-                        className="w-full flex items-center justify-center gap-2"
-                        disabled={!nuovaProposta.descrizione.trim()}
-                      >
+                      type="button"
+                      onClick={handleAggiungiProposta}
+                      className="w-full flex items-center justify-center gap-2"
+                      disabled={!nuovaProposta.descrizione.trim()}>
+
                         <Plus className="w-4 h-4" />
                         Aggiungi Proposta
                       </NeumorphicButton>
@@ -623,11 +623,11 @@ export default function Contatti() {
                       Note
                     </label>
                     <textarea
-                      value={formData.note}
-                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-20"
-                      placeholder="Note aggiuntive..."
-                    />
+                    value={formData.note}
+                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-20"
+                    placeholder="Note aggiuntive..." />
+
                   </div>
 
                   <div className="flex gap-3 pt-4">
@@ -635,11 +635,11 @@ export default function Contatti() {
                       Annulla
                     </NeumorphicButton>
                     <NeumorphicButton
-                      type="submit"
-                      variant="primary"
-                      className="flex-1"
-                      disabled={createMutation.isPending || updateMutation.isPending}
-                    >
+                    type="submit"
+                    variant="primary"
+                    className="flex-1"
+                    disabled={createMutation.isPending || updateMutation.isPending}>
+
                       {editingContatto ? 'Aggiorna' : 'Crea'}
                     </NeumorphicButton>
                   </div>
@@ -647,8 +647,8 @@ export default function Contatti() {
               </NeumorphicCard>
             </div>
           </div>
-        )}
+        }
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
