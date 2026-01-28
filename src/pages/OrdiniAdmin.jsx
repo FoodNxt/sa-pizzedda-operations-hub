@@ -178,14 +178,10 @@ export default function OrdiniAdmin() {
     }
   });
 
-  // Combine all inventory data
-  const allInventory = React.useMemo(() => {
-    return [...inventory, ...inventoryCantina];
-  }, [inventory, inventoryCantina]);
-
   // Calculate orders needed
   const ordersNeeded = React.useMemo(() => {
     const orders = [];
+    const allInventory = [...inventory, ...inventoryCantina];
     const latestByProduct = {};
     
     // DEBUG: Log per capire cosa sta succedendo
@@ -198,19 +194,16 @@ export default function OrdiniAdmin() {
       }
     });
 
-    // FASE A: Popola aggregatedQuantities con le quantità base
+    // Build aggregated quantities (sum semilavorati to their materie prime)
     const aggregatedQuantities = {};
     Object.values(latestByProduct).forEach((reading) => {
       const key = `${reading.store_id}-${reading.prodotto_id}`;
       aggregatedQuantities[key] = reading.quantita_rilevata || 0;
-    });
 
-    // FASE B: Somma i semilavorati alle loro materie prime target
-    Object.values(latestByProduct).forEach((reading) => {
       // Check if this reading is a semilavorato that should be summed to a materia prima
       const ricetta = ricette.find((r) =>
-        r.nome_prodotto?.toLowerCase() === reading.nome_prodotto?.toLowerCase() &&
-        r.somma_a_materia_prima_id
+      r.nome_prodotto?.toLowerCase() === reading.nome_prodotto?.toLowerCase() &&
+      r.somma_a_materia_prima_id
       );
 
       if (ricetta?.somma_a_materia_prima_id && ricetta?.somma_ingrediente_id) {
@@ -228,15 +221,10 @@ export default function OrdiniAdmin() {
         }
 
         if (ingrediente && ricetta.quantita_prodotta && ricetta.quantita_prodotta > 0) {
+          // Calculate proportion: how much raw ingredient is needed per unit of finished product
           const materiaPrimaTarget = products.find((p) => p.id === ricetta.somma_a_materia_prima_id);
           
-          if (!materiaPrimaTarget) {
-            console.log(`⚠️ MATERIA PRIMA TARGET NON TROVATA:`, {
-              semilavorato: reading.nome_prodotto,
-              somma_a_materia_prima_id: ricetta.somma_a_materia_prima_id
-            });
-            return;
-          }
+          if (!materiaPrimaTarget) return;
           
           // Convert all quantities to grams for calculation
           let quantitaSemilavoratoInGrammi = reading.quantita_rilevata || 0;
@@ -259,7 +247,8 @@ export default function OrdiniAdmin() {
           let quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi;
           
           if (materiaPrimaTarget.unita_misura === 'sacchi' && materiaPrimaTarget.peso_dimensione_unita) {
-            const grammiPerSacco = materiaPrimaTarget.peso_dimensione_unita * 1000;
+            // Convert grams to sacchi
+            const grammiPerSacco = materiaPrimaTarget.peso_dimensione_unita * 1000; // kg to grams
             quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi / grammiPerSacco;
           } else if (materiaPrimaTarget.unita_misura === 'kg') {
             quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi / 1000;
@@ -267,24 +256,24 @@ export default function OrdiniAdmin() {
 
           const targetKey = `${reading.store_id}-${ricetta.somma_a_materia_prima_id}`;
           
+          // DEBUG
           console.log(`🔍 SOMMA SEMILAVORATO:`, {
             semilavorato: reading.nome_prodotto,
             quantita_semilavorato: reading.quantita_rilevata,
             unita_semilavorato: reading.unita_misura,
             materia_prima_target: ricetta.somma_a_materia_prima_nome,
-            materia_prima_target_id: ricetta.somma_a_materia_prima_id,
             unita_materia_prima: materiaPrimaTarget.unita_misura,
+            peso_per_unita: materiaPrimaTarget.peso_dimensione_unita,
+            ingrediente_quantita: ingrediente.quantita,
+            ingrediente_unita: ingrediente.unita_misura,
+            quantita_prodotta: ricetta.quantita_prodotta,
+            unita_prodotta: ricetta.unita_misura_prodotta,
+            moltiplicatore,
             quantita_da_sommare: quantitaDaSommare,
-            targetKey,
-            valore_prima_della_somma: aggregatedQuantities[targetKey] || 0
+            targetKey
           });
           
           aggregatedQuantities[targetKey] = (aggregatedQuantities[targetKey] || 0) + quantitaDaSommare;
-          
-          console.log(`✅ DOPO SOMMA:`, {
-            targetKey,
-            nuovo_valore: aggregatedQuantities[targetKey]
-          });
         }
       }
     });
@@ -311,18 +300,6 @@ export default function OrdiniAdmin() {
       // Get aggregated quantity (including summed semilavorati)
       const key = `${reading.store_id}-${reading.prodotto_id}`;
       const quantitaEffettiva = aggregatedQuantities[key] || reading.quantita_rilevata || 0;
-      
-      // DEBUG
-      if (product.nome_prodotto?.toLowerCase().includes('patate') && reading.store_id === '690907bd20c125326dda4db5') {
-        console.log(`🔍 LEGGO DA AGGREGATED:`, {
-          prodotto: product.nome_prodotto,
-          key,
-          valore_in_aggregated: aggregatedQuantities[key],
-          quantita_da_reading: reading.quantita_rilevata,
-          quantita_effettiva: quantitaEffettiva,
-          tutte_le_key_in_aggregated: Object.keys(aggregatedQuantities).filter(k => k.includes('690907bd20c125326dda4db5'))
-        });
-      }
 
       const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
@@ -399,7 +376,7 @@ export default function OrdiniAdmin() {
     });
 
     return orders;
-  }, [allInventory, products, stores, ricette, selectedStore]);
+  }, [inventory, inventoryCantina, products, stores, ricette]);
 
   // Group orders by store and supplier
   const ordersByStoreAndSupplier = React.useMemo(() => {
