@@ -198,16 +198,19 @@ export default function OrdiniAdmin() {
       }
     });
 
-    // Build aggregated quantities (sum semilavorati to their materie prime)
+    // FASE A: Popola aggregatedQuantities con le quantità base
     const aggregatedQuantities = {};
     Object.values(latestByProduct).forEach((reading) => {
       const key = `${reading.store_id}-${reading.prodotto_id}`;
       aggregatedQuantities[key] = reading.quantita_rilevata || 0;
+    });
 
+    // FASE B: Somma i semilavorati alle loro materie prime target
+    Object.values(latestByProduct).forEach((reading) => {
       // Check if this reading is a semilavorato that should be summed to a materia prima
       const ricetta = ricette.find((r) =>
-      r.nome_prodotto?.toLowerCase() === reading.nome_prodotto?.toLowerCase() &&
-      r.somma_a_materia_prima_id
+        r.nome_prodotto?.toLowerCase() === reading.nome_prodotto?.toLowerCase() &&
+        r.somma_a_materia_prima_id
       );
 
       if (ricetta?.somma_a_materia_prima_id && ricetta?.somma_ingrediente_id) {
@@ -225,14 +228,12 @@ export default function OrdiniAdmin() {
         }
 
         if (ingrediente && ricetta.quantita_prodotta && ricetta.quantita_prodotta > 0) {
-          // Calculate proportion: how much raw ingredient is needed per unit of finished product
           const materiaPrimaTarget = products.find((p) => p.id === ricetta.somma_a_materia_prima_id);
           
           if (!materiaPrimaTarget) {
             console.log(`⚠️ MATERIA PRIMA TARGET NON TROVATA:`, {
               semilavorato: reading.nome_prodotto,
-              somma_a_materia_prima_id: ricetta.somma_a_materia_prima_id,
-              products_ids: products.map(p => p.id)
+              somma_a_materia_prima_id: ricetta.somma_a_materia_prima_id
             });
             return;
           }
@@ -258,8 +259,7 @@ export default function OrdiniAdmin() {
           let quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi;
           
           if (materiaPrimaTarget.unita_misura === 'sacchi' && materiaPrimaTarget.peso_dimensione_unita) {
-            // Convert grams to sacchi
-            const grammiPerSacco = materiaPrimaTarget.peso_dimensione_unita * 1000; // kg to grams
+            const grammiPerSacco = materiaPrimaTarget.peso_dimensione_unita * 1000;
             quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi / grammiPerSacco;
           } else if (materiaPrimaTarget.unita_misura === 'kg') {
             quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi / 1000;
@@ -267,7 +267,6 @@ export default function OrdiniAdmin() {
 
           const targetKey = `${reading.store_id}-${ricetta.somma_a_materia_prima_id}`;
           
-          // DEBUG
           console.log(`🔍 SOMMA SEMILAVORATO:`, {
             semilavorato: reading.nome_prodotto,
             quantita_semilavorato: reading.quantita_rilevata,
@@ -275,16 +274,6 @@ export default function OrdiniAdmin() {
             materia_prima_target: ricetta.somma_a_materia_prima_nome,
             materia_prima_target_id: ricetta.somma_a_materia_prima_id,
             unita_materia_prima: materiaPrimaTarget.unita_misura,
-            peso_per_unita: materiaPrimaTarget.peso_dimensione_unita,
-            ingrediente_quantita: ingrediente.quantita,
-            ingrediente_unita: ingrediente.unita_misura,
-            quantita_prodotta: ricetta.quantita_prodotta,
-            unita_prodotta: ricetta.unita_misura_prodotta,
-            quantita_semilavorato_grammi: quantitaSemilavoratoInGrammi,
-            quantita_ingrediente_grammi: quantitaIngredienteInGrammi,
-            quantita_prodotta_grammi: quantitaProdottaInGrammi,
-            moltiplicatore,
-            quantita_materia_prima_grammi: quantitaMateriaPrimaNecessariaInGrammi,
             quantita_da_sommare: quantitaDaSommare,
             targetKey,
             valore_prima_della_somma: aggregatedQuantities[targetKey] || 0
