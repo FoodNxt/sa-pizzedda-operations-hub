@@ -19,7 +19,7 @@ export default function Google() {
 
   const { data: campaigns = [], isLoading } = useQuery({
     queryKey: ['google-ads-campaigns'],
-    queryFn: () => base44.entities.GoogleAdsCampaign.list('-date', 1000),
+    queryFn: () => base44.entities.GoogleAdsCampaign.list('-date', 1000)
   });
 
   const syncMutation = useMutation({
@@ -29,7 +29,7 @@ export default function Google() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['google-ads-campaigns'] });
-    },
+    }
   });
 
   const handleSync = async () => {
@@ -50,14 +50,14 @@ export default function Google() {
     if (dateRange === 'month') {
       const monthStart = startOfMonth(new Date());
       const monthEnd = endOfMonth(new Date());
-      filtered = filtered.filter(c => {
+      filtered = filtered.filter((c) => {
         const date = parseISO(c.date);
         return date >= monthStart && date <= monthEnd;
       });
     } else if (dateRange === 'custom') {
       const start = parseISO(startDate);
       const end = parseISO(endDate);
-      filtered = filtered.filter(c => {
+      filtered = filtered.filter((c) => {
         const date = parseISO(c.date);
         return date >= start && date <= end;
       });
@@ -73,18 +73,18 @@ export default function Google() {
       totalImpressions: filteredCampaigns.reduce((sum, c) => sum + (c.impressions || 0), 0),
       totalConversions: filteredCampaigns.reduce((sum, c) => sum + (c.conversions || 0), 0),
       totalConversionValue: filteredCampaigns.reduce((sum, c) => sum + (c.conversion_value || 0), 0),
-      avgCTR: filteredCampaigns.length > 0 
-        ? filteredCampaigns.reduce((sum, c) => sum + (c.ctr || 0), 0) / filteredCampaigns.length 
-        : 0,
-      avgROAS: filteredCampaigns.length > 0
-        ? filteredCampaigns.reduce((sum, c) => sum + (c.roas || 0), 0) / filteredCampaigns.length
-        : 0
+      avgCTR: filteredCampaigns.length > 0 ?
+      filteredCampaigns.reduce((sum, c) => sum + (c.ctr || 0), 0) / filteredCampaigns.length :
+      0,
+      avgROAS: filteredCampaigns.length > 0 ?
+      filteredCampaigns.reduce((sum, c) => sum + (c.roas || 0), 0) / filteredCampaigns.length :
+      0
     };
   }, [filteredCampaigns]);
 
   const chartData = useMemo(() => {
     const byDate = {};
-    filteredCampaigns.forEach(c => {
+    filteredCampaigns.forEach((c) => {
       const dateKey = format(parseISO(c.date), 'dd/MM', { locale: it });
       if (!byDate[dateKey]) {
         byDate[dateKey] = { date: dateKey, cost: 0, clicks: 0, conversions: 0, conversionValue: 0 };
@@ -104,7 +104,7 @@ export default function Google() {
 
   const campaignPerformance = useMemo(() => {
     const byCampaign = {};
-    filteredCampaigns.forEach(c => {
+    filteredCampaigns.forEach((c) => {
       if (!byCampaign[c.campaign_id]) {
         byCampaign[c.campaign_id] = {
           name: c.campaign_name,
@@ -122,9 +122,9 @@ export default function Google() {
       byCampaign[c.campaign_id].impressions += c.impressions || 0;
     });
 
-    return Object.values(byCampaign).map(c => ({
+    return Object.values(byCampaign).map((c) => ({
       ...c,
-      ctr: c.impressions > 0 ? (c.clicks / c.impressions) * 100 : 0,
+      ctr: c.impressions > 0 ? c.clicks / c.impressions * 100 : 0,
       cpc: c.clicks > 0 ? c.cost / c.clicks : 0,
       roas: c.cost > 0 ? c.conversionValue / c.cost : 0
     })).sort((a, b) => b.cost - a.cost);
@@ -135,14 +135,14 @@ export default function Google() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-[#6b6b6b] mb-2">🔍 Google Ads</h1>
-            <p className="text-[#9b9b9b]">Metriche e performance campagne pubblicitarie</p>
+            <h1 className="text-slate-50 mb-2 text-3xl font-bold">🔍 Google Ads</h1>
+            <p className="text-slate-50">Metriche e performance campagne pubblicitarie</p>
           </div>
           <NeumorphicButton
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2"
-          >
+            className="flex items-center gap-2">
+
             <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Sincronizzazione...' : 'Sincronizza'}
           </NeumorphicButton>
@@ -156,36 +156,36 @@ export default function Google() {
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-              >
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
                 <option value="month">Questo mese</option>
                 <option value="custom">Personalizzato</option>
                 <option value="all">Tutti i periodi</option>
               </select>
             </div>
 
-            {dateRange === 'custom' && (
-              <>
+            {dateRange === 'custom' &&
+            <>
                 <div>
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Data Inizio</label>
                   <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  />
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
+
                 </div>
                 <div>
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Data Fine</label>
                   <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
-                  />
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
+
                 </div>
               </>
-            )}
+            }
           </div>
         </NeumorphicCard>
 
@@ -243,8 +243,8 @@ export default function Google() {
         {/* Trend Charts */}
         <NeumorphicCard className="p-6">
           <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Trend Spesa e Click</h3>
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+          {chartData.length > 0 ?
+          <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
@@ -255,16 +255,16 @@ export default function Google() {
                 <Line yAxisId="left" type="monotone" dataKey="cost" stroke="#dc2626" strokeWidth={2} name="Spesa (€)" />
                 <Line yAxisId="right" type="monotone" dataKey="clicks" stroke="#2563eb" strokeWidth={2} name="Click" />
               </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          )}
+            </ResponsiveContainer> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          }
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6">
           <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Conversioni e Valore</h3>
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+          {chartData.length > 0 ?
+          <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
@@ -275,17 +275,17 @@ export default function Google() {
                 <Bar yAxisId="left" dataKey="conversions" fill="#10b981" name="Conversioni" />
                 <Bar yAxisId="right" dataKey="conversionValue" fill="#f59e0b" name="Valore (€)" />
               </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          )}
+            </ResponsiveContainer> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          }
         </NeumorphicCard>
 
         {/* Campaign Performance Table */}
         <NeumorphicCard className="p-6">
           <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Performance per Campagna</h3>
-          {campaignPerformance.length > 0 ? (
-            <div className="overflow-x-auto">
+          {campaignPerformance.length > 0 ?
+          <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
@@ -299,8 +299,8 @@ export default function Google() {
                   </tr>
                 </thead>
                 <tbody>
-                  {campaignPerformance.map((campaign, idx) => (
-                    <tr key={idx} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                  {campaignPerformance.map((campaign, idx) =>
+                <tr key={idx} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
                       <td className="p-3 text-[#6b6b6b] font-medium">{campaign.name}</td>
                       <td className="p-3 text-right font-bold text-red-600">€{campaign.cost.toFixed(2)}</td>
                       <td className="p-3 text-right text-[#6b6b6b]">{campaign.clicks.toLocaleString()}</td>
@@ -309,15 +309,15 @@ export default function Google() {
                       <td className="p-3 text-right text-green-600 font-bold">{campaign.conversions.toFixed(0)}</td>
                       <td className="p-3 text-right text-orange-600 font-bold">{campaign.roas.toFixed(2)}x</td>
                     </tr>
-                  ))}
+                )}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            <p className="text-center text-[#9b9b9b] py-8">Nessuna campagna trovata</p>
-          )}
+            </div> :
+
+          <p className="text-center text-[#9b9b9b] py-8">Nessuna campagna trovata</p>
+          }
         </NeumorphicCard>
       </div>
-    </ProtectedPage>
-  );
+    </ProtectedPage>);
+
 }
