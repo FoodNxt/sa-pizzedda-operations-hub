@@ -566,7 +566,7 @@ export default function PrecottureAdmin() {
       rosseRichieste = config.cena_rosse || 0;
     }
 
-    const rosseDaFare = Math.max(0, rosseRichieste - testRossePresenti);
+    const rosseDaFare = rosseRichieste;
 
     setTestResult({
       success: true,
