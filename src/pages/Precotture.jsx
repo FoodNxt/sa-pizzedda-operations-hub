@@ -146,6 +146,11 @@ export default function Precotture() {
     queryFn: () => base44.entities.GestioneImpasti.list(),
   });
 
+  const { data: configTeglieData = [] } = useQuery({
+    queryKey: ['config-teglie'],
+    queryFn: () => base44.entities.ConfigurazioneTeglieCalcolo.list()
+  });
+
   const risultato = useMemo(() => {
     if (!selectedStore || rossePresenti === '') return null;
 

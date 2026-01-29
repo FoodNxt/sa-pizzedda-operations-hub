@@ -28,7 +28,12 @@ export default function PrecottureAdmin() {
   const [teglieConfig, setTeglieConfig] = useState({
     categorie: ['pizza'],
     unita_per_teglia: 8,
-    aggiornamento_automatico: false
+    aggiornamento_automatico: false,
+    percentuale_soglia_bassa: 70,
+    percentuale_aumento: 20,
+    percentuale_soglia_alta: 130,
+    percentuale_soglia_molto_alta: 150,
+    percentuale_riduzione: 20
   });
 
   // Carica configurazione salvata
@@ -38,7 +43,12 @@ export default function PrecottureAdmin() {
       setTeglieConfig({
         categorie: activeConfig.categorie || ['pizza'],
         unita_per_teglia: activeConfig.unita_per_teglia || 8,
-        aggiornamento_automatico: activeConfig.aggiornamento_automatico || false
+        aggiornamento_automatico: activeConfig.aggiornamento_automatico || false,
+        percentuale_soglia_bassa: activeConfig.percentuale_soglia_bassa ?? 70,
+        percentuale_aumento: activeConfig.percentuale_aumento ?? 20,
+        percentuale_soglia_alta: activeConfig.percentuale_soglia_alta ?? 130,
+        percentuale_soglia_molto_alta: activeConfig.percentuale_soglia_molto_alta ?? 150,
+        percentuale_riduzione: activeConfig.percentuale_riduzione ?? 20
       });
     }
   }, [configTeglieData]);
@@ -524,6 +534,37 @@ export default function PrecottureAdmin() {
   const mediaUltimi60Giorni = useMemo(() => calcMediaUltimiGiorni(60), [prodottiVenduti, selectedStore, teglieConfig]);
   const mediaUltimi90Giorni = useMemo(() => calcMediaUltimiGiorni(90), [prodottiVenduti, selectedStore, teglieConfig]);
 
+  // Funzione helper per applicare la logica delle percentuali
+  const applicaLogicaPercentuali = (rosseRichieste, rossePresenti, turno) => {
+    // Non applicare al pranzo
+    if (turno === 'pranzo') {
+      return rosseRichieste;
+    }
+
+    const activeConfig = configTeglieData.find(c => c.is_active);
+    if (!activeConfig) {
+      return rosseRichieste;
+    }
+
+    const sogliaRosseBassa = rosseRichieste * (activeConfig.percentuale_soglia_bassa / 100);
+    const sogliaRosseAlta = rosseRichieste * (activeConfig.percentuale_soglia_alta / 100);
+    const sogliaRosseMoltoAlta = rosseRichieste * (activeConfig.percentuale_soglia_molto_alta / 100);
+
+    if (rossePresenti < sogliaRosseBassa) {
+      // Aumenta del percentuale_aumento
+      return Math.round(rosseRichieste * (1 + activeConfig.percentuale_aumento / 100));
+    } else if (rossePresenti >= sogliaRosseBassa && rossePresenti <= sogliaRosseAlta) {
+      // Mantieni normale
+      return rosseRichieste;
+    } else if (rossePresenti > sogliaRosseMoltoAlta) {
+      // Riduci del percentuale_riduzione
+      return Math.round(rosseRichieste * (1 - activeConfig.percentuale_riduzione / 100));
+    } else {
+      // Tra soglia alta e molto alta, mantieni normale
+      return rosseRichieste;
+    }
+  };
+
   const handleTestCalcolo = () => {
     if (!testStoreId || testRossePresenti === '') {
       alert('Seleziona un negozio e inserisci il numero di rosse presenti');
@@ -557,16 +598,17 @@ export default function PrecottureAdmin() {
     }
 
     // Calcola rosse richieste in base al turno
-    let rosseRichieste = 0;
+    let rosseRichiesteBase = 0;
     if (testTurno === 'pranzo') {
-      rosseRichieste = config.pranzo_rosse || 0;
+      rosseRichiesteBase = config.pranzo_rosse || 0;
     } else if (testTurno === 'pomeriggio') {
-      rosseRichieste = config.pomeriggio_rosse || 0;
+      rosseRichiesteBase = config.pomeriggio_rosse || 0;
     } else if (testTurno === 'cena') {
-      rosseRichieste = config.cena_rosse || 0;
+      rosseRichiesteBase = config.cena_rosse || 0;
     }
 
-    const rosseDaFare = rosseRichieste;
+    // Applica logica percentuali
+    const rosseDaFare = applicaLogicaPercentuali(rosseRichiesteBase, testRossePresenti, testTurno);
 
     setTestResult({
       success: true,
@@ -574,7 +616,7 @@ export default function PrecottureAdmin() {
       dayOfWeek,
       turno: testTurno,
       rossePresenti: testRossePresenti,
-      rosseRichieste,
+      rosseRichieste: rosseRichiesteBase,
       rosseDaFare,
       configUsata: config
     });
@@ -698,6 +740,34 @@ export default function PrecottureAdmin() {
               </div>
             </NeumorphicCard>
 
+            <NeumorphicCard className="p-6 bg-purple-50 border-2 border-purple-300">
+              <h3 className="text-lg font-bold text-purple-800 mb-3">🎯 Sistema Percentuali Dinamiche (Pomeriggio e Cena)</h3>
+              <div className="space-y-3 text-sm text-purple-900">
+                <p className="font-medium">
+                  Il sistema adatta automaticamente le precotture in base a quante ne hai già pronte:
+                </p>
+                <div className="space-y-2 pl-4">
+                  <p>
+                    <strong className="text-red-700">📉 Poche Rosse Presenti (&lt; {teglieConfig.percentuale_soglia_bassa}%):</strong><br/>
+                    Se hai meno del {teglieConfig.percentuale_soglia_bassa}% delle rosse configurate, il sistema <span className="text-red-700 font-bold">aumenta la produzione del {teglieConfig.percentuale_aumento}%</span> per recuperare scorte.
+                  </p>
+                  <p>
+                    <strong className="text-green-700">✅ Giuste Rosse Presenti ({teglieConfig.percentuale_soglia_bassa}% - {teglieConfig.percentuale_soglia_alta}%):</strong><br/>
+                    Situazione ottimale: mantiene la <span className="text-green-700 font-bold">configurazione normale</span>.
+                  </p>
+                  <p>
+                    <strong className="text-blue-700">📈 Troppe Rosse Presenti (&gt; {teglieConfig.percentuale_soglia_molto_alta}%):</strong><br/>
+                    Se hai più del {teglieConfig.percentuale_soglia_molto_alta}% delle rosse configurate, il sistema <span className="text-blue-700 font-bold">riduce la produzione del {teglieConfig.percentuale_riduzione}%</span> per evitare sprechi.
+                  </p>
+                </div>
+                <div className="mt-3 p-3 bg-yellow-100 rounded-lg border border-yellow-300">
+                  <p className="text-xs text-yellow-900">
+                    <strong>⚠️ Nota:</strong> Questa logica si applica SOLO ai turni di <strong>pomeriggio e cena</strong>. Il pranzo usa sempre la configurazione base.
+                  </p>
+                </div>
+              </div>
+            </NeumorphicCard>
+
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -737,6 +807,91 @@ export default function PrecottureAdmin() {
               <div className="text-xs text-slate-500 bg-blue-50 p-3 rounded-lg">
                 💡 <strong>Nota:</strong> L'aggiornamento automatico usa la media degli ultimi 60 giorni ed esclude automaticamente i giorni con 0 pizze vendute dal calcolo della media.
               </div>
+            </NeumorphicCard>
+
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Settings className="w-5 h-5 text-orange-600" />
+                  <h3 className="text-lg font-bold text-slate-800">Configurazione Percentuali Dinamiche</h3>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-700 mb-1 block">Soglia Bassa (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={teglieConfig.percentuale_soglia_bassa}
+                    onChange={(e) => setTeglieConfig({...teglieConfig, percentuale_soglia_bassa: parseFloat(e.target.value) || 0})}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Se rosse presenti &lt; questa % → aumenta produzione</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-700 mb-1 block">Aumento (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={teglieConfig.percentuale_aumento}
+                    onChange={(e) => setTeglieConfig({...teglieConfig, percentuale_aumento: parseFloat(e.target.value) || 0})}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Di quanto aumentare quando sotto soglia bassa</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-700 mb-1 block">Soglia Alta (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="200"
+                    value={teglieConfig.percentuale_soglia_alta}
+                    onChange={(e) => setTeglieConfig({...teglieConfig, percentuale_soglia_alta: parseFloat(e.target.value) || 0})}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Limite superiore zona ottimale</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-700 mb-1 block">Soglia Molto Alta (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="200"
+                    value={teglieConfig.percentuale_soglia_molto_alta}
+                    onChange={(e) => setTeglieConfig({...teglieConfig, percentuale_soglia_molto_alta: parseFloat(e.target.value) || 0})}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Se rosse presenti &gt; questa % → riduci produzione</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-700 mb-1 block">Riduzione (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={teglieConfig.percentuale_riduzione}
+                    onChange={(e) => setTeglieConfig({...teglieConfig, percentuale_riduzione: parseFloat(e.target.value) || 0})}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Di quanto ridurre quando sopra soglia molto alta</p>
+                </div>
+              </div>
+
+              <NeumorphicButton
+                onClick={() => saveConfigTeglieeMutation.mutate(teglieConfig)}
+                disabled={saveConfigTeglieeMutation.isPending}
+                variant="primary"
+                className="flex items-center gap-2">
+                <Save className="w-4 h-4" />
+                {saveConfigTeglieeMutation.isPending ? 'Salvataggio...' : 'Salva Configurazione Percentuali'}
+              </NeumorphicButton>
             </NeumorphicCard>
 
             <NeumorphicCard className="p-6 overflow-x-auto">
