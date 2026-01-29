@@ -535,20 +535,21 @@ export default function PrecottureAdmin() {
   const mediaUltimi90Giorni = useMemo(() => calcMediaUltimiGiorni(90), [prodottiVenduti, selectedStore, teglieConfig]);
 
   // Funzione helper per applicare la logica delle percentuali
-  const applicaLogicaPercentuali = (rosseRichieste, rossePresenti, turno) => {
+  const applicaLogicaPercentuali = (rosseRichieste, rossePresenti, turno, rosseTurnoPrecedente) => {
     // Non applicare al pranzo
     if (turno === 'pranzo') {
       return rosseRichieste;
     }
 
     // Usa teglieConfig che contiene la configurazione caricata
-    if (!teglieConfig.percentuale_soglia_bassa) {
+    if (!teglieConfig.percentuale_soglia_bassa || !rosseTurnoPrecedente) {
       return rosseRichieste;
     }
 
-    const sogliaRosseBassa = rosseRichieste * (teglieConfig.percentuale_soglia_bassa / 100);
-    const sogliaRosseAlta = rosseRichieste * (teglieConfig.percentuale_soglia_alta / 100);
-    const sogliaRosseMoltoAlta = rosseRichieste * (teglieConfig.percentuale_soglia_molto_alta / 100);
+    // Confronta rosse presenti con quelle del turno PRECEDENTE
+    const sogliaRosseBassa = rosseTurnoPrecedente * (teglieConfig.percentuale_soglia_bassa / 100);
+    const sogliaRosseAlta = rosseTurnoPrecedente * (teglieConfig.percentuale_soglia_alta / 100);
+    const sogliaRosseMoltoAlta = rosseTurnoPrecedente * (teglieConfig.percentuale_soglia_molto_alta / 100);
 
     if (rossePresenti < sogliaRosseBassa) {
       // Aumenta del percentuale_aumento
@@ -599,16 +600,21 @@ export default function PrecottureAdmin() {
 
     // Calcola rosse richieste in base al turno
     let rosseRichiesteBase = 0;
+    let rosseTurnoPrecedente = 0;
+    
     if (testTurno === 'pranzo') {
       rosseRichiesteBase = config.pranzo_rosse || 0;
+      rosseTurnoPrecedente = 0; // Il pranzo non ha turno precedente
     } else if (testTurno === 'pomeriggio') {
       rosseRichiesteBase = config.pomeriggio_rosse || 0;
+      rosseTurnoPrecedente = config.pranzo_rosse || 0; // Confronta con pranzo
     } else if (testTurno === 'cena') {
       rosseRichiesteBase = config.cena_rosse || 0;
+      rosseTurnoPrecedente = config.pomeriggio_rosse || 0; // Confronta con pomeriggio
     }
 
     // Applica logica percentuali
-    const rosseDaFare = applicaLogicaPercentuali(rosseRichiesteBase, parseInt(testRossePresenti) || 0, testTurno);
+    const rosseDaFare = applicaLogicaPercentuali(rosseRichiesteBase, parseInt(testRossePresenti) || 0, testTurno, rosseTurnoPrecedente);
 
     setTestResult({
       success: true,
@@ -744,12 +750,12 @@ export default function PrecottureAdmin() {
               <h3 className="text-lg font-bold text-purple-800 mb-3">🎯 Sistema Percentuali Dinamiche (Pomeriggio e Cena)</h3>
               <div className="space-y-3 text-sm text-purple-900">
                 <p className="font-medium">
-                  Il sistema adatta automaticamente le precotture in base a quante ne hai già pronte:
+                  Il sistema adatta automaticamente le precotture confrontando quelle presenti con quelle del turno precedente:
                 </p>
                 <div className="space-y-2 pl-4">
                   <p>
                     <strong className="text-red-700">📉 Poche Rosse Presenti (&lt; {teglieConfig.percentuale_soglia_bassa}%):</strong><br/>
-                    Se hai meno del {teglieConfig.percentuale_soglia_bassa}% delle rosse configurate, il sistema <span className="text-red-700 font-bold">aumenta la produzione del {teglieConfig.percentuale_aumento}%</span> per recuperare scorte.
+                    Se le rosse presenti sono meno del {teglieConfig.percentuale_soglia_bassa}% di quelle <strong>fatte nel turno precedente</strong>, il sistema <span className="text-red-700 font-bold">aumenta la produzione del {teglieConfig.percentuale_aumento}%</span> per recuperare scorte.
                   </p>
                   <p>
                     <strong className="text-green-700">✅ Giuste Rosse Presenti ({teglieConfig.percentuale_soglia_bassa}% - {teglieConfig.percentuale_soglia_alta}%):</strong><br/>
@@ -757,12 +763,15 @@ export default function PrecottureAdmin() {
                   </p>
                   <p>
                     <strong className="text-blue-700">📈 Troppe Rosse Presenti (&gt; {teglieConfig.percentuale_soglia_molto_alta}%):</strong><br/>
-                    Se hai più del {teglieConfig.percentuale_soglia_molto_alta}% delle rosse configurate, il sistema <span className="text-blue-700 font-bold">riduce la produzione del {teglieConfig.percentuale_riduzione}%</span> per evitare sprechi.
+                    Se le rosse presenti sono più del {teglieConfig.percentuale_soglia_molto_alta}% di quelle <strong>fatte nel turno precedente</strong>, il sistema <span className="text-blue-700 font-bold">riduce la produzione del {teglieConfig.percentuale_riduzione}%</span> per evitare sprechi.
                   </p>
                 </div>
                 <div className="mt-3 p-3 bg-yellow-100 rounded-lg border border-yellow-300">
                   <p className="text-xs text-yellow-900">
-                    <strong>⚠️ Nota:</strong> Questa logica si applica SOLO ai turni di <strong>pomeriggio e cena</strong>. Il pranzo usa sempre la configurazione base.
+                    <strong>⚠️ Come funziona:</strong><br/>
+                    • <strong>Pomeriggio:</strong> confronta rosse presenti con quelle fatte a <strong>pranzo</strong><br/>
+                    • <strong>Cena:</strong> confronta rosse presenti con quelle fatte al <strong>pomeriggio</strong><br/>
+                    • <strong>Pranzo:</strong> usa sempre la configurazione base (nessun adattamento)
                   </p>
                 </div>
               </div>

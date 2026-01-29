@@ -180,25 +180,30 @@ export default function Precotture() {
     }
 
     let rosseRichiesteBase = 0;
+    let rosseTurnoPrecedente = 0;
 
     if (turno === 'pranzo') {
       rosseRichiesteBase = datiOggi.pranzo_rosse || 0;
+      rosseTurnoPrecedente = 0; // Il pranzo non ha turno precedente
     } else if (turno === 'pomeriggio') {
       rosseRichiesteBase = datiOggi.pomeriggio_rosse || 0;
+      rosseTurnoPrecedente = datiOggi.pranzo_rosse || 0; // Confronta con pranzo
     } else if (turno === 'cena') {
       rosseRichiesteBase = datiOggi.cena_rosse || 0;
+      rosseTurnoPrecedente = datiOggi.pomeriggio_rosse || 0; // Confronta con pomeriggio
     }
 
     // Applica logica percentuali (solo per pomeriggio e cena)
     let rosseDaFare = rosseRichiesteBase;
     
-    if (turno !== 'pranzo') {
+    if (turno !== 'pranzo' && rosseTurnoPrecedente > 0) {
       const activeConfig = configTeglieData.find(c => c.is_active);
       if (activeConfig) {
         const rossePresentiNum = parseInt(rossePresenti);
-        const sogliaRosseBassa = rosseRichiesteBase * (activeConfig.percentuale_soglia_bassa / 100);
-        const sogliaRosseAlta = rosseRichiesteBase * (activeConfig.percentuale_soglia_alta / 100);
-        const sogliaRosseMoltoAlta = rosseRichiesteBase * (activeConfig.percentuale_soglia_molto_alta / 100);
+        // Confronta rosse presenti con quelle del turno PRECEDENTE
+        const sogliaRosseBassa = rosseTurnoPrecedente * (activeConfig.percentuale_soglia_bassa / 100);
+        const sogliaRosseAlta = rosseTurnoPrecedente * (activeConfig.percentuale_soglia_alta / 100);
+        const sogliaRosseMoltoAlta = rosseTurnoPrecedente * (activeConfig.percentuale_soglia_molto_alta / 100);
 
         if (rossePresentiNum < sogliaRosseBassa) {
           // Aumenta del percentuale_aumento
