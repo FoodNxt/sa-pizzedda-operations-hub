@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { ChefHat, Plus, Edit, Save, X, Calendar, History, Store, User, Trash2, Pizza, TrendingUp, Settings } from "lucide-react";
+import { ChefHat, Plus, Edit, Save, X, Calendar, History, Store, User, Trash2, Pizza, TrendingUp, Settings, CheckCircle2 as CheckCircle, AlertTriangle } from "lucide-react";
 import moment from "moment";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
