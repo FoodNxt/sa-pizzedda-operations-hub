@@ -541,24 +541,24 @@ export default function PrecottureAdmin() {
       return rosseRichieste;
     }
 
-    const activeConfig = configTeglieData.find(c => c.is_active);
-    if (!activeConfig) {
+    // Usa teglieConfig che contiene la configurazione caricata
+    if (!teglieConfig.percentuale_soglia_bassa) {
       return rosseRichieste;
     }
 
-    const sogliaRosseBassa = rosseRichieste * (activeConfig.percentuale_soglia_bassa / 100);
-    const sogliaRosseAlta = rosseRichieste * (activeConfig.percentuale_soglia_alta / 100);
-    const sogliaRosseMoltoAlta = rosseRichieste * (activeConfig.percentuale_soglia_molto_alta / 100);
+    const sogliaRosseBassa = rosseRichieste * (teglieConfig.percentuale_soglia_bassa / 100);
+    const sogliaRosseAlta = rosseRichieste * (teglieConfig.percentuale_soglia_alta / 100);
+    const sogliaRosseMoltoAlta = rosseRichieste * (teglieConfig.percentuale_soglia_molto_alta / 100);
 
     if (rossePresenti < sogliaRosseBassa) {
       // Aumenta del percentuale_aumento
-      return Math.round(rosseRichieste * (1 + activeConfig.percentuale_aumento / 100));
+      return Math.round(rosseRichieste * (1 + teglieConfig.percentuale_aumento / 100));
     } else if (rossePresenti >= sogliaRosseBassa && rossePresenti <= sogliaRosseAlta) {
       // Mantieni normale
       return rosseRichieste;
     } else if (rossePresenti > sogliaRosseMoltoAlta) {
       // Riduci del percentuale_riduzione
-      return Math.round(rosseRichieste * (1 - activeConfig.percentuale_riduzione / 100));
+      return Math.round(rosseRichieste * (1 - teglieConfig.percentuale_riduzione / 100));
     } else {
       // Tra soglia alta e molto alta, mantieni normale
       return rosseRichieste;
