@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Package,
-  CheckCircle,
+  CheckCircle2 as CheckCircle,
   Send,
   AlertTriangle,
   X,
