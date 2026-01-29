@@ -608,7 +608,7 @@ export default function PrecottureAdmin() {
     }
 
     // Applica logica percentuali
-    const rosseDaFare = applicaLogicaPercentuali(rosseRichiesteBase, testRossePresenti, testTurno);
+    const rosseDaFare = applicaLogicaPercentuali(rosseRichiesteBase, parseInt(testRossePresenti) || 0, testTurno);
 
     setTestResult({
       success: true,
