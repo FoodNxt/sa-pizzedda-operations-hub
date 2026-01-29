@@ -1049,7 +1049,7 @@ export default function PrecottureAdmin() {
 
                       <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                         <p className="text-xs text-blue-800">
-                          <strong>Calcolo:</strong> {testResult.rosseRichieste} (richieste) - {testResult.rossePresenti} (presenti) = {testResult.rosseDaFare} da fare
+                          <strong>Rosse da Fare:</strong> {testResult.rosseDaFare} (in base alla configurazione per questo turno)
                         </p>
                       </div>
                     </>
