@@ -179,25 +179,50 @@ export default function Precotture() {
       return { error: 'Nessuna configurazione trovata per oggi' };
     }
 
-    let rosseRichieste = 0;
+    let rosseRichiesteBase = 0;
 
     if (turno === 'pranzo') {
-      rosseRichieste = datiOggi.pranzo_rosse || 0;
+      rosseRichiesteBase = datiOggi.pranzo_rosse || 0;
     } else if (turno === 'pomeriggio') {
-      rosseRichieste = datiOggi.pomeriggio_rosse || 0;
+      rosseRichiesteBase = datiOggi.pomeriggio_rosse || 0;
     } else if (turno === 'cena') {
-      rosseRichieste = datiOggi.cena_rosse || 0;
+      rosseRichiesteBase = datiOggi.cena_rosse || 0;
     }
 
-    const rosseDaFare = rosseRichieste;
+    // Applica logica percentuali (solo per pomeriggio e cena)
+    let rosseDaFare = rosseRichiesteBase;
+    
+    if (turno !== 'pranzo') {
+      const activeConfig = configTeglieData.find(c => c.is_active);
+      if (activeConfig) {
+        const rossePresentiNum = parseInt(rossePresenti);
+        const sogliaRosseBassa = rosseRichiesteBase * (activeConfig.percentuale_soglia_bassa / 100);
+        const sogliaRosseAlta = rosseRichiesteBase * (activeConfig.percentuale_soglia_alta / 100);
+        const sogliaRosseMoltoAlta = rosseRichiesteBase * (activeConfig.percentuale_soglia_molto_alta / 100);
+
+        if (rossePresentiNum < sogliaRosseBassa) {
+          // Aumenta del percentuale_aumento
+          rosseDaFare = Math.round(rosseRichiesteBase * (1 + activeConfig.percentuale_aumento / 100));
+        } else if (rossePresentiNum >= sogliaRosseBassa && rossePresentiNum <= sogliaRosseAlta) {
+          // Mantieni normale
+          rosseDaFare = rosseRichiesteBase;
+        } else if (rossePresentiNum > sogliaRosseMoltoAlta) {
+          // Riduci del percentuale_riduzione
+          rosseDaFare = Math.round(rosseRichiesteBase * (1 - activeConfig.percentuale_riduzione / 100));
+        } else {
+          // Tra soglia alta e molto alta, mantieni normale
+          rosseDaFare = rosseRichiesteBase;
+        }
+      }
+    }
 
     return {
       turno,
-      rosseRichieste,
+      rosseRichieste: rosseRichiesteBase,
       rossePresenti: parseInt(rossePresenti),
       rosseDaFare
     };
-  }, [selectedStore, rossePresenti, impasti]);
+  }, [selectedStore, rossePresenti, impasti, configTeglieData]);
 
   const getTurnoLabel = (turno) => {
     if (turno === 'pranzo') return 'Pranzo (9:30 - 13:00)';
