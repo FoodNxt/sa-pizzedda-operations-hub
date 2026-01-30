@@ -678,6 +678,17 @@ export default function Layout({ children, currentPageName }) {
           if (turniConScambi.length > 0) {
             newNotifications.Planday = turniConScambi.length;
           }
+
+          // Ordini con differenze non verificate
+          const ordiniConDifferenze = await base44.entities.OrdineFornitore.filter({
+            status: 'completato'
+          });
+          const ordiniConDifferenzeEffettive = ordiniConDifferenze.filter(o => 
+            !o.differenza_verificata && o.prodotti?.some(p => p.quantita_ricevuta !== p.quantita_ordinata)
+          );
+          if (ordiniConDifferenzeEffettive.length > 0) {
+            newNotifications['Ordini Fornitori'] = ordiniConDifferenzeEffettive.length;
+          }
         } else if (normalizedUserType === 'dipendente') {
           // Turni di oggi non timbrati
           const oggi = new Date().toISOString().split('T')[0];
