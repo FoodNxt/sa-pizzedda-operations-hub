@@ -1166,6 +1166,24 @@ Sa Pizzedda`,
               </NeumorphicCard> :
 
           (() => {
+            // Calculate average delivery times per supplier from completed orders
+            const avgDeliveryTimes = {};
+            ordiniCompletati.forEach((ordine) => {
+              if (ordine.data_invio && ordine.data_completamento) {
+                const giorni = Math.ceil((new Date(ordine.data_completamento) - new Date(ordine.data_invio)) / (1000 * 60 * 60 * 24));
+                if (!avgDeliveryTimes[ordine.fornitore]) {
+                  avgDeliveryTimes[ordine.fornitore] = { total: 0, count: 0 };
+                }
+                avgDeliveryTimes[ordine.fornitore].total += giorni;
+                avgDeliveryTimes[ordine.fornitore].count++;
+              }
+            });
+
+            const avgDeliveryDays = {};
+            Object.entries(avgDeliveryTimes).forEach(([fornitore, data]) => {
+              avgDeliveryDays[fornitore] = Math.round(data.total / data.count);
+            });
+
             // Group orders by supplier
             const ordersBySupplier = {};
             ordiniInviati.
@@ -1195,7 +1213,10 @@ Sa Pizzedda`,
                             </div>
                             <div>
                               <h2 className="text-lg font-bold text-slate-800">{fornitore}</h2>
-                              <p className="text-xs text-slate-500">{totalOrders} ordini • €{totalValue.toFixed(2)}</p>
+                              <p className="text-xs text-slate-500">
+                                {totalOrders} ordini • €{totalValue.toFixed(2)}
+                                {avgDeliveryDays[fornitore] && ` • Media: ${avgDeliveryDays[fornitore]}gg`}
+                              </p>
                             </div>
                           </div>
                           {isExpanded ?
@@ -1208,13 +1229,33 @@ Sa Pizzedda`,
 
                       {isExpanded &&
                   <div className="p-6 pt-0 space-y-3">
-                          {ordini.map((ordine) =>
-                    <div key={ordine.id} className="neumorphic-pressed p-4 rounded-xl">
+                          {ordini.map((ordine) => {
+                            const giorniTrascorsi = Math.ceil((new Date() - new Date(ordine.data_invio)) / (1000 * 60 * 60 * 24));
+                            const tempoMedio = avgDeliveryDays[ordine.fornitore] || null;
+                            const isInRitardo = tempoMedio && giorniTrascorsi > tempoMedio;
+
+                            return (
+                    <div key={ordine.id} className={`neumorphic-pressed p-4 rounded-xl ${isInRitardo ? 'border-2 border-red-400' : ''}`}>
+                              {isInRitardo &&
+                                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                                  <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                                  <div>
+                                    <p className="font-bold text-red-800 text-sm">⚠️ Ritardo nella consegna</p>
+                                    <p className="text-xs text-red-700">
+                                      Tempo medio: {tempoMedio}gg • Trascorsi: {giorniTrascorsi}gg
+                                    </p>
+                                  </div>
+                                </div>
+                              }
+                              
                               <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1">
                                   <h3 className="font-bold text-slate-800">{ordine.store_name}</h3>
                                   <p className="text-xs text-slate-400">
                                     Inviato: {format(parseISO(ordine.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                                  </p>
+                                  <p className="text-xs text-slate-400">
+                                    Giorni trascorsi: {giorniTrascorsi}
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -1300,8 +1341,8 @@ Sa Pizzedda`,
                                   </tbody>
                                 </table>
                               </div>
-                            </div>
-                    )}
+                            </div>);
+                          })}
                         </div>
                   }
                     </NeumorphicCard>);
@@ -1997,7 +2038,7 @@ Sa Pizzedda`,
               return (
                 <div className="space-y-6">
                     {/* Stats Summary */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                       <div className="neumorphic-pressed p-4 rounded-xl text-center">
                         <p className="text-sm text-slate-500 mb-1">Ordini Totali</p>
                         <p className="text-3xl font-bold text-blue-600">{filteredOrders.length}</p>
@@ -2019,6 +2060,20 @@ Sa Pizzedda`,
                         <p className="text-3xl font-bold text-green-600">
                           {filteredOrders.filter((o) => o.status === 'completato').length}
                         </p>
+                      </div>
+                      <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                        <p className="text-sm text-slate-500 mb-1">Tempo Medio Consegna</p>
+                        <p className="text-3xl font-bold text-purple-600">
+                          {(() => {
+                            const completedWithDates = filteredOrders.filter(o => o.status === 'completato' && o.data_invio && o.data_completamento);
+                            if (completedWithDates.length === 0) return '-';
+                            const totalDays = completedWithDates.reduce((sum, o) => {
+                              return sum + Math.ceil((new Date(o.data_completamento) - new Date(o.data_invio)) / (1000 * 60 * 60 * 24));
+                            }, 0);
+                            return Math.round(totalDays / completedWithDates.length);
+                          })()}
+                        </p>
+                        <p className="text-xs text-slate-500">giorni</p>
                       </div>
                     </div>
 
@@ -2260,31 +2315,50 @@ Sa Pizzedda`,
 
                     {/* By Supplier */}
                     <div className="neumorphic-flat p-6 rounded-xl">
-                      <h3 className="text-lg font-bold text-slate-800 mb-4">Per Fornitore</h3>
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead>
-                            <tr className="border-b-2 border-green-600">
-                              <th className="text-left p-3 text-slate-600 font-medium">Fornitore</th>
-                              <th className="text-right p-3 text-slate-600 font-medium">Ordini</th>
-                              <th className="text-right p-3 text-slate-600 font-medium">Totale Speso</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {Object.entries(bySupplier).
-                          sort((a, b) => b[1].total - a[1].total).
-                          map(([supplier, data]) =>
-                          <tr key={supplier} className="border-b border-slate-200">
-                                  <td className="p-3 text-slate-800 font-medium">{supplier}</td>
-                                  <td className="p-3 text-right text-slate-700">{data.count}</td>
-                                  <td className="p-3 text-right font-bold text-green-600">
-                                    €{data.total.toFixed(2)}
-                                  </td>
-                                </tr>
-                          )}
-                          </tbody>
-                        </table>
-                      </div>
+                     <h3 className="text-lg font-bold text-slate-800 mb-4">Per Fornitore</h3>
+                     <div className="overflow-x-auto">
+                       <table className="w-full">
+                         <thead>
+                           <tr className="border-b-2 border-green-600">
+                             <th className="text-left p-3 text-slate-600 font-medium">Fornitore</th>
+                             <th className="text-right p-3 text-slate-600 font-medium">Ordini</th>
+                             <th className="text-right p-3 text-slate-600 font-medium">Tempo Medio</th>
+                             <th className="text-right p-3 text-slate-600 font-medium">Totale Speso</th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {Object.entries(bySupplier).
+                         sort((a, b) => b[1].total - a[1].total).
+                         map(([supplier, data]) => {
+                           // Calculate average delivery time for this supplier
+                           const completedOrders = filteredOrders.filter(o => 
+                             o.fornitore === supplier && 
+                             o.status === 'completato' && 
+                             o.data_invio && 
+                             o.data_completamento
+                           );
+                           const avgDays = completedOrders.length > 0 
+                             ? Math.round(completedOrders.reduce((sum, o) => {
+                                 return sum + Math.ceil((new Date(o.data_completamento) - new Date(o.data_invio)) / (1000 * 60 * 60 * 24));
+                               }, 0) / completedOrders.length)
+                             : null;
+
+                           return (
+                         <tr key={supplier} className="border-b border-slate-200">
+                                 <td className="p-3 text-slate-800 font-medium">{supplier}</td>
+                                 <td className="p-3 text-right text-slate-700">{data.count}</td>
+                                 <td className="p-3 text-right text-purple-600 font-medium">
+                                   {avgDays ? `${avgDays}gg` : '-'}
+                                 </td>
+                                 <td className="p-3 text-right font-bold text-green-600">
+                                   €{data.total.toFixed(2)}
+                                 </td>
+                               </tr>
+                           );
+                         })}
+                         </tbody>
+                       </table>
+                     </div>
                     </div>
 
                     {/* By Month */}
