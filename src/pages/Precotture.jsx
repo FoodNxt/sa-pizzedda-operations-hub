@@ -338,22 +338,10 @@ export default function Precotture() {
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-4">
-                  <div className="neumorphic-pressed p-4 rounded-xl bg-red-50">
-                    <p className="text-xs text-slate-500 mb-1">Richieste Rosse</p>
-                    <p className="text-2xl font-bold text-red-700">{risultato.rosseRichieste}</p>
-                  </div>
-
-                  <div className="neumorphic-pressed p-4 rounded-xl">
-                    <p className="text-xs text-slate-500 mb-1">Già presenti Rosse</p>
-                    <p className="text-xl font-bold text-slate-700">{risultato.rossePresenti}</p>
-                  </div>
-                </div>
-
                 <div className="neumorphic-card p-6 rounded-xl bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400">
                   <div className="flex items-center gap-3 mb-3">
                     <Pizza className="w-6 h-6 text-green-700" />
-                    <p className="text-sm font-medium text-green-700">Prepara Precotture Rosse</p>
+                    <p className="text-sm font-medium text-green-700">Precotture Rosse da Fare</p>
                   </div>
                   
                   <p className="text-4xl font-bold text-green-800">{risultato.rosseDaFare}</p>
