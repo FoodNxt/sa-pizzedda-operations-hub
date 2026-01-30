@@ -37,6 +37,7 @@ export default function Inventory() {
   const [selectedFormCompletion, setSelectedFormCompletion] = useState(null);
   const [expandedStores, setExpandedStores] = useState({});
   const [storeSearchTerms, setStoreSearchTerms] = useState({});
+  const [storeLocationFilter, setStoreLocationFilter] = useState({}); // 'negozio', 'cantina', or 'all'
 
   const queryClient = useQueryClient();
 
@@ -75,25 +76,44 @@ export default function Inventory() {
     queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 500)
   });
 
-  // Filter inventory by store
-  const filteredInventory = useMemo(() => {
+  // Filter inventory by store (combine negozio and cantina)
+  const filteredInventoryNegozio = useMemo(() => {
     if (selectedStore === 'all') return inventory;
     return inventory.filter((item) => item.store_id === selectedStore);
   }, [inventory, selectedStore]);
 
-  // Get latest reading per product per store
-  const latestReadings = useMemo(() => {
-    const readings = {};
+  const filteredInventoryCantina = useMemo(() => {
+    if (selectedStore === 'all') return inventoryCantina;
+    return inventoryCantina.filter((item) => item.store_id === selectedStore);
+  }, [inventoryCantina, selectedStore]);
 
-    filteredInventory.forEach((item) => {
+  // Get latest reading per product per store (from both negozio and cantina)
+  const latestReadingsNegozio = useMemo(() => {
+    const readings = {};
+    filteredInventoryNegozio.forEach((item) => {
       const key = `${item.store_id}-${item.prodotto_id}`;
       if (!readings[key] || new Date(item.data_rilevazione) > new Date(readings[key].data_rilevazione)) {
-        readings[key] = item;
+        readings[key] = { ...item, location: 'negozio' };
       }
     });
-
     return Object.values(readings);
-  }, [filteredInventory]);
+  }, [filteredInventoryNegozio]);
+
+  const latestReadingsCantina = useMemo(() => {
+    const readings = {};
+    filteredInventoryCantina.forEach((item) => {
+      const key = `${item.store_id}-${item.prodotto_id}`;
+      if (!readings[key] || new Date(item.data_rilevazione) > new Date(readings[key].data_rilevazione)) {
+        readings[key] = { ...item, location: 'cantina' };
+      }
+    });
+    return Object.values(readings);
+  }, [filteredInventoryCantina]);
+
+  // Combined for stats
+  const latestReadings = useMemo(() => {
+    return [...latestReadingsNegozio, ...latestReadingsCantina];
+  }, [latestReadingsNegozio, latestReadingsCantina]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -118,11 +138,12 @@ export default function Inventory() {
     return !r.sotto_minimo && usage <= 0.7;
   });
 
-  // Group products by store
+  // Group products by store (separating negozio and cantina)
   const productsByStore = useMemo(() => {
     const grouped = {};
 
-    latestReadings.forEach((reading) => {
+    // Process negozio readings
+    latestReadingsNegozio.forEach((reading) => {
       const storeId = reading.store_id;
       const storeName = reading.store_name || stores.find((s) => s.id === storeId)?.name || 'N/D';
 
@@ -130,26 +151,51 @@ export default function Inventory() {
         grouped[storeId] = {
           storeId,
           storeName,
-          critical: [],
-          warning: [],
-          ok: []
+          negozio: { critical: [], warning: [], ok: [] },
+          cantina: { critical: [], warning: [], ok: [] }
         };
       }
 
       if (reading.sotto_minimo) {
-        grouped[storeId].critical.push(reading);
+        grouped[storeId].negozio.critical.push(reading);
       } else {
         const usage = (reading.quantita_minima - reading.quantita_rilevata) / reading.quantita_minima;
         if (usage > 0.7) {
-          grouped[storeId].warning.push(reading);
+          grouped[storeId].negozio.warning.push(reading);
         } else {
-          grouped[storeId].ok.push(reading);
+          grouped[storeId].negozio.ok.push(reading);
+        }
+      }
+    });
+
+    // Process cantina readings
+    latestReadingsCantina.forEach((reading) => {
+      const storeId = reading.store_id;
+      const storeName = reading.store_name || stores.find((s) => s.id === storeId)?.name || 'N/D';
+
+      if (!grouped[storeId]) {
+        grouped[storeId] = {
+          storeId,
+          storeName,
+          negozio: { critical: [], warning: [], ok: [] },
+          cantina: { critical: [], warning: [], ok: [] }
+        };
+      }
+
+      if (reading.sotto_minimo) {
+        grouped[storeId].cantina.critical.push(reading);
+      } else {
+        const usage = (reading.quantita_minima - reading.quantita_rilevata) / reading.quantita_minima;
+        if (usage > 0.7) {
+          grouped[storeId].cantina.warning.push(reading);
+        } else {
+          grouped[storeId].cantina.ok.push(reading);
         }
       }
     });
 
     return Object.values(grouped).sort((a, b) => a.storeName.localeCompare(b.storeName));
-  }, [latestReadings, stores]);
+  }, [latestReadingsNegozio, latestReadingsCantina, stores]);
 
   const toggleStoreExpansion = (storeId) => {
     setExpandedStores((prev) => ({
@@ -536,7 +582,14 @@ export default function Inventory() {
             <div className="space-y-4">
               {productsByStore.map((storeGroup) => {
               const isExpanded = expandedStores[storeGroup.storeId];
-              const totalProducts = storeGroup.critical.length + storeGroup.warning.length + storeGroup.ok.length;
+              const locationFilter = storeLocationFilter[storeGroup.storeId] || 'negozio';
+              
+              // Get products based on location filter
+              const currentLocation = locationFilter === 'cantina' ? storeGroup.cantina : storeGroup.negozio;
+              const totalProducts = currentLocation.critical.length + currentLocation.warning.length + currentLocation.ok.length;
+              
+              const totalNegozio = storeGroup.negozio.critical.length + storeGroup.negozio.warning.length + storeGroup.negozio.ok.length;
+              const totalCantina = storeGroup.cantina.critical.length + storeGroup.cantina.warning.length + storeGroup.cantina.ok.length;
 
               return (
                 <NeumorphicCard key={storeGroup.storeId} className="overflow-hidden">
@@ -558,22 +611,22 @@ export default function Inventory() {
                         
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-3">
-                            {storeGroup.critical.length > 0 &&
+                            {currentLocation.critical.length > 0 &&
                           <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-100">
                                 <AlertTriangle className="w-4 h-4 text-red-600" />
-                                <span className="text-sm font-bold text-red-700">{storeGroup.critical.length}</span>
+                                <span className="text-sm font-bold text-red-700">{currentLocation.critical.length}</span>
                               </div>
                           }
-                            {storeGroup.warning.length > 0 &&
+                            {currentLocation.warning.length > 0 &&
                           <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-yellow-100">
                                 <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                                <span className="text-sm font-bold text-yellow-700">{storeGroup.warning.length}</span>
+                                <span className="text-sm font-bold text-yellow-700">{currentLocation.warning.length}</span>
                               </div>
                           }
-                            {storeGroup.ok.length > 0 &&
+                            {currentLocation.ok.length > 0 &&
                           <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-100">
                                 <CheckCircle className="w-4 h-4 text-green-600" />
-                                <span className="text-sm font-bold text-green-700">{storeGroup.ok.length}</span>
+                                <span className="text-sm font-bold text-green-700">{currentLocation.ok.length}</span>
                               </div>
                           }
                           </div>
@@ -590,63 +643,87 @@ export default function Inventory() {
                     {/* Expanded content */}
                     {isExpanded &&
                   <div className="p-4 lg:p-6 pt-0 space-y-6">
-                        {/* Search bar for this store */}
-                        <div className="sticky top-0 bg-[#e0e5ec] z-10 pb-3">
+                        {/* Location filter and search bar */}
+                        <div className="sticky top-0 bg-[#e0e5ec] z-10 pb-3 space-y-3">
+                          {/* Location toggle */}
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setStoreLocationFilter(prev => ({ ...prev, [storeGroup.storeId]: 'negozio' }))}
+                              className={`flex-1 px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                                locationFilter === 'negozio'
+                                  ? 'neumorphic-pressed bg-blue-50 text-blue-700'
+                                  : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+                              }`}
+                            >
+                              🏪 Negozio ({totalNegozio})
+                            </button>
+                            <button
+                              onClick={() => setStoreLocationFilter(prev => ({ ...prev, [storeGroup.storeId]: 'cantina' }))}
+                              className={`flex-1 px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                                locationFilter === 'cantina'
+                                  ? 'neumorphic-pressed bg-purple-50 text-purple-700'
+                                  : 'neumorphic-flat text-slate-600 hover:text-slate-800'
+                              }`}
+                            >
+                              📦 Cantina ({totalCantina})
+                            </button>
+                          </div>
+                          
+                          {/* Search bar */}
                           <input
-                        type="text"
-                        placeholder="🔍 Cerca prodotti in questo locale..."
-                        value={storeSearchTerms[storeGroup.storeId] || ''}
-                        onChange={(e) => setStoreSearchTerms((prev) => ({
-                          ...prev,
-                          [storeGroup.storeId]: e.target.value
-                        }))}
-                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
-
+                            type="text"
+                            placeholder="🔍 Cerca prodotti in questo locale..."
+                            value={storeSearchTerms[storeGroup.storeId] || ''}
+                            onChange={(e) => setStoreSearchTerms((prev) => ({
+                              ...prev,
+                              [storeGroup.storeId]: e.target.value
+                            }))}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
                         </div>
 
-                        {filterProductsBySearch(storeGroup.critical, storeGroup.storeId).length > 0 &&
+                        {filterProductsBySearch(currentLocation.critical, storeGroup.storeId).length > 0 &&
                     <div>
                             <div className="flex items-center gap-2 mb-3">
                               <AlertTriangle className="w-5 h-5 text-red-600" />
                               <h4 className="font-bold text-slate-800">
-                                Critici ({filterProductsBySearch(storeGroup.critical, storeGroup.storeId).length})
+                                Critici ({filterProductsBySearch(currentLocation.critical, storeGroup.storeId).length})
                               </h4>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {filterProductsBySearch(storeGroup.critical, storeGroup.storeId).map((item) =>
-                        <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="critical" />
+                              {filterProductsBySearch(currentLocation.critical, storeGroup.storeId).map((item) =>
+                        <ProductCard key={`${item.store_id}-${item.prodotto_id}-${item.location}`} item={item} status="critical" />
                         )}
                             </div>
                           </div>
                     }
                         
-                        {filterProductsBySearch(storeGroup.warning, storeGroup.storeId).length > 0 &&
+                        {filterProductsBySearch(currentLocation.warning, storeGroup.storeId).length > 0 &&
                     <div>
                             <div className="flex items-center gap-2 mb-3">
                               <AlertTriangle className="w-5 h-5 text-yellow-600" />
                               <h4 className="font-bold text-slate-800">
-                                Warning ({filterProductsBySearch(storeGroup.warning, storeGroup.storeId).length})
+                                Warning ({filterProductsBySearch(currentLocation.warning, storeGroup.storeId).length})
                               </h4>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {filterProductsBySearch(storeGroup.warning, storeGroup.storeId).map((item) =>
-                        <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="warning" />
+                              {filterProductsBySearch(currentLocation.warning, storeGroup.storeId).map((item) =>
+                        <ProductCard key={`${item.store_id}-${item.prodotto_id}-${item.location}`} item={item} status="warning" />
                         )}
                             </div>
                           </div>
                     }
                         
-                        {filterProductsBySearch(storeGroup.ok, storeGroup.storeId).length > 0 &&
+                        {filterProductsBySearch(currentLocation.ok, storeGroup.storeId).length > 0 &&
                     <div>
                             <div className="flex items-center gap-2 mb-3">
                               <CheckCircle className="w-5 h-5 text-green-600" />
                               <h4 className="font-bold text-slate-800">
-                                OK ({filterProductsBySearch(storeGroup.ok, storeGroup.storeId).length})
+                                OK ({filterProductsBySearch(currentLocation.ok, storeGroup.storeId).length})
                               </h4>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {filterProductsBySearch(storeGroup.ok, storeGroup.storeId).map((item) =>
-                        <ProductCard key={`${item.store_id}-${item.prodotto_id}`} item={item} status="ok" />
+                              {filterProductsBySearch(currentLocation.ok, storeGroup.storeId).map((item) =>
+                        <ProductCard key={`${item.store_id}-${item.prodotto_id}-${item.location}`} item={item} status="ok" />
                         )}
                             </div>
                           </div>
