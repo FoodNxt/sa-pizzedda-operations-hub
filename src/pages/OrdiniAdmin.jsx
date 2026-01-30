@@ -713,6 +713,16 @@ Sa Pizzedda`,
                   {ordiniInviati.length}
                 </span>
             }
+              {tab.id === 'completati' && (() => {
+                const ordiniConDifferenze = ordiniCompletati.filter(o => 
+                  !o.differenza_verificata && o.prodotti?.some(p => p.quantita_ricevuta !== p.quantita_ordinata)
+                );
+                return ordiniConDifferenze.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-xs bg-red-500 text-white">
+                    {ordiniConDifferenze.length}
+                  </span>
+                );
+              })()}
             </button>
           )}
         </div>
