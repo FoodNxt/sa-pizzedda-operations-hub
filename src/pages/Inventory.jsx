@@ -115,27 +115,48 @@ export default function Inventory() {
     return [...latestReadingsNegozio, ...latestReadingsCantina];
   }, [latestReadingsNegozio, latestReadingsCantina]);
 
-  // Calculate stats
+  // Calculate stats using quantita_critica
   const stats = useMemo(() => {
-    const critical = latestReadings.filter((r) => r.sotto_minimo).length;
-    const warning = latestReadings.filter((r) => {
-      const usage = (r.quantita_minima - r.quantita_rilevata) / r.quantita_minima;
-      return !r.sotto_minimo && usage > 0.7;
+    const critical = latestReadings.filter((r) => {
+      const product = products.find((p) => p.id === r.prodotto_id);
+      const quantitaCritica = product?.store_specific_quantita_critica?.[r.store_id] || product?.quantita_critica || r.quantita_minima || 0;
+      return r.quantita_rilevata <= quantitaCritica;
     }).length;
+    
+    const warning = latestReadings.filter((r) => {
+      const product = products.find((p) => p.id === r.prodotto_id);
+      const quantitaCritica = product?.store_specific_quantita_critica?.[r.store_id] || product?.quantita_critica || r.quantita_minima || 0;
+      const quantitaOrdine = product?.store_specific_quantita_ordine?.[r.store_id] || product?.quantita_ordine || 0;
+      const sogliaMaggiore = quantitaCritica + (quantitaOrdine * 0.3);
+      return r.quantita_rilevata > quantitaCritica && r.quantita_rilevata <= sogliaMaggiore;
+    }).length;
+    
     const ok = latestReadings.length - critical - warning;
 
     return { critical, warning, ok, total: latestReadings.length };
-  }, [latestReadings]);
+  }, [latestReadings, products]);
 
-  // Group by status
-  const criticalProducts = latestReadings.filter((r) => r.sotto_minimo);
-  const warningProducts = latestReadings.filter((r) => {
-    const usage = (r.quantita_minima - r.quantita_rilevata) / r.quantita_minima;
-    return !r.sotto_minimo && usage > 0.7;
+  // Group by status using quantita_critica
+  const criticalProducts = latestReadings.filter((r) => {
+    const product = products.find((p) => p.id === r.prodotto_id);
+    const quantitaCritica = product?.store_specific_quantita_critica?.[r.store_id] || product?.quantita_critica || r.quantita_minima || 0;
+    return r.quantita_rilevata <= quantitaCritica;
   });
+  
+  const warningProducts = latestReadings.filter((r) => {
+    const product = products.find((p) => p.id === r.prodotto_id);
+    const quantitaCritica = product?.store_specific_quantita_critica?.[r.store_id] || product?.quantita_critica || r.quantita_minima || 0;
+    const quantitaOrdine = product?.store_specific_quantita_ordine?.[r.store_id] || product?.quantita_ordine || 0;
+    const sogliaMaggiore = quantitaCritica + (quantitaOrdine * 0.3);
+    return r.quantita_rilevata > quantitaCritica && r.quantita_rilevata <= sogliaMaggiore;
+  });
+  
   const okProducts = latestReadings.filter((r) => {
-    const usage = (r.quantita_minima - r.quantita_rilevata) / r.quantita_minima;
-    return !r.sotto_minimo && usage <= 0.7;
+    const product = products.find((p) => p.id === r.prodotto_id);
+    const quantitaCritica = product?.store_specific_quantita_critica?.[r.store_id] || product?.quantita_critica || r.quantita_minima || 0;
+    const quantitaOrdine = product?.store_specific_quantita_ordine?.[r.store_id] || product?.quantita_ordine || 0;
+    const sogliaMaggiore = quantitaCritica + (quantitaOrdine * 0.3);
+    return r.quantita_rilevata > sogliaMaggiore;
   });
 
   // Group products by store (separating negozio and cantina)
@@ -156,15 +177,17 @@ export default function Inventory() {
         };
       }
 
-      if (reading.sotto_minimo) {
+      const product = products.find((p) => p.id === reading.prodotto_id);
+      const quantitaCritica = product?.store_specific_quantita_critica?.[reading.store_id] || product?.quantita_critica || reading.quantita_minima || 0;
+      const quantitaOrdine = product?.store_specific_quantita_ordine?.[reading.store_id] || product?.quantita_ordine || 0;
+      const sogliaMaggiore = quantitaCritica + (quantitaOrdine * 0.3);
+
+      if (reading.quantita_rilevata <= quantitaCritica) {
         grouped[storeId].negozio.critical.push(reading);
+      } else if (reading.quantita_rilevata <= sogliaMaggiore) {
+        grouped[storeId].negozio.warning.push(reading);
       } else {
-        const usage = (reading.quantita_minima - reading.quantita_rilevata) / reading.quantita_minima;
-        if (usage > 0.7) {
-          grouped[storeId].negozio.warning.push(reading);
-        } else {
-          grouped[storeId].negozio.ok.push(reading);
-        }
+        grouped[storeId].negozio.ok.push(reading);
       }
     });
 
@@ -182,15 +205,17 @@ export default function Inventory() {
         };
       }
 
-      if (reading.sotto_minimo) {
+      const product = products.find((p) => p.id === reading.prodotto_id);
+      const quantitaCritica = product?.store_specific_quantita_critica?.[reading.store_id] || product?.quantita_critica || reading.quantita_minima || 0;
+      const quantitaOrdine = product?.store_specific_quantita_ordine?.[reading.store_id] || product?.quantita_ordine || 0;
+      const sogliaMaggiore = quantitaCritica + (quantitaOrdine * 0.3);
+
+      if (reading.quantita_rilevata <= quantitaCritica) {
         grouped[storeId].cantina.critical.push(reading);
+      } else if (reading.quantita_rilevata <= sogliaMaggiore) {
+        grouped[storeId].cantina.warning.push(reading);
       } else {
-        const usage = (reading.quantita_minima - reading.quantita_rilevata) / reading.quantita_minima;
-        if (usage > 0.7) {
-          grouped[storeId].cantina.warning.push(reading);
-        } else {
-          grouped[storeId].cantina.ok.push(reading);
-        }
+        grouped[storeId].cantina.ok.push(reading);
       }
     });
 
