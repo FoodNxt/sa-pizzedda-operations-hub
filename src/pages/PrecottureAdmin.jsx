@@ -534,6 +534,56 @@ export default function PrecottureAdmin() {
   const mediaUltimi60Giorni = useMemo(() => calcMediaUltimiGiorni(60), [prodottiVenduti, selectedStore, teglieConfig]);
   const mediaUltimi90Giorni = useMemo(() => calcMediaUltimiGiorni(90), [prodottiVenduti, selectedStore, teglieConfig]);
 
+  // Teglie vendute settimana precedente per giorno della settimana
+  const teglieSettimanaScorsa = useMemo(() => {
+    if (!selectedStore) return {};
+
+    const dayMapping = {
+      'Monday': 'Lunedì',
+      'Tuesday': 'Martedì',
+      'Wednesday': 'Mercoledì',
+      'Thursday': 'Giovedì',
+      'Friday': 'Venerdì',
+      'Saturday': 'Sabato',
+      'Sunday': 'Domenica'
+    };
+
+    // Settimana scorsa: da 7 giorni fa a 1 giorno fa
+    const startDate = moment().subtract(7, 'days').format('YYYY-MM-DD');
+    const endDate = moment().subtract(1, 'days').format('YYYY-MM-DD');
+
+    const filtered = prodottiVenduti.filter((p) => {
+      if (p.store_id !== selectedStore) return false;
+      if (p.data_vendita < startDate || p.data_vendita > endDate) return false;
+      if (!teglieConfig.categorie.includes(p.category)) return false;
+      return true;
+    });
+
+    const dailyData = {};
+    filtered.forEach((p) => {
+      if (!dailyData[p.data_vendita]) {
+        dailyData[p.data_vendita] = 0;
+      }
+      dailyData[p.data_vendita] += p.total_pizzas_sold || 0;
+    });
+
+    const byDay = {};
+    Object.entries(dailyData).forEach(([data, totale_unita]) => {
+      const teglie = totale_unita / teglieConfig.unita_per_teglia;
+      const dayNameEng = moment(data).format('dddd');
+      const dayNameIta = dayMapping[dayNameEng];
+
+      if (dayNameIta) {
+        if (!byDay[dayNameIta]) {
+          byDay[dayNameIta] = 0;
+        }
+        byDay[dayNameIta] += teglie;
+      }
+    });
+
+    return byDay;
+  }, [prodottiVenduti, selectedStore, teglieConfig]);
+
   // Funzione helper per applicare la logica delle percentuali
   const applicaLogicaPercentuali = (rosseRichieste, rossePresenti, turno, rosseTurnoPrecedente) => {
     // Non applicare al pranzo
@@ -917,6 +967,7 @@ export default function PrecottureAdmin() {
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-blue-50">Media<br />30gg</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-indigo-50">Media<br />60gg</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-cyan-50">Media<br />90gg</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-amber-50">Teglie<br />Sett. Scorsa</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pranzo<br />Rosse</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Pomeriggio<br />Rosse</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700 bg-red-50">Cena<br />Rosse</th>
@@ -933,6 +984,7 @@ export default function PrecottureAdmin() {
                     const mediaGiorno30 = parseFloat(mediaUltimi30Giorni[giorno]) || 0;
                     const mediaGiorno60 = parseFloat(mediaUltimi60Giorni[giorno]) || 0;
                     const mediaGiorno90 = parseFloat(mediaUltimi90Giorni[giorno]) || 0;
+                    const teglieScorsa = parseFloat(teglieSettimanaScorsa[giorno]) || 0;
                     const mediaGiorno = mediaGiorno60;
 
                     let totaleGiorno;
@@ -967,6 +1019,9 @@ export default function PrecottureAdmin() {
                           </td>
                           <td className="text-center py-2 px-2 font-medium text-cyan-700 bg-cyan-50">
                             {mediaGiorno90 > 0 ? mediaGiorno90.toFixed(1) : '-'}
+                          </td>
+                          <td className="text-center py-2 px-2 font-bold text-amber-700 bg-amber-50">
+                            {teglieScorsa > 0 ? teglieScorsa.toFixed(1) : '-'}
                           </td>
                           {isEditing ?
                         <>
