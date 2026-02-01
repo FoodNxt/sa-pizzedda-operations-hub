@@ -38,6 +38,9 @@ export default function Inventory() {
   const [expandedStores, setExpandedStores] = useState({});
   const [storeSearchTerms, setStoreSearchTerms] = useState({});
   const [storeLocationFilter, setStoreLocationFilter] = useState({}); // 'negozio', 'cantina', or 'all'
+  const [sendingEmail, setSendingEmail] = useState({});
+  const [emailSent, setEmailSent] = useState({});
+  const [editingOrder, setEditingOrder] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -51,6 +54,15 @@ export default function Inventory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rilevazione-inventario'] });
       alert('✅ Form inventario eliminato');
+    }
+  });
+
+  const createOrderMutation = useMutation({
+    mutationFn: (data) => base44.entities.OrdineFornitore.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ordini-fornitore'] });
+      setEditingOrder(null);
+      alert('✅ Ordine salvato come inviato');
     }
   });
 
@@ -505,6 +517,11 @@ export default function Inventory() {
     };
 
     await createOrderMutation.mutateAsync(orderData);
+  };
+
+  // Open email customization (placeholder function)
+  const openEmailCustomization = (storeName, supplierName, orders) => {
+    console.log('Email customization not yet implemented');
   };
 
   const tabs = [
