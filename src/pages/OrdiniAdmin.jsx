@@ -1016,42 +1016,44 @@ Sa Pizzedda`,
                                                   {(() => {
                                                     // Trova semilavorati collegati a questa materia prima
                                                     const semilavoratiCollegati = ricette.filter((r) => 
-                                                      r.somma_a_materia_prima_id === order.product.id &&
-                                                      r.is_semilavorato
+                                                     r.somma_a_materia_prima_id === order.product.id &&
+                                                     r.is_semilavorato
                                                     );
-                                                    
+
                                                     if (semilavoratiCollegati.length === 0) return null;
-                                                    
+
+                                                    const allInventoryCombined = [...inventory, ...inventoryCantina];
+
                                                     const dettagli = semilavoratiCollegati.map((ricetta) => {
-                                                      // Trova l'ultimo inventario per questo semilavorato
-                                                      const latestSemilavorato = allInventory
-                                                        .filter((i) => 
-                                                          i.store_id === order.store_id &&
-                                                          i.nome_prodotto?.toLowerCase() === ricetta.nome_prodotto?.toLowerCase()
-                                                        )
-                                                        .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
-                                                      
-                                                      if (!latestSemilavorato) return null;
-                                                      
-                                                      return {
-                                                        nome: ricetta.nome_prodotto,
-                                                        quantita: latestSemilavorato.quantita_rilevata,
-                                                        unita: latestSemilavorato.unita_misura
-                                                      };
+                                                     // Trova l'ultimo inventario per questo semilavorato
+                                                     const latestSemilavorato = allInventoryCombined
+                                                       .filter((i) => 
+                                                         i.store_id === order.store_id &&
+                                                         i.nome_prodotto?.toLowerCase() === ricetta.nome_prodotto?.toLowerCase()
+                                                       )
+                                                       .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
+
+                                                     if (!latestSemilavorato) return null;
+
+                                                     return {
+                                                       nome: ricetta.nome_prodotto,
+                                                       quantita: latestSemilavorato.quantita_rilevata,
+                                                       unita: latestSemilavorato.unita_misura
+                                                     };
                                                     }).filter(Boolean);
-                                                    
+
                                                     if (dettagli.length === 0) return null;
-                                                    
+
                                                     return (
-                                                      <div className="mt-1 text-xs text-blue-600">
-                                                        {dettagli.map((d, i) => (
-                                                          <div key={i}>
-                                                            ↳ {d.nome}: {d.quantita} {d.unita}
-                                                          </div>
-                                                        ))}
-                                                      </div>
+                                                     <div className="mt-1 text-xs text-blue-600">
+                                                       {dettagli.map((d, i) => (
+                                                         <div key={i}>
+                                                           ↳ {d.nome}: {d.quantita} {d.unita}
+                                                         </div>
+                                                       ))}
+                                                     </div>
                                                     );
-                                                  })()}
+                                                    })()}
                                                 </td>
                                                 <td className="p-2 text-sm text-right text-red-600 font-bold">
                                                   {order.quantita_rilevata} {order.unita_misura}
