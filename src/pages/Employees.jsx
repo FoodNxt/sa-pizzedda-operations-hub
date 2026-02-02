@@ -777,6 +777,9 @@ export default function Employees() {
   const filteredEmployees = useMemo(() => {
     let filtered = employeeMetrics;
 
+    // Filter out employees with 0 shifts in the selected period
+    filtered = filtered.filter((e) => e.totalShifts > 0);
+
     // Filter out hidden employees (unless showHidden is true)
     if (!showHidden) {
       filtered = filtered.filter((e) => !e.hide_from_performance);
