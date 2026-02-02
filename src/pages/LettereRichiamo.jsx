@@ -122,6 +122,8 @@ export default function LettereRichiamo() {
             let contenuto = templateChiusura.contenuto;
             contenuto = contenuto.replace(/{{nome_dipendente}}/g, richiamo.user_name);
             contenuto = contenuto.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
+            contenuto = contenuto.replace(/{{data_visualizzazione_richiamo}}/g, new Date(richiamo.data_visualizzazione).toLocaleDateString('it-IT'));
+            contenuto = contenuto.replace(/{{mese_firma_richiamo}}/g, new Date(richiamo.data_firma || richiamo.created_date).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }));
 
             await base44.entities.LetteraRichiamo.create({
               user_id: richiamo.user_id,
