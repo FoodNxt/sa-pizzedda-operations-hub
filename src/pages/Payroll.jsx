@@ -17,6 +17,7 @@ export default function Payroll() {
   const [showDetailModal, setShowDetailModal] = useState(null);
   const [showDownloadModal, setShowDownloadModal] = useState(null);
   const [downloadFormat, setDownloadFormat] = useState('hm');
+  const [includeOvertimeDaily, setIncludeOvertimeDaily] = useState(false);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
