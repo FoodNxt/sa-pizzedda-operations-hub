@@ -520,6 +520,345 @@ export default function StoricoCassa() {
           </button>
         </div>
 
+        {/* Rolling Tab */}
+        {activeTab === 'rolling' &&
+        <>
+          <NeumorphicCard className="p-4 lg:p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Filter className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">Selezione Locali</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedStoresRolling(stores.map(s => s.id))}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  selectedStoresRolling.length === stores.length
+                    ? 'bg-blue-500 text-white'
+                    : 'neumorphic-flat text-slate-600'
+                }`}
+              >
+                Tutti
+              </button>
+              {stores.map((store) => (
+                <button
+                  key={store.id}
+                  onClick={() => {
+                    if (selectedStoresRolling.includes(store.id)) {
+                      setSelectedStoresRolling(selectedStoresRolling.filter(id => id !== store.id));
+                    } else {
+                      setSelectedStoresRolling([...selectedStoresRolling, store.id]);
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                    selectedStoresRolling.includes(store.id)
+                      ? 'bg-blue-500 text-white'
+                      : 'neumorphic-flat text-slate-600'
+                  }`}
+                >
+                  {store.name}
+                </button>
+              ))}
+            </div>
+          </NeumorphicCard>
+
+          {useMemo(() => {
+            const rollingData = [];
+            const cutoffDate = startDate ? parseISO(startDate) : subDays(new Date(), parseInt(dateRange));
+            const endFilterDate = endDate ? parseISO(endDate) : new Date();
+            const applicableStores = selectedStoresRolling.length > 0 ? selectedStoresRolling : stores.map(s => s.id);
+
+            // Raccogliamo tutti i giorni unici nel periodo
+            const allDatesSet = new Set();
+            const conteggiByStoreDate = {};
+
+            applicableStores.forEach(storeId => {
+              conteggi
+                .filter(c => c.store_id === storeId && c.data_conteggio)
+                .forEach(c => {
+                  const dateOnly = c.data_conteggio.split('T')[0];
+                  try {
+                    const d = parseISO(dateOnly);
+                    if (!isBefore(d, cutoffDate) && !isAfter(d, endFilterDate)) {
+                      allDatesSet.add(dateOnly);
+                      if (!conteggiByStoreDate[storeId]) conteggiByStoreDate[storeId] = {};
+                      conteggiByStoreDate[storeId][dateOnly] = c;
+                    }
+                  } catch (e) {
+                    // ignore
+                  }
+                });
+            });
+
+            const sortedDates = Array.from(allDatesSet).sort();
+
+            sortedDates.forEach((dateStr, dateIdx) => {
+              const dayData = {
+                date: dateStr,
+                entries: []
+              };
+
+              applicableStores.forEach(storeId => {
+                const store = stores.find(s => s.id === storeId);
+                const prevDate = dateIdx > 0 ? sortedDates[dateIdx - 1] : null;
+
+                let cassaTeoricaInitial = 0;
+                let cassaTeoricaInitialManual = false;
+                
+                // Se è il primo giorno o vogliamo usare il saldo manuale
+                const manualSaldoForDate = saldiManuali.find(s => s.store_id === storeId && s.data === dateStr);
+                const manualSaldoPrevDay = prevDate ? saldiManuali.find(s => s.store_id === storeId && s.data === prevDate) : null;
+
+                if (manualSaldoForDate) {
+                  cassaTeoricaInitial = manualSaldoForDate.saldo_iniziale;
+                  cassaTeoricaInitialManual = true;
+                } else if (manualSaldoPrevDay) {
+                  // Se c'è un saldo manuale del giorno precedente, la cassa teorica è quella finale del saldo manuale
+                  cassaTeoricaInitial = manualSaldoPrevDay.saldo_iniziale + 
+                    (manualSaldoPrevDay.pagamenti_contanti || 0) - 
+                    (manualSaldoPrevDay.prelievi || 0);
+                } else if (prevDate) {
+                  // Altrimenti usa il valore finale teorico del giorno precedente
+                  const prevDayEntry = rollingData[rollingData.length - 1]?.entries.find(e => e.store_id === storeId);
+                  if (prevDayEntry) {
+                    cassaTeoricaInitial = prevDayEntry.cassaTeoricaFinale;
+                  }
+                } else if (conteggiByStoreDate[storeId]?.[dateStr]) {
+                  cassaTeoricaInitial = conteggiByStoreDate[storeId][dateStr].valore_conteggio;
+                }
+
+                // Pagamenti contanti da iPratico
+                const iPraticoGiorno = iPraticoData.filter(i => i.store_id === storeId && i.order_date === dateStr);
+                const pagamentiContantiIpratico = iPraticoGiorno.reduce((sum, record) => {
+                  return sum + (parseFloat(record.moneyType_cash) || 0);
+                }, 0);
+
+                // Prelievi dal form
+                const prelieviGiorno = prelievi
+                  .filter(p => p.store_id === storeId && p.data_prelievo && p.data_prelievo.split('T')[0] === dateStr)
+                  .reduce((sum, p) => sum + (p.importo || 0), 0);
+
+                const cassaTeoricaFinale = cassaTeoricaInitial + pagamentiContantiIpratico - prelieviGiorno;
+
+                // Conteggio cassa fine giornata
+                const conteggiGiorno = conteggi
+                  .filter(c => c.store_id === storeId && c.data_conteggio && c.data_conteggio.split('T')[0] === dateStr)
+                  .sort((a, b) => new Date(a.data_conteggio) - new Date(b.data_conteggio));
+
+                const conteggiInizio = conteggiGiorno[0];
+                const conteggiFinale = conteggiGiorno[conteggiGiorno.length - 1];
+
+                dayData.entries.push({
+                  store_id: storeId,
+                  store_name: store?.name || '',
+                  cassaTeoricaInitial,
+                  cassaTeoricaInitialManual,
+                  pagamentiContanti: pagamentiContantiIpratico,
+                  prelievi: prelieviGiorno,
+                  cassaTeoricaFinale,
+                  conteggiInizio: conteggiInizio?.valore_conteggio || null,
+                  conteggiInizioOra: conteggiInizio?.data_conteggio,
+                  conteggiInizioRilevatoDa: conteggiInizio?.rilevato_da,
+                  conteggiFinale: conteggiFinale?.valore_conteggio || null,
+                  conteggiFinaleOra: conteggiFinale?.data_conteggio,
+                  conteggiFinaleRilevatoDa: conteggiFinale?.rilevato_da,
+                  differenciaInizio: conteggiInizio ? Math.abs((conteggiInizio.valore_conteggio || 0) - (prevDate && rollingData.length > 0 ? rollingData[rollingData.length - 1].entries.find(e => e.store_id === storeId)?.cassaTeoricaFinale || 0 : cassaTeoricaInitial)) : null,
+                  differenciaFinale: conteggiFinale ? Math.abs((conteggiFinale.valore_conteggio || 0) - cassaTeoricaFinale) : null
+                });
+              });
+
+              rollingData.push(dayData);
+            });
+
+            return rollingData;
+          }, [conteggi, iPraticoData, prelievi, saldiManuali, stores, selectedStoresRolling, startDate, endDate, dateRange]) ? 
+          useMemo(() => {
+            const rollingData = [];
+            const cutoffDate = startDate ? parseISO(startDate) : subDays(new Date(), parseInt(dateRange));
+            const endFilterDate = endDate ? parseISO(endDate) : new Date();
+            const applicableStores = selectedStoresRolling.length > 0 ? selectedStoresRolling : stores.map(s => s.id);
+
+            const allDatesSet = new Set();
+            const conteggiByStoreDate = {};
+
+            applicableStores.forEach(storeId => {
+              conteggi
+                .filter(c => c.store_id === storeId && c.data_conteggio)
+                .forEach(c => {
+                  const dateOnly = c.data_conteggio.split('T')[0];
+                  try {
+                    const d = parseISO(dateOnly);
+                    if (!isBefore(d, cutoffDate) && !isAfter(d, endFilterDate)) {
+                      allDatesSet.add(dateOnly);
+                      if (!conteggiByStoreDate[storeId]) conteggiByStoreDate[storeId] = {};
+                      conteggiByStoreDate[storeId][dateOnly] = c;
+                    }
+                  } catch (e) {
+                    // ignore
+                  }
+                });
+            });
+
+            const sortedDates = Array.from(allDatesSet).sort();
+
+            sortedDates.forEach((dateStr, dateIdx) => {
+              const dayData = {
+                date: dateStr,
+                entries: []
+              };
+
+              applicableStores.forEach(storeId => {
+                const store = stores.find(s => s.id === storeId);
+                const prevDate = dateIdx > 0 ? sortedDates[dateIdx - 1] : null;
+                const prevDayData = dateIdx > 0 ? rollingData[rollingData.length - 1] : null;
+
+                let cassaTeoricaInitial = 0;
+                let cassaTeoricaInitialManual = false;
+                
+                const manualSaldoForDate = saldiManuali.find(s => s.store_id === storeId && s.data === dateStr);
+                const prevDayEntry = prevDayData?.entries.find(e => e.store_id === storeId);
+
+                if (manualSaldoForDate) {
+                  cassaTeoricaInitial = manualSaldoForDate.saldo_iniziale;
+                  cassaTeoricaInitialManual = true;
+                } else if (prevDayEntry) {
+                  cassaTeoricaInitial = prevDayEntry.cassaTeoricaFinale;
+                } else if (conteggiByStoreDate[storeId]?.[dateStr]) {
+                  cassaTeoricaInitial = conteggiByStoreDate[storeId][dateStr].valore_conteggio;
+                }
+
+                const iPraticoGiorno = iPraticoData.filter(i => i.store_id === storeId && i.order_date === dateStr);
+                const pagamentiContantiIpratico = iPraticoGiorno.reduce((sum, record) => {
+                  return sum + (parseFloat(record.moneyType_cash) || 0);
+                }, 0);
+
+                const prelieviGiorno = prelievi
+                  .filter(p => p.store_id === storeId && p.data_prelievo && p.data_prelievo.split('T')[0] === dateStr)
+                  .reduce((sum, p) => sum + (p.importo || 0), 0);
+
+                const cassaTeoricaFinale = cassaTeoricaInitial + pagamentiContantiIpratico - prelieviGiorno;
+
+                const conteggiGiorno = conteggi
+                  .filter(c => c.store_id === storeId && c.data_conteggio && c.data_conteggio.split('T')[0] === dateStr)
+                  .sort((a, b) => new Date(a.data_conteggio) - new Date(b.data_conteggio));
+
+                const conteggiInizio = conteggiGiorno[0];
+                const conteggiFinale = conteggiGiorno[conteggiGiorno.length - 1];
+
+                dayData.entries.push({
+                  store_id: storeId,
+                  store_name: store?.name || '',
+                  cassaTeoricaInitial,
+                  cassaTeoricaInitialManual,
+                  pagamentiContanti: pagamentiContantiIpratico,
+                  prelievi: prelieviGiorno,
+                  cassaTeoricaFinale,
+                  conteggiInizio: conteggiInizio?.valore_conteggio || null,
+                  conteggiInizioOra: conteggiInizio?.data_conteggio,
+                  conteggiInizioRilevatoDa: conteggiInizio?.rilevato_da,
+                  conteggiFinale: conteggiFinale?.valore_conteggio || null,
+                  conteggiFinaleOra: conteggiFinale?.data_conteggio,
+                  conteggiFinaleRilevatoDa: conteggiFinale?.rilevato_da,
+                  differenciaInizio: conteggiInizio ? Math.abs((conteggiInizio.valore_conteggio || 0) - cassaTeoricaInitial) : null,
+                  differenciaFinale: conteggiFinale ? Math.abs((conteggiFinale.valore_conteggio || 0) - cassaTeoricaFinale) : null
+                });
+              });
+
+              rollingData.push(dayData);
+            });
+
+            return rollingData;
+          }, [conteggi, iPraticoData, prelievi, saldiManuali, stores, selectedStoresRolling, startDate, endDate, dateRange])
+          .map((dayData) => (
+            <NeumorphicCard key={dayData.date} className="p-4 lg:p-6 mb-4">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">{format(parseISO(dayData.date), 'dd/MM/yyyy', { locale: it })}</h3>
+              
+              <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+                <table className="w-full min-w-[900px]">
+                  <thead>
+                    <tr className="border-b-2 border-blue-600">
+                      <th className="text-left p-3 text-slate-600 font-medium text-xs">Locale</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-xs">Cassa Teorica Inizio</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-xs">+ Contanti</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-xs">- Prelievi</th>
+                      <th className="text-right p-3 text-slate-600 font-medium text-xs">= Cassa Teorica Fine</th>
+                      <th className="text-left p-3 text-slate-600 font-medium text-xs">Conteggi Form</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dayData.entries.map((entry) => (
+                      <React.Fragment key={entry.store_id}>
+                        <tr className="border-b border-slate-200 hover:bg-slate-50">
+                          <td className="p-3 font-bold text-slate-800">{entry.store_name}</td>
+                          <td className="p-3 text-right">
+                            <div className="flex flex-col items-end gap-1">
+                              <span className={`text-sm font-bold ${entry.cassaTeoricaInitialManual ? 'text-orange-600' : 'text-blue-600'}`}>
+                                €{entry.cassaTeoricaInitial.toFixed(2)}
+                              </span>
+                              {entry.cassaTeoricaInitialManual && (
+                                <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Manual</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 text-right">
+                            <span className="text-sm font-bold text-green-600">+€{entry.pagamentiContanti.toFixed(2)}</span>
+                          </td>
+                          <td className="p-3 text-right">
+                            <span className="text-sm font-bold text-red-600">-€{entry.prelievi.toFixed(2)}</span>
+                          </td>
+                          <td className="p-3 text-right">
+                            <span className="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-2 rounded">
+                              €{entry.cassaTeoricaFinale.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="p-3 text-xs">
+                            {entry.conteggiInizio || entry.conteggiFinale ? (
+                              <div className="space-y-1">
+                                {entry.conteggiInizio && (
+                                  <div>
+                                    <p className="text-slate-600">Inizio: €{entry.conteggiInizio.toFixed(2)}</p>
+                                    <p className="text-xs text-slate-500">{format(parseISO(entry.conteggiInizioOra), 'HH:mm')} - {entry.conteggiInizioRilevatoDa}</p>
+                                  </div>
+                                )}
+                                {entry.conteggiFinale && (
+                                  <div>
+                                    <p className="text-slate-600">Fine: €{entry.conteggiFinale.toFixed(2)}</p>
+                                    <p className="text-xs text-slate-500">{format(parseISO(entry.conteggiFinaleOra), 'HH:mm')} - {entry.conteggiFinaleRilevatoDa}</p>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                        </tr>
+                        
+                        {entry.conteggiInizio && entry.differenciaInizio !== null && entry.differenciaInizio > 0.5 && (
+                          <tr className="bg-orange-50 border-b border-orange-200">
+                            <td colSpan="6" className="p-3 text-xs text-orange-800">
+                              ⚠️ <strong>Differenza inizio giornata:</strong> €{entry.differenciaInizio.toFixed(2)}
+                              (Conteggio inizio: €{entry.conteggiInizio.toFixed(2)} vs Cassa teorica fine giorno precedente: €{(entry.cassaTeoricaInitial).toFixed(2)})
+                            </td>
+                          </tr>
+                        )}
+
+                        {entry.conteggiFinale && entry.differenciaFinale !== null && entry.differenciaFinale > 0.5 && (
+                          <tr className="bg-red-50 border-b border-red-200">
+                            <td colSpan="6" className="p-3 text-xs text-red-800">
+                              ❌ <strong>Differenza fine giornata:</strong> €{entry.differenciaFinale.toFixed(2)}
+                              (Cassa teorica: €{entry.cassaTeoricaFinale.toFixed(2)} vs Conteggio fine: €{entry.conteggiFinale.toFixed(2)})
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </NeumorphicCard>
+          )) : null}
+        </>
+        }
+
         {activeTab === 'storico' &&
         <>
         <NeumorphicCard className="p-4 lg:p-6">
