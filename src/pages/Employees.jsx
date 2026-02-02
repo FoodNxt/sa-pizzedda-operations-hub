@@ -144,6 +144,11 @@ export default function Employees() {
     queryFn: () => base44.entities.LetteraRichiamoTemplate.list()
   });
 
+  const { data: tipoTurnoConfigs = [] } = useQuery({
+    queryKey: ['tipo-turno-configs'],
+    queryFn: () => base44.entities.TipoTurnoConfig.list()
+  });
+
   const currentOrderIds = useMemo(() => new Set(wrongOrders.map((o) => o.id)), [wrongOrders]);
   const wrongOrderMatches = useMemo(() =>
   allWrongOrderMatches.filter((m) => currentOrderIds.has(m.wrong_order_id)),
@@ -415,10 +420,15 @@ export default function Employees() {
         return sum + oreTurni;
       }, 0);
 
-      // Timbrature mancanti - SOLO turni passati SENZA timbratura
+      // Timbrature mancanti - SOLO turni passati SENZA timbratura E che richiedono timbratura
       const numeroTimbratureMancate = employeeShifts.filter((s) => {
         // NON deve avere timbratura di entrata
         if (s.timbratura_entrata) return false;
+
+        // Verifica se questo tipo turno richiede timbratura
+        const tipoTurnoConfig = tipoTurnoConfigs.find(c => c.tipo_turno === s.tipo_turno);
+        const richiedeTimbratura = tipoTurnoConfig?.richiede_timbratura !== false;
+        if (!richiedeTimbratura) return false;
 
         // Deve essere passato (data + orario)
         const shiftDate = safeParseDate(s.data);
@@ -576,9 +586,15 @@ export default function Employees() {
         }
       });
       
-      // Timbrature mancanti - use weight based on role during shift
+      // Timbrature mancanti - use weight based on role during shift (solo se timbratura richiesta)
       const missingClockIns = employeeShifts.filter((s) => {
         if (s.timbratura_entrata) return false;
+        
+        // Verifica se questo tipo turno richiede timbratura
+        const tipoTurnoConfig = tipoTurnoConfigs.find(c => c.tipo_turno === s.tipo_turno);
+        const richiedeTimbratura = tipoTurnoConfig?.richiede_timbratura !== false;
+        if (!richiedeTimbratura) return false;
+        
         const shiftDate = safeParseDate(s.data);
         if (!shiftDate) return false;
         const today = new Date();
@@ -787,7 +803,7 @@ export default function Employees() {
         scoreBreakdown
       };
     });
-  }, [users, shifts, reviews, wrongOrderMatches, startDate, endDate, metricWeights, richiesteAssenze, malattie]);
+  }, [users, shifts, reviews, wrongOrderMatches, startDate, endDate, metricWeights, richiesteAssenze, malattie, tipoTurnoConfigs]);
 
   const filteredEmployees = useMemo(() => {
     let filtered = employeeMetrics;
@@ -954,6 +970,11 @@ export default function Employees() {
 
       // NON deve avere timbratura di entrata
       if (s.timbratura_entrata) return false;
+
+      // Verifica se questo tipo turno richiede timbratura
+      const tipoTurnoConfig = tipoTurnoConfigs.find(c => c.tipo_turno === s.tipo_turno);
+      const richiedeTimbratura = tipoTurnoConfig?.richiede_timbratura !== false;
+      if (!richiedeTimbratura) return false;
 
       // Deve essere passato (data + orario)
       const shiftDate = safeParseDate(s.data);
