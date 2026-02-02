@@ -594,6 +594,83 @@ export default function LettereRichiamo() {
           </div>
         </div>
       )}
+
+      {showChiusuraModal && selectedLettera && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800">Chiusura Procedura - {selectedLettera.user_name}</h2>
+                <button onClick={() => setShowChiusuraModal(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
+
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                if (chiusuraConfig.template_id) {
+                  inviaChiusuraMutation.mutate(chiusuraConfig);
+                }
+              }} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Seleziona Template Chiusura Procedura
+                  </label>
+                  <select
+                    value={chiusuraConfig.template_id || ''}
+                    onChange={(e) => setChiusuraConfig({ ...chiusuraConfig, template_id: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    required
+                  >
+                    <option value="">Seleziona template...</option>
+                    {chiusureTemplates.map(t => (
+                      <option key={t.id} value={t.id}>{t.nome_template}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {chiusuraConfig.template_id && (() => {
+                  const template = templates.find(t => t.id === chiusuraConfig.template_id);
+                  if (!template) return null;
+
+                  let preview = template.contenuto;
+                  preview = preview.replace(/{{nome_dipendente}}/g, selectedLettera.user_name);
+                  preview = preview.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
+                  preview = preview.replace(/{{data_visualizzazione_richiamo}}/g, new Date(selectedLettera.data_visualizzazione || selectedLettera.data_firma).toLocaleDateString('it-IT'));
+                  preview = preview.replace(/{{mese_firma_richiamo}}/g, new Date(selectedLettera.data_firma || selectedLettera.created_date).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }));
+
+                  return (
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Anteprima Lettera
+                      </label>
+                      <textarea
+                        value={preview}
+                        onChange={(e) => {
+                          // Consenti edit della preview
+                          setChiusuraConfig({ ...chiusuraConfig, preview_editata: e.target.value });
+                        }}
+                        rows={10}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none"
+                      />
+                    </div>
+                  );
+                })()}
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton type="button" onClick={() => setShowChiusuraModal(false)} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton type="submit" variant="primary" className="flex-1" disabled={!chiusuraConfig.template_id}>
+                    <Send className="w-5 h-5 mr-2" />
+                    Invia Chiusura Procedura
+                  </NeumorphicButton>
+                </div>
+              </form>
+            </NeumorphicCard>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
