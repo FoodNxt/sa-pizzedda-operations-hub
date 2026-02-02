@@ -421,19 +421,19 @@ export default function Payroll() {
     };
   }, [selectedEmployee, shifts, selectedStore, startDate, endDate, normalizeEmployeeName]); // Added normalizeEmployeeName to dependencies
 
-  // ✅ Get unpaid absence shifts - include tutti i tipi di assenza non retribuita E RITARDI
+  // ✅ Get unpaid absence shifts - UTILIZZA L'ARRAY SHIFTS GIA' PROCESSATO
   const getUnpaidAbsenceShifts = (employeeName) => {
     const targetNormalizedName = normalizeEmployeeName(employeeName);
 
-    // Filtro i turni dell'employee direttamente dal database (turniPlanday)
-    let employeeTurni = turniPlanday.filter((t) => {
-      if (normalizeEmployeeName(t.dipendente_nome) !== targetNormalizedName) return false;
-      if (selectedStore !== 'all' && t.store_id !== selectedStore) return false;
+    // Filtro dall'array 'shifts' che ha GIA' i dati corretti elaborati
+    let employeeShifts = shifts.filter((s) => {
+      if (normalizeEmployeeName(s.employee_name) !== targetNormalizedName) return false;
+      if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
 
       if (startDate || endDate) {
-        if (!t.data) return false;
+        if (!s.shift_date) return false;
         try {
-          const shiftDate = parseISO(t.data);
+          const shiftDate = parseISO(s.shift_date);
           if (isNaN(shiftDate.getTime())) return false;
           const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
           const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
@@ -453,76 +453,29 @@ export default function Payroll() {
       return true;
     });
 
-    console.log(`🔍 DEBUG - Employee turni for ${employeeName}:`, employeeTurni.map(t => ({
-      id: t.id,
-      data: t.data,
-      tipo_turno: t.tipo_turno,
-      minuti_ritardo_conteggiato: t.minuti_ritardo_conteggiato,
-      timbratura_entrata: t.timbratura_entrata,
-      ora_inizio: t.ora_inizio
-    })));
-
     const unpaidShifts = [];
 
-    employeeTurni.forEach((turno) => {
-      const originalType = turno.tipo_turno || 'Turno normale';
-      const normalizedType = normalizeShiftType(originalType);
-
-      // Calcolo scheduled_minutes
-      let scheduledMinutes = 0;
-      if (turno.ora_inizio && turno.ora_fine) {
-        const [startH, startM] = turno.ora_inizio.split(':').map(Number);
-        const [endH, endM] = turno.ora_fine.split(':').map(Number);
-        scheduledMinutes = endH * 60 + endM - (startH * 60 + startM);
-      }
-
-      const store = stores.find((s) => s.id === turno.store_id);
-      const scheduledStart = turno.data && turno.ora_inizio ? `${turno.data}T${turno.ora_inizio}:00` : null;
-      const scheduledEnd = turno.data && turno.ora_fine ? `${turno.data}T${turno.ora_fine}:00` : null;
-
-      const shiftData = {
-        id: turno.id,
-        dipendente_id: turno.dipendente_id,
-        employee_name: turno.dipendente_nome,
-        store_id: turno.store_id,
-        store_name: store?.name || turno.store_id,
-        shift_date: turno.data,
-        scheduled_start: scheduledStart,
-        scheduled_end: scheduledEnd,
-        actual_start: turno.timbrata_entrata,
-        actual_end: turno.timbrata_uscita,
-        scheduled_minutes: scheduledMinutes,
-        shift_type: turno.tipo_turno,
-        minuti_di_ritardo: turno.minuti_ritardo_conteggiato || 0,
-        minuti_ritardo_conteggiato: turno.minuti_ritardo_conteggiato,
-        created_date: turno.created_date
-      };
-
-      const ritardoConteggiato = turno.minuti_ritardo_conteggiato || 0;
+    employeeShifts.forEach((shift) => {
+      const normalizedType = normalizeShiftType(shift.shift_type);
+      const ritardoConteggiato = shift.minuti_di_ritardo || 0;
       
-      // ✅ LOGICA CORRETTA:
-      // Priorità: SEMPRE mostra il ritardo se presente > 0
-      // (il ritardo è calcolato dal backend e è l'unica fonte di verità)
+      // ✅ MOSTRA RITARDI - calcolati e verificati in shifts
       if (ritardoConteggiato > 0) {
-        console.log(`✅ RITARDO per turno ${turno.id} (${turno.data}): ${ritardoConteggiato} min`);
         unpaidShifts.push({
-          ...shiftData,
+          ...shift,
           unpaid_reason: 'Ritardo in ingresso',
           unpaid_minutes: ritardoConteggiato
         });
       } 
-      // Se NON ha ritardo E è un tipo di assenza non retribuita, aggiungilo
+      // Se NON ha ritardo E è un tipo di assenza, aggiungilo
       else if (normalizedType === 'Assenza non retribuita') {
-        console.log(`✅ ASSENZA NON RETRIBUITA per turno ${turno.id} (${turno.data}): tipo="${originalType}"`);
         unpaidShifts.push({
-          ...shiftData,
-          unpaid_reason: `Turno di tipo: ${originalType}`,
-          unpaid_minutes: scheduledMinutes || 0
+          ...shift,
+          unpaid_reason: `Turno di tipo: ${shift.shift_type}`,
+          unpaid_minutes: shift.scheduled_minutes || 0
         });
       }
     });
-
-    console.log(`🔍 RESULT - Unpaid absence shifts for ${employeeName}:`, unpaidShifts);
 
     // Sort by date (most recent first)
     return unpaidShifts.sort((a, b) => {
