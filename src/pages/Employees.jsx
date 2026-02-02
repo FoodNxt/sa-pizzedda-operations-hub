@@ -474,12 +474,27 @@ export default function Employees() {
         return weight ? weight.weight : 1;
       };
 
-      // Weights that are global (not role-specific)
-      const w_bonus_recensione = getWeight('bonus_per_recensione');
-      const w_min_recensioni = getWeight('min_recensioni');
-      const w_malus_recensioni = getWeight('malus_sotto_minimo_recensioni');
-      const w_punteggio_recensioni = getWeight('punteggio_recensioni');
-      const w_pulizie = getWeight('pulizie');
+      // Get weights for reviews based on employee roles (average if multiple roles)
+      const userRoles = user.ruoli_dipendente || [];
+      const getAverageWeight = (metricName) => {
+        if (userRoles.length === 0) {
+          return getWeight(metricName, null);
+        }
+        
+        const roleWeights = userRoles.map(ruolo => getWeight(metricName, ruolo)).filter(w => w !== 1);
+        
+        if (roleWeights.length > 0) {
+          return roleWeights.reduce((sum, w) => sum + w, 0) / roleWeights.length;
+        }
+        
+        return getWeight(metricName, null);
+      };
+
+      const w_bonus_recensione = getAverageWeight('bonus_per_recensione');
+      const w_min_recensioni = getAverageWeight('min_recensioni');
+      const w_malus_recensioni = getAverageWeight('malus_sotto_minimo_recensioni');
+      const w_punteggio_recensioni = getAverageWeight('punteggio_recensioni');
+      const w_pulizie = getAverageWeight('pulizie');
 
       // Calculate base score starting from 100
       let performanceScore = 100;
