@@ -392,20 +392,22 @@ export default function StoricoCassa() {
 
     applicableStores.forEach(storeId => {
       conteggi
-        .filter(c => c.store_id === storeId && c.data_conteggio)
-        .forEach(c => {
-          const dateOnly = c.data_conteggio.split('T')[0];
-          try {
-            const d = parseISO(dateOnly);
-            if (!isBefore(d, cutoffDate) && !isAfter(d, endFilterDate)) {
-              allDatesSet.add(dateOnly);
-              if (!conteggiByStoreDate[storeId]) conteggiByStoreDate[storeId] = {};
-              conteggiByStoreDate[storeId][dateOnly] = c;
+          .filter(c => c.store_id === storeId && c.data_conteggio)
+          .forEach(c => {
+            const dateOnly = c.data_conteggio.split('T')[0];
+            try {
+              const d = parseISO(dateOnly);
+              if (!isBefore(d, cutoffDate) && !isAfter(d, endFilterDate)) {
+                allDatesSet.add(dateOnly);
+                if (!conteggiByStoreDate[storeId]) conteggiByStoreDate[storeId] = {};
+                if (!conteggiByStoreDate[storeId][dateOnly]) {
+                  conteggiByStoreDate[storeId][dateOnly] = c;
+                }
+              }
+            } catch (e) {
+              // ignore
             }
-          } catch (e) {
-            // ignore
-          }
-        });
+          });
     });
 
     const sortedDates = Array.from(allDatesSet).sort().reverse();
