@@ -48,6 +48,7 @@ export default function Employees() {
   const [showLetteraForm, setShowLetteraForm] = useState(false);
   const [selectedEmployeeForLettera, setSelectedEmployeeForLettera] = useState(null);
   const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -776,8 +777,10 @@ export default function Employees() {
   const filteredEmployees = useMemo(() => {
     let filtered = employeeMetrics;
 
-    // Filter out hidden employees
-    filtered = filtered.filter((e) => !e.hide_from_performance);
+    // Filter out hidden employees (unless showHidden is true)
+    if (!showHidden) {
+      filtered = filtered.filter((e) => !e.hide_from_performance);
+    }
 
     if (selectedStore !== 'all') {
       filtered = filtered.filter((e) => {
@@ -843,7 +846,7 @@ export default function Employees() {
     });
 
     return filtered;
-  }, [employeeMetrics, selectedStore, selectedPosition, searchQuery, sortBy, sortOrder, stores]);
+  }, [employeeMetrics, selectedStore, selectedPosition, searchQuery, sortBy, sortOrder, stores, showHidden]);
 
   const getPerformanceColor = (level) => {
     switch (level) {
@@ -1379,6 +1382,13 @@ export default function Employees() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm flex-1 min-w-[150px]" />
 
+           <button
+            onClick={() => setShowHidden(!showHidden)}
+            className={`neumorphic-pressed px-3 py-2 rounded-xl text-sm flex items-center gap-2 ${showHidden ? 'bg-blue-100 text-blue-700' : 'text-slate-700'}`}>
+            <EyeOff className="w-4 h-4" />
+            <span className="hidden md:inline">{showHidden ? 'Nascondi Esclusi' : 'Mostra Esclusi'}</span>
+          </button>
+
 
            <select
             value={selectedStore}
@@ -1642,15 +1652,19 @@ export default function Employees() {
                         {employee.full_name}
                       </p>
                       <p className="text-xs text-slate-500 truncate">{employee.email}</p>
-                      {employee.ruoli_dipendente && employee.ruoli_dipendente.length > 0 &&
-                  <div className="flex flex-wrap gap-1 mt-1">
-                          {employee.ruoli_dipendente.map((role, idx) =>
-                    <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                              {role}
-                            </span>
-                    )}
-                        </div>
-                  }
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {employee.ruoli_dipendente && employee.ruoli_dipendente.length > 0 && employee.ruoli_dipendente.map((role, idx) =>
+                          <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                            {role}
+                          </span>
+                        )}
+                        {employee.hide_from_performance && (
+                          <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                            <EyeOff className="w-3 h-3" />
+                            Nascosto
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
@@ -1726,16 +1740,29 @@ export default function Employees() {
                 </div>
                 
                 <div className="flex gap-2">
-                  <NeumorphicButton
-                    onClick={() => {
-                      if (confirm(`Nascondere ${employee.full_name} dalla lista Performance?`)) {
-                        toggleHideMutation.mutate({ userId: employee.id, hide: true });
-                      }
-                    }}
-                    className="flex items-center justify-center gap-2 text-sm">
-                    <EyeOff className="w-4 h-4" />
-                    <span className="hidden lg:inline">Nascondi</span>
-                  </NeumorphicButton>
+                  {employee.hide_from_performance ? (
+                    <NeumorphicButton
+                      onClick={() => {
+                        if (confirm(`Ripristinare ${employee.full_name} nella lista Performance?`)) {
+                          toggleHideMutation.mutate({ userId: employee.id, hide: false });
+                        }
+                      }}
+                      className="flex items-center justify-center gap-2 text-sm bg-green-100">
+                      <Eye className="w-4 h-4" />
+                      <span className="hidden lg:inline">Ripristina</span>
+                    </NeumorphicButton>
+                  ) : (
+                    <NeumorphicButton
+                      onClick={() => {
+                        if (confirm(`Nascondere ${employee.full_name} dalla lista Performance?`)) {
+                          toggleHideMutation.mutate({ userId: employee.id, hide: true });
+                        }
+                      }}
+                      className="flex items-center justify-center gap-2 text-sm">
+                      <EyeOff className="w-4 h-4" />
+                      <span className="hidden lg:inline">Nascondi</span>
+                    </NeumorphicButton>
+                  )}
                   <NeumorphicButton
                     onClick={() => setSelectedEmployee(employee)}
                     variant="primary"
@@ -1853,15 +1880,15 @@ export default function Employees() {
                     )}
 
                     {/* Timbrature Mancanti per Ruolo */}
-                    {Object.keys(selectedEmployee.scoreBreakdown.timbraturaPerRuolo).length > 0 && (
+                    {Object.keys(selectedEmployee.scoreBreakdown.timbraturePerRuolo).length > 0 && (
                       <div className="neumorphic-pressed p-3 rounded-lg bg-yellow-50">
                         <p className="font-bold text-yellow-700 mb-2">⚠️ Timbrature Mancanti per Ruolo</p>
-                        {Object.entries(selectedEmployee.scoreBreakdown.timbraturaPerRuolo).map(([ruolo, data]) => (
+                        {Object.entries(selectedEmployee.scoreBreakdown.timbraturePerRuolo).map(([ruolo, data]) => (
                           <p key={ruolo} className="text-yellow-600">
                             • <strong>{ruolo}:</strong> {data.count} mancanti × peso {data.weight} = -{data.totalDeduction.toFixed(1)} punti
                           </p>
                         ))}
-                        <p className="font-bold text-yellow-700 mt-2 pt-2 border-t border-yellow-200">Totale: -{Object.values(selectedEmployee.scoreBreakdown.timbraturaPerRuolo).reduce((sum, d) => sum + d.totalDeduction, 0).toFixed(1)} punti</p>
+                        <p className="font-bold text-yellow-700 mt-2 pt-2 border-t border-yellow-200">Totale: -{Object.values(selectedEmployee.scoreBreakdown.timbraturePerRuolo).reduce((sum, d) => sum + d.totalDeduction, 0).toFixed(1)} punti</p>
                       </div>
                     )}
 
