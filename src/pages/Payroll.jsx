@@ -893,7 +893,7 @@ export default function Payroll() {
       csv += '\n';
 
       // Row 3: Assenza non retribuita
-      csv += `-,`;
+      csv += `Assenza non retribuita,`;
       sortedDates.forEach((date) => {
         const dayData = employeeData.find((d) => d.date === date);
         const minuti = dayData?.shift_types['Assenza non retribuita'] || 0;
