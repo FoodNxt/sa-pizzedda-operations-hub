@@ -19,7 +19,9 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
-  TrendingDown } from
+  TrendingDown,
+  EyeOff,
+  Calculator } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -45,8 +47,18 @@ export default function Employees() {
   const [expandedCluster, setExpandedCluster] = useState(null);
   const [showLetteraForm, setShowLetteraForm] = useState(false);
   const [selectedEmployeeForLettera, setSelectedEmployeeForLettera] = useState(null);
+  const [showScoreBreakdown, setShowScoreBreakdown] = useState(false);
 
   const queryClient = useQueryClient();
+
+  const toggleHideMutation = useMutation({
+    mutationFn: async ({ userId, hide }) => {
+      return base44.entities.User.update(userId, { hide_from_performance: hide });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dipendenti-users'] });
+    }
+  });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -477,6 +489,20 @@ export default function Employees() {
       let deductionRitardi = 0;
       let deductionTimbrature = 0;
 
+      // Track breakdown by role
+      const scoreBreakdown = {
+        turniPerRuolo: {},
+        ordiniPerRuolo: {},
+        ritardiPerRuolo: {},
+        timbraturePerRuolo: {}
+      };
+
+      // Count shifts per role
+      employeeShifts.forEach((shift) => {
+        const ruolo = shift.ruolo || 'Nessun Ruolo';
+        scoreBreakdown.turniPerRuolo[ruolo] = (scoreBreakdown.turniPerRuolo[ruolo] || 0) + 1;
+      });
+
       // Ordini sbagliati - use weight based on role during shift
       employeeWrongOrders.forEach((order) => {
         const shiftData = employeeShifts.find((s) => {
@@ -487,14 +513,21 @@ export default function Employees() {
           if (!orderDate) return false;
           return shiftDate.toISOString().split('T')[0] === orderDate.toISOString().split('T')[0];
         });
-        const ruolo = shiftData ? shiftData.ruolo : null;
+        const ruolo = shiftData ? shiftData.ruolo : 'Nessun Ruolo';
         // Get weight with specific role or fallback to no role (generic weight)
-        let weight = getWeight('ordini_sbagliati', ruolo);
+        let weight = getWeight('ordini_sbagliati', ruolo === 'Nessun Ruolo' ? null : ruolo);
         // If no role-specific weight found and ruolo is not null, try generic weight
-        if (weight === 1 && ruolo) {
+        if (weight === 1 && ruolo !== 'Nessun Ruolo') {
           weight = getWeight('ordini_sbagliati', null) || 2;
         }
         deductionOrdini += weight;
+        
+        // Track breakdown
+        if (!scoreBreakdown.ordiniPerRuolo[ruolo]) {
+          scoreBreakdown.ordiniPerRuolo[ruolo] = { count: 0, weight, totalDeduction: 0 };
+        }
+        scoreBreakdown.ordiniPerRuolo[ruolo].count++;
+        scoreBreakdown.ordiniPerRuolo[ruolo].totalDeduction += weight;
       });
 
       // Ritardi - use weight based on role during shift
@@ -508,17 +541,25 @@ export default function Employees() {
           const delayMs = clockInTime - scheduledStart;
           const delayMinutes = Math.floor(delayMs / 60000);
           if (delayMinutes > 0) {
-            let weight = getWeight('ritardi', shift.ruolo);
-            if (weight === 1 && shift.ruolo) {
+            const ruolo = shift.ruolo || 'Nessun Ruolo';
+            let weight = getWeight('ritardi', ruolo === 'Nessun Ruolo' ? null : ruolo);
+            if (weight === 1 && ruolo !== 'Nessun Ruolo') {
               weight = getWeight('ritardi', null) || 0.3;
             }
             deductionRitardi += weight;
+            
+            // Track breakdown
+            if (!scoreBreakdown.ritardiPerRuolo[ruolo]) {
+              scoreBreakdown.ritardiPerRuolo[ruolo] = { count: 0, weight, totalDeduction: 0 };
+            }
+            scoreBreakdown.ritardiPerRuolo[ruolo].count++;
+            scoreBreakdown.ritardiPerRuolo[ruolo].totalDeduction += weight;
           }
         } catch (e) {
-
-
           // Skip
-        }});
+        }
+      });
+      
       // Timbrature mancanti - use weight based on role during shift
       const missingClockIns = employeeShifts.filter((s) => {
         if (s.timbratura_entrata) return false;
@@ -530,11 +571,19 @@ export default function Employees() {
       });
 
       missingClockIns.forEach((shift) => {
-        let weight = getWeight('timbrature_mancanti', shift.ruolo);
-        if (weight === 1 && shift.ruolo) {
+        const ruolo = shift.ruolo || 'Nessun Ruolo';
+        let weight = getWeight('timbrature_mancanti', ruolo === 'Nessun Ruolo' ? null : ruolo);
+        if (weight === 1 && ruolo !== 'Nessun Ruolo') {
           weight = getWeight('timbrature_mancanti', null) || 1;
         }
         deductionTimbrature += weight;
+        
+        // Track breakdown
+        if (!scoreBreakdown.timbraturaPerRuolo[ruolo]) {
+          scoreBreakdown.timbraturaPerRuolo[ruolo] = { count: 0, weight, totalDeduction: 0 };
+        }
+        scoreBreakdown.timbraturaPerRuolo[ruolo].count++;
+        scoreBreakdown.timbraturaPerRuolo[ruolo].totalDeduction += weight;
       });
 
       performanceScore -= deductionOrdini;
@@ -718,13 +767,17 @@ export default function Employees() {
           w_malus_recensioni,
           w_punteggio_recensioni,
           w_pulizie
-        }
+        },
+        scoreBreakdown
       };
     });
   }, [users, shifts, reviews, wrongOrderMatches, startDate, endDate, metricWeights, richiesteAssenze, malattie]);
 
   const filteredEmployees = useMemo(() => {
     let filtered = employeeMetrics;
+
+    // Filter out hidden employees
+    filtered = filtered.filter((e) => !e.hide_from_performance);
 
     if (selectedStore !== 'all') {
       filtered = filtered.filter((e) => {
@@ -1672,14 +1725,25 @@ export default function Employees() {
                   </div>
                 </div>
                 
-                <NeumorphicButton
-              onClick={() => setSelectedEmployee(employee)}
-              variant="primary"
-              className="w-full flex items-center justify-center gap-2 text-sm">
-
-                  <Eye className="w-4 h-4" />
-                  Mostra Dettagli
-                </NeumorphicButton>
+                <div className="flex gap-2">
+                  <NeumorphicButton
+                    onClick={() => {
+                      if (confirm(`Nascondere ${employee.full_name} dalla lista Performance?`)) {
+                        toggleHideMutation.mutate({ userId: employee.id, hide: true });
+                      }
+                    }}
+                    className="flex items-center justify-center gap-2 text-sm">
+                    <EyeOff className="w-4 h-4" />
+                    <span className="hidden lg:inline">Nascondi</span>
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={() => setSelectedEmployee(employee)}
+                    variant="primary"
+                    className="flex-1 flex items-center justify-center gap-2 text-sm">
+                    <Eye className="w-4 h-4" />
+                    Mostra Dettagli
+                  </NeumorphicButton>
+                </div>
               </NeumorphicCard>
           ) :
 
@@ -1740,40 +1804,98 @@ export default function Employees() {
               </div>
 
               <div className="neumorphic-flat p-4 rounded-xl mb-4 bg-blue-50">
-                <h4 className="text-sm font-bold text-blue-800 mb-2">Dettaglio Calcolo Punteggio</h4>
-                <div className="text-xs text-blue-800 space-y-1">
-                  <p><strong>Base:</strong> 100 punti</p>
-                  <p className="text-slate-600"><strong>ℹ️ Nota:</strong> Pesi per Ordini, Ritardi e Timbrature sono calcolati in base al ruolo specifico durante il turno</p>
-                  {selectedEmployee.weights.w_punteggio_recensioni > 0 && selectedEmployee.googleReviewCount > 0 && selectedEmployee.avgGoogleRating < 5 &&
-                <p className="text-red-600"><strong>- Media Recensioni &lt; 5:</strong> (5 - {selectedEmployee.avgGoogleRating.toFixed(1)}) × {selectedEmployee.weights.w_punteggio_recensioni} = -{((5 - selectedEmployee.avgGoogleRating) * selectedEmployee.weights.w_punteggio_recensioni).toFixed(1)}</p>
-                }
-                  {selectedEmployee.weights.w_bonus_recensione > 0 && selectedEmployee.googleReviewCount > 0 &&
-                <p className="text-green-600"><strong>+ Bonus Recensioni:</strong> {selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_bonus_recensione} = +{(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_bonus_recensione).toFixed(1)}</p>
-                }
-                  {selectedEmployee.weights.w_min_recensioni > 0 && selectedEmployee.googleReviewCount < selectedEmployee.weights.w_min_recensioni && selectedEmployee.weights.w_malus_recensioni > 0 &&
-                <p className="text-red-600"><strong>- Sotto Minimo Recensioni:</strong> ({selectedEmployee.weights.w_min_recensioni} - {selectedEmployee.googleReviewCount}) × {selectedEmployee.weights.w_malus_recensioni} = -{((selectedEmployee.weights.w_min_recensioni - selectedEmployee.googleReviewCount) * selectedEmployee.weights.w_malus_recensioni).toFixed(1)}</p>
-                }
-                  {selectedEmployee.weights.w_pulizie > 0 && (() => {
-                  const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
-                  if (cleaningData.count > 0) {
-                    if (cleaningData.percentualePulito < 80) {
-                      const penalty = (80 - cleaningData.percentualePulito) * selectedEmployee.weights.w_pulizie * 0.1;
-                      return (
-                        <p className="text-red-600"><strong>- Pulizie &lt; 80%:</strong> (80 - {cleaningData.percentualePulito.toFixed(1)}) × {selectedEmployee.weights.w_pulizie} × 0.1 = -{penalty.toFixed(1)}</p>);
+                <button
+                  onClick={() => setShowScoreBreakdown(!showScoreBreakdown)}
+                  className="w-full flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Calculator className="w-5 h-5 text-blue-600" />
+                    <h4 className="text-sm font-bold text-blue-800">Dettaglio Calcolo Punteggio</h4>
+                  </div>
+                  {showScoreBreakdown ? <ChevronUp className="w-4 h-4 text-blue-600" /> : <ChevronDown className="w-4 h-4 text-blue-600" />}
+                </button>
 
-                    } else {
-                      return (
-                        <p className="text-green-600"><strong>✓ Pulizie OK:</strong> {cleaningData.percentualePulito.toFixed(1)}% ≥ 80% (peso {selectedEmployee.weights.w_pulizie}, nessuna penalità)</p>);
+                {showScoreBreakdown && (
+                  <div className="text-xs text-blue-800 space-y-2 mt-3">
+                    <p><strong>Base:</strong> 100 punti</p>
+                    
+                    {/* Turni per Ruolo */}
+                    <div className="neumorphic-pressed p-3 rounded-lg bg-white">
+                      <p className="font-bold text-slate-700 mb-2">📊 Turni per Ruolo</p>
+                      {Object.entries(selectedEmployee.scoreBreakdown.turniPerRuolo).map(([ruolo, count]) => (
+                        <p key={ruolo} className="text-slate-600">• <strong>{ruolo}:</strong> {count} turni</p>
+                      ))}
+                    </div>
 
+                    {/* Ordini Sbagliati per Ruolo */}
+                    {Object.keys(selectedEmployee.scoreBreakdown.ordiniPerRuolo).length > 0 && (
+                      <div className="neumorphic-pressed p-3 rounded-lg bg-red-50">
+                        <p className="font-bold text-red-700 mb-2">🛒 Ordini Sbagliati per Ruolo</p>
+                        {Object.entries(selectedEmployee.scoreBreakdown.ordiniPerRuolo).map(([ruolo, data]) => (
+                          <p key={ruolo} className="text-red-600">
+                            • <strong>{ruolo}:</strong> {data.count} ordini × peso {data.weight} = -{data.totalDeduction.toFixed(1)} punti
+                          </p>
+                        ))}
+                        <p className="font-bold text-red-700 mt-2 pt-2 border-t border-red-200">Totale: -{Object.values(selectedEmployee.scoreBreakdown.ordiniPerRuolo).reduce((sum, d) => sum + d.totalDeduction, 0).toFixed(1)} punti</p>
+                      </div>
+                    )}
+
+                    {/* Ritardi per Ruolo */}
+                    {Object.keys(selectedEmployee.scoreBreakdown.ritardiPerRuolo).length > 0 && (
+                      <div className="neumorphic-pressed p-3 rounded-lg bg-orange-50">
+                        <p className="font-bold text-orange-700 mb-2">⏰ Ritardi per Ruolo</p>
+                        {Object.entries(selectedEmployee.scoreBreakdown.ritardiPerRuolo).map(([ruolo, data]) => (
+                          <p key={ruolo} className="text-orange-600">
+                            • <strong>{ruolo}:</strong> {data.count} ritardi × peso {data.weight} = -{data.totalDeduction.toFixed(1)} punti
+                          </p>
+                        ))}
+                        <p className="font-bold text-orange-700 mt-2 pt-2 border-t border-orange-200">Totale: -{Object.values(selectedEmployee.scoreBreakdown.ritardiPerRuolo).reduce((sum, d) => sum + d.totalDeduction, 0).toFixed(1)} punti</p>
+                      </div>
+                    )}
+
+                    {/* Timbrature Mancanti per Ruolo */}
+                    {Object.keys(selectedEmployee.scoreBreakdown.timbraturaPerRuolo).length > 0 && (
+                      <div className="neumorphic-pressed p-3 rounded-lg bg-yellow-50">
+                        <p className="font-bold text-yellow-700 mb-2">⚠️ Timbrature Mancanti per Ruolo</p>
+                        {Object.entries(selectedEmployee.scoreBreakdown.timbraturaPerRuolo).map(([ruolo, data]) => (
+                          <p key={ruolo} className="text-yellow-600">
+                            • <strong>{ruolo}:</strong> {data.count} mancanti × peso {data.weight} = -{data.totalDeduction.toFixed(1)} punti
+                          </p>
+                        ))}
+                        <p className="font-bold text-yellow-700 mt-2 pt-2 border-t border-yellow-200">Totale: -{Object.values(selectedEmployee.scoreBreakdown.timbraturaPerRuolo).reduce((sum, d) => sum + d.totalDeduction, 0).toFixed(1)} punti</p>
+                      </div>
+                    )}
+
+                    {selectedEmployee.weights.w_punteggio_recensioni > 0 && selectedEmployee.googleReviewCount > 0 && selectedEmployee.avgGoogleRating < 5 &&
+                      <p className="text-red-600"><strong>- Media Recensioni &lt; 5:</strong> (5 - {selectedEmployee.avgGoogleRating.toFixed(1)}) × {selectedEmployee.weights.w_punteggio_recensioni} = -{((5 - selectedEmployee.avgGoogleRating) * selectedEmployee.weights.w_punteggio_recensioni).toFixed(1)}</p>
                     }
-                  } else {
-                    return (
-                      <p className="text-slate-500"><strong>Pulizie:</strong> Nessun controllo (peso {selectedEmployee.weights.w_pulizie})</p>);
-
-                  }
-                })()}
-                  <p className="font-bold mt-2 pt-2 border-t border-blue-200"><strong>Punteggio Finale:</strong> {selectedEmployee.performanceScore}</p>
-                </div>
+                    {selectedEmployee.weights.w_bonus_recensione > 0 && selectedEmployee.googleReviewCount > 0 &&
+                      <p className="text-green-600"><strong>+ Bonus Recensioni:</strong> {selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_bonus_recensione} = +{(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_bonus_recensione).toFixed(1)}</p>
+                    }
+                    {selectedEmployee.weights.w_min_recensioni > 0 && selectedEmployee.googleReviewCount < selectedEmployee.weights.w_min_recensioni && selectedEmployee.weights.w_malus_recensioni > 0 &&
+                      <p className="text-red-600"><strong>- Sotto Minimo Recensioni:</strong> ({selectedEmployee.weights.w_min_recensioni} - {selectedEmployee.googleReviewCount}) × {selectedEmployee.weights.w_malus_recensioni} = -{((selectedEmployee.weights.w_min_recensioni - selectedEmployee.googleReviewCount) * selectedEmployee.weights.w_malus_recensioni).toFixed(1)}</p>
+                    }
+                    {selectedEmployee.weights.w_pulizie > 0 && (() => {
+                      const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
+                      if (cleaningData.count > 0) {
+                        if (cleaningData.percentualePulito < 80) {
+                          const penalty = (80 - cleaningData.percentualePulito) * selectedEmployee.weights.w_pulizie * 0.1;
+                          return (
+                            <p className="text-red-600"><strong>- Pulizie &lt; 80%:</strong> (80 - {cleaningData.percentualePulito.toFixed(1)}) × {selectedEmployee.weights.w_pulizie} × 0.1 = -{penalty.toFixed(1)}</p>
+                          );
+                        } else {
+                          return (
+                            <p className="text-green-600"><strong>✓ Pulizie OK:</strong> {cleaningData.percentualePulito.toFixed(1)}% ≥ 80% (peso {selectedEmployee.weights.w_pulizie}, nessuna penalità)</p>
+                          );
+                        }
+                      } else {
+                        return (
+                          <p className="text-slate-500"><strong>Pulizie:</strong> Nessun controllo (peso {selectedEmployee.weights.w_pulizie})</p>
+                        );
+                      }
+                    })()}
+                    <p className="font-bold mt-2 pt-2 border-t border-blue-200"><strong>Punteggio Finale:</strong> {selectedEmployee.performanceScore}</p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3 lg:space-y-4">
