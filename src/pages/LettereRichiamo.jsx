@@ -430,7 +430,7 @@ export default function LettereRichiamo() {
                     required
                   />
                   <p className="text-xs text-slate-500 mt-2">
-                    💡 Variabili disponibili: {'{{nome_dipendente}}'}, {'{{data_oggi}}'}
+                    💡 Variabili disponibili: {'{{nome_dipendente}}'}, {'{{data_oggi}}'}, {'{{data_visualizzazione_richiamo}}'}, {'{{mese_firma_richiamo}}'}
                   </p>
                 </div>
 
