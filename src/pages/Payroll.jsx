@@ -213,6 +213,7 @@ export default function Payroll() {
 
       if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
         employeeData[normalizedName].total_ritardo_minutes += shift.minuti_di_ritardo;
+        console.log(`📊 AGGREGATO RITARDO per ${shift.employee_name}: +${shift.minuti_di_ritardo} min (totale: ${employeeData[normalizedName].total_ritardo_minutes})`);
       }
     });
 
