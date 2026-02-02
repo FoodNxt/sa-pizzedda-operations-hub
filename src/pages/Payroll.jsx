@@ -23,7 +23,17 @@ export default function Payroll() {
 
   const { data: turniPlanday = [], isLoading } = useQuery({
     queryKey: ['turni-planday-payroll'],
-    queryFn: () => base44.entities.TurnoPlanday.list('-data', 10000)
+    queryFn: async () => {
+      const data = await base44.entities.TurnoPlanday.list('-data', 10000);
+      console.log('🔍 TURNI CARICATI DAL DATABASE:', data.slice(0, 5).map(t => ({
+        id: t.id,
+        dipendente: t.dipendente_nome,
+        data: t.data,
+        calcolato_ritardo: t.calcolato_ritardo,
+        timbrata_entrata: t.timbrata_entrata
+      })));
+      return data;
+    }
   });
 
   const { data: config = null } = useQuery({
