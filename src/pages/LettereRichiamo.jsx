@@ -380,78 +380,107 @@ export default function LettereRichiamo() {
                 ) : (
                   <div className="space-y-3">
                     {getRichiamiByFilter().map(lettera => (
-                <NeumorphicCard key={lettera.id} className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          lettera.tipo_lettera === 'lettera_richiamo' 
-                            ? 'bg-orange-100 text-orange-700' 
-                            : 'bg-purple-100 text-purple-700'
-                        }`}>
-                          {lettera.tipo_lettera === 'lettera_richiamo' ? 'Lettera di Richiamo' : 'Chiusura Procedura'}
-                        </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          lettera.status === 'firmata' 
-                            ? 'bg-green-100 text-green-700' 
-                            : lettera.status === 'visualizzata'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {lettera.status === 'firmata' ? (
-                            <><CheckCircle className="w-3 h-3 inline mr-1" />Firmata</>
-                          ) : lettera.status === 'visualizzata' ? (
-                            <><Clock className="w-3 h-3 inline mr-1" />Visualizzata</>
-                          ) : (
-                            <><Clock className="w-3 h-3 inline mr-1" />In Attesa</>
-                          )}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium text-slate-800 mb-1">{lettera.user_name}</p>
+                <div key={lettera.id} className="bg-white p-3 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800">{lettera.user_name}</p>
                       <p className="text-xs text-slate-500">
-                        Inviata il {new Date(lettera.data_invio || lettera.created_date).toLocaleDateString('it-IT')}
-                        {lettera.data_visualizzazione && ` • Visualizzata il ${new Date(lettera.data_visualizzazione).toLocaleDateString('it-IT')}`}
-                        {lettera.data_firma && ` • Firmata il ${new Date(lettera.data_firma).toLocaleDateString('it-IT')}`}
-                        {lettera.tipo_lettera === 'lettera_richiamo' && lettera.data_visualizzazione && !lettera.chiusura_procedura_schedulata && (() => {
-                          const dataVis = new Date(lettera.data_visualizzazione);
-                          const oggi = new Date();
-                          const giorniPassati = Math.floor((oggi - dataVis) / (1000 * 60 * 60 * 24));
-                          const giorniRimanenti = Math.max(0, 5 - giorniPassati);
-                          return giorniRimanenti > 0 
-                            ? ` • ${giorniRimanenti} giorni alla chiusura automatica`
-                            : ` • Chiusura in elaborazione`;
-                        })()}
+                        {new Date(lettera.data_invio || lettera.created_date).toLocaleDateString('it-IT')}
+                        {lettera.data_visualizzazione && ` • Vis: ${new Date(lettera.data_visualizzazione).toLocaleDateString('it-IT')}`}
+                        {lettera.data_firma && ` • Fir: ${new Date(lettera.data_firma).toLocaleDateString('it-IT')}`}
                       </p>
-                      </div>
-                      <div className="flex gap-2">
-                      {lettera.tipo_lettera === 'lettera_richiamo' && (lettera.status === 'firmata' || lettera.status === 'visualizzata') && lettera.chiusura_procedura_in_sospeso && (
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      {filterRichiami === 'chiusura' && (
                         <button
                           onClick={() => {
                             setSelectedLettera(lettera);
                             setShowChiusuraModal(true);
                           }}
-                          className="nav-button p-2 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors flex-shrink-0"
+                          className="p-1.5 rounded bg-purple-50 hover:bg-purple-100 transition-colors"
                         >
-                          <FileText className="w-5 h-5 text-purple-600" />
+                          <FileText className="w-4 h-4 text-purple-600" />
                         </button>
                       )}
                       <button
                         onClick={() => {
-                          if (confirm('Sei sicuro di voler eliminare questa lettera? Verrà eliminata anche per il dipendente.')) {
+                          if (confirm('Elimina lettera?')) {
                             deleteLetteraMutation.mutate(lettera.id);
                           }
                         }}
-                        className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
+                        className="p-1.5 rounded hover:bg-red-50 transition-colors"
                       >
-                        <Trash2 className="w-5 h-5 text-red-600" />
+                        <Trash2 className="w-4 h-4 text-red-600" />
                       </button>
-                      </div>
+                    </div>
                   </div>
+                </div>
+                ))}
+                </div>
+                )}
+                </div>
                 </NeumorphicCard>
-              ))
-            )}
-          </div>
-        )}
+
+                {/* Chiusure Procedura */}
+                <NeumorphicCard className="p-4">
+                <div className="space-y-4">
+                <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-slate-800">Chiusure Procedura</h3>
+                <div className="flex gap-2 flex-wrap">
+                {['inviate', 'visualizzate', 'firmate'].map(filter => (
+                  <button
+                    key={filter}
+                    onClick={() => setFilterChiusure(filter)}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                      filterChiusure === filter
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {filter === 'inviate' && 'Inviate'}
+                    {filter === 'visualizzate' && 'Visualizzate'}
+                    {filter === 'firmate' && 'Firmate'}
+                  </button>
+                ))}
+                </div>
+                </div>
+
+                {getChiusureByFilter().length === 0 ? (
+                <div className="text-center py-8">
+                <p className="text-slate-400 text-sm">Nessuna chiusura in questo stato</p>
+                </div>
+                ) : (
+                <div className="space-y-3">
+                {getChiusureByFilter().map(lettera => (
+                  <div key={lettera.id} className="bg-white p-3 rounded-lg border border-slate-200 hover:border-purple-300 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800">{lettera.user_name}</p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(lettera.data_invio || lettera.created_date).toLocaleDateString('it-IT')}
+                          {lettera.data_visualizzazione && ` • Vis: ${new Date(lettera.data_visualizzazione).toLocaleDateString('it-IT')}`}
+                          {lettera.data_firma && ` • Fir: ${new Date(lettera.data_firma).toLocaleDateString('it-IT')}`}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm('Elimina chiusura?')) {
+                            deleteLetteraMutation.mutate(lettera.id);
+                          }
+                        }}
+                        className="p-1.5 rounded hover:bg-red-50 transition-colors flex-shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                </div>
+                )}
+                </div>
+                </NeumorphicCard>
+                </div>
+                )}
 
         {activeTab === 'template' && (
           <div className="space-y-4">
