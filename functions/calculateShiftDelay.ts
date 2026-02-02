@@ -52,13 +52,9 @@ Deno.serve(async (req) => {
       
       const isLate = ritardoReale > 0;
       
-      // Check if values need update
-      const needsUpdate = 
-        shift.in_ritardo !== isLate || 
-        shift.minuti_ritardo_reale !== ritardoReale ||
-        shift.minuti_ritardo_conteggiato !== ritardoConteggiato;
-      
-      if (needsUpdate) {
+      // FORZA AGGIORNAMENTO per ricalcolare con la nuova logica (senza tolleranza)
+      // Salva sempre se c'è un ritardo, per assicurarsi che tutti i vecchi calcoli con tolleranza siano sovrascritti
+      if (isLate || shift.in_ritardo) {
         await base44.asServiceRole.entities.TurnoPlanday.update(shift.id, {
           in_ritardo: isLate,
           minuti_ritardo: ritardoReale, // backward compatibility
