@@ -893,13 +893,13 @@ export default function Payroll() {
         }
 
         // Row: Weekly totals
-        csv += `Totale Settimana,`;
-        weekDates.forEach((date) => {
+        const weekTotal = weekDates.reduce((sum, date) => {
           const dayData = employeeData.find((d) => d.date === date);
-          const totalMinutes = dayData ? Object.values(dayData.shift_types).reduce((sum, m) => sum + m, 0) : 0;
-          csv += `"${totalMinutes > 0 ? formatMinutes(totalMinutes, format) : '-'}",`;
-        });
-        csv += '\n\n';
+          return sum + (dayData ? Object.values(dayData.shift_types).reduce((s, m) => s + m, 0) : 0);
+        }, 0);
+        csv += `Totale Settimana,`;
+        weekDates.forEach(() => csv += ',');
+        csv += `"${formatMinutes(weekTotal, format)}"\n\n`;
       });
     });
 
