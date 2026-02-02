@@ -38,18 +38,15 @@ Deno.serve(async (req) => {
       // Ritardo reale
       const ritardoReale = delayMinutes > 0 ? delayMinutes : 0;
       
-      // Ritardo conteggiato: usa tolleranza e arrotondamento dalle impostazioni
+      // Ritardo conteggiato: usa arrotondamento dalle impostazioni (SENZA tolleranza)
       let ritardoConteggiato = 0;
-      const tolleranza = config.tolleranza_ritardo_minuti || 0;
       
-      if (ritardoReale > tolleranza) {
-        const ritardoDopoPenalita = ritardoReale - tolleranza;
-        
+      if (ritardoReale > 0) {
         if (config.arrotonda_ritardo) {
           const arrotondamento = config.arrotondamento_minuti || 15;
-          ritardoConteggiato = Math.ceil(ritardoDopoPenalita / arrotondamento) * arrotondamento;
+          ritardoConteggiato = Math.ceil(ritardoReale / arrotondamento) * arrotondamento;
         } else {
-          ritardoConteggiato = ritardoDopoPenalita;
+          ritardoConteggiato = ritardoReale;
         }
       }
       
