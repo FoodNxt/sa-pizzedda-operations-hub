@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Plus, Send, CheckCircle, Clock, Edit, Trash2, Save, X, AlertTriangle } from 'lucide-react';
+import { FileText, Plus, Send, CheckCircle, Clock, Edit, Trash2, Save, X, AlertTriangle, ChevronDown } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 
