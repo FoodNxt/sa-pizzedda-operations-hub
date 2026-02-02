@@ -48,6 +48,8 @@ export default function Payroll() {
 
     if (type === 'Affiancamento') return 'Turno normale';
     if (type === 'Malattia (Non Certificata)') return 'Assenza non retribuita';
+    if (type === 'Malattia (No Certificato)') return 'Assenza non retribuita';
+    if (type === 'Assenza non retribuita') return 'Assenza non retribuita';
     if (type === 'Normale') return 'Turno normale';
 
     return type;
