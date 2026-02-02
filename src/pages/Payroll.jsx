@@ -388,7 +388,7 @@ export default function Payroll() {
     };
   }, [selectedEmployee, shifts, selectedStore, startDate, endDate, normalizeEmployeeName]); // Added normalizeEmployeeName to dependencies
 
-  // ✅ Get unpaid absence shifts - SOLO turni con ritardi calcolati dal database
+  // ✅ Get unpaid absence shifts - include tutti i tipi di assenza non retribuita
   const getUnpaidAbsenceShifts = (employeeName) => {
     const targetNormalizedName = normalizeEmployeeName(employeeName);
 
@@ -419,23 +419,39 @@ export default function Payroll() {
       return true;
     });
 
-    // ✅ MOSTRA SOLO turni con ritardo effettivo calcolato
-    const unpaidShifts = employeeShifts
-      .filter(shift => shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0)
-      .map(shift => ({
-        ...shift,
-        unpaid_reason: 'Ritardo in ingresso',
-        unpaid_minutes: shift.minuti_di_ritardo
-      }))
-      .sort((a, b) => {
-        try {
-          return new Date(b.shift_date) - new Date(a.shift_date);
-        } catch (e) {
-          return 0;
-        }
-      });
+    const unpaidShifts = [];
 
-    return unpaidShifts;
+    employeeShifts.forEach((shift) => {
+      const originalType = shift.shift_type || 'Turno normale';
+      const normalizedType = normalizeShiftType(originalType);
+
+      // ✅ CASO 1: Turni che vengono normalizzati come "Assenza non retribuita"
+      if (normalizedType === 'Assenza non retribuita') {
+        unpaidShifts.push({
+          ...shift,
+          unpaid_reason: `Turno di tipo: ${originalType}`,
+          unpaid_minutes: shift.scheduled_minutes || 0
+        });
+      }
+
+      // ✅ CASO 2: Ritardi effettivi su turni normali (calcolato dal database)
+      if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
+        unpaidShifts.push({
+          ...shift,
+          unpaid_reason: 'Ritardo in ingresso',
+          unpaid_minutes: shift.minuti_di_ritardo
+        });
+      }
+    });
+
+    // Sort by date (most recent first)
+    return unpaidShifts.sort((a, b) => {
+      try {
+        return new Date(b.shift_date) - new Date(a.shift_date);
+      } catch (e) {
+        return 0;
+      }
+    });
   };
 
   const handleUnpaidAbsenceClick = (employee) => {
