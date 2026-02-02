@@ -89,8 +89,8 @@ export default function Payroll() {
       // ✅ Calcola ritardo con arrotondamento (stesso metodo di Timbrature)
       let minutiDiRitardo = 0;
       
-      // Usa calcolato_ritardo se disponibile, altrimenti calcola
-      if (turno.calcolato_ritardo !== undefined && turno.calcolato_ritardo !== null) {
+      // Usa calcolato_ritardo se disponibile E maggiore di 0, altrimenti calcola manualmente
+      if (turno.calcolato_ritardo && turno.calcolato_ritardo > 0) {
         minutiDiRitardo = turno.calcolato_ritardo;
       } else if (turno.timbrata_entrata && scheduledStart) {
         const entrata = new Date(turno.timbrata_entrata);
