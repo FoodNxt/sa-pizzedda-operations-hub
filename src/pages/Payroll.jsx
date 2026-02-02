@@ -510,15 +510,18 @@ export default function Payroll() {
         });
       }
 
-      // ✅ CASO 2: TUTTI i turni con calcolato_ritardo > 0 (DIRETTO DAL DATABASE)
-      if (turno.calcolato_ritardo && turno.calcolato_ritardo > 0) {
-        console.log(`✅ RITARDO TROVATO per turno ${turno.id} del ${turno.data}: ${turno.calcolato_ritardo} minuti`);
+      // ✅ CASO 2: TUTTI i turni con calcolato_ritardo > 0 (DIRETTO DAL DATABASE - GIÀ ARROTONDATO)
+      // Il campo calcolato_ritardo contiene il ritardo GIÀ ARROTONDATO secondo la config
+      const ritardoConteggiato = turno.calcolato_ritardo || 0;
+      
+      if (ritardoConteggiato > 0) {
+        console.log(`✅ RITARDO TROVATO per turno ${turno.id} del ${turno.data}: ${ritardoConteggiato} minuti (GIÀ ARROTONDATO)`);
         
         // Aggiungi come voce separata
         unpaidShifts.push({
           ...shiftData,
           unpaid_reason: 'Ritardo in ingresso',
-          unpaid_minutes: turno.calcolato_ritardo
+          unpaid_minutes: ritardoConteggiato
         });
       }
     });
