@@ -86,11 +86,20 @@ export default function Payroll() {
         scheduledMinutes = endH * 60 + endM - (startH * 60 + startM);
       }
 
-      // ✅ USA SOLO calcolato_ritardo dal database (stesso campo di Timbrature)
-      // NON calcolare MAI il ritardo manualmente in Payroll
+      // ✅ Calcola ritardo con arrotondamento (stesso metodo di Timbrature)
       let minutiDiRitardo = 0;
-      if (turno.calcolato_ritardo && turno.calcolato_ritardo > 0) {
+      
+      // Usa calcolato_ritardo se disponibile, altrimenti calcola
+      if (turno.calcolato_ritardo !== undefined && turno.calcolato_ritardo !== null) {
         minutiDiRitardo = turno.calcolato_ritardo;
+      } else if (turno.timbrata_entrata && scheduledStart) {
+        const entrata = new Date(turno.timbrata_entrata);
+        const previsto = new Date(scheduledStart);
+        const diffMs = entrata - previsto;
+        if (diffMs > 0) {
+          const ritardoReale = Math.floor(diffMs / 60000);
+          minutiDiRitardo = calcolaRitardoEffettivo(ritardoReale);
+        }
       }
 
       // Store name lookup
