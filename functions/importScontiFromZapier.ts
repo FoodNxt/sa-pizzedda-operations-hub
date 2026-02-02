@@ -27,19 +27,21 @@ Deno.serve(async (req) => {
     if (body.channel) {
       const stores = await base44.asServiceRole.entities.Store.list();
       const matchedStore = stores.find(s => 
-        s.store_name?.toLowerCase().trim() === body.channel.toLowerCase().trim()
+        s.name?.toLowerCase().trim() === body.channel.toLowerCase().trim()
       );
       
       if (matchedStore) {
         store_id = matchedStore.id;
-        store_name = matchedStore.store_name;
+        store_name = matchedStore.name;
       }
     }
     
     // Extract sconto data
+    const totalDiscount = parseFloat(body.total_discount_price) || parseFloat(body.totalDiscountPrice) || 0;
+    
     const scontoData = {
       order_date: body.order_date,
-      total_discount_price: parseFloat(body.total_discount_price) || 0,
+      total_discount_price: totalDiscount,
       channel: body.channel || '',
       store_id: store_id,
       store_name: store_name,
