@@ -104,6 +104,14 @@ export default function StoricoCassa() {
     }
   });
 
+  const saveCassaTeoricaMutation = useMutation({
+    mutationFn: (data) => base44.entities.SaldoManualeCassa.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['saldi-manuali'] });
+      setEditingCassaEntry(null);
+    }
+  });
+
   const updateSaldoPersonaleMutation = useMutation({
     mutationFn: ({ dipendente, importo }) => {
       return base44.entities.Deposito.create({
