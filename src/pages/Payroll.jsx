@@ -881,7 +881,7 @@ export default function Payroll() {
   };
 
   // ✅ UPDATED: Export weekly report with overtime exclusion
-  const exportWeeklyReport = () => {
+  const exportWeeklyReport = (downloadFmt) => {
     let csv = 'Report Settimanale - Tutti i Dipendenti\n';
     csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
     csv += `Locale: ${selectedStore === 'all' ? 'Tutti i Locali' : stores.find((s) => s.id === selectedStore)?.name || selectedStore}\n\n`;
