@@ -29,8 +29,8 @@ export default function Payroll() {
         id: t.id,
         dipendente: t.dipendente_nome,
         data: t.data,
-        calcolato_ritardo: t.calcolato_ritardo,
-        timbrata_entrata: t.timbrata_entrata
+        minuti_ritardo_conteggiato: t.minuti_ritardo_conteggiato,
+        timbratura_entrata: t.timbratura_entrata
       })));
       return data;
     }
@@ -96,32 +96,29 @@ export default function Payroll() {
         scheduledMinutes = endH * 60 + endM - (startH * 60 + startM);
       }
 
-      // ✅ CALCOLA RITARDO - Priorità 1: usa calcolato_ritardo, Priorità 2: calcola manualmente
+      // ✅ CALCOLA RITARDO - Usa il campo corretto dal database
+      // La funzione backend salva il ritardo conteggiato in minuti_ritardo_conteggiato
       let minutiDiRitardo = 0;
       
-      if (turno.calcolato_ritardo && turno.calcolato_ritardo > 0) {
-        // Usa il valore già calcolato dal database
-        minutiDiRitardo = turno.calcolato_ritardo;
-        console.log(`✅ RITARDO DB per turno ${turno.id} (${turno.dipendente_nome} - ${turno.data}): ${minutiDiRitardo} min`);
-      } else if (turno.timbrata_entrata && scheduledStart) {
-        // Calcola manualmente il ritardo
+      if (turno.minuti_ritardo_conteggiato && turno.minuti_ritardo_conteggiato > 0) {
+        // Usa il valore già calcolato dal database (campo corretto)
+        minutiDiRitardo = turno.minuti_ritardo_conteggiato;
+        console.log(`✅ RITARDO DB per turno ${turno.id} (${turno.dipendente_nome} - ${turno.data}): ${minutiDiRitardo} min (campo: minuti_ritardo_conteggiato)`);
+      } else if (turno.timbratura_entrata && scheduledStart) {
+        // Calcola manualmente il ritardo se non presente nel DB
         try {
-          const entrata = new Date(turno.timbrata_entrata);
+          const entrata = new Date(turno.timbratura_entrata);
           const previsto = new Date(scheduledStart);
           const diffMs = entrata - previsto;
           
           if (diffMs > 0) {
             const ritardoReale = Math.floor(diffMs / 60000);
             minutiDiRitardo = calcolaRitardoEffettivo(ritardoReale);
-            console.log(`✅ RITARDO CALCOLATO per turno ${turno.id} (${turno.dipendente_nome} - ${turno.data}): ${minutiDiRitardo} min`);
+            console.log(`⚙️ RITARDO CALCOLATO per turno ${turno.id} (${turno.dipendente_nome} - ${turno.data}): ${minutiDiRitardo} min`);
           }
         } catch (e) {
           console.error('Errore calcolo ritardo per turno', turno.id, e);
         }
-      }
-      
-      if (minutiDiRitardo === 0 && turno.calcolato_ritardo) {
-        console.log(`⚠️ ATTENZIONE: turno ${turno.id} ha calcolato_ritardo = ${turno.calcolato_ritardo} ma minutiDiRitardo = 0`);
       }
 
       // Store name lookup
@@ -141,7 +138,7 @@ export default function Payroll() {
         scheduled_minutes: scheduledMinutes,
         shift_type: turno.tipo_turno,
         minuti_di_ritardo: minutiDiRitardo,
-        calcolato_ritardo: turno.calcolato_ritardo,
+        minuti_ritardo_conteggiato: turno.minuti_ritardo_conteggiato,
         created_date: turno.created_date
       };
     });
@@ -460,8 +457,8 @@ export default function Payroll() {
       id: t.id,
       data: t.data,
       tipo_turno: t.tipo_turno,
-      calcolato_ritardo: t.calcolato_ritardo,
-      timbrata_entrata: t.timbrata_entrata,
+      minuti_ritardo_conteggiato: t.minuti_ritardo_conteggiato,
+      timbratura_entrata: t.timbratura_entrata,
       ora_inizio: t.ora_inizio
     })));
 
@@ -510,9 +507,9 @@ export default function Payroll() {
         });
       }
 
-      // ✅ CASO 2: TUTTI i turni con calcolato_ritardo > 0 (DIRETTO DAL DATABASE - GIÀ ARROTONDATO)
-      // Il campo calcolato_ritardo contiene il ritardo GIÀ ARROTONDATO secondo la config
-      const ritardoConteggiato = turno.calcolato_ritardo || 0;
+      // ✅ CASO 2: TUTTI i turni con minuti_ritardo_conteggiato > 0 (DIRETTO DAL DATABASE - GIÀ ARROTONDATO)
+      // Il campo minuti_ritardo_conteggiato contiene il ritardo GIÀ ARROTONDATO secondo la config
+      const ritardoConteggiato = turno.minuti_ritardo_conteggiato || 0;
       
       if (ritardoConteggiato > 0) {
         console.log(`✅ RITARDO TROVATO per turno ${turno.id} del ${turno.data}: ${ritardoConteggiato} minuti (GIÀ ARROTONDATO)`);
