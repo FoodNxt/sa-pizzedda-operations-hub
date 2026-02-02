@@ -73,20 +73,20 @@ export default function PagamentoStraordinari() {
         pagato_da_id: currentUser?.id
       });
 
-      // Create deposito to reduce saldo personale
-      await base44.entities.Deposito.create({
+      // Create prelievo to reduce saldo personale
+      await base44.entities.Prelievo.create({
         store_id: 'pagamento_straordinario',
         store_name: 'Pagamento Straordinario',
         rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email,
         importo: importo,
-        data_deposito: new Date().toISOString(),
+        data_prelievo: new Date().toISOString(),
         note: `Pagamento straordinario a ${dipendente}`,
         impostato_da: currentUser?.email || ''
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pagamenti-straordinari'] });
-      queryClient.invalidateQueries({ queryKey: ['depositi'] });
+      queryClient.invalidateQueries({ queryKey: ['prelievi'] });
     }
   });
 
