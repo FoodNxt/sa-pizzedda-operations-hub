@@ -388,7 +388,7 @@ export default function Payroll() {
     };
   }, [selectedEmployee, shifts, selectedStore, startDate, endDate, normalizeEmployeeName]); // Added normalizeEmployeeName to dependencies
 
-  // ✅ Get unpaid absence shifts - include tutti i tipi di assenza non retribuita
+  // ✅ Get unpaid absence shifts - include tutti i tipi di assenza non retribuita E RITARDI
   const getUnpaidAbsenceShifts = (employeeName) => {
     const targetNormalizedName = normalizeEmployeeName(employeeName);
 
@@ -419,32 +419,49 @@ export default function Payroll() {
       return true;
     });
 
+    console.log(`🔍 Employee shifts for ${employeeName} (total: ${employeeShifts.length}):`, employeeShifts.map(s => ({
+      id: s.id,
+      date: s.shift_date,
+      type: s.shift_type,
+      minuti_di_ritardo: s.minuti_di_ritardo,
+      calcolato_ritardo: s.calcolato_ritardo
+    })));
+
     const unpaidShifts = [];
 
     employeeShifts.forEach((shift) => {
       const originalType = shift.shift_type || 'Turno normale';
       const normalizedType = normalizeShiftType(originalType);
 
-      // Check if already added to avoid duplicates
-      const alreadyAdded = unpaidShifts.some(s => s.id === shift.id && s.unpaid_reason?.includes('Ritardo'));
-
       // ✅ CASO 1: Turni che vengono normalizzati come "Assenza non retribuita"
-      if (normalizedType === 'Assenza non retribuita' && !alreadyAdded) {
-        unpaidShifts.push({
-          ...shift,
-          unpaid_reason: `Turno di tipo: ${originalType}`,
-          unpaid_minutes: shift.scheduled_minutes || 0
-        });
+      // (NON devono essere già di tipo "Ritardo" per evitare duplicati)
+      if (normalizedType === 'Assenza non retribuita') {
+        // Check if NOT already added as ritardo entry
+        const alreadyAddedAsRitardo = unpaidShifts.some(s => s.id === shift.id && s.unpaid_reason === 'Ritardo in ingresso');
+        if (!alreadyAddedAsRitardo) {
+          unpaidShifts.push({
+            ...shift,
+            unpaid_reason: `Turno di tipo: ${originalType}`,
+            unpaid_minutes: shift.scheduled_minutes || 0
+          });
+        }
       }
 
-      // ✅ CASO 2: Ritardi effettivi su turni normali o qualsiasi turno con ritardo
-      // Include TUTTI i turni che hanno minuti_di_ritardo > 0
-      if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0 && !alreadyAdded) {
-        unpaidShifts.push({
-          ...shift,
-          unpaid_reason: 'Ritardo in ingresso',
-          unpaid_minutes: shift.minuti_di_ritardo
-        });
+      // ✅ CASO 2: TUTTI i turni con ritardo (minuti_di_ritardo > 0)
+      // Anche se il turno è già "Assenza non retribuita", aggiungi il ritardo come voce separata
+      if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
+        // Check se questo turno è già stato aggiunto SOLO come ritardo
+        const alreadyAddedAsRitardo = unpaidShifts.some(s => 
+          s.id === shift.id && s.unpaid_reason === 'Ritardo in ingresso'
+        );
+        
+        if (!alreadyAddedAsRitardo) {
+          unpaidShifts.push({
+            ...shift,
+            unpaid_reason: 'Ritardo in ingresso',
+            unpaid_minutes: shift.minuti_di_ritardo
+          });
+        }
       }
     });
 
