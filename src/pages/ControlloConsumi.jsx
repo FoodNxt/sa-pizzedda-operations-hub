@@ -590,6 +590,38 @@ export default function ControlloConsumi() {
   const consumiAggregati = aggregateData(consumiTeoriciPerGiorno, viewMode);
   const datesConsumiSorted = Object.keys(consumiAggregati).sort().reverse();
 
+  // Calcola dettagli breakdown per consumi teorici
+  const consumiTeoriciDettagli = {};
+  Object.keys(consumiTeoriciPerGiorno).forEach((date) => {
+    consumiTeoriciDettagli[date] = {};
+    Object.keys(consumiTeoriciPerGiorno[date]).forEach((prodId) => {
+      const breakdown = [];
+      
+      // Filtra vendite della data
+      filteredVendite.filter((v) => v.data_vendita === date).forEach((vendita) => {
+        const ricetta = ricette.find((r) => r.nome_prodotto === vendita.flavor);
+        if (!ricetta || !ricetta.ingredienti) return;
+
+        const qty = vendita.total_pizzas_sold || 0;
+        const ingredientiEspansi = espandiIngredienti(ricetta.ingredienti, qty);
+
+        if (ingredientiEspansi[prodId]) {
+          // Calcola i dettagli della ricetta
+          const ricettaIngredienti = espandiIngredientiGrammi(ricetta.ingredienti, 1);
+          breakdown.push({
+            nomeProdotto: vendita.flavor,
+            quantitaVenduta: qty,
+            ingredientePerUnita: ricettaIngredienti[prodId]?.quantita || 0,
+            unitaMisura: ricettaIngredienti[prodId]?.unita_misura || consumiTeoriciPerGiorno[date][prodId].unita_misura,
+            consumoTotale: ingredientiEspansi[prodId].quantita
+          });
+        }
+      });
+
+      consumiTeoriciDettagli[date][prodId] = breakdown;
+    });
+  });
+
   // Calcola statistiche aggregate
   const stats = {
     giorniAnalizzati: datesSorted.length,
