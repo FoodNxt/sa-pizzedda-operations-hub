@@ -729,12 +729,14 @@ export default function StoricoCassa() {
                               </span>
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                   setCassaModalData({ store_id: entry.store_id, store_name: entry.store_name, date: dayData.date, valore: entry.cassaTeoricaInitial });
                                   setShowCassaModal(true);
                                 }}
-                                className="p-1.5 hover:bg-blue-100 rounded transition-colors">
-                                <Edit className="w-4 h-4 text-blue-600" />
+                                className="p-2 bg-blue-100 hover:bg-blue-200 rounded border border-blue-600 transition-colors cursor-pointer">
+                                <Edit className="w-5 h-5 text-blue-600" />
                               </button>
                               {entry.cassaTeoricaInitialManual && (
                                 <div className="flex items-center gap-1">
