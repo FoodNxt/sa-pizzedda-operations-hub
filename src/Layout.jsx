@@ -42,7 +42,8 @@ import {
   Bell,
   Cloud,
   TrendingUp,
-  MessageCircle
+  MessageCircle,
+  DollarSign
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
 
@@ -1128,7 +1129,8 @@ export default function Layout({ children, currentPageName }) {
       'ValutazioneProvaForm': 'Valutazioni',
       'PlandayStoreManager': 'Planday',
       'FormSprechi': 'Sprechi',
-      'FormSpostamenti': 'Spostamenti'
+      'FormSpostamenti': 'Spostamenti',
+      'PagamentoStraordinari': 'Pagamento Straordinari'
     };
     return titles[pageName] || pageName;
   };
@@ -1160,7 +1162,8 @@ export default function Layout({ children, currentPageName }) {
         'ValutazioneProvaForm': UserCheck,
         'PlandayStoreManager': Calendar,
         'FormSprechi': AlertTriangle,
-        'AssistenteDipendente': Users
+        'AssistenteDipendente': Users,
+        'PagamentoStraordinari': Euro
       };
       return icons[pageName] || User;
     } catch (error) {
