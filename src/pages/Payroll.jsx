@@ -438,8 +438,11 @@ export default function Payroll() {
       const originalType = shift.shift_type || 'Turno normale';
       const normalizedType = normalizeShiftType(originalType);
 
+      // Check if already added to avoid duplicates
+      const alreadyAdded = unpaidShifts.some(s => s.id === shift.id && s.unpaid_reason?.includes('Ritardo'));
+
       // ✅ CASO 1: Turni che vengono normalizzati come "Assenza non retribuita"
-      if (normalizedType === 'Assenza non retribuita') {
+      if (normalizedType === 'Assenza non retribuita' && !alreadyAdded) {
         unpaidShifts.push({
           ...shift,
           unpaid_reason: `Turno di tipo: ${originalType}`,
@@ -447,8 +450,9 @@ export default function Payroll() {
         });
       }
 
-      // ✅ CASO 2: Ritardi effettivi su turni normali (calcolato dal database)
-      if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
+      // ✅ CASO 2: Ritardi effettivi su turni normali o qualsiasi turno con ritardo
+      // Include TUTTI i turni che hanno minuti_di_ritardo > 0
+      if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0 && !alreadyAdded) {
         unpaidShifts.push({
           ...shift,
           unpaid_reason: 'Ritardo in ingresso',
@@ -456,6 +460,8 @@ export default function Payroll() {
         });
       }
     });
+
+    console.log(`🔍 Unpaid absence shifts for ${employeeName}:`, unpaidShifts);
 
     // Sort by date (most recent first)
     return unpaidShifts.sort((a, b) => {
