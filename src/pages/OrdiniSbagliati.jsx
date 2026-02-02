@@ -1978,12 +1978,8 @@ export default function OrdiniSbagliati() {
                             {selectedEmployee.orders.map((order, idx) =>
                       `${idx + 1}. ${order.platform.toUpperCase()} - Order ID: ${order.order_id}\n` +
                       `   Data: ${new Date(order.order_date).toLocaleDateString('it-IT')} ${new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}\n` +
-                      `   Negozio: ${order.store_name}\n` +
-                      `   Totale ordine: €${order.order_total?.toFixed(2) || '0.00'}\n` +
-                      `   Rimborso: €${order.refund_value?.toFixed(2) || '0.00'}\n` +
-                      `   Confidenza abbinamento: ${order.match_confidence}\n`
+                      `   Negozio: ${order.store_name}\n`
                       ).join('\n')}
-                            {`\nTOTALE RIMBORSI: €${selectedEmployee.totalRefunds.toFixed(2)}`}
                           </>
                     }
                       </pre>
@@ -2037,27 +2033,20 @@ export default function OrdiniSbagliati() {
                       selectedEmployee.orders.map((order, idx) =>
                       `${idx + 1}. ${order.platform.toUpperCase()} - Order ID: ${order.order_id}\n` +
                       `   Data: ${new Date(order.order_date).toLocaleDateString('it-IT')} ${new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}\n` +
-                      `   Negozio: ${order.store_name}\n` +
-                      `   Totale ordine: €${order.order_total?.toFixed(2) || '0.00'}\n` +
-                      `   Rimborso: €${order.refund_value?.toFixed(2) || '0.00'}\n` +
-                      `   Confidenza abbinamento: ${order.match_confidence}\n`
-                      ).join('\n') +
-                      `\nTOTALE RIMBORSI: €${selectedEmployee.totalRefunds.toFixed(2)}`;
+                      `   Negozio: ${order.store_name}\n`
+                      ).join('\n');
 
                       finalContent += ordersTable;
                     }
 
                     // Create letter record
                     const letteraRichiamo = await base44.entities.LetteraRichiamo.create({
-                      dipendente_id: employee?.id || null,
-                      dipendente_nome: selectedEmployee.dipendente_nome,
-                      template_id: template.id,
-                      tipo_lettera: template.tipo_lettera,
-                      oggetto: template.oggetto,
-                      contenuto: finalContent,
+                      user_id: employee?.id || null,
+                      user_email: employee?.email || 'N/A',
+                      user_name: selectedEmployee.dipendente_nome,
+                      tipo_lettera: template.tipo_lettera || 'lettera_richiamo',
+                      contenuto_lettera: finalContent,
                       data_invio: new Date().toISOString(),
-                      inviato_da: currentUser.email,
-                      motivo: `Ordini sbagliati: ${selectedEmployee.count} ordini nel periodo selezionato`,
                       status: 'inviata'
                     });
 
