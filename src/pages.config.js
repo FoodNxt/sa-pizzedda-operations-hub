@@ -128,6 +128,7 @@ import OrdiniAdmin from './pages/OrdiniAdmin';
 import OrdiniSbagliati from './pages/OrdiniSbagliati';
 import OreLavorate from './pages/OreLavorate';
 import OverviewContratti from './pages/OverviewContratti';
+import PagamentoStraordinari from './pages/PagamentoStraordinari';
 import Pause from './pages/Pause';
 import Payroll from './pages/Payroll';
 import PianoQuarter from './pages/PianoQuarter';
@@ -159,10 +160,10 @@ import Straordinari from './pages/Straordinari';
 import strutturamen from './pages/StrutturaMenù';
 import StrutturaTurno from './pages/StrutturaTurno';
 import SummaryAI from './pages/SummaryAI';
+import Uscite from './pages/Uscite';
 import TeglieButtate from './pages/TeglieButtate';
 import TurniDipendente from './pages/TurniDipendente';
 import UploadFattureXML from './pages/UploadFattureXML';
-import Uscite from './pages/Uscite';
 import UsersManagement from './pages/UsersManagement';
 import Valutazione from './pages/Valutazione';
 import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
@@ -171,7 +172,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import PagamentoStraordinari from './pages/PagamentoStraordinari';
 import __Layout from './Layout.jsx';
 
 
@@ -257,6 +257,7 @@ export const PAGES = {
     "OrdiniSbagliati": OrdiniSbagliati,
     "OreLavorate": OreLavorate,
     "OverviewContratti": OverviewContratti,
+    "PagamentoStraordinari": PagamentoStraordinari,
     "Pause": Pause,
     "Payroll": Payroll,
     "PianoQuarter": PianoQuarter,
@@ -288,10 +289,10 @@ export const PAGES = {
     "StrutturaMenù": strutturamen,
     "StrutturaTurno": StrutturaTurno,
     "SummaryAI": SummaryAI,
+    "Uscite": Uscite,
     "TeglieButtate": TeglieButtate,
     "TurniDipendente": TurniDipendente,
     "UploadFattureXML": UploadFattureXML,
-    "Uscite": Uscite,
     "UsersManagement": UsersManagement,
     "Valutazione": Valutazione,
     "ValutazioneProvaForm": ValutazioneProvaForm,
@@ -300,7 +301,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "PagamentoStraordinari": PagamentoStraordinari,
 }
 
 export const pagesConfig = {

@@ -360,6 +360,7 @@ export default function PagamentoStraordinari() {
                     <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Data</th>
                     <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Dipendente</th>
                     <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Locale</th>
+                    <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Orario</th>
                     <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Ore</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€/h</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Totale</th>
@@ -399,8 +400,13 @@ export default function PagamentoStraordinari() {
                         </div>
                       </td>
                       <td className="p-2 lg:p-3 text-center">
+                        <span className="text-slate-700 text-xs">
+                          {straordinario.turno_data?.ora_inizio || '-'} - {straordinario.turno_data?.ora_fine || '-'}
+                        </span>
+                      </td>
+                      <td className="p-2 lg:p-3 text-center">
                         <span className="text-slate-700 font-bold text-sm">
-                          {straordinario.ore_straordinarie}h
+                          {straordinario.ore_straordinarie.toFixed(2)}h
                         </span>
                       </td>
                       <td className="p-2 lg:p-3 text-right">
