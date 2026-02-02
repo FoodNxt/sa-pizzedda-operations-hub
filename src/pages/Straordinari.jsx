@@ -325,7 +325,18 @@ export default function Straordinari() {
                     const pagamento = pagamentiStraordinari.find(p => p.turno_id === turno.id);
                     const dipConfig = straordinariList.find(c => c.dipendente_id === turno.dipendente_id);
                     const costoOrario = dipConfig?.costo_orario_straordinario || activeConfig?.retribuzione_oraria_straordinari || 10;
-                    const oreStr = turno.ore_straordinarie || 0;
+                    
+                    // Calculate ore straordinarie from turno times if not set
+                    let oreStr = turno.ore_straordinarie || 0;
+                    if (oreStr === 0 && turno.ora_inizio && turno.ora_fine) {
+                      const [startH, startM] = turno.ora_inizio.split(':').map(Number);
+                      const [endH, endM] = turno.ora_fine.split(':').map(Number);
+                      const startMinutes = startH * 60 + startM;
+                      let endMinutes = endH * 60 + endM;
+                      if (endMinutes < startMinutes) endMinutes += 24 * 60;
+                      oreStr = (endMinutes - startMinutes) / 60;
+                    }
+                    
                     const importoTotale = oreStr * costoOrario;
 
                     return (
