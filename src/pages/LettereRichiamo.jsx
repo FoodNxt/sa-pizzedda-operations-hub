@@ -364,17 +364,30 @@ export default function LettereRichiamo() {
                             : ` • Chiusura in elaborazione`;
                         })()}
                       </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (confirm('Sei sicuro di voler eliminare questa lettera? Verrà eliminata anche per il dipendente.')) {
-                          deleteLetteraMutation.mutate(lettera.id);
-                        }
-                      }}
-                      className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
-                    >
-                      <Trash2 className="w-5 h-5 text-red-600" />
-                    </button>
+                      </div>
+                      <div className="flex gap-2">
+                      {lettera.tipo_lettera === 'lettera_richiamo' && (lettera.status === 'firmata' || lettera.status === 'visualizzata') && lettera.chiusura_procedura_in_sospeso && (
+                        <button
+                          onClick={() => {
+                            setSelectedLettera(lettera);
+                            setShowChiusuraModal(true);
+                          }}
+                          className="nav-button p-2 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors flex-shrink-0"
+                        >
+                          <FileText className="w-5 h-5 text-purple-600" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          if (confirm('Sei sicuro di voler eliminare questa lettera? Verrà eliminata anche per il dipendente.')) {
+                            deleteLetteraMutation.mutate(lettera.id);
+                          }
+                        }}
+                        className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors flex-shrink-0"
+                      >
+                        <Trash2 className="w-5 h-5 text-red-600" />
+                      </button>
+                      </div>
                   </div>
                 </NeumorphicCard>
               ))
