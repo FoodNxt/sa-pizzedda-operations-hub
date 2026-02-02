@@ -10,6 +10,9 @@ export default function LettereRichiamo() {
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [showLetteraForm, setShowLetteraForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
+  const [showChiusuraModal, setShowChiusuraModal] = useState(false);
+  const [selectedLettera, setSelectedLettera] = useState(null);
+  const [chiusuraConfig, setChiusuraConfig] = useState({ modalita: 'automatico' });
   
   const [templateForm, setTemplateForm] = useState({
     nome_template: '',
