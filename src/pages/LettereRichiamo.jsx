@@ -258,6 +258,36 @@ export default function LettereRichiamo() {
   const richiamiTemplates = activeTemplates.filter(t => t.tipo_lettera === 'lettera_richiamo');
   const chiusureTemplates = activeTemplates.filter(t => t.tipo_lettera === 'chiusura_procedura');
 
+  // Filtri per Lettere di Richiamo
+  const richiamiInviate = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'inviata');
+  const richiamiVisualizzate = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'visualizzata');
+  const richiamiFirmate = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'firmata');
+  const richiamiChiusura = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && (l.status === 'visualizzata' || l.status === 'firmata') && !l.chiusura_procedura_schedulata && !l.chiusura_procedura_in_sospeso);
+
+  // Filtri per Chiusure Procedura
+  const chiusureInviate = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'inviata');
+  const chiusureVisualizzate = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'visualizzata');
+  const chiusureFirmate = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'firmata');
+
+  const getRichiamiByFilter = () => {
+    switch(filterRichiami) {
+      case 'inviate': return richiamiInviate;
+      case 'visualizzate': return richiamiVisualizzate;
+      case 'firmate': return richiamiFirmate;
+      case 'chiusura': return richiamiChiusura;
+      default: return [];
+    }
+  };
+
+  const getChiusureByFilter = () => {
+    switch(filterChiusure) {
+      case 'inviate': return chiusureInviate;
+      case 'visualizzate': return chiusureVisualizzate;
+      case 'firmate': return chiusureFirmate;
+      default: return [];
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
