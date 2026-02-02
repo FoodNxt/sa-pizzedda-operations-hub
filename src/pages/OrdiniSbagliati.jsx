@@ -1838,9 +1838,6 @@ export default function OrdiniSbagliati() {
                                         <th className="text-left p-2 text-[#9b9b9b] font-medium">Order ID</th>
                                         <th className="text-left p-2 text-[#9b9b9b] font-medium">Data</th>
                                         <th className="text-left p-2 text-[#9b9b9b] font-medium">Negozio</th>
-                                        <th className="text-right p-2 text-[#9b9b9b] font-medium">Totale</th>
-                                        <th className="text-right p-2 text-[#9b9b9b] font-medium">Rimborso</th>
-                                        <th className="text-center p-2 text-[#9b9b9b] font-medium">Confidenza</th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -1860,18 +1857,6 @@ export default function OrdiniSbagliati() {
                                             {new Date(order.order_date).toLocaleDateString('it-IT')} {new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
                                           </td>
                                           <td className="p-2 text-xs text-[#6b6b6b]">{order.store_name}</td>
-                                          <td className="p-2 text-right text-xs text-[#6b6b6b]">€{order.order_total?.toFixed(2) || '0.00'}</td>
-                                          <td className="p-2 text-right text-xs font-bold text-red-600">€{order.refund_value?.toFixed(2) || '0.00'}</td>
-                                          <td className="p-2 text-center">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                  order.match_confidence === 'high' ? 'bg-green-100 text-green-700' :
-                                  order.match_confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                                  order.match_confidence === 'manual' ? 'bg-blue-100 text-blue-700' :
-                                  'bg-orange-100 text-orange-700'}`
-                                  }>
-                                              {order.match_confidence}
-                                            </span>
-                                          </td>
                                         </tr>
                               )}
                                     </tbody>
@@ -2022,8 +2007,16 @@ export default function OrdiniSbagliati() {
 
                   try {
                     const template = letterTemplates.find((t) => t.id === selectedTemplate);
-                    const employee = employees.find((e) => e.full_name === selectedEmployee.dipendente_nome);
                     const currentUser = await base44.auth.me();
+
+                    // Find user by nome_cognome
+                    const users = await base44.entities.User.list();
+                    const user = users.find((u) => u.nome_cognome === selectedEmployee.dipendente_nome);
+
+                    if (!user) {
+                      alert('Dipendente non trovato nel sistema. Impossibile creare la lettera.');
+                      return;
+                    }
 
                     let finalContent = letterContent;
 
@@ -2041,9 +2034,9 @@ export default function OrdiniSbagliati() {
 
                     // Create letter record
                     const letteraRichiamo = await base44.entities.LetteraRichiamo.create({
-                      user_id: employee?.id || null,
-                      user_email: employee?.email || 'N/A',
-                      user_name: selectedEmployee.dipendente_nome,
+                      user_id: user.id,
+                      user_email: user.email,
+                      user_name: user.nome_cognome,
                       tipo_lettera: template.tipo_lettera || 'lettera_richiamo',
                       contenuto_lettera: finalContent,
                       data_invio: new Date().toISOString(),
@@ -2057,12 +2050,12 @@ export default function OrdiniSbagliati() {
                         attivo: true
                       });
 
-                      if (emailTemplates.length > 0 && employee?.email) {
+                      if (emailTemplates.length > 0 && user.email) {
                         const emailTemplate = emailTemplates[0];
 
                         // Replace variables in email
                         let emailBody = emailTemplate.corpo.
-                        replace(/\{\{nome_dipendente\}\}/g, selectedEmployee.dipendente_nome).
+                        replace(/\{\{nome_dipendente\}\}/g, user.nome_cognome).
                         replace(/\{\{data\}\}/g, new Date().toLocaleDateString('it-IT')).
                         replace(/\{\{tipo_lettera\}\}/g, template.tipo_lettera).
                         replace(/\{\{motivo\}\}/g, `Ordini sbagliati: ${selectedEmployee.count} ordini`).
@@ -2070,7 +2063,7 @@ export default function OrdiniSbagliati() {
                         replace(/\{\{orario_turno\}\}/g, 'N/A');
 
                         let emailSubject = emailTemplate.oggetto.
-                        replace(/\{\{nome_dipendente\}\}/g, selectedEmployee.dipendente_nome).
+                        replace(/\{\{nome_dipendente\}\}/g, user.nome_cognome).
                         replace(/\{\{data\}\}/g, new Date().toLocaleDateString('it-IT')).
                         replace(/\{\{tipo_lettera\}\}/g, template.tipo_lettera).
                         replace(/\{\{giorno_turno\}\}/g, 'N/A').
@@ -2078,7 +2071,7 @@ export default function OrdiniSbagliati() {
 
                         // Send email using Core integration
                         await base44.integrations.Core.SendEmail({
-                          to: employee.email,
+                          to: user.email,
                           subject: emailSubject,
                           body: emailBody
                         });
@@ -2086,8 +2079,8 @@ export default function OrdiniSbagliati() {
                         // Log email
                         await base44.entities.EmailLog.create({
                           tipo_notifica: 'lettera_richiamo',
-                          destinatario_email: employee.email,
-                          destinatario_nome: selectedEmployee.dipendente_nome,
+                          destinatario_email: user.email,
+                          destinatario_nome: user.nome_cognome,
                           oggetto: emailSubject,
                           corpo: emailBody,
                           data_invio: new Date().toISOString(),
@@ -2101,8 +2094,8 @@ export default function OrdiniSbagliati() {
                       // Log failed email
                       await base44.entities.EmailLog.create({
                         tipo_notifica: 'lettera_richiamo',
-                        destinatario_email: employee?.email || 'N/A',
-                        destinatario_nome: selectedEmployee.dipendente_nome,
+                        destinatario_email: user?.email || 'N/A',
+                        destinatario_nome: user?.nome_cognome || selectedEmployee.dipendente_nome,
                         oggetto: 'Notifica Lettera di Richiamo',
                         corpo: 'Errore durante l\'invio',
                         data_invio: new Date().toISOString(),
