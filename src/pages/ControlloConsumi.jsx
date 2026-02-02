@@ -1459,30 +1459,74 @@ export default function ControlloConsumi() {
 
                     return Object.keys(prodotti).map((prodId) => {
                       const prod = prodotti[prodId];
+                      const rowKey = `${date}-${prodId}`;
+                      const isExpanded = expandedConsumiTeoruiDettagli[rowKey];
+                      
+                      // Aggrega dettagli quando viewMode !== 'daily'
+                      let dettagliRiga = [];
+                      if (viewMode === 'daily' && consumiTeoriciDettagli[date]) {
+                        dettagliRiga = consumiTeoriciDettagli[date][prodId] || [];
+                      }
 
                       return (
-                        <tr key={`${date}-${prodId}`} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="py-3 px-4 text-sm text-slate-600">
-                            {viewMode === 'daily' ?
-                            format(parseISO(date), 'dd/MM/yyyy') :
-                            viewMode === 'weekly' ?
-                            `${format(parseISO(date), 'dd/MM/yyyy')}` :
-                            format(parseISO(date + '-01'), 'MMMM yyyy', { locale: it })
-                            }
-                          </td>
-                          <td className="py-3 px-4 text-sm text-slate-700 font-medium">{prod.nome}</td>
-                          <td className="py-3 px-4 text-sm text-blue-600 text-right font-bold">
-                            {prod.quantita.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 text-sm text-slate-500">{prod.unita_misura}</td>
-                          <td className="py-3 px-4 text-sm text-slate-500">
-                            {prod.peso_dimensione_unita && prod.unita_misura_peso ?
-                            `${prod.peso_dimensione_unita} ${prod.unita_misura_peso}` :
-                            '-'
-                            }
-                          </td>
-                        </tr>);
-
+                        <React.Fragment key={rowKey}>
+                          <tr className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-3 px-4 text-sm text-slate-600">
+                              <button
+                                onClick={() => setExpandedConsumiTeoriciDettagli((prev) => ({ ...prev, [rowKey]: !prev[rowKey] }))}
+                                className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
+                                <span className="text-xs">{dettagliRiga.length > 0 && isExpanded ? '▼' : dettagliRiga.length > 0 ? '▶' : '•'}</span>
+                                {viewMode === 'daily' ?
+                                format(parseISO(date), 'dd/MM/yyyy') :
+                                viewMode === 'weekly' ?
+                                `${format(parseISO(date), 'dd/MM/yyyy')}` :
+                                format(parseISO(date + '-01'), 'MMMM yyyy', { locale: it })
+                                }
+                              </button>
+                            </td>
+                            <td className="py-3 px-4 text-sm text-slate-700 font-medium">{prod.nome}</td>
+                            <td className="py-3 px-4 text-sm text-blue-600 text-right font-bold">
+                              {prod.quantita.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-slate-500">{prod.unita_misura}</td>
+                            <td className="py-3 px-4 text-sm text-slate-500">
+                              {prod.peso_dimensione_unita && prod.unita_misura_peso ?
+                              `${prod.peso_dimensione_unita} ${prod.unita_misura_peso}` :
+                              '-'
+                              }
+                            </td>
+                          </tr>
+                          {isExpanded && dettagliRiga.length > 0 &&
+                            <tr className="bg-slate-50 border-b border-slate-100">
+                              <td colSpan="5" className="p-4">
+                                <div className="ml-6">
+                                  <p className="font-bold text-slate-700 mb-3">📋 Dettaglio Calcolo:</p>
+                                  <div className="space-y-2">
+                                    {dettagliRiga.map((item, idx) => (
+                                      <div key={idx} className="flex items-center justify-between text-sm text-slate-600 bg-white p-2 rounded border border-slate-200">
+                                        <div className="flex-1">
+                                          <span className="font-medium text-slate-800">{item.nomeProdotto}</span>
+                                          <span className="text-slate-500"> × </span>
+                                          <span className="font-medium text-blue-600">{item.quantitaVenduta}</span>
+                                          <span className="text-slate-500"> pezzi × </span>
+                                          <span className="text-orange-600">{item.ingredientePerUnita.toFixed(2)} {item.unitaMisura}/pezzo</span>
+                                        </div>
+                                        <div className="font-bold text-orange-700 ml-4">
+                                          = {item.consumoTotale.toFixed(2)} {item.unitaMisura}
+                                        </div>
+                                      </div>
+                                    ))}
+                                    <div className="border-t border-slate-300 mt-2 pt-2 flex justify-between font-bold text-slate-800 bg-white p-2 rounded">
+                                      <span>TOTALE:</span>
+                                      <span className="text-orange-700">{prod.quantita.toFixed(2)} {prod.unita_misura}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          }
+                        </React.Fragment>
+                      );
                     });
                   })}
                 </tbody>
