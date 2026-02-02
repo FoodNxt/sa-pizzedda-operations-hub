@@ -1307,6 +1307,74 @@ export default function StoricoCassa() {
            </div>
           }
 
+        {editingCassaEntry &&
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+             <NeumorphicCard className="max-w-md w-full p-6">
+               <div className="flex items-center justify-between mb-4">
+                 <h2 className="text-lg font-bold text-slate-800">Imposta Cassa Teorica Inizio</h2>
+                 <button onClick={() => setEditingCassaEntry(null)} className="p-2 rounded-lg hover:bg-slate-100">
+                   <X className="w-5 h-5" />
+                 </button>
+               </div>
+
+               <form onSubmit={(e) => {
+                 e.preventDefault();
+                 saveCassaTeoricaMutation.mutate({
+                   store_id: editingCassaEntry.store_id,
+                   store_name: editingCassaEntry.store_name,
+                   data: editingCassaEntry.date,
+                   saldo_iniziale: parseFloat(editingCassaEntry.valore) || 0,
+                   impostato_da: currentUser?.email || '',
+                   impostato_il: new Date().toISOString()
+                 });
+               }} className="space-y-4">
+                 <div>
+                   <label className="text-sm text-slate-600 mb-2 block">Locale</label>
+                   <input
+                     type="text"
+                     value={editingCassaEntry.store_name}
+                     disabled
+                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm opacity-60" />
+                 </div>
+
+                 <div>
+                   <label className="text-sm text-slate-600 mb-2 block">Data</label>
+                   <input
+                     type="text"
+                     value={format(parseISO(editingCassaEntry.date), 'dd/MM/yyyy', { locale: it })}
+                     disabled
+                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm opacity-60" />
+                 </div>
+
+                 <div>
+                   <label className="text-sm text-slate-600 mb-2 block">Cassa Teorica Inizio (€)</label>
+                   <input
+                     type="number"
+                     step="0.01"
+                     value={editingCassaEntry.valore}
+                     onChange={(e) => setEditingCassaEntry({ ...editingCassaEntry, valore: parseFloat(e.target.value) || 0 })}
+                     required
+                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+                 </div>
+
+                 <div className="flex gap-3 pt-4">
+                   <button
+                     type="button"
+                     onClick={() => setEditingCassaEntry(null)}
+                     className="flex-1 px-4 py-3 rounded-xl neumorphic-flat text-slate-700 font-medium">
+                     Annulla
+                   </button>
+                   <button
+                     type="submit"
+                     className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium">
+                     Salva
+                   </button>
+                 </div>
+               </form>
+             </NeumorphicCard>
+          </div>
+          }
+
         {showAlertConfig &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
              <NeumorphicCard className="max-w-md w-full p-6">
