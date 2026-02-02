@@ -411,14 +411,15 @@ export default function Payroll() {
   const getUnpaidAbsenceShifts = (employeeName) => {
     const targetNormalizedName = normalizeEmployeeName(employeeName);
 
-    let employeeShifts = shifts.filter((s) => {
-      if (normalizeEmployeeName(s.employee_name) !== targetNormalizedName) return false;
-      if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
+    // Filtro i turni dell'employee direttamente dal database (turniPlanday)
+    let employeeTurni = turniPlanday.filter((t) => {
+      if (normalizeEmployeeName(t.dipendente_nome) !== targetNormalizedName) return false;
+      if (selectedStore !== 'all' && t.store_id !== selectedStore) return false;
 
       if (startDate || endDate) {
-        if (!s.shift_date) return false;
+        if (!t.data) return false;
         try {
-          const shiftDate = parseISO(s.shift_date);
+          const shiftDate = parseISO(t.data);
           if (isNaN(shiftDate.getTime())) return false;
           const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
           const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
@@ -438,53 +439,74 @@ export default function Payroll() {
       return true;
     });
 
-    console.log(`🔍 Employee shifts for ${employeeName} (total: ${employeeShifts.length}):`, employeeShifts.map(s => ({
-      id: s.id,
-      date: s.shift_date,
-      type: s.shift_type,
-      minuti_di_ritardo: s.minuti_di_ritardo,
-      calcolato_ritardo: s.calcolato_ritardo
+    console.log(`🔍 DEBUG - Employee turni for ${employeeName}:`, employeeTurni.map(t => ({
+      id: t.id,
+      data: t.data,
+      tipo_turno: t.tipo_turno,
+      calcolato_ritardo: t.calcolato_ritardo,
+      timbrata_entrata: t.timbrata_entrata,
+      ora_inizio: t.ora_inizio
     })));
 
     const unpaidShifts = [];
 
-    employeeShifts.forEach((shift) => {
-      const originalType = shift.shift_type || 'Turno normale';
+    employeeTurni.forEach((turno) => {
+      const originalType = turno.tipo_turno || 'Turno normale';
       const normalizedType = normalizeShiftType(originalType);
 
-      // ✅ CASO 1: Turni che vengono normalizzati come "Assenza non retribuita"
-      // (NON devono essere già di tipo "Ritardo" per evitare duplicati)
-      if (normalizedType === 'Assenza non retribuita') {
-        // Check if NOT already added as ritardo entry
-        const alreadyAddedAsRitardo = unpaidShifts.some(s => s.id === shift.id && s.unpaid_reason === 'Ritardo in ingresso');
-        if (!alreadyAddedAsRitardo) {
-          unpaidShifts.push({
-            ...shift,
-            unpaid_reason: `Turno di tipo: ${originalType}`,
-            unpaid_minutes: shift.scheduled_minutes || 0
-          });
-        }
+      // Calcolo scheduled_minutes
+      let scheduledMinutes = 0;
+      if (turno.ora_inizio && turno.ora_fine) {
+        const [startH, startM] = turno.ora_inizio.split(':').map(Number);
+        const [endH, endM] = turno.ora_fine.split(':').map(Number);
+        scheduledMinutes = endH * 60 + endM - (startH * 60 + startM);
       }
 
-      // ✅ CASO 2: TUTTI i turni con ritardo (minuti_di_ritardo > 0)
-      // Anche se il turno è già "Assenza non retribuita", aggiungi il ritardo come voce separata
-      if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
-        // Check se questo turno è già stato aggiunto SOLO come ritardo
-        const alreadyAddedAsRitardo = unpaidShifts.some(s => 
-          s.id === shift.id && s.unpaid_reason === 'Ritardo in ingresso'
-        );
+      const store = stores.find((s) => s.id === turno.store_id);
+      const scheduledStart = turno.data && turno.ora_inizio ? `${turno.data}T${turno.ora_inizio}:00` : null;
+      const scheduledEnd = turno.data && turno.ora_fine ? `${turno.data}T${turno.ora_fine}:00` : null;
+
+      const shiftData = {
+        id: turno.id,
+        dipendente_id: turno.dipendente_id,
+        employee_name: turno.dipendente_nome,
+        store_id: turno.store_id,
+        store_name: store?.name || turno.store_id,
+        shift_date: turno.data,
+        scheduled_start: scheduledStart,
+        scheduled_end: scheduledEnd,
+        actual_start: turno.timbrata_entrata,
+        actual_end: turno.timbrata_uscita,
+        scheduled_minutes: scheduledMinutes,
+        shift_type: turno.tipo_turno,
+        minuti_di_ritardo: turno.calcolato_ritardo || 0,
+        calcolato_ritardo: turno.calcolato_ritardo,
+        created_date: turno.created_date
+      };
+
+      // ✅ CASO 1: Turni normalizzati come "Assenza non retribuita"
+      if (normalizedType === 'Assenza non retribuita') {
+        unpaidShifts.push({
+          ...shiftData,
+          unpaid_reason: `Turno di tipo: ${originalType}`,
+          unpaid_minutes: scheduledMinutes || 0
+        });
+      }
+
+      // ✅ CASO 2: TUTTI i turni con calcolato_ritardo > 0 (DIRETTO DAL DATABASE)
+      if (turno.calcolato_ritardo && turno.calcolato_ritardo > 0) {
+        console.log(`✅ RITARDO TROVATO per turno ${turno.id} del ${turno.data}: ${turno.calcolato_ritardo} minuti`);
         
-        if (!alreadyAddedAsRitardo) {
-          unpaidShifts.push({
-            ...shift,
-            unpaid_reason: 'Ritardo in ingresso',
-            unpaid_minutes: shift.minuti_di_ritardo
-          });
-        }
+        // Aggiungi come voce separata
+        unpaidShifts.push({
+          ...shiftData,
+          unpaid_reason: 'Ritardo in ingresso',
+          unpaid_minutes: turno.calcolato_ritardo
+        });
       }
     });
 
-    console.log(`🔍 Unpaid absence shifts for ${employeeName}:`, unpaidShifts);
+    console.log(`🔍 RESULT - Unpaid absence shifts for ${employeeName}:`, unpaidShifts);
 
     // Sort by date (most recent first)
     return unpaidShifts.sort((a, b) => {
