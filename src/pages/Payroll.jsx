@@ -618,7 +618,7 @@ export default function Payroll() {
   };
 
   // ✅ UPDATED: Export employee daily breakdown to CSV with overtime exclusion
-  const exportEmployeeDailyCSV = () => {
+  const exportEmployeeDailyCSV = (downloadFmt) => {
     if (!selectedEmployee) return;
 
     let csv = `Dipendente: ${selectedEmployee.employee_name}\n`;
@@ -644,14 +644,14 @@ export default function Payroll() {
 
         employeeDailyBreakdown.shiftTypes.forEach((type) => {
           const minutes = day.shift_types[type] || 0;
-          csv += `"${minutesToHours(minutes)}",`;
+          csv += `"${formatMinutes(minutes, downloadFmt)}",`;
         });
 
         const overtimeMinutes = day.shift_types['Straordinario'] || 0;
         const totalExcludingOvertime = day.total_minutes - overtimeMinutes;
 
-        csv += `"${minutesToHours(day.total_minutes)}",`;
-        csv += `"${minutesToHours(totalExcludingOvertime)}"\n`;
+        csv += `"${formatMinutes(day.total_minutes, downloadFmt)}",`;
+        csv += `"${formatMinutes(totalExcludingOvertime, downloadFmt)}"\n`;
       });
     } else {
       // Weekly view
@@ -672,14 +672,14 @@ export default function Payroll() {
 
         employeeDailyBreakdown.shiftTypes.forEach((type) => {
           const minutes = week.shift_types[type] || 0;
-          csv += `"${minutesToHours(minutes)}",`;
+          csv += `"${formatMinutes(minutes, downloadFmt)}",`;
         });
 
         const overtimeMinutes = week.shift_types['Straordinario'] || 0;
         const totalExcludingOvertime = week.total_minutes - overtimeMinutes;
 
-        csv += `"${minutesToHours(week.total_minutes)}",`;
-        csv += `"${minutesToHours(totalExcludingOvertime)}"\n`;
+        csv += `"${formatMinutes(week.total_minutes, downloadFmt)}",`;
+        csv += `"${formatMinutes(totalExcludingOvertime, downloadFmt)}"\n`;
       });
     }
 
@@ -695,6 +695,7 @@ export default function Payroll() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setShowDownloadModal(null);
   };
 
   // ✅ UPDATED: Export daily breakdown for ALL employees with overtime exclusion
