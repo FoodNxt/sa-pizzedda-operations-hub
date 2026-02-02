@@ -51,6 +51,18 @@ export default function PagamentoStraordinari() {
     queryFn: () => base44.entities.PagamentoStraordinario.list('-data_turno', 500)
   });
 
+  const { data: disponibilitaConfigs = [] } = useQuery({
+    queryKey: ['disponibilita-config'],
+    queryFn: () => base44.entities.DisponibilitaConfig.filter({ is_active: true })
+  });
+
+  const { data: attivitaCompletate = [] } = useQuery({
+    queryKey: ['attivita-completate'],
+    queryFn: () => base44.entities.AttivitaCompletata.list('-completato_at', 500)
+  });
+
+  const activeConfig = disponibilitaConfigs[0] || null;
+
   const effettuaPagamentoMutation = useMutation({
     mutationFn: async ({ pagamentoId, importo, dipendente }) => {
       // Update payment record
@@ -87,34 +99,60 @@ export default function PagamentoStraordinari() {
       s.tipo_turno === 'Straordinario' || (s.ore_straordinarie && s.ore_straordinarie > 0)
     );
 
-    shiftsWithOvertime.forEach(shift => {
+    // Filter by store manager's stores if user is store manager
+    let relevantShifts = shiftsWithOvertime;
+    if (currentUser?.user_type === 'manager' && currentUser?.assigned_stores) {
+      const assignedStoreIds = stores
+        .filter(s => currentUser.assigned_stores.includes(s.name))
+        .map(s => s.id);
+      relevantShifts = shiftsWithOvertime.filter(s => assignedStoreIds.includes(s.store_id));
+    }
+
+    relevantShifts.forEach(shift => {
       // Check if payment already exists for this shift
       const existingPayment = pagamentiStraordinari.find(p => p.turno_id === shift.id);
       if (existingPayment) return; // Skip if payment already created
 
-      const oreStr = shift.ore_straordinarie || 0;
+      // Calculate ore straordinarie from shift times if not set
+      let oreStr = shift.ore_straordinarie || 0;
+      if (oreStr === 0 && shift.ora_inizio && shift.ora_fine) {
+        const [startH, startM] = shift.ora_inizio.split(':').map(Number);
+        const [endH, endM] = shift.ora_fine.split(':').map(Number);
+        const startMinutes = startH * 60 + startM;
+        let endMinutes = endH * 60 + endM;
+        if (endMinutes < startMinutes) endMinutes += 24 * 60;
+        oreStr = (endMinutes - startMinutes) / 60;
+      }
+
       const dipConfig = straordinariConfigs.find(c => c.dipendente_id === shift.dipendente_id);
-      const costoOrario = dipConfig?.costo_orario_straordinario || 0;
+      const costoOrario = dipConfig?.costo_orario_straordinario || activeConfig?.retribuzione_oraria_straordinari || 10;
       const importoTotale = oreStr * costoOrario;
 
-      if (importoTotale > 0) {
-        straordinari.push({
-          turno_id: shift.id,
-          dipendente_id: shift.dipendente_id,
-          dipendente_nome: shift.dipendente_nome,
-          store_id: shift.store_id,
-          store_name: shift.store_nome,
-          data_turno: shift.data,
-          ore_straordinarie: oreStr,
-          costo_orario: costoOrario,
-          importo_totale: importoTotale,
-          turno_data: shift
-        });
-      }
+      // Check if already paid via old logic (AttivitaCompletata)
+      const pagatoVecchiaLogica = attivitaCompletate.some(ac => 
+        ac.turno_id === shift.id && 
+        ac.attivita_nome?.includes('Pagamento straordinari') &&
+        ac.importo_pagato
+      );
+
+      straordinari.push({
+        turno_id: shift.id,
+        dipendente_id: shift.dipendente_id,
+        dipendente_nome: shift.dipendente_nome,
+        store_id: shift.store_id,
+        store_name: shift.store_nome,
+        data_turno: shift.data,
+        ore_straordinarie: oreStr,
+        costo_orario: costoOrario,
+        importo_totale: importoTotale,
+        turno_data: shift,
+        pagato: pagatoVecchiaLogica,
+        pagato_vecchia_logica: pagatoVecchiaLogica
+      });
     });
 
     return straordinari;
-  }, [shifts, straordinariConfigs, pagamentiStraordinari]);
+  }, [shifts, straordinariConfigs, pagamentiStraordinari, currentUser, stores, activeConfig, attivitaCompletate]);
 
   // Merge existing payments with calculated ones
   const allStraordinari = useMemo(() => {

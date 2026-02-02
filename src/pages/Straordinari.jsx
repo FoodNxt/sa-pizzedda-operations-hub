@@ -76,7 +76,19 @@ export default function Straordinari() {
     }
   });
 
+  const { data: disponibilitaConfigs = [] } = useQuery({
+    queryKey: ['disponibilita-config'],
+    queryFn: () => base44.entities.DisponibilitaConfig.filter({ is_active: true })
+  });
+
   const activeConfig = disponibilitaConfigs[0] || null;
+
+  const { data: attivitaCompletate = [] } = useQuery({
+    queryKey: ['attivita-completate-straordinari'],
+    queryFn: () => base44.entities.AttivitaCompletata.filter({
+      attivita_nome: { $regex: 'Pagamento straordinari' }
+    })
+  });
 
   const saveMutation = useMutation({
     mutationFn: (data) => {
@@ -339,6 +351,15 @@ export default function Straordinari() {
                     
                     const importoTotale = oreStr * costoOrario;
 
+                    // Check if already paid via old logic (AttivitaCompletata)
+                    const pagatoVecchiaLogica = attivitaCompletate.find(ac => 
+                      ac.turno_id === turno.id && 
+                      ac.attivita_nome?.includes('Pagamento straordinari') &&
+                      ac.importo_pagato
+                    );
+
+                    const isPagato = pagamento?.pagato || !!pagatoVecchiaLogica;
+
                     return (
                       <tr key={turno.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                         <td className="p-3">
@@ -360,7 +381,7 @@ export default function Straordinari() {
                         </td>
                         <td className="p-3 text-center">
                           <span className="text-slate-700 font-bold text-sm">
-                            {oreStr}h
+                            {oreStr.toFixed(2)}h
                           </span>
                         </td>
                         <td className="p-3 text-right">
@@ -374,18 +395,27 @@ export default function Straordinari() {
                           </span>
                         </td>
                         <td className="p-3 text-center">
-                          {pagamento?.pagato ? (
+                          {isPagato ? (
                             <div className="inline-flex flex-col items-center gap-1">
                               <div className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
                                 <CheckCircle className="w-3 h-3" />
                                 Pagato
                               </div>
-                              <span className="text-xs text-slate-500">
-                                {pagamento.data_pagamento ? format(parseISO(pagamento.data_pagamento), 'dd/MM HH:mm') : '-'}
-                              </span>
-                              <span className="text-xs text-slate-500">
-                                da {pagamento.pagato_da || '-'}
-                              </span>
+                              {pagamento?.data_pagamento && (
+                                <>
+                                  <span className="text-xs text-slate-500">
+                                    {format(parseISO(pagamento.data_pagamento), 'dd/MM HH:mm')}
+                                  </span>
+                                  <span className="text-xs text-slate-500">
+                                    da {pagamento.pagato_da || '-'}
+                                  </span>
+                                </>
+                              )}
+                              {pagatoVecchiaLogica && !pagamento && (
+                                <span className="text-xs text-slate-500">
+                                  (vecchia logica - {format(parseISO(pagatoVecchiaLogica.completato_at), 'dd/MM HH:mm')})
+                                </span>
+                              )}
                             </div>
                           ) : (
                             <div className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-medium">
