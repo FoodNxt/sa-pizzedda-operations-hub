@@ -1119,23 +1119,23 @@ export default function Payroll() {
 
       shiftTypesArray.forEach((type) => {
         const minutes = weekData.shift_types[type] || 0;
-        csv += `"${minutesToHours(minutes)}",`;
+        csv += `"${formatMinutes(minutes, downloadFmt)}",`;
       });
 
-      csv += `"${minutesToHours(weekData.total_minutes)}",`;
-      csv += `"${minutesToHours(weekData.total_minutes_excluding_overtime)}"\n`;
+      csv += `"${formatMinutes(weekData.total_minutes, downloadFmt)}",`;
+      csv += `"${formatMinutes(weekData.total_minutes_excluding_overtime, downloadFmt)}"\n`;
     });
 
     // Summary row
     csv += '\nRIEPILOGO TOTALE,,';
     shiftTypesArray.forEach((type) => {
       const totalMinutes = allRows.reduce((sum, row) => sum + (row.weekData.shift_types[type] || 0), 0);
-      csv += `"${minutesToHours(totalMinutes)}",`;
+      csv += `"${formatMinutes(totalMinutes, downloadFmt)}",`;
     });
     const grandTotal = allRows.reduce((sum, row) => sum + row.weekData.total_minutes, 0);
     const grandTotalExcludingOvertime = allRows.reduce((sum, row) => sum + (row.weekData.total_minutes_excluding_overtime || 0), 0);
-    csv += `"${minutesToHours(grandTotal)}",`;
-    csv += `"${minutesToHours(grandTotalExcludingOvertime)}"\n`;
+    csv += `"${formatMinutes(grandTotal, downloadFmt)}",`;
+    csv += `"${formatMinutes(grandTotalExcludingOvertime, downloadFmt)}"\n`;
 
     // Create download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
