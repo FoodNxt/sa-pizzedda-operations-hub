@@ -728,6 +728,7 @@ export default function StoricoCassa() {
                                 €{entry.cassaTeoricaInitial.toFixed(2)}
                               </span>
                               <button
+                                type="button"
                                 onClick={() => {
                                   setCassaModalData({ store_id: entry.store_id, store_name: entry.store_name, date: dayData.date, valore: entry.cassaTeoricaInitial });
                                   setShowCassaModal(true);
