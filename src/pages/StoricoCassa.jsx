@@ -440,29 +440,40 @@ export default function StoricoCassa() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          <button
-            onClick={() => setActiveTab('storico')}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-            activeTab === 'storico' ?
-            'neumorphic-pressed bg-blue-50 text-blue-700' :
-            'neumorphic-flat text-slate-600 hover:text-slate-800'}`
-            }>
+         <div className="flex gap-2 overflow-x-auto pb-2">
+           <button
+             onClick={() => setActiveTab('storico')}
+             className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+             activeTab === 'storico' ?
+             'neumorphic-pressed bg-blue-50 text-blue-700' :
+             'neumorphic-flat text-slate-600 hover:text-slate-800'}`
+             }>
 
-            <Calendar className="w-4 h-4" />
-            Storico
-          </button>
-          <button
-            onClick={() => setActiveTab('verifica')}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-            activeTab === 'verifica' ?
-            'neumorphic-pressed bg-blue-50 text-blue-700' :
-            'neumorphic-flat text-slate-600 hover:text-slate-800'}`
-            }>
+             <Calendar className="w-4 h-4" />
+             Storico
+           </button>
+           <button
+             onClick={() => setActiveTab('rolling')}
+             className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+             activeTab === 'rolling' ?
+             'neumorphic-pressed bg-blue-50 text-blue-700' :
+             'neumorphic-flat text-slate-600 hover:text-slate-800'}`
+             }>
 
-            <CheckCircle className="w-4 h-4" />
-            Verifica Cassa
-          </button>
+             <TrendingUp className="w-4 h-4" />
+             Rolling
+           </button>
+           <button
+             onClick={() => setActiveTab('verifica')}
+             className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+             activeTab === 'verifica' ?
+             'neumorphic-pressed bg-blue-50 text-blue-700' :
+             'neumorphic-flat text-slate-600 hover:text-slate-800'}`
+             }>
+
+             <CheckCircle className="w-4 h-4" />
+             Verifica Cassa
+           </button>
           <button
             onClick={() => setActiveTab('saldo')}
             className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
