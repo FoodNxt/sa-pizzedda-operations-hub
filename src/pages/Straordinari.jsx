@@ -83,6 +83,8 @@ export default function Straordinari() {
     })
   });
 
+  const activeConfig = disponibilitaConfigs[0] || null;
+
   const saveMutation = useMutation({
     mutationFn: (data) => {
       if (editingId) {
