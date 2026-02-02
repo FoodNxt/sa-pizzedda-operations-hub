@@ -14,7 +14,8 @@ import {
   Settings,
   Plus,
   CheckCircle,
-  XCircle } from
+  XCircle,
+  Edit } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
