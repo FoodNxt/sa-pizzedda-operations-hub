@@ -917,7 +917,7 @@ export default function Payroll() {
       csv += '\n';
 
       // Row 4: Ferie
-      csv += `-,`;
+      csv += `Ferie,`;
       sortedDates.forEach((date) => {
         const dayData = employeeData.find((d) => d.date === date);
         const minuti = dayData?.shift_types['Ferie'] || 0;
