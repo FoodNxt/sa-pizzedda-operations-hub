@@ -2224,56 +2224,90 @@ export default function Payroll() {
       {showDownloadModal &&
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-md w-full p-6">
-            <h2 className="text-2xl font-bold text-[#6b6b6b] mb-4">Seleziona Formato Ore</h2>
-            <p className="text-sm text-[#9b9b9b] mb-6">Scegli il formato per le ore nel file scaricato:</p>
-            
-            <div className="space-y-3 mb-6">
-              <label className="flex items-center gap-3 p-4 neumorphic-pressed rounded-xl cursor-pointer hover:bg-[#e8ecf3] transition-colors">
-                <input
-                  type="radio"
-                  value="hm"
-                  checked={downloadFormat === 'hm'}
-                  onChange={(e) => setDownloadFormat(e.target.value)}
-                  className="w-4 h-4"
-                />
-                <div>
-                  <p className="font-medium text-[#6b6b6b]">Ore e Minuti (Esempio: 4h 30m)</p>
-                  <p className="text-xs text-[#9b9b9b]">Formato leggibile</p>
+            {showDownloadModal === 'daily-new' ? (
+              // New daily format modal - ask about overtime
+              <>
+                <h2 className="text-2xl font-bold text-[#6b6b6b] mb-4">Includi Straordinari?</h2>
+                <p className="text-sm text-[#9b9b9b] mb-6">Vuoi includere una riga per gli straordinari nel report?</p>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDownloadModal(null)}
+                    className="flex-1 neumorphic-flat px-4 py-3 rounded-lg text-[#6b6b6b] hover:text-[#8b7355] transition-colors font-medium">
+                    Annulla
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowDownloadModal('daily-new-fmt');
+                      // Will trigger format selection below
+                    }}
+                    className="flex-1 neumorphic-flat px-4 py-3 rounded-lg text-white bg-[#8b7355] hover:bg-[#6b5345] transition-colors font-medium">
+                    No, Scarica
+                  </button>
+                  <button
+                    onClick={() => {
+                      exportAllEmployeesDailyNewFormat(downloadFormat, true);
+                    }}
+                    className="flex-1 neumorphic-flat px-4 py-3 rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors font-medium">
+                    Sì, Scarica
+                  </button>
                 </div>
-              </label>
+              </>
+            ) : (
+              // Standard format selection
+              <>
+                <h2 className="text-2xl font-bold text-[#6b6b6b] mb-4">Seleziona Formato Ore</h2>
+                <p className="text-sm text-[#9b9b9b] mb-6">Scegli il formato per le ore nel file scaricato:</p>
+                
+                <div className="space-y-3 mb-6">
+                  <label className="flex items-center gap-3 p-4 neumorphic-pressed rounded-xl cursor-pointer hover:bg-[#e8ecf3] transition-colors">
+                    <input
+                      type="radio"
+                      value="hm"
+                      checked={downloadFormat === 'hm'}
+                      onChange={(e) => setDownloadFormat(e.target.value)}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <p className="font-medium text-[#6b6b6b]">Ore e Minuti (Esempio: 4h 30m)</p>
+                      <p className="text-xs text-[#9b9b9b]">Formato leggibile</p>
+                    </div>
+                  </label>
 
-              <label className="flex items-center gap-3 p-4 neumorphic-pressed rounded-xl cursor-pointer hover:bg-[#e8ecf3] transition-colors">
-                <input
-                  type="radio"
-                  value="decimal"
-                  checked={downloadFormat === 'decimal'}
-                  onChange={(e) => setDownloadFormat(e.target.value)}
-                  className="w-4 h-4"
-                />
-                <div>
-                  <p className="font-medium text-[#6b6b6b]">Ore Decimali (Esempio: 4.50)</p>
-                  <p className="text-xs text-[#9b9b9b]">Formato per fogli di calcolo</p>
+                  <label className="flex items-center gap-3 p-4 neumorphic-pressed rounded-xl cursor-pointer hover:bg-[#e8ecf3] transition-colors">
+                    <input
+                      type="radio"
+                      value="decimal"
+                      checked={downloadFormat === 'decimal'}
+                      onChange={(e) => setDownloadFormat(e.target.value)}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <p className="font-medium text-[#6b6b6b]">Ore Decimali (Esempio: 4.50)</p>
+                      <p className="text-xs text-[#9b9b9b]">Formato per fogli di calcolo</p>
+                    </div>
+                  </label>
                 </div>
-              </label>
-            </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDownloadModal(null)}
-                className="flex-1 neumorphic-flat px-4 py-3 rounded-lg text-[#6b6b6b] hover:text-[#8b7355] transition-colors font-medium">
-                Annulla
-              </button>
-              <button
-                onClick={() => {
-                  if (showDownloadModal === 'csv') exportToCSV(downloadFormat);
-                  else if (showDownloadModal === 'daily') exportAllEmployeesDailyCSV(downloadFormat);
-                  else if (showDownloadModal === 'weekly') exportWeeklyReport(downloadFormat);
-                  else if (showDownloadModal === 'employee') exportEmployeeDailyCSV(downloadFormat);
-                }}
-                className="flex-1 neumorphic-flat px-4 py-3 rounded-lg text-white bg-[#8b7355] hover:bg-[#6b5345] transition-colors font-medium">
-                Scarica
-              </button>
-            </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDownloadModal(null)}
+                    className="flex-1 neumorphic-flat px-4 py-3 rounded-lg text-[#6b6b6b] hover:text-[#8b7355] transition-colors font-medium">
+                    Annulla
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (showDownloadModal === 'csv') exportToCSV(downloadFormat);
+                      else if (showDownloadModal === 'daily') exportAllEmployeesDailyCSV(downloadFormat);
+                      else if (showDownloadModal === 'weekly') exportWeeklyReport(downloadFormat);
+                      else if (showDownloadModal === 'employee') exportEmployeeDailyCSV(downloadFormat);
+                    }}
+                    className="flex-1 neumorphic-flat px-4 py-3 rounded-lg text-white bg-[#8b7355] hover:bg-[#6b5345] transition-colors font-medium">
+                    Scarica
+                  </button>
+                </div>
+              </>
+            )}
           </NeumorphicCard>
         </div>
       }
