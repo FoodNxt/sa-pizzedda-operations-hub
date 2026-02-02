@@ -604,16 +604,15 @@ export default function ControlloConsumi() {
 
         const qty = vendita.total_pizzas_sold || 0;
         const ingredientiEspansi = espandiIngredienti(ricetta.ingredienti, qty);
+        const ricettaIngredientiGrammi = espandiIngredientiGrammi(ricetta.ingredienti, 1);
 
-        if (ingredientiEspansi[prodId]) {
-          // Calcola i dettagli della ricetta
-          const ricettaIngredienti = espandiIngredientiGrammi(ricetta.ingredienti, 1);
+        if (ingredientiEspansi[prodId] && ricettaIngredientiGrammi[prodId]) {
           breakdown.push({
             nomeProdotto: vendita.flavor,
             quantitaVenduta: qty,
-            ingredientePerUnita: ricettaIngredienti[prodId]?.quantita || 0,
-            unitaMisura: ricettaIngredienti[prodId]?.unita_misura || consumiTeoriciPerGiorno[date][prodId].unita_misura,
-            consumoTotale: ingredientiEspansi[prodId].quantita
+            ingredientePerUnita: ricettaIngredientiGrammi[prodId].quantita,
+            unitaMisura: ricettaIngredientiGrammi[prodId].unita_misura,
+            consumoTotale: ricettaIngredientiGrammi[prodId].quantita * qty
           });
         }
       });
