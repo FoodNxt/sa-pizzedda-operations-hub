@@ -36,6 +36,9 @@ export default function StoricoCassa() {
   const [showSaldoConfig, setShowSaldoConfig] = useState(false);
   const [newManualSaldo, setNewManualSaldo] = useState({ dipendente: '', importo: 0 });
   const [expandedDipendente, setExpandedDipendente] = useState(null);
+  const [selectedStoresRolling, setSelectedStoresRolling] = useState([]);
+  const [editingCassaTeoriaDate, setEditingCassaTeoriaDate] = useState(null);
+  const [editingCassaTeorica, setEditingCassaTeorica] = useState(null);
 
   const queryClient = useQueryClient();
 
