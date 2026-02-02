@@ -567,7 +567,7 @@ export default function Payroll() {
   };
 
   // ✅ UPDATED: Export to CSV with overtime exclusion column
-  const exportToCSV = () => {
+  const exportToCSV = (format) => {
     // Prepare CSV content
     let csv = 'Dipendente,Locale,';
 
@@ -583,24 +583,24 @@ export default function Payroll() {
 
       payrollData.shiftTypes.forEach((type) => {
         const minutes = employee.shift_types[type] || 0;
-        csv += `"${minutesToHours(minutes)}",`;
+        csv += `"${formatMinutes(minutes, format)}",`;
       });
 
       const netMinutes = employee.total_minutes - employee.total_ritardo_minutes;
-      csv += `"${minutesToHours(employee.total_minutes)}",`;
-      csv += `"${minutesToHours(employee.total_minutes_excluding_overtime)}",`;
-      csv += `"${minutesToHours(netMinutes)}"\n`;
+      csv += `"${formatMinutes(employee.total_minutes, format)}",`;
+      csv += `"${formatMinutes(employee.total_minutes_excluding_overtime, format)}",`;
+      csv += `"${formatMinutes(netMinutes, format)}"\n`;
     });
 
     // Add total row
     csv += 'TOTALE,,';
     payrollData.shiftTypes.forEach((type) => {
       const total = payrollData.employees.reduce((sum, emp) => sum + (emp.shift_types[type] || 0), 0);
-      csv += `"${minutesToHours(total)}",`;
+      csv += `"${formatMinutes(total, format)}",`;
     });
-    csv += `"${minutesToHours(payrollData.totalMinutes)}",`;
-    csv += `"${minutesToHours(payrollData.totalMinutesExcludingOvertime)}",`;
-    csv += `"${minutesToHours(payrollData.totalMinutes - payrollData.totalRitardoMinutes)}"\n`;
+    csv += `"${formatMinutes(payrollData.totalMinutes, format)}",`;
+    csv += `"${formatMinutes(payrollData.totalMinutesExcludingOvertime, format)}",`;
+    csv += `"${formatMinutes(payrollData.totalMinutes - payrollData.totalRitardoMinutes, format)}"\n`;
 
     // Create download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -614,6 +614,7 @@ export default function Payroll() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setShowDownloadModal(null);
   };
 
   // ✅ UPDATED: Export employee daily breakdown to CSV with overtime exclusion
