@@ -562,6 +562,10 @@ export default function Payroll() {
     return (minutes / 60).toFixed(2);
   };
 
+  const formatMinutes = (minutes, format) => {
+    return format === 'decimal' ? minutesToDecimal(minutes) : minutesToHours(minutes);
+  };
+
   // ✅ UPDATED: Export to CSV with overtime exclusion column
   const exportToCSV = () => {
     // Prepare CSV content
