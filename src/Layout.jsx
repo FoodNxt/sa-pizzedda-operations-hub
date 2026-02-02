@@ -348,6 +348,13 @@ const navigationStructure = [
         requiredUserType: ["admin"]
       },
       {
+        title: "Pagamento Straordinari",
+        page: "PagamentoStraordinari",
+        url: createPageUrl("PagamentoStraordinari"),
+        icon: DollarSign,
+        requiredUserType: ["admin", "manager"]
+      },
+      {
         title: "Uscite",
         page: "Uscite",
         url: createPageUrl("Uscite"),
