@@ -808,17 +808,7 @@ export default function Payroll() {
       }
     });
 
-    // Header row: Dipendente + dates + weekly totals
-    csv += 'Dipendente,';
-    sortedDates.forEach((date) => {
-      try {
-        csv += `${format(parseISO(date), 'd/M')},`;
-      } catch (e) {
-        csv += `${date},`;
-      }
-    });
-
-    // Add weekly columns
+    // Get all weeks
     const weeks = new Set();
     sortedDates.forEach((date) => {
       try {
@@ -828,191 +818,89 @@ export default function Payroll() {
         // ignore
       }
     });
+    const sortedWeeks = Array.from(weeks).sort();
 
-    Array.from(weeks).sort().forEach(() => {
-      csv += 'W,';
-    });
-
-    csv += '\n';
-
-    // Employee rows with 6 lines each (name, turno normale, assenza, ferie, malattia, straordinari)
+    // Process each employee by week
     payrollData.employees.forEach((employee) => {
       const employeeData = allDailyData.filter((d) => d.employee_name === employee.employee_name);
-      const employeeDates = new Set(employeeData.map((d) => d.date));
 
-      // Row 1: Employee name
-      csv += `"${employee.employee_name}",`;
-      sortedDates.forEach((date) => {
-        const dayData = employeeData.find((d) => d.date === date);
-        if (dayData) {
-          const totalMinutes = Object.values(dayData.shift_types).reduce((sum, m) => sum + m, 0);
-          csv += `"${formatMinutes(totalMinutes, format)}",`;
-        } else {
-          csv += '-,';
-        }
-      });
-      // Weekly totals row 1
-      Array.from(weeks).sort().forEach((weekKey) => {
+      // Process each week for this employee
+      sortedWeeks.forEach((weekKey) => {
         const weekStart = parseISO(weekKey);
         const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-        const weekDays = employeeData.filter((d) => {
+        const weekDates = sortedDates.filter((date) => {
           try {
-            const dayDate = parseISO(d.date);
-            return dayDate >= weekStart && dayDate <= weekEnd;
+            const d = parseISO(date);
+            return d >= weekStart && d <= weekEnd;
           } catch (e) {
             return false;
           }
         });
-        const weekTotal = weekDays.reduce((sum, d) => sum + Object.values(d.shift_types).reduce((s, m) => s + m, 0), 0);
-        csv += `"${formatMinutes(weekTotal, format)}",`;
-      });
-      csv += '\n';
 
-      // Row 2: Turno normale
-      csv += `Turno normale,`;
-      sortedDates.forEach((date) => {
-        const dayData = employeeData.find((d) => d.date === date);
-        const minuti = dayData?.shift_types['Turno normale'] || 0;
-        csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
-      });
-      Array.from(weeks).sort().forEach((weekKey) => {
-        const weekStart = parseISO(weekKey);
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-        const weekTotal = employeeData
-          .filter((d) => {
-            try {
-              const dayDate = parseISO(d.date);
-              return dayDate >= weekStart && dayDate <= weekEnd;
-            } catch (e) {
-              return false;
-            }
-          })
-          .reduce((sum, d) => sum + (d.shift_types['Turno normale'] || 0), 0);
-        csv += `"${weekTotal > 0 ? formatMinutes(weekTotal, format) : '-'}",`;
-      });
-      csv += '\n';
+        // Skip empty weeks
+        if (weekDates.length === 0) return;
 
-      // Row 3: Assenza non retribuita
-      csv += `Assenza non retribuita,`;
-      sortedDates.forEach((date) => {
-        const dayData = employeeData.find((d) => d.date === date);
-        const minuti = dayData?.shift_types['Assenza non retribuita'] || 0;
-        csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
-      });
-      Array.from(weeks).sort().forEach((weekKey) => {
-        const weekStart = parseISO(weekKey);
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-        const weekTotal = employeeData
-          .filter((d) => {
-            try {
-              const dayDate = parseISO(d.date);
-              return dayDate >= weekStart && dayDate <= weekEnd;
-            } catch (e) {
-              return false;
-            }
-          })
-          .reduce((sum, d) => sum + (d.shift_types['Assenza non retribuita'] || 0), 0);
-        csv += `"${weekTotal > 0 ? formatMinutes(weekTotal, format) : '-'}",`;
-      });
-      csv += '\n';
+        // Header with week dates
+        csv += `"${employee.employee_name} - Settimana ${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM/yyyy')}",`;
+        weekDates.forEach(() => csv += ',');
+        csv += '\n';
 
-      // Row 4: Ferie
-      csv += `Ferie,`;
-      sortedDates.forEach((date) => {
-        const dayData = employeeData.find((d) => d.date === date);
-        const minuti = dayData?.shift_types['Ferie'] || 0;
-        csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
-      });
-      Array.from(weeks).sort().forEach((weekKey) => {
-        const weekStart = parseISO(weekKey);
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-        const weekTotal = employeeData
-          .filter((d) => {
-            try {
-              const dayDate = parseISO(d.date);
-              return dayDate >= weekStart && dayDate <= weekEnd;
-            } catch (e) {
-              return false;
-            }
-          })
-          .reduce((sum, d) => sum + (d.shift_types['Ferie'] || 0), 0);
-        csv += `"${weekTotal > 0 ? formatMinutes(weekTotal, format) : '-'}",`;
-      });
-      csv += '\n';
-
-      // Row 5: Malattia
-      csv += `-,`;
-      sortedDates.forEach((date) => {
-        const dayData = employeeData.find((d) => d.date === date);
-        const minuti = dayData?.shift_types['Malattia (Certificata)'] || 0;
-        csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
-      });
-      Array.from(weeks).sort().forEach((weekKey) => {
-        const weekStart = parseISO(weekKey);
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-        const weekTotal = employeeData
-          .filter((d) => {
-            try {
-              const dayDate = parseISO(d.date);
-              return dayDate >= weekStart && dayDate <= weekEnd;
-            } catch (e) {
-              return false;
-            }
-          })
-          .reduce((sum, d) => sum + (d.shift_types['Malattia (Certificata)'] || 0), 0);
-        csv += `"${weekTotal > 0 ? formatMinutes(weekTotal, format) : '-'}",`;
-      });
-      csv += '\n';
-
-      // Row 6: Straordinari (only if included)
-      if (includeOvertime) {
-        csv += `-,`;
-        sortedDates.forEach((date) => {
+        // Row 1: Turno normale
+        csv += `Turno normale,`;
+        weekDates.forEach((date) => {
           const dayData = employeeData.find((d) => d.date === date);
-          const minuti = dayData?.shift_types['Straordinario'] || 0;
+          const minuti = dayData?.shift_types['Turno normale'] || 0;
           csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
         });
-        Array.from(weeks).sort().forEach((weekKey) => {
-          const weekStart = parseISO(weekKey);
-          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-          const weekTotal = employeeData
-            .filter((d) => {
-              try {
-                const dayDate = parseISO(d.date);
-                return dayDate >= weekStart && dayDate <= weekEnd;
-              } catch (e) {
-                return false;
-              }
-            })
-            .reduce((sum, d) => sum + (d.shift_types['Straordinario'] || 0), 0);
-          csv += `"${weekTotal > 0 ? formatMinutes(weekTotal, format) : '-'}",`;
+        csv += '\n';
+
+        // Row 2: Assenza non retribuita
+        csv += `Assenza non retribuita,`;
+        weekDates.forEach((date) => {
+          const dayData = employeeData.find((d) => d.date === date);
+          const minuti = dayData?.shift_types['Assenza non retribuita'] || 0;
+          csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
         });
         csv += '\n';
-      }
 
-      // Totale row
-      csv += 'Totale,';
-      sortedDates.forEach((date) => {
-        const dayData = employeeData.find((d) => d.date === date);
-        const totalMinutes = dayData ? Object.values(dayData.shift_types).reduce((sum, m) => sum + m, 0) : 0;
-        csv += `"${totalMinutes > 0 ? formatMinutes(totalMinutes, format) : '-'}",`;
+        // Row 3: Ferie
+        csv += `Ferie,`;
+        weekDates.forEach((date) => {
+          const dayData = employeeData.find((d) => d.date === date);
+          const minuti = dayData?.shift_types['Ferie'] || 0;
+          csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
+        });
+        csv += '\n';
+
+        // Row 4: Malattia
+        csv += `Malattia (Certificata),`;
+        weekDates.forEach((date) => {
+          const dayData = employeeData.find((d) => d.date === date);
+          const minuti = dayData?.shift_types['Malattia (Certificata)'] || 0;
+          csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
+        });
+        csv += '\n';
+
+        // Row 5: Straordinari (only if included)
+        if (includeOvertime) {
+          csv += `Straordinario,`;
+          weekDates.forEach((date) => {
+            const dayData = employeeData.find((d) => d.date === date);
+            const minuti = dayData?.shift_types['Straordinario'] || 0;
+            csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
+          });
+          csv += '\n';
+        }
+
+        // Row: Weekly totals
+        csv += `Totale Settimana,`;
+        weekDates.forEach((date) => {
+          const dayData = employeeData.find((d) => d.date === date);
+          const totalMinutes = dayData ? Object.values(dayData.shift_types).reduce((sum, m) => sum + m, 0) : 0;
+          csv += `"${totalMinutes > 0 ? formatMinutes(totalMinutes, format) : '-'}",`;
+        });
+        csv += '\n\n';
       });
-      Array.from(weeks).sort().forEach((weekKey) => {
-        const weekStart = parseISO(weekKey);
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-        const weekTotal = employeeData
-          .filter((d) => {
-            try {
-              const dayDate = parseISO(d.date);
-              return dayDate >= weekStart && dayDate <= weekEnd;
-            } catch (e) {
-              return false;
-            }
-          })
-          .reduce((sum, d) => sum + Object.values(d.shift_types).reduce((s, m) => s + m, 0), 0);
-        csv += `"${formatMinutes(weekTotal, format)}",`;
-      });
-      csv += '\n\n';
     });
 
     // Create download
