@@ -293,7 +293,23 @@ export default function ControlloConsumi() {
 
       if (ricettaSemilavorato && ricettaSemilavorato.ingredienti) {
         // È un semilavorato: espandi ricorsivamente
-        const subIngredienti = espandiIngredientiGrammi(ricettaSemilavorato.ingredienti, moltiplicatore * ing.quantita);
+        // Correggi il moltiplicatore per quantita_prodotta del semilavorato
+        let moltiplicatoreSemilavorato = moltiplicatore * ing.quantita;
+        if (ricettaSemilavorato.quantita_prodotta && ricettaSemilavorato.unita_misura_prodotta) {
+          // Converti a grammi se necessario
+          let qtaProdotta = ricettaSemilavorato.quantita_prodotta;
+          if (ricettaSemilavorato.unita_misura_prodotta === 'kg') {
+            qtaProdotta *= 1000;
+          } else if (ricettaSemilavorato.unita_misura_prodotta === 'litri') {
+            qtaProdotta *= 1000; // approssimazione per liquidi
+          } else if (ricettaSemilavorato.unita_misura_prodotta === 'ml') {
+            // rimani in ml
+          }
+          // Normalizza: se usiamo X grammi di un semilavorato che produce qtaProdotta,
+          // gli ingredienti vanno scalati proporzionalmente
+          moltiplicatoreSemilavorato = (ing.quantita / qtaProdotta) * moltiplicatore;
+        }
+        const subIngredienti = espandiIngredientiGrammi(ricettaSemilavorato.ingredienti, moltiplicatoreSemilavorato);
         Object.keys(subIngredienti).forEach((subKey) => {
           if (!risultato[subKey]) {
             risultato[subKey] = {
