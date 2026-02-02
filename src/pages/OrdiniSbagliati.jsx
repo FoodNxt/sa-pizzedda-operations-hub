@@ -2018,7 +2018,10 @@ export default function OrdiniSbagliati() {
                       return;
                     }
 
-                    let finalContent = letterContent;
+                    // Replace variables in letter content
+                    let finalContent = letterContent
+                      .replace(/\{\{nome_dipendente\}\}/g, user.nome_cognome)
+                      .replace(/\{\{data_oggi\}\}/g, new Date().toLocaleDateString('it-IT'));
 
                     // Add order details if requested
                     if (includeOrderDetails) {
