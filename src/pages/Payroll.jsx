@@ -388,18 +388,14 @@ export default function Payroll() {
     };
   }, [selectedEmployee, shifts, selectedStore, startDate, endDate, normalizeEmployeeName]); // Added normalizeEmployeeName to dependencies
 
-  // ✅ NEW: Get unpaid absence shifts for an employee
+  // ✅ Get unpaid absence shifts - SOLO turni con ritardi calcolati dal database
   const getUnpaidAbsenceShifts = (employeeName) => {
-    // Use normalized name to filter
     const targetNormalizedName = normalizeEmployeeName(employeeName);
 
     let employeeShifts = shifts.filter((s) => {
       if (normalizeEmployeeName(s.employee_name) !== targetNormalizedName) return false;
-
-      // Apply store filter
       if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
 
-      // Apply date filter
       if (startDate || endDate) {
         if (!s.shift_date) return false;
         try {
@@ -423,50 +419,23 @@ export default function Payroll() {
       return true;
     });
 
-    const unpaidShifts = [];
+    // ✅ MOSTRA SOLO turni con ritardo effettivo calcolato
+    const unpaidShifts = employeeShifts
+      .filter(shift => shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0)
+      .map(shift => ({
+        ...shift,
+        unpaid_reason: 'Ritardo in ingresso',
+        unpaid_minutes: shift.minuti_di_ritardo
+      }))
+      .sort((a, b) => {
+        try {
+          return new Date(b.shift_date) - new Date(a.shift_date);
+        } catch (e) {
+          return 0;
+        }
+      });
 
-    employeeShifts.forEach((shift) => {
-      const originalType = shift.shift_type || 'Turno normale';
-
-      // Case 1: Shifts with original type "Malattia (No Certificato)"
-      if (originalType === 'Malattia (No Certificato)') {
-        unpaidShifts.push({
-          ...shift,
-          unpaid_reason: 'Malattia senza certificato',
-          unpaid_minutes: shift.scheduled_minutes || 0
-        });
-      }
-
-      // Case 2: Shifts with original type "Ritardo"
-      if (originalType === 'Ritardo') {
-        unpaidShifts.push({
-          ...shift,
-          unpaid_reason: 'Turno di tipo Ritardo',
-          unpaid_minutes: shift.scheduled_minutes || 0
-        });
-      }
-
-      // Case 3: Shifts with delay minutes (ritardo field)
-      // This applies to any shift, including those already listed above if the data source
-      // provides separate 'ritardo' minutes on top of a 'Ritardo' shift type,
-      // reflecting how the payrollData aggregate total is computed.
-      if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
-        unpaidShifts.push({
-          ...shift,
-          unpaid_reason: 'Ritardo',
-          unpaid_minutes: shift.minuti_di_ritardo
-        });
-      }
-    });
-
-    // Sort by date (most recent first)
-    return unpaidShifts.sort((a, b) => {
-      try {
-        return new Date(b.shift_date) - new Date(a.shift_date);
-      } catch (e) {
-        return 0;
-      }
-    });
+    return unpaidShifts;
   };
 
   const handleUnpaidAbsenceClick = (employee) => {
