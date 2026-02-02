@@ -665,10 +665,29 @@ export default function StoricoCassa() {
             </div>
           </NeumorphicCard>
 
-          {rollingData.map((dayData) => (
+          {rollingData.map((dayData) => {
+            const totals = {
+              cassaTeoricaInitial: 0,
+              pagamentiContanti: 0,
+              prelievi: 0,
+              cassaTeoricaFinale: 0,
+              conteggiInizio: 0,
+              conteggiFinale: 0
+            };
+
+            dayData.entries.forEach(entry => {
+              totals.cassaTeoricaInitial += entry.cassaTeoricaInitial;
+              totals.pagamentiContanti += entry.pagamentiContanti;
+              totals.prelievi += entry.prelievi;
+              totals.cassaTeoricaFinale += entry.cassaTeoricaFinale;
+              if (entry.conteggiInizio) totals.conteggiInizio += entry.conteggiInizio;
+              if (entry.conteggiFinale) totals.conteggiFinale += entry.conteggiFinale;
+            });
+
+            return (
             <NeumorphicCard key={dayData.date} className="p-4 lg:p-6 mb-4">
               <h3 className="text-lg font-bold text-slate-800 mb-4">{format(parseISO(dayData.date), 'dd/MM/yyyy', { locale: it })}</h3>
-              
+
               <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
                 <table className="w-full min-w-[900px]">
                   <thead>
@@ -679,22 +698,29 @@ export default function StoricoCassa() {
                       <th className="text-right p-3 text-slate-600 font-medium text-xs">- Prelievi</th>
                       <th className="text-right p-3 text-slate-600 font-medium text-xs">= Cassa Teorica Fine</th>
                       <th className="text-left p-3 text-slate-600 font-medium text-xs">Conteggi Form</th>
+                      <th className="text-center p-3 text-slate-600 font-medium text-xs">Differenza</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {dayData.entries.map((entry) => (
+                    {dayData.entries.map((entry) => {
+                      const diffInizio = entry.conteggiInizio ? entry.conteggiInizio - entry.cassaTeoricaInitial : null;
+                      const diffFinale = entry.conteggiFinale ? entry.conteggiFinale - entry.cassaTeoricaFinale : null;
+
+                      return (
                       <React.Fragment key={entry.store_id}>
                         <tr className="border-b border-slate-200 hover:bg-slate-50">
                           <td className="p-3 font-bold text-slate-800">{entry.store_name}</td>
                           <td className="p-3 text-right">
-                            <div className="flex flex-col items-end gap-1">
+                            <button
+                              onClick={() => setEditingCassaEntry({ store_id: entry.store_id, store_name: entry.store_name, date: dayData.date, valore: entry.cassaTeoricaInitial })}
+                              className="flex flex-col items-end gap-1 hover:opacity-70 transition-opacity cursor-pointer">
                               <span className={`text-sm font-bold ${entry.cassaTeoricaInitialManual ? 'text-orange-600' : 'text-blue-600'}`}>
                                 €{entry.cassaTeoricaInitial.toFixed(2)}
                               </span>
                               {entry.cassaTeoricaInitialManual && (
                                 <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Manual</span>
                               )}
-                            </div>
+                            </button>
                           </td>
                           <td className="p-3 text-right">
                             <span className="text-sm font-bold text-green-600">+€{entry.pagamentiContanti.toFixed(2)}</span>
@@ -727,32 +753,72 @@ export default function StoricoCassa() {
                               <span className="text-slate-400">-</span>
                             )}
                           </td>
+                          <td className="p-3 text-center">
+                            <div className="space-y-1">
+                              {diffInizio !== null && (
+                                <div className={`text-xs font-bold px-2 py-1 rounded ${diffInizio >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {diffInizio >= 0 ? '+' : ''}€{diffInizio.toFixed(2)}
+                                </div>
+                              )}
+                              {diffFinale !== null && (
+                                <div className={`text-xs font-bold px-2 py-1 rounded ${diffFinale >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {diffFinale >= 0 ? '+' : ''}€{diffFinale.toFixed(2)}
+                                </div>
+                              )}
+                            </div>
+                          </td>
                         </tr>
-                        
+
                         {entry.conteggiInizio && entry.differenciaInizio !== null && entry.differenciaInizio > 0.5 && (
                           <tr className="bg-orange-50 border-b border-orange-200">
-                            <td colSpan="6" className="p-3 text-xs text-orange-800">
+                            <td colSpan="7" className="p-3 text-xs text-orange-800">
                               ⚠️ <strong>Differenza inizio giornata:</strong> €{entry.differenciaInizio.toFixed(2)}
-                              (Conteggio inizio: €{entry.conteggiInizio.toFixed(2)} vs Cassa teorica fine giorno precedente: €{(entry.cassaTeoricaInitial).toFixed(2)})
                             </td>
                           </tr>
                         )}
 
                         {entry.conteggiFinale && entry.differenciaFinale !== null && entry.differenciaFinale > 0.5 && (
                           <tr className="bg-red-50 border-b border-red-200">
-                            <td colSpan="6" className="p-3 text-xs text-red-800">
+                            <td colSpan="7" className="p-3 text-xs text-red-800">
                               ❌ <strong>Differenza fine giornata:</strong> €{entry.differenciaFinale.toFixed(2)}
-                              (Cassa teorica: €{entry.cassaTeoricaFinale.toFixed(2)} vs Conteggio fine: €{entry.conteggiFinale.toFixed(2)})
                             </td>
                           </tr>
                         )}
                       </React.Fragment>
-                    ))}
+                      );
+                    })}
+
+                    {dayData.entries.length > 1 && (
+                      <tr className="border-t-2 border-blue-600 bg-blue-50 font-bold">
+                        <td className="p-3 text-slate-800">TOTALE</td>
+                        <td className="p-3 text-right text-blue-700">€{totals.cassaTeoricaInitial.toFixed(2)}</td>
+                        <td className="p-3 text-right text-green-600">+€{totals.pagamentiContanti.toFixed(2)}</td>
+                        <td className="p-3 text-right text-red-600">-€{totals.prelievi.toFixed(2)}</td>
+                        <td className="p-3 text-right text-blue-700 bg-blue-100 px-3 py-2 rounded">€{totals.cassaTeoricaFinale.toFixed(2)}</td>
+                        <td className="p-3 text-xs">
+                          <div className="space-y-1">
+                            <div className="text-slate-600">Inizio: €{totals.conteggiInizio.toFixed(2)}</div>
+                            <div className="text-slate-600">Fine: €{totals.conteggiFinale.toFixed(2)}</div>
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="space-y-1">
+                            <div className={`text-xs font-bold px-2 py-1 rounded ${(totals.conteggiInizio - totals.cassaTeoricaInitial) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {(totals.conteggiInizio - totals.cassaTeoricaInitial) >= 0 ? '+' : ''}€{(totals.conteggiInizio - totals.cassaTeoricaInitial).toFixed(2)}
+                            </div>
+                            <div className={`text-xs font-bold px-2 py-1 rounded ${(totals.conteggiFinale - totals.cassaTeoricaFinale) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {(totals.conteggiFinale - totals.cassaTeoricaFinale) >= 0 ? '+' : ''}€{(totals.conteggiFinale - totals.cassaTeoricaFinale).toFixed(2)}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </NeumorphicCard>
-          ))}
+            );
+          })}
         </>
         }
 
