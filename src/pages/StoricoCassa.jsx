@@ -35,6 +35,7 @@ export default function StoricoCassa() {
   const [editingSaldo, setEditingSaldo] = useState(null);
   const [showSaldoConfig, setShowSaldoConfig] = useState(false);
   const [newManualSaldo, setNewManualSaldo] = useState({ dipendente: '', importo: 0 });
+  const [expandedDipendente, setExpandedDipendente] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -86,6 +87,11 @@ export default function StoricoCassa() {
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me()
+  });
+
+  const { data: pagamentiStraordinari = [] } = useQuery({
+    queryKey: ['pagamenti-straordinari'],
+    queryFn: () => base44.entities.PagamentoStraordinario.list('-data_pagamento', 500)
   });
 
   const saveSaldoMutation = useMutation({
@@ -363,22 +369,57 @@ export default function StoricoCassa() {
     prelievi.forEach((p) => {
       const dipendente = p.rilevato_da;
       if (!saldi[dipendente]) {
-        saldi[dipendente] = { nome: dipendente, prelievi: 0, depositi: 0, saldo: 0 };
+        saldi[dipendente] = { 
+          nome: dipendente, 
+          prelievi: 0, 
+          depositi: 0, 
+          saldo: 0,
+          movimenti: []
+        };
       }
       saldi[dipendente].prelievi += p.importo || 0;
+      saldi[dipendente].movimenti.push({
+        tipo: 'prelievo',
+        data: p.data_prelievo,
+        importo: -(p.importo || 0),
+        store: p.store_name,
+        note: p.note || ''
+      });
     });
 
     depositi.forEach((d) => {
       const dipendente = d.rilevato_da;
       if (!saldi[dipendente]) {
-        saldi[dipendente] = { nome: dipendente, prelievi: 0, depositi: 0, saldo: 0 };
+        saldi[dipendente] = { 
+          nome: dipendente, 
+          prelievi: 0, 
+          depositi: 0, 
+          saldo: 0,
+          movimenti: []
+        };
       }
       saldi[dipendente].depositi += d.importo || 0;
+      saldi[dipendente].movimenti.push({
+        tipo: d.store_id === 'manual_adjustment' ? 'aggiustamento' : 
+              d.store_id === 'pagamento_straordinario' ? 'pagamento_straordinario' : 'deposito',
+        data: d.data_deposito,
+        importo: d.importo || 0,
+        store: d.store_name,
+        note: d.note || ''
+      });
     });
 
     // Calculate saldo: prelievi - depositi
     Object.keys(saldi).forEach((dipendente) => {
       saldi[dipendente].saldo = saldi[dipendente].prelievi - saldi[dipendente].depositi;
+      // Sort movimenti by date (most recent first)
+      saldi[dipendente].movimenti.sort((a, b) => {
+        try {
+          return new Date(b.data) - new Date(a.data);
+        } catch (e) {
+          return 0;
+        }
+      });
     });
 
     // Return as array sorted by saldo (highest first)
@@ -1326,39 +1367,91 @@ export default function StoricoCassa() {
                       </tr>
                     </thead>
                     <tbody>
-                      {saldoDipendenti.map((dipendente, idx) =>
-                  <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                          <td className="p-2 lg:p-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                                <span className="text-xs font-bold text-white">
-                                  {dipendente.nome.charAt(0).toUpperCase()}
-                                </span>
+                      {saldoDipendenti.map((dipendente, idx) => (
+                        <React.Fragment key={idx}>
+                          <tr 
+                            className="border-b border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
+                            onClick={() => setExpandedDipendente(expandedDipendente === dipendente.nome ? null : dipendente.nome)}>
+                            <td className="p-2 lg:p-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                                  <span className="text-xs font-bold text-white">
+                                    {dipendente.nome.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <span className="text-slate-700 text-sm font-medium">{dipendente.nome}</span>
                               </div>
-                              <span className="text-slate-700 text-sm font-medium">{dipendente.nome}</span>
-                            </div>
-                          </td>
-                          <td className="p-2 lg:p-3 text-right">
-                            <span className="text-red-600 font-bold text-sm">
-                              €{dipendente.prelievi.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
-                            </span>
-                          </td>
-                          <td className="p-2 lg:p-3 text-right">
-                            <span className="text-green-600 font-bold text-sm">
-                              €{dipendente.depositi.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
-                            </span>
-                          </td>
-                          <td className="p-2 lg:p-3 text-right">
-                            <span className={`font-bold text-base lg:text-lg ${
-                      dipendente.saldo > 0 ? 'text-orange-600' :
-                      dipendente.saldo < 0 ? 'text-green-600' :
-                      'text-slate-600'}`
-                      }>
-                              {dipendente.saldo >= 0 ? '+' : ''}€{dipendente.saldo.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
-                            </span>
-                          </td>
-                        </tr>
-                  )}
+                            </td>
+                            <td className="p-2 lg:p-3 text-right">
+                              <span className="text-red-600 font-bold text-sm">
+                                €{dipendente.prelievi.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                              </span>
+                            </td>
+                            <td className="p-2 lg:p-3 text-right">
+                              <span className="text-green-600 font-bold text-sm">
+                                €{dipendente.depositi.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                              </span>
+                            </td>
+                            <td className="p-2 lg:p-3 text-right">
+                              <span className={`font-bold text-base lg:text-lg ${
+                                dipendente.saldo > 0 ? 'text-orange-600' :
+                                dipendente.saldo < 0 ? 'text-green-600' :
+                                'text-slate-600'}`
+                              }>
+                                {dipendente.saldo >= 0 ? '+' : ''}€{dipendente.saldo.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                              </span>
+                            </td>
+                          </tr>
+                          
+                          {expandedDipendente === dipendente.nome && (
+                            <tr>
+                              <td colSpan="4" className="p-0">
+                                <div className="bg-slate-50 p-4 border-l-4 border-blue-500">
+                                  <h4 className="text-sm font-bold text-slate-800 mb-3">Storico Movimenti</h4>
+                                  {dipendente.movimenti.length === 0 ? (
+                                    <p className="text-sm text-slate-500 text-center py-4">Nessun movimento</p>
+                                  ) : (
+                                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                                      {dipendente.movimenti.map((movimento, mIdx) => (
+                                        <div key={mIdx} className="neumorphic-pressed p-3 rounded-lg bg-white">
+                                          <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                              {movimento.tipo === 'prelievo' && (
+                                                <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-medium">Prelievo</span>
+                                              )}
+                                              {movimento.tipo === 'deposito' && (
+                                                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">Deposito</span>
+                                              )}
+                                              {movimento.tipo === 'aggiustamento' && (
+                                                <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-medium">Aggiustamento</span>
+                                              )}
+                                              {movimento.tipo === 'pagamento_straordinario' && (
+                                                <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-medium">Pag. Straordinario</span>
+                                              )}
+                                              <span className="text-xs text-slate-500">
+                                                {format(parseISO(movimento.data), 'dd/MM/yyyy HH:mm', { locale: it })}
+                                              </span>
+                                            </div>
+                                            <span className={`font-bold text-sm ${
+                                              movimento.importo >= 0 ? 'text-green-600' : 'text-red-600'
+                                            }`}>
+                                              {movimento.importo >= 0 ? '+' : ''}€{Math.abs(movimento.importo).toFixed(2)}
+                                            </span>
+                                          </div>
+                                          <div className="text-xs text-slate-500">
+                                            <p><strong>Locale:</strong> {movimento.store}</p>
+                                            {movimento.note && <p><strong>Note:</strong> {movimento.note}</p>}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
                     </tbody>
                   </table>
                 </div>
