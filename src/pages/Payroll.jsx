@@ -107,6 +107,7 @@ export default function Payroll() {
 
       return {
         id: turno.id,
+        dipendente_id: turno.dipendente_id,
         employee_name: turno.dipendente_nome,
         store_id: turno.store_id,
         store_name: store?.name || turno.store_id,
@@ -118,6 +119,7 @@ export default function Payroll() {
         scheduled_minutes: scheduledMinutes,
         shift_type: turno.tipo_turno,
         minuti_di_ritardo: minutiDiRitardo,
+        calcolato_ritardo: turno.calcolato_ritardo,
         created_date: turno.created_date
       };
     });
