@@ -498,26 +498,26 @@ export default function Payroll() {
         created_date: turno.created_date
       };
 
-      // ✅ CASO 1: Turni normalizzati come "Assenza non retribuita"
-      if (normalizedType === 'Assenza non retribuita') {
-        unpaidShifts.push({
-          ...shiftData,
-          unpaid_reason: `Turno di tipo: ${originalType}`,
-          unpaid_minutes: scheduledMinutes || 0
-        });
-      }
-
-      // ✅ CASO 2: TUTTI i turni con minuti_ritardo_conteggiato > 0 (DIRETTO DAL DATABASE - GIÀ ARROTONDATO)
       const ritardoConteggiato = turno.minuti_ritardo_conteggiato || 0;
       
+      // ✅ LOGICA CORRETTA:
+      // Priorità: SEMPRE mostra il ritardo se presente > 0
+      // (il ritardo è calcolato dal backend e è l'unica fonte di verità)
       if (ritardoConteggiato > 0) {
-        console.log(`✅ RITARDO TROVATO per turno ${turno.id} del ${turno.data}: ${ritardoConteggiato} minuti (GIÀ ARROTONDATO - minuti_ritardo_conteggiato)`);
-        
-        // Aggiungi come voce separata
+        console.log(`✅ RITARDO per turno ${turno.id} (${turno.data}): ${ritardoConteggiato} min`);
         unpaidShifts.push({
           ...shiftData,
           unpaid_reason: 'Ritardo in ingresso',
           unpaid_minutes: ritardoConteggiato
+        });
+      } 
+      // Se NON ha ritardo E è un tipo di assenza non retribuita, aggiungilo
+      else if (normalizedType === 'Assenza non retribuita') {
+        console.log(`✅ ASSENZA NON RETRIBUITA per turno ${turno.id} (${turno.data}): tipo="${originalType}"`);
+        unpaidShifts.push({
+          ...shiftData,
+          unpaid_reason: `Turno di tipo: ${originalType}`,
+          unpaid_minutes: scheduledMinutes || 0
         });
       }
     });
