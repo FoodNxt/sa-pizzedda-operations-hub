@@ -66,6 +66,16 @@ export default function Straordinari() {
     queryFn: () => base44.entities.PagamentoStraordinario.list('-data_turno', 500)
   });
 
+  const { data: turniStraordinari = [] } = useQuery({
+    queryKey: ['turni-straordinari'],
+    queryFn: async () => {
+      const shifts = await base44.entities.TurnoPlanday.list('-data', 500);
+      return shifts.filter(s => 
+        s.tipo_turno === 'Straordinario' || (s.ore_straordinarie && s.ore_straordinarie > 0)
+      );
+    }
+  });
+
   const activeConfig = disponibilitaConfigs[0] || null;
 
   const saveMutation = useMutation({
@@ -281,6 +291,105 @@ export default function Straordinari() {
               </table>
             </div>
         }
+        </NeumorphicCard>
+
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-600" />
+              Turni Straordinari
+            </h2>
+          </div>
+
+          {turniStraordinari.length === 0 ? (
+            <div className="text-center py-12">
+              <Clock className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
+              <p className="text-slate-500">Nessun turno straordinario trovato</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-blue-600">
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Data</th>
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Dipendente</th>
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
+                    <th className="text-center p-3 text-slate-600 font-medium text-sm">Ore Straord.</th>
+                    <th className="text-right p-3 text-slate-600 font-medium text-sm">€/h</th>
+                    <th className="text-right p-3 text-slate-600 font-medium text-sm">Totale</th>
+                    <th className="text-center p-3 text-slate-600 font-medium text-sm">Stato Pagamento</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {turniStraordinari.map((turno) => {
+                    const pagamento = pagamentiStraordinari.find(p => p.turno_id === turno.id);
+                    const dipConfig = straordinariList.find(c => c.dipendente_id === turno.dipendente_id);
+                    const costoOrario = dipConfig?.costo_orario_straordinario || activeConfig?.retribuzione_oraria_straordinari || 10;
+                    const oreStr = turno.ore_straordinarie || 0;
+                    const importoTotale = oreStr * costoOrario;
+
+                    return (
+                      <tr key={turno.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-slate-400" />
+                            <span className="text-slate-700 text-sm">
+                              {turno.data ? format(parseISO(turno.data), 'dd/MM/yyyy') : '-'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-slate-400" />
+                            <span className="text-slate-700 font-medium">{turno.dipendente_nome}</span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <span className="text-slate-700 text-sm">{turno.store_nome}</span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className="text-slate-700 font-bold text-sm">
+                            {oreStr}h
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <span className="text-slate-600 text-sm">
+                            €{costoOrario.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <span className="text-lg font-bold text-blue-600">
+                            €{importoTotale.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          {pagamento?.pagato ? (
+                            <div className="inline-flex flex-col items-center gap-1">
+                              <div className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                                <CheckCircle className="w-3 h-3" />
+                                Pagato
+                              </div>
+                              <span className="text-xs text-slate-500">
+                                {pagamento.data_pagamento ? format(parseISO(pagamento.data_pagamento), 'dd/MM HH:mm') : '-'}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                da {pagamento.pagato_da || '-'}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-medium">
+                              <XCircle className="w-3 h-3" />
+                              Non Pagato
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </NeumorphicCard>
 
         <NeumorphicCard className="p-6">
