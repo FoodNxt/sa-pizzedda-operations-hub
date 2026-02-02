@@ -699,7 +699,7 @@ export default function Payroll() {
   };
 
   // ✅ UPDATED: Export daily breakdown for ALL employees with overtime exclusion
-  const exportAllEmployeesDailyCSV = () => {
+  const exportAllEmployeesDailyCSV = (downloadFmt) => {
     let csv = 'Report Giornaliero - Tutti i Dipendenti\n';
     csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
     csv += `Locale: ${selectedStore === 'all' ? 'Tutti i Locali' : stores.find((s) => s.id === selectedStore)?.name || selectedStore}\n\n`;
@@ -847,23 +847,23 @@ export default function Payroll() {
 
       shiftTypesArray.forEach((type) => {
         const minutes = day.shift_types[type] || 0;
-        csv += `"${minutesToHours(minutes)}",`;
+        csv += `"${formatMinutes(minutes, downloadFmt)}",`;
       });
 
-      csv += `"${minutesToHours(day.total_minutes)}",`;
-      csv += `"${minutesToHours(day.total_minutes_excluding_overtime)}"\n`;
+      csv += `"${formatMinutes(day.total_minutes, downloadFmt)}",`;
+      csv += `"${formatMinutes(day.total_minutes_excluding_overtime, downloadFmt)}"\n`;
     });
 
     // Summary row
     csv += '\nRIEPILOGO TOTALE,,';
     shiftTypesArray.forEach((type) => {
       const totalMinutes = allDailyData.reduce((sum, day) => sum + (day.shift_types[type] || 0), 0);
-      csv += `"${minutesToHours(totalMinutes)}",`;
+      csv += `"${formatMinutes(totalMinutes, downloadFmt)}",`;
     });
     const grandTotal = allDailyData.reduce((sum, day) => sum + day.total_minutes, 0);
     const grandTotalExcludingOvertime = allDailyData.reduce((sum, day) => sum + day.total_minutes_excluding_overtime, 0);
-    csv += `"${minutesToHours(grandTotal)}",`;
-    csv += `"${minutesToHours(grandTotalExcludingOvertime)}"\n`;
+    csv += `"${formatMinutes(grandTotal, downloadFmt)}",`;
+    csv += `"${formatMinutes(grandTotalExcludingOvertime, downloadFmt)}"\n`;
 
     // Create download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -877,6 +877,7 @@ export default function Payroll() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setShowDownloadModal(null);
   };
 
   // ✅ UPDATED: Export weekly report with overtime exclusion
