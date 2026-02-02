@@ -562,213 +562,102 @@ export default function StoricoCassa() {
           </NeumorphicCard>
 
           {useMemo(() => {
-            const rollingData = [];
-            const cutoffDate = startDate ? parseISO(startDate) : subDays(new Date(), parseInt(dateRange));
-            const endFilterDate = endDate ? parseISO(endDate) : new Date();
-            const applicableStores = selectedStoresRolling.length > 0 ? selectedStoresRolling : stores.map(s => s.id);
+             const rollingData = [];
+             const cutoffDate = startDate ? parseISO(startDate) : subDays(new Date(), parseInt(dateRange));
+             const endFilterDate = endDate ? parseISO(endDate) : new Date();
+             const applicableStores = selectedStoresRolling.length > 0 ? selectedStoresRolling : stores.map(s => s.id);
 
-            // Raccogliamo tutti i giorni unici nel periodo
-            const allDatesSet = new Set();
-            const conteggiByStoreDate = {};
+             const allDatesSet = new Set();
+             const conteggiByStoreDate = {};
 
-            applicableStores.forEach(storeId => {
-              conteggi
-                .filter(c => c.store_id === storeId && c.data_conteggio)
-                .forEach(c => {
-                  const dateOnly = c.data_conteggio.split('T')[0];
-                  try {
-                    const d = parseISO(dateOnly);
-                    if (!isBefore(d, cutoffDate) && !isAfter(d, endFilterDate)) {
-                      allDatesSet.add(dateOnly);
-                      if (!conteggiByStoreDate[storeId]) conteggiByStoreDate[storeId] = {};
-                      conteggiByStoreDate[storeId][dateOnly] = c;
-                    }
-                  } catch (e) {
-                    // ignore
-                  }
-                });
-            });
+             applicableStores.forEach(storeId => {
+               conteggi
+                 .filter(c => c.store_id === storeId && c.data_conteggio)
+                 .forEach(c => {
+                   const dateOnly = c.data_conteggio.split('T')[0];
+                   try {
+                     const d = parseISO(dateOnly);
+                     if (!isBefore(d, cutoffDate) && !isAfter(d, endFilterDate)) {
+                       allDatesSet.add(dateOnly);
+                       if (!conteggiByStoreDate[storeId]) conteggiByStoreDate[storeId] = {};
+                       conteggiByStoreDate[storeId][dateOnly] = c;
+                     }
+                   } catch (e) {
+                     // ignore
+                   }
+                 });
+             });
 
-            const sortedDates = Array.from(allDatesSet).sort();
+             const sortedDates = Array.from(allDatesSet).sort();
 
-            sortedDates.forEach((dateStr, dateIdx) => {
-              const dayData = {
-                date: dateStr,
-                entries: []
-              };
+             sortedDates.forEach((dateStr, dateIdx) => {
+               const dayData = {
+                 date: dateStr,
+                 entries: []
+               };
 
-              applicableStores.forEach(storeId => {
-                const store = stores.find(s => s.id === storeId);
-                const prevDate = dateIdx > 0 ? sortedDates[dateIdx - 1] : null;
+               applicableStores.forEach(storeId => {
+                 const store = stores.find(s => s.id === storeId);
+                 const prevDayData = dateIdx > 0 ? rollingData[rollingData.length - 1] : null;
 
-                let cassaTeoricaInitial = 0;
-                let cassaTeoricaInitialManual = false;
-                
-                // Se è il primo giorno o vogliamo usare il saldo manuale
-                const manualSaldoForDate = saldiManuali.find(s => s.store_id === storeId && s.data === dateStr);
-                const manualSaldoPrevDay = prevDate ? saldiManuali.find(s => s.store_id === storeId && s.data === prevDate) : null;
+                 let cassaTeoricaInitial = 0;
+                 let cassaTeoricaInitialManual = false;
 
-                if (manualSaldoForDate) {
-                  cassaTeoricaInitial = manualSaldoForDate.saldo_iniziale;
-                  cassaTeoricaInitialManual = true;
-                } else if (manualSaldoPrevDay) {
-                  // Se c'è un saldo manuale del giorno precedente, la cassa teorica è quella finale del saldo manuale
-                  cassaTeoricaInitial = manualSaldoPrevDay.saldo_iniziale + 
-                    (manualSaldoPrevDay.pagamenti_contanti || 0) - 
-                    (manualSaldoPrevDay.prelievi || 0);
-                } else if (prevDate) {
-                  // Altrimenti usa il valore finale teorico del giorno precedente
-                  const prevDayEntry = rollingData[rollingData.length - 1]?.entries.find(e => e.store_id === storeId);
-                  if (prevDayEntry) {
-                    cassaTeoricaInitial = prevDayEntry.cassaTeoricaFinale;
-                  }
-                } else if (conteggiByStoreDate[storeId]?.[dateStr]) {
-                  cassaTeoricaInitial = conteggiByStoreDate[storeId][dateStr].valore_conteggio;
-                }
+                 const manualSaldoForDate = saldiManuali.find(s => s.store_id === storeId && s.data === dateStr);
+                 const prevDayEntry = prevDayData?.entries.find(e => e.store_id === storeId);
 
-                // Pagamenti contanti da iPratico
-                const iPraticoGiorno = iPraticoData.filter(i => i.store_id === storeId && i.order_date === dateStr);
-                const pagamentiContantiIpratico = iPraticoGiorno.reduce((sum, record) => {
-                  return sum + (parseFloat(record.moneyType_cash) || 0);
-                }, 0);
+                 if (manualSaldoForDate) {
+                   cassaTeoricaInitial = manualSaldoForDate.saldo_iniziale;
+                   cassaTeoricaInitialManual = true;
+                 } else if (prevDayEntry) {
+                   cassaTeoricaInitial = prevDayEntry.cassaTeoricaFinale;
+                 } else if (conteggiByStoreDate[storeId]?.[dateStr]) {
+                   cassaTeoricaInitial = conteggiByStoreDate[storeId][dateStr].valore_conteggio;
+                 }
 
-                // Prelievi dal form
-                const prelieviGiorno = prelievi
-                  .filter(p => p.store_id === storeId && p.data_prelievo && p.data_prelievo.split('T')[0] === dateStr)
-                  .reduce((sum, p) => sum + (p.importo || 0), 0);
+                 const iPraticoGiorno = iPraticoData.filter(i => i.store_id === storeId && i.order_date === dateStr);
+                 const pagamentiContantiIpratico = iPraticoGiorno.reduce((sum, record) => {
+                   return sum + (parseFloat(record.moneyType_cash) || 0);
+                 }, 0);
 
-                const cassaTeoricaFinale = cassaTeoricaInitial + pagamentiContantiIpratico - prelieviGiorno;
+                 const prelieviGiorno = prelievi
+                   .filter(p => p.store_id === storeId && p.data_prelievo && p.data_prelievo.split('T')[0] === dateStr)
+                   .reduce((sum, p) => sum + (p.importo || 0), 0);
 
-                // Conteggio cassa fine giornata
-                const conteggiGiorno = conteggi
-                  .filter(c => c.store_id === storeId && c.data_conteggio && c.data_conteggio.split('T')[0] === dateStr)
-                  .sort((a, b) => new Date(a.data_conteggio) - new Date(b.data_conteggio));
+                 const cassaTeoricaFinale = cassaTeoricaInitial + pagamentiContantiIpratico - prelieviGiorno;
 
-                const conteggiInizio = conteggiGiorno[0];
-                const conteggiFinale = conteggiGiorno[conteggiGiorno.length - 1];
+                 const conteggiGiorno = conteggi
+                   .filter(c => c.store_id === storeId && c.data_conteggio && c.data_conteggio.split('T')[0] === dateStr)
+                   .sort((a, b) => new Date(a.data_conteggio) - new Date(b.data_conteggio));
 
-                dayData.entries.push({
-                  store_id: storeId,
-                  store_name: store?.name || '',
-                  cassaTeoricaInitial,
-                  cassaTeoricaInitialManual,
-                  pagamentiContanti: pagamentiContantiIpratico,
-                  prelievi: prelieviGiorno,
-                  cassaTeoricaFinale,
-                  conteggiInizio: conteggiInizio?.valore_conteggio || null,
-                  conteggiInizioOra: conteggiInizio?.data_conteggio,
-                  conteggiInizioRilevatoDa: conteggiInizio?.rilevato_da,
-                  conteggiFinale: conteggiFinale?.valore_conteggio || null,
-                  conteggiFinaleOra: conteggiFinale?.data_conteggio,
-                  conteggiFinaleRilevatoDa: conteggiFinale?.rilevato_da,
-                  differenciaInizio: conteggiInizio ? Math.abs((conteggiInizio.valore_conteggio || 0) - (prevDate && rollingData.length > 0 ? rollingData[rollingData.length - 1].entries.find(e => e.store_id === storeId)?.cassaTeoricaFinale || 0 : cassaTeoricaInitial)) : null,
-                  differenciaFinale: conteggiFinale ? Math.abs((conteggiFinale.valore_conteggio || 0) - cassaTeoricaFinale) : null
-                });
-              });
+                 const conteggiInizio = conteggiGiorno[0];
+                 const conteggiFinale = conteggiGiorno[conteggiGiorno.length - 1];
 
-              rollingData.push(dayData);
-            });
+                 dayData.entries.push({
+                   store_id: storeId,
+                   store_name: store?.name || '',
+                   cassaTeoricaInitial,
+                   cassaTeoricaInitialManual,
+                   pagamentiContanti: pagamentiContantiIpratico,
+                   prelievi: prelieviGiorno,
+                   cassaTeoricaFinale,
+                   conteggiInizio: conteggiInizio?.valore_conteggio || null,
+                   conteggiInizioOra: conteggiInizio?.data_conteggio,
+                   conteggiInizioRilevatoDa: conteggiInizio?.rilevato_da,
+                   conteggiFinale: conteggiFinale?.valore_conteggio || null,
+                   conteggiFinaleOra: conteggiFinale?.data_conteggio,
+                   conteggiFinaleRilevatoDa: conteggiFinale?.rilevato_da,
+                   differenciaInizio: conteggiInizio ? Math.abs((conteggiInizio.valore_conteggio || 0) - cassaTeoricaInitial) : null,
+                   differenciaFinale: conteggiFinale ? Math.abs((conteggiFinale.valore_conteggio || 0) - cassaTeoricaFinale) : null
+                 });
+               });
 
-            return rollingData;
-          }, [conteggi, iPraticoData, prelievi, saldiManuali, stores, selectedStoresRolling, startDate, endDate, dateRange]) ? 
-          useMemo(() => {
-            const rollingData = [];
-            const cutoffDate = startDate ? parseISO(startDate) : subDays(new Date(), parseInt(dateRange));
-            const endFilterDate = endDate ? parseISO(endDate) : new Date();
-            const applicableStores = selectedStoresRolling.length > 0 ? selectedStoresRolling : stores.map(s => s.id);
+               rollingData.push(dayData);
+             });
 
-            const allDatesSet = new Set();
-            const conteggiByStoreDate = {};
-
-            applicableStores.forEach(storeId => {
-              conteggi
-                .filter(c => c.store_id === storeId && c.data_conteggio)
-                .forEach(c => {
-                  const dateOnly = c.data_conteggio.split('T')[0];
-                  try {
-                    const d = parseISO(dateOnly);
-                    if (!isBefore(d, cutoffDate) && !isAfter(d, endFilterDate)) {
-                      allDatesSet.add(dateOnly);
-                      if (!conteggiByStoreDate[storeId]) conteggiByStoreDate[storeId] = {};
-                      conteggiByStoreDate[storeId][dateOnly] = c;
-                    }
-                  } catch (e) {
-                    // ignore
-                  }
-                });
-            });
-
-            const sortedDates = Array.from(allDatesSet).sort();
-
-            sortedDates.forEach((dateStr, dateIdx) => {
-              const dayData = {
-                date: dateStr,
-                entries: []
-              };
-
-              applicableStores.forEach(storeId => {
-                const store = stores.find(s => s.id === storeId);
-                const prevDate = dateIdx > 0 ? sortedDates[dateIdx - 1] : null;
-                const prevDayData = dateIdx > 0 ? rollingData[rollingData.length - 1] : null;
-
-                let cassaTeoricaInitial = 0;
-                let cassaTeoricaInitialManual = false;
-                
-                const manualSaldoForDate = saldiManuali.find(s => s.store_id === storeId && s.data === dateStr);
-                const prevDayEntry = prevDayData?.entries.find(e => e.store_id === storeId);
-
-                if (manualSaldoForDate) {
-                  cassaTeoricaInitial = manualSaldoForDate.saldo_iniziale;
-                  cassaTeoricaInitialManual = true;
-                } else if (prevDayEntry) {
-                  cassaTeoricaInitial = prevDayEntry.cassaTeoricaFinale;
-                } else if (conteggiByStoreDate[storeId]?.[dateStr]) {
-                  cassaTeoricaInitial = conteggiByStoreDate[storeId][dateStr].valore_conteggio;
-                }
-
-                const iPraticoGiorno = iPraticoData.filter(i => i.store_id === storeId && i.order_date === dateStr);
-                const pagamentiContantiIpratico = iPraticoGiorno.reduce((sum, record) => {
-                  return sum + (parseFloat(record.moneyType_cash) || 0);
-                }, 0);
-
-                const prelieviGiorno = prelievi
-                  .filter(p => p.store_id === storeId && p.data_prelievo && p.data_prelievo.split('T')[0] === dateStr)
-                  .reduce((sum, p) => sum + (p.importo || 0), 0);
-
-                const cassaTeoricaFinale = cassaTeoricaInitial + pagamentiContantiIpratico - prelieviGiorno;
-
-                const conteggiGiorno = conteggi
-                  .filter(c => c.store_id === storeId && c.data_conteggio && c.data_conteggio.split('T')[0] === dateStr)
-                  .sort((a, b) => new Date(a.data_conteggio) - new Date(b.data_conteggio));
-
-                const conteggiInizio = conteggiGiorno[0];
-                const conteggiFinale = conteggiGiorno[conteggiGiorno.length - 1];
-
-                dayData.entries.push({
-                  store_id: storeId,
-                  store_name: store?.name || '',
-                  cassaTeoricaInitial,
-                  cassaTeoricaInitialManual,
-                  pagamentiContanti: pagamentiContantiIpratico,
-                  prelievi: prelieviGiorno,
-                  cassaTeoricaFinale,
-                  conteggiInizio: conteggiInizio?.valore_conteggio || null,
-                  conteggiInizioOra: conteggiInizio?.data_conteggio,
-                  conteggiInizioRilevatoDa: conteggiInizio?.rilevato_da,
-                  conteggiFinale: conteggiFinale?.valore_conteggio || null,
-                  conteggiFinaleOra: conteggiFinale?.data_conteggio,
-                  conteggiFinaleRilevatoDa: conteggiFinale?.rilevato_da,
-                  differenciaInizio: conteggiInizio ? Math.abs((conteggiInizio.valore_conteggio || 0) - cassaTeoricaInitial) : null,
-                  differenciaFinale: conteggiFinale ? Math.abs((conteggiFinale.valore_conteggio || 0) - cassaTeoricaFinale) : null
-                });
-              });
-
-              rollingData.push(dayData);
-            });
-
-            return rollingData;
-          }, [conteggi, iPraticoData, prelievi, saldiManuali, stores, selectedStoresRolling, startDate, endDate, dateRange])
-          .map((dayData) => (
+             return rollingData;
+           }, [conteggi, iPraticoData, prelievi, saldiManuali, stores, selectedStoresRolling, startDate, endDate, dateRange])
+           .map((dayData) => (
             <NeumorphicCard key={dayData.date} className="p-4 lg:p-6 mb-4">
               <h3 className="text-lg font-bold text-slate-800 mb-4">{format(parseISO(dayData.date), 'dd/MM/yyyy', { locale: it })}</h3>
               
