@@ -76,13 +76,6 @@ export default function Straordinari() {
     }
   });
 
-  const { data: disponibilitaConfigs = [] } = useQuery({
-    queryKey: ['disponibilita-config'],
-    queryFn: () => base44.entities.DisponibilitaConfig.filter({ is_active: true })
-  });
-
-  const activeConfig = disponibilitaConfigs[0] || null;
-
   const { data: attivitaCompletate = [] } = useQuery({
     queryKey: ['attivita-completate-straordinari'],
     queryFn: () => base44.entities.AttivitaCompletata.filter({
