@@ -31,6 +31,11 @@ export default function Straordinari() {
 
   const queryClient = useQueryClient();
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: straordinariList = [] } = useQuery({
     queryKey: ['straordinari'],
     queryFn: () => base44.entities.StraordinarioDipendente.list('-updated_date', 100)
@@ -123,6 +128,42 @@ export default function Straordinari() {
     }
   });
 
+  const effettuaPagamentoMutation = useMutation({
+    mutationFn: async ({ turnoId, dipendente_id, dipendente_nome, store_id, store_name, data_turno, ore_straordinarie, costo_orario, importo_totale }) => {
+      const newPagamento = await base44.entities.PagamentoStraordinario.create({
+        turno_id: turnoId,
+        dipendente_id,
+        dipendente_nome,
+        store_id,
+        store_name,
+        data_turno,
+        ore_straordinarie,
+        costo_orario,
+        importo_totale,
+        pagato: true,
+        data_pagamento: new Date().toISOString(),
+        pagato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email,
+        pagato_da_id: currentUser?.id
+      });
+
+      await base44.entities.Deposito.create({
+        store_id: 'pagamento_straordinario',
+        store_name: 'Pagamento Straordinario',
+        rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email,
+        importo: importo_totale,
+        data_deposito: new Date().toISOString(),
+        note: `Pagamento straordinario a ${dipendente_nome}`,
+        impostato_da: currentUser?.email || ''
+      });
+
+      return newPagamento;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pagamenti-straordinari'] });
+      queryClient.invalidateQueries({ queryKey: ['depositi'] });
+    }
+  });
+
   const resetForm = () => {
     setFormData({
       dipendente_id: '',
@@ -168,6 +209,24 @@ export default function Straordinari() {
   };
 
   const getStoreName = (storeId) => stores.find((s) => s.id === storeId)?.name || '-';
+
+  const handleEffettuaPagamento = async (turno, oreStr, costoOrario, importoTotale) => {
+    if (!confirm(`Confermare il pagamento di €${importoTotale.toFixed(2)} a ${turno.dipendente_nome}?`)) {
+      return;
+    }
+
+    effettuaPagamentoMutation.mutate({
+      turnoId: turno.id,
+      dipendente_id: turno.dipendente_id,
+      dipendente_nome: turno.dipendente_nome,
+      store_id: turno.store_id,
+      store_name: turno.store_nome,
+      data_turno: turno.data,
+      ore_straordinarie: oreStr,
+      costo_orario: costoOrario,
+      importo_totale: importoTotale
+    });
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -325,6 +384,7 @@ export default function Straordinari() {
                     <th className="text-right p-3 text-slate-600 font-medium text-sm">€/h</th>
                     <th className="text-right p-3 text-slate-600 font-medium text-sm">Totale</th>
                     <th className="text-center p-3 text-slate-600 font-medium text-sm">Stato Pagamento</th>
+                    <th className="text-center p-3 text-slate-600 font-medium text-sm">Azione</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -417,6 +477,16 @@ export default function Straordinari() {
                               <XCircle className="w-3 h-3" />
                               Non Pagato
                             </div>
+                          )}
+                        </td>
+                        <td className="p-3 text-center">
+                          {!isPagato && (
+                            <button
+                              onClick={() => handleEffettuaPagamento(turno, oreStr, costoOrario, importoTotale)}
+                              disabled={effettuaPagamentoMutation.isPending}
+                              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-medium hover:from-green-600 hover:to-green-700 disabled:opacity-50">
+                              Paga
+                            </button>
                           )}
                         </td>
                       </tr>
