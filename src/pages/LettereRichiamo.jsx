@@ -483,52 +483,63 @@ export default function LettereRichiamo() {
                 )}
 
         {activeTab === 'template' && (
-          <div className="space-y-4">
-            {templates.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Nessun template creato</p>
-              </div>
-            ) : (
-              templates.map(template => (
-                <NeumorphicCard key={template.id} className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-slate-800">{template.nome_template}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          template.tipo_lettera === 'lettera_richiamo' 
-                            ? 'bg-orange-100 text-orange-700' 
-                            : 'bg-purple-100 text-purple-700'
-                        }`}>
-                          {template.tipo_lettera === 'lettera_richiamo' ? 'Richiamo' : 'Chiusura'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-600 line-clamp-2">{template.contenuto}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEditTemplate(template)}
-                        className="nav-button p-2 rounded-lg"
-                      >
-                        <Edit className="w-4 h-4 text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Eliminare questo template?')) {
-                            deleteTemplateMutation.mutate(template.id);
-                          }
-                        }}
-                        className="nav-button p-2 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
-                    </div>
+          <NeumorphicCard className="p-4">
+            <button
+              onClick={() => setExpandedTemplate(!expandedTemplate)}
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              <h3 className="font-bold text-slate-800">Templates Lettere</h3>
+              <ChevronDown className={`w-5 h-5 text-slate-600 transition-transform ${expandedTemplate ? 'rotate-180' : ''}`} />
+            </button>
+
+            {expandedTemplate && (
+              <div className="space-y-3 mt-4 pt-4 border-t">
+                {templates.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-slate-500">Nessun template creato</p>
                   </div>
-                </NeumorphicCard>
-              ))
+                ) : (
+                  templates.map(template => (
+                    <div key={template.id} className="bg-white p-3 rounded-lg border border-slate-200">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-bold text-slate-800 text-sm">{template.nome_template}</h4>
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                              template.tipo_lettera === 'lettera_richiamo' 
+                                ? 'bg-orange-100 text-orange-700' 
+                                : 'bg-purple-100 text-purple-700'
+                            }`}>
+                              {template.tipo_lettera === 'lettera_richiamo' ? 'Richiamo' : 'Chiusura'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 line-clamp-2">{template.contenuto}</p>
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => handleEditTemplate(template)}
+                            className="p-1.5 rounded hover:bg-blue-50 transition-colors"
+                          >
+                            <Edit className="w-4 h-4 text-blue-600" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('Eliminare questo template?')) {
+                                deleteTemplateMutation.mutate(template.id);
+                              }
+                            }}
+                            className="p-1.5 rounded hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
-          </div>
+          </NeumorphicCard>
         )}
       </NeumorphicCard>
 
