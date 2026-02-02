@@ -13,6 +13,9 @@ export default function LettereRichiamo() {
   const [showChiusuraModal, setShowChiusuraModal] = useState(false);
   const [selectedLettera, setSelectedLettera] = useState(null);
   const [chiusuraConfig, setChiusuraConfig] = useState({ modalita: 'automatico' });
+  const [expandedTemplate, setExpandedTemplate] = useState(false);
+  const [filterRichiami, setFilterRichiami] = useState('inviate');
+  const [filterChiusure, setFilterChiusure] = useState('inviate');
   
   const [templateForm, setTemplateForm] = useState({
     nome_template: '',
