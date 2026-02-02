@@ -20,7 +20,8 @@ import {
   Users,
   Send,
   ChevronDown,
-  ChevronRight } from
+  ChevronRight,
+  Trash2 } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -127,6 +128,14 @@ export default function OrdiniSbagliati() {
     mutationFn: (data) => base44.entities.CSVColumnMapping.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['column-mappings'] });
+    }
+  });
+
+  const deleteOrderMutation = useMutation({
+    mutationFn: (orderId) => base44.entities.WrongOrder.delete(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wrong-orders'] });
+      alert('✅ Ordine eliminato con successo');
     }
   });
 
@@ -1640,6 +1649,7 @@ export default function OrdiniSbagliati() {
                     <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale</th>
                     <th className="text-right p-3 text-[#9b9b9b] font-medium">Rimborso</th>
                     <th className="text-left p-3 text-[#9b9b9b] font-medium">Stato</th>
+                    <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1676,6 +1686,17 @@ export default function OrdiniSbagliati() {
                       </td>
                       <td className="p-3 text-sm text-[#6b6b6b]">
                         {order.customer_refund_status || order.order_status || '-'}
+                      </td>
+                      <td className="p-3 text-center">
+                        <button
+                          onClick={() => {
+                            if (confirm('Sei sicuro di voler eliminare questo ordine?')) {
+                              deleteOrderMutation.mutate(order.id);
+                            }
+                          }}
+                          className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
                       </td>
                     </tr>
               )}
