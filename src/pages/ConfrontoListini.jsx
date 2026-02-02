@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingDown, TrendingUp, Package, DollarSign, Building2, AlertTriangle, Store } from 'lucide-react';
+import { TrendingDown, TrendingUp, Package, DollarSign, Building2, AlertTriangle, Store, Download, X } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
 export default function ConfrontoListini() {
   const [selectedNomeInterno, setSelectedNomeInterno] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStore, setSelectedStore] = useState('all');
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [downloadCategories, setDownloadCategories] = useState([]);
 
   const { data: materiePrime = [], isLoading } = useQuery({
     queryKey: ['materie-prime'],
@@ -176,15 +178,73 @@ export default function ConfrontoListini() {
 
   const notOptimalProducts = getProductsNotOptimal();
 
+  // Get all unique categories from active products
+  const allCategories = [...new Set(materiePrime.filter(p => p.attivo).map(p => p.categoria).filter(Boolean))].sort();
+
+  const handleDownloadListino = () => {
+    const prodottiDaEsportare = materiePrime.filter(p => {
+      if (!p.attivo) return false;
+      if (downloadCategories.length > 0 && !downloadCategories.includes(p.categoria)) return false;
+      return true;
+    });
+
+    // Create CSV content
+    const headers = ['Nome Prodotto', 'Nome Interno', 'Categoria', 'Fornitore', 'Marca', 'Prezzo Unitario (€)', 'Unità di Misura', 'Peso/Dimensione', 'Unità Misura Peso'];
+    const rows = prodottiDaEsportare.map(p => [
+      p.nome_prodotto || '',
+      p.nome_interno || '',
+      p.categoria || '',
+      p.fornitore || '',
+      p.marca || '',
+      p.prezzo_unitario?.toFixed(2) || '0.00',
+      p.unita_misura || '',
+      p.peso_dimensione_unita || '',
+      p.unita_misura_peso || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `listino_${downloadCategories.length > 0 ? downloadCategories.join('_') : 'completo'}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    setShowDownloadModal(false);
+    setDownloadCategories([]);
+  };
+
+  const toggleCategory = (category) => {
+    setDownloadCategories(prev => 
+      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <DollarSign className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-slate-50 text-3xl font-bold">Confronto Listini</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <DollarSign className="w-10 h-10 text-[#8b7355]" />
+            <div>
+              <h1 className="text-slate-50 text-3xl font-bold">Confronto Listini</h1>
+              <p className="text-slate-50 text-sm">Confronta prezzi dello stesso prodotto da fornitori diversi</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowDownloadModal(true)}
+            className="neumorphic-flat px-4 py-3 rounded-xl hover:shadow-lg transition-all flex items-center gap-2 text-slate-700 font-medium">
+            <Download className="w-5 h-5" />
+            <span className="hidden md:inline">Scarica Listino</span>
+          </button>
         </div>
-        <p className="text-slate-50">Confronta prezzi dello stesso prodotto da fornitori diversi</p>
       </div>
 
       {/* Filters */}
@@ -455,6 +515,64 @@ export default function ConfrontoListini() {
           </div>
         }
       </NeumorphicCard>
+
+      {/* Download Modal */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-800">Scarica Listino</h2>
+              <button onClick={() => {setShowDownloadModal(false); setDownloadCategories([]);}} className="nav-button p-2 rounded-lg">
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-slate-700 mb-3">Seleziona categorie da includere:</p>
+              
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                <button
+                  onClick={() => setDownloadCategories(downloadCategories.length === allCategories.length ? [] : allCategories)}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors">
+                  {downloadCategories.length === allCategories.length ? '✓ Deseleziona Tutto' : '☐ Seleziona Tutto'}
+                </button>
+                {allCategories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => toggleCategory(cat)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
+                      downloadCategories.includes(cat) 
+                        ? 'bg-blue-100 text-blue-700 font-medium' 
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}>
+                    {downloadCategories.includes(cat) ? '✓' : '☐'} {cat}
+                  </button>
+                ))}
+              </div>
+
+              {downloadCategories.length === 0 && (
+                <p className="text-xs text-blue-600 mt-3 bg-blue-50 p-2 rounded-lg">
+                  Nessuna categoria selezionata = tutte le categorie
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {setShowDownloadModal(false); setDownloadCategories([]);}}
+                className="flex-1 neumorphic-flat px-4 py-3 rounded-xl text-slate-700 font-medium hover:bg-slate-100 transition-colors">
+                Annulla
+              </button>
+              <button
+                onClick={handleDownloadListino}
+                className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                <Download className="w-5 h-5" />
+                Scarica CSV
+              </button>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
     </div>);
 
 }
