@@ -25,6 +25,7 @@ export default function ControlloConsumi() {
   const [expandedMozzarellaRows, setExpandedMozzarellaRows] = useState({});
   const [expandedProducts, setExpandedProducts] = useState({});
   const [prodottiChiaveViewMode, setProdottiChiaveViewMode] = useState('daily'); // 'daily', 'weekly', 'monthly'
+  const [expandedConsumiTeoruiDettagli, setExpandedConsumiTeoriciDettagli] = useState({});
 
   // Fetch data
   const { data: stores = [] } = useQuery({
