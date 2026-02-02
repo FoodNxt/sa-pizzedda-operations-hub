@@ -38,6 +38,8 @@ export default function StoricoCassa() {
   const [expandedDipendente, setExpandedDipendente] = useState(null);
   const [selectedStoresRolling, setSelectedStoresRolling] = useState([]);
   const [editingCassaEntry, setEditingCassaEntry] = useState(null);
+  const [showCassaModal, setShowCassaModal] = useState(false);
+  const [cassaModalData, setCassaModalData] = useState({ store_id: '', store_name: '', date: '', valore: 0 });
 
   const queryClient = useQueryClient();
 
