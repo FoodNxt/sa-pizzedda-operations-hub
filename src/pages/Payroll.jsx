@@ -1633,9 +1633,9 @@ export default function Payroll() {
               Report Settimanale
             </button>
             <button
-              onClick={() => setShowDownloadModal('daily')}
+              onClick={() => setShowDownloadModal('daily-new')}
               className="neumorphic-flat px-4 py-2 rounded-lg flex items-center gap-2 text-[#6b6b6b] hover:text-[#8b7355] transition-colors"
-              title="Scarica report giornaliero di tutti i dipendenti">
+              title="Scarica report giornaliero (nuovo formato)">
 
               <FileText className="w-4 h-4" />
               Report Giornaliero
