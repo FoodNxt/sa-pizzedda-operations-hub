@@ -1149,6 +1149,7 @@ export default function Payroll() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setShowDownloadModal(null);
   };
 
   if (isLoading) {
