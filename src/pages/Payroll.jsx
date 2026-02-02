@@ -2227,11 +2227,68 @@ export default function Payroll() {
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-md w-full p-6">
             {showDownloadModal === 'daily-new' ? (
-              // New daily format modal - ask about overtime
+              // Combined modal for daily - ask about overtime AND format
               <>
-                <h2 className="text-2xl font-bold text-[#6b6b6b] mb-4">Includi Straordinari?</h2>
-                <p className="text-sm text-[#9b9b9b] mb-6">Vuoi includere una riga per gli straordinari nel report?</p>
+                <h2 className="text-2xl font-bold text-[#6b6b6b] mb-4">Configurazione Report</h2>
                 
+                {/* Straordinari Option */}
+                <div className="mb-6">
+                  <p className="text-sm font-medium text-[#6b6b6b] mb-3">Includi Straordinari?</p>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-3 p-3 neumorphic-pressed rounded-lg cursor-pointer hover:bg-[#e8ecf3] transition-colors">
+                      <input
+                        type="radio"
+                        checked={!includeOvertimeDaily}
+                        onChange={() => setIncludeOvertimeDaily(false)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm text-[#6b6b6b]">No</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 neumorphic-pressed rounded-lg cursor-pointer hover:bg-[#e8ecf3] transition-colors">
+                      <input
+                        type="radio"
+                        checked={includeOvertimeDaily}
+                        onChange={() => setIncludeOvertimeDaily(true)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm text-[#6b6b6b]">Sì</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Format Option */}
+                <div className="mb-6">
+                  <p className="text-sm font-medium text-[#6b6b6b] mb-3">Formato Ore</p>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-3 p-3 neumorphic-pressed rounded-lg cursor-pointer hover:bg-[#e8ecf3] transition-colors">
+                      <input
+                        type="radio"
+                        value="hm"
+                        checked={downloadFormat === 'hm'}
+                        onChange={(e) => setDownloadFormat(e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-[#6b6b6b]">Ore e Minuti</p>
+                        <p className="text-xs text-[#9b9b9b]">Esempio: 4h 30m</p>
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 neumorphic-pressed rounded-lg cursor-pointer hover:bg-[#e8ecf3] transition-colors">
+                      <input
+                        type="radio"
+                        value="decimal"
+                        checked={downloadFormat === 'decimal'}
+                        onChange={(e) => setDownloadFormat(e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-[#6b6b6b]">Ore Decimali</p>
+                        <p className="text-xs text-[#9b9b9b]">Esempio: 4.50</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDownloadModal(null)}
@@ -2240,23 +2297,15 @@ export default function Payroll() {
                   </button>
                   <button
                     onClick={() => {
-                      setShowDownloadModal('daily-new-fmt');
-                      // Will trigger format selection below
+                      exportAllEmployeesDailyNewFormat(downloadFormat, includeOvertimeDaily);
                     }}
                     className="flex-1 neumorphic-flat px-4 py-3 rounded-lg text-white bg-[#8b7355] hover:bg-[#6b5345] transition-colors font-medium">
-                    No, Scarica
-                  </button>
-                  <button
-                    onClick={() => {
-                      exportAllEmployeesDailyNewFormat(downloadFormat, true);
-                    }}
-                    className="flex-1 neumorphic-flat px-4 py-3 rounded-lg text-white bg-green-600 hover:bg-green-700 transition-colors font-medium">
-                    Sì, Scarica
+                    Scarica
                   </button>
                 </div>
               </>
             ) : (
-              // Standard format selection
+              // Standard format selection for other downloads
               <>
                 <h2 className="text-2xl font-bold text-[#6b6b6b] mb-4">Seleziona Formato Ore</h2>
                 <p className="text-sm text-[#9b9b9b] mb-6">Scegli il formato per le ore nel file scaricato:</p>
