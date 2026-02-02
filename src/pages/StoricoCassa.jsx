@@ -722,7 +722,10 @@ export default function StoricoCassa() {
                           <td className="p-3 text-right">
                             <div className="flex flex-col items-end gap-1">
                               <button
-                                onClick={() => setEditingCassaEntry({ store_id: entry.store_id, store_name: entry.store_name, date: dayData.date, valore: entry.cassaTeoricaInitial })}
+                                onClick={() => {
+                                  setCassaModalData({ store_id: entry.store_id, store_name: entry.store_name, date: dayData.date, valore: entry.cassaTeoricaInitial });
+                                  setShowCassaModal(true);
+                                }}
                                 className="hover:opacity-70 transition-opacity cursor-pointer">
                                 <span className={`text-sm font-bold ${entry.cassaTeoricaInitialManual ? 'text-orange-600' : 'text-blue-600'}`}>
                                   €{entry.cassaTeoricaInitial.toFixed(2)}
