@@ -102,6 +102,7 @@ export default function Payroll() {
       if (turno.calcolato_ritardo && turno.calcolato_ritardo > 0) {
         // Usa il valore già calcolato dal database
         minutiDiRitardo = turno.calcolato_ritardo;
+        console.log(`✅ RITARDO DB per turno ${turno.id} (${turno.dipendente_nome} - ${turno.data}): ${minutiDiRitardo} min`);
       } else if (turno.timbrata_entrata && scheduledStart) {
         // Calcola manualmente il ritardo
         try {
@@ -112,10 +113,15 @@ export default function Payroll() {
           if (diffMs > 0) {
             const ritardoReale = Math.floor(diffMs / 60000);
             minutiDiRitardo = calcolaRitardoEffettivo(ritardoReale);
+            console.log(`✅ RITARDO CALCOLATO per turno ${turno.id} (${turno.dipendente_nome} - ${turno.data}): ${minutiDiRitardo} min`);
           }
         } catch (e) {
           console.error('Errore calcolo ritardo per turno', turno.id, e);
         }
+      }
+      
+      if (minutiDiRitardo === 0 && turno.calcolato_ritardo) {
+        console.log(`⚠️ ATTENZIONE: turno ${turno.id} ha calcolato_ritardo = ${turno.calcolato_ritardo} ma minutiDiRitardo = 0`);
       }
 
       // Store name lookup
