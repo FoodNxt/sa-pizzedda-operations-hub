@@ -380,107 +380,107 @@ export default function LettereRichiamo() {
                 ) : (
                   <div className="space-y-3">
                     {getRichiamiByFilter().map(lettera => (
-                <div key={lettera.id} className="bg-white p-3 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800">{lettera.user_name}</p>
-                      <p className="text-xs text-slate-500">
-                        {new Date(lettera.data_invio || lettera.created_date).toLocaleDateString('it-IT')}
-                        {lettera.data_visualizzazione && ` • Vis: ${new Date(lettera.data_visualizzazione).toLocaleDateString('it-IT')}`}
-                        {lettera.data_firma && ` • Fir: ${new Date(lettera.data_firma).toLocaleDateString('it-IT')}`}
-                      </p>
-                    </div>
-                    <div className="flex gap-1 flex-shrink-0">
-                      {filterRichiami === 'chiusura' && (
-                        <button
-                          onClick={() => {
-                            setSelectedLettera(lettera);
-                            setShowChiusuraModal(true);
-                          }}
-                          className="p-1.5 rounded bg-purple-50 hover:bg-purple-100 transition-colors"
-                        >
-                          <FileText className="w-4 h-4 text-purple-600" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          if (confirm('Elimina lettera?')) {
-                            deleteLetteraMutation.mutate(lettera.id);
-                          }
-                        }}
-                        className="p-1.5 rounded hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
-                    </div>
+                      <div key={lettera.id} className="bg-white p-3 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-800">{lettera.user_name}</p>
+                            <p className="text-xs text-slate-500">
+                              {new Date(lettera.data_invio || lettera.created_date).toLocaleDateString('it-IT')}
+                              {lettera.data_visualizzazione && ` • Vis: ${new Date(lettera.data_visualizzazione).toLocaleDateString('it-IT')}`}
+                              {lettera.data_firma && ` • Fir: ${new Date(lettera.data_firma).toLocaleDateString('it-IT')}`}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 flex-shrink-0">
+                            {filterRichiami === 'chiusura' && (
+                              <button
+                                onClick={() => {
+                                  setSelectedLettera(lettera);
+                                  setShowChiusuraModal(true);
+                                }}
+                                className="p-1.5 rounded bg-purple-50 hover:bg-purple-100 transition-colors"
+                              >
+                                <FileText className="w-4 h-4 text-purple-600" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                if (confirm('Elimina lettera?')) {
+                                  deleteLetteraMutation.mutate(lettera.id);
+                                }
+                              }}
+                              className="p-1.5 rounded hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-                ))}
-                </div>
                 )}
-                </div>
-                </NeumorphicCard>
+              </div>
+            </NeumorphicCard>
 
-                {/* Chiusure Procedura */}
-                <NeumorphicCard className="p-4">
-                <div className="space-y-4">
+            {/* Chiusure Procedura */}
+            <NeumorphicCard className="p-4">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-slate-800">Chiusure Procedura</h3>
-                <div className="flex gap-2 flex-wrap">
-                {['inviate', 'visualizzate', 'firmate'].map(filter => (
-                  <button
-                    key={filter}
-                    onClick={() => setFilterChiusure(filter)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                      filterChiusure === filter
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {filter === 'inviate' && 'Inviate'}
-                    {filter === 'visualizzate' && 'Visualizzate'}
-                    {filter === 'firmate' && 'Firmate'}
-                  </button>
-                ))}
-                </div>
+                  <h3 className="font-bold text-slate-800">Chiusure Procedura</h3>
+                  <div className="flex gap-2 flex-wrap">
+                    {['inviate', 'visualizzate', 'firmate'].map(filter => (
+                      <button
+                        key={filter}
+                        onClick={() => setFilterChiusure(filter)}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                          filterChiusure === filter
+                            ? 'bg-purple-500 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {filter === 'inviate' && 'Inviate'}
+                        {filter === 'visualizzate' && 'Visualizzate'}
+                        {filter === 'firmate' && 'Firmate'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {getChiusureByFilter().length === 0 ? (
-                <div className="text-center py-8">
-                <p className="text-slate-400 text-sm">Nessuna chiusura in questo stato</p>
-                </div>
-                ) : (
-                <div className="space-y-3">
-                {getChiusureByFilter().map(lettera => (
-                  <div key={lettera.id} className="bg-white p-3 rounded-lg border border-slate-200 hover:border-purple-300 transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800">{lettera.user_name}</p>
-                        <p className="text-xs text-slate-500">
-                          {new Date(lettera.data_invio || lettera.created_date).toLocaleDateString('it-IT')}
-                          {lettera.data_visualizzazione && ` • Vis: ${new Date(lettera.data_visualizzazione).toLocaleDateString('it-IT')}`}
-                          {lettera.data_firma && ` • Fir: ${new Date(lettera.data_firma).toLocaleDateString('it-IT')}`}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (confirm('Elimina chiusura?')) {
-                            deleteLetteraMutation.mutate(lettera.id);
-                          }
-                        }}
-                        className="p-1.5 rounded hover:bg-red-50 transition-colors flex-shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
-                    </div>
+                  <div className="text-center py-8">
+                    <p className="text-slate-400 text-sm">Nessuna chiusura in questo stato</p>
                   </div>
-                ))}
-                </div>
+                ) : (
+                  <div className="space-y-3">
+                    {getChiusureByFilter().map(lettera => (
+                      <div key={lettera.id} className="bg-white p-3 rounded-lg border border-slate-200 hover:border-purple-300 transition-colors">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-800">{lettera.user_name}</p>
+                            <p className="text-xs text-slate-500">
+                              {new Date(lettera.data_invio || lettera.created_date).toLocaleDateString('it-IT')}
+                              {lettera.data_visualizzazione && ` • Vis: ${new Date(lettera.data_visualizzazione).toLocaleDateString('it-IT')}`}
+                              {lettera.data_firma && ` • Fir: ${new Date(lettera.data_firma).toLocaleDateString('it-IT')}`}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (confirm('Elimina chiusura?')) {
+                                deleteLetteraMutation.mutate(lettera.id);
+                              }
+                            }}
+                            className="p-1.5 rounded hover:bg-red-50 transition-colors flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                </div>
-                </NeumorphicCard>
-                </div>
-                )}
+              </div>
+            </NeumorphicCard>
+          </div>
+        )}
 
         {activeTab === 'template' && (
           <NeumorphicCard className="p-4">
