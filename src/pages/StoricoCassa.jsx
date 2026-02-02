@@ -718,16 +718,30 @@ export default function StoricoCassa() {
                         <tr className="border-b border-slate-200 hover:bg-slate-50">
                           <td className="p-3 font-bold text-slate-800">{entry.store_name}</td>
                           <td className="p-3 text-right">
-                            <button
-                              onClick={() => setEditingCassaEntry({ store_id: entry.store_id, store_name: entry.store_name, date: dayData.date, valore: entry.cassaTeoricaInitial })}
-                              className="flex flex-col items-end gap-1 hover:opacity-70 transition-opacity cursor-pointer">
-                              <span className={`text-sm font-bold ${entry.cassaTeoricaInitialManual ? 'text-orange-600' : 'text-blue-600'}`}>
-                                €{entry.cassaTeoricaInitial.toFixed(2)}
-                              </span>
+                            <div className="flex flex-col items-end gap-1">
+                              <button
+                                onClick={() => setEditingCassaEntry({ store_id: entry.store_id, store_name: entry.store_name, date: dayData.date, valore: entry.cassaTeoricaInitial })}
+                                className="hover:opacity-70 transition-opacity cursor-pointer">
+                                <span className={`text-sm font-bold ${entry.cassaTeoricaInitialManual ? 'text-orange-600' : 'text-blue-600'}`}>
+                                  €{entry.cassaTeoricaInitial.toFixed(2)}
+                                </span>
+                              </button>
                               {entry.cassaTeoricaInitialManual && (
-                                <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Manual</span>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Manual</span>
+                                  <button
+                                    onClick={() => {
+                                      const saldoRecord = saldiManuali.find(s => s.store_id === entry.store_id && s.data === dayData.date);
+                                      if (saldoRecord) {
+                                        deleteCassaTeoricaMutation.mutate(saldoRecord.id);
+                                      }
+                                    }}
+                                    className="p-1 hover:bg-red-100 rounded transition-colors">
+                                    <X className="w-3 h-3 text-red-600" />
+                                  </button>
+                                </div>
                               )}
-                            </button>
+                            </div>
                           </td>
                           <td className="p-3 text-right">
                             <span className="text-sm font-bold text-green-600">+€{entry.pagamentiContanti.toFixed(2)}</span>
