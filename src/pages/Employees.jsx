@@ -579,11 +579,11 @@ export default function Employees() {
         deductionTimbrature += weight;
         
         // Track breakdown
-        if (!scoreBreakdown.timbraturaPerRuolo[ruolo]) {
-          scoreBreakdown.timbraturaPerRuolo[ruolo] = { count: 0, weight, totalDeduction: 0 };
+        if (!scoreBreakdown.timbraturePerRuolo[ruolo]) {
+          scoreBreakdown.timbraturePerRuolo[ruolo] = { count: 0, weight, totalDeduction: 0 };
         }
-        scoreBreakdown.timbraturaPerRuolo[ruolo].count++;
-        scoreBreakdown.timbraturaPerRuolo[ruolo].totalDeduction += weight;
+        scoreBreakdown.timbraturePerRuolo[ruolo].count++;
+        scoreBreakdown.timbraturePerRuolo[ruolo].totalDeduction += weight;
       });
 
       performanceScore -= deductionOrdini;
