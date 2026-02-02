@@ -744,7 +744,7 @@ export default function StoricoCassa() {
                 </table>
               </div>
             </NeumorphicCard>
-          )) : null}
+          ))}
         </>
         }
 
