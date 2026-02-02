@@ -104,28 +104,39 @@ export default function LettereRichiamo() {
     },
   });
 
+  const { data: config = {} } = useQuery({
+    queryKey: ['lettere-config'],
+    queryFn: async () => {
+      const configs = await base44.entities.LetteraRichiamoTemplate.list();
+      return { modalita: 'automatico' };
+    }
+  });
+
   useEffect(() => {
     const checkChiusureProcedura = async () => {
       const richiamiDaChiudere = lettere.filter(l => 
         l.tipo_lettera === 'lettera_richiamo' && 
-        l.status === 'firmata' && 
+        (l.status === 'firmata' || l.status === 'visualizzata') && 
+        !l.chiusura_procedura_in_sospeso &&
         !l.chiusura_procedura_schedulata &&
-        l.data_visualizzazione
+        (l.data_visualizzazione || l.data_firma)
       );
 
       for (const richiamo of richiamiDaChiudere) {
-        const dataVisualizzazione = new Date(richiamo.data_visualizzazione);
+        const dataVerifica = richiamo.data_firma || richiamo.data_visualizzazione;
+        const dataVisualizzazione = new Date(dataVerifica);
         const oggi = new Date();
         const differenzaGiorni = Math.floor((oggi - dataVisualizzazione) / (1000 * 60 * 60 * 24));
 
-        if (differenzaGiorni >= 5) {
+        // Modalità automatica: invia dopo 5 giorni
+        if (config.modalita === 'automatico' && differenzaGiorni >= 5) {
           const templateChiusura = templates.find(t => t.tipo_lettera === 'chiusura_procedura' && t.attivo);
           
           if (templateChiusura) {
             let contenuto = templateChiusura.contenuto;
             contenuto = contenuto.replace(/{{nome_dipendente}}/g, richiamo.user_name);
             contenuto = contenuto.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
-            contenuto = contenuto.replace(/{{data_visualizzazione_richiamo}}/g, new Date(richiamo.data_visualizzazione).toLocaleDateString('it-IT'));
+            contenuto = contenuto.replace(/{{data_visualizzazione_richiamo}}/g, new Date(richiamo.data_visualizzazione || richiamo.data_firma).toLocaleDateString('it-IT'));
             contenuto = contenuto.replace(/{{mese_firma_richiamo}}/g, new Date(richiamo.data_firma || richiamo.created_date).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }));
 
             await base44.entities.LetteraRichiamo.create({
@@ -146,13 +157,20 @@ export default function LettereRichiamo() {
             queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
           }
         }
+        // Modalità manuale: segna come in sospeso
+        else if (config.modalita === 'manuale' && differenzaGiorni >= 1) {
+          await base44.entities.LetteraRichiamo.update(richiamo.id, {
+            chiusura_procedura_in_sospeso: true
+          });
+          queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
+        }
       }
     };
 
     if (lettere.length > 0 && templates.length > 0) {
       checkChiusureProcedura();
     }
-  }, [lettere, templates]);
+  }, [lettere, templates, config]);
 
   const resetTemplateForm = () => {
     setTemplateForm({
