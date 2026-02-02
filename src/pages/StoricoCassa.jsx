@@ -112,6 +112,13 @@ export default function StoricoCassa() {
     }
   });
 
+  const deleteCassaTeoricaMutation = useMutation({
+    mutationFn: (saldoId) => base44.entities.SaldoManualeCassa.delete(saldoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['saldi-manuali'] });
+    }
+  });
+
   const updateSaldoPersonaleMutation = useMutation({
     mutationFn: ({ dipendente, importo }) => {
       return base44.entities.Deposito.create({
