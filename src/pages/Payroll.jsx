@@ -84,34 +84,11 @@ export default function Payroll() {
         scheduledMinutes = endH * 60 + endM - (startH * 60 + startM);
       }
 
-      // Calcola ritardo SOLO se presente timbratura E ritardo effettivo > 0
-      // Usa lo stesso campo calcolato_ritardo che viene salvato dal backend
+      // ✅ USA SOLO calcolato_ritardo dal database (stesso campo di Timbrature)
+      // NON calcolare MAI il ritardo manualmente in Payroll
       let minutiDiRitardo = 0;
-      
-      // Se il turno ha già il campo calcolato_ritardo (calcolato dal backend), usalo
-      if (turno.calcolato_ritardo !== undefined && turno.calcolato_ritardo !== null) {
+      if (turno.calcolato_ritardo && turno.calcolato_ritardo > 0) {
         minutiDiRitardo = turno.calcolato_ritardo;
-      } else {
-        // Altrimenti calcola come prima (solo per retrocompatibilità)
-        if (turno.timbrata_entrata && scheduledStart) {
-          const entrata = new Date(turno.timbrata_entrata);
-          const previsto = new Date(scheduledStart);
-          const diffMs = entrata - previsto;
-          if (diffMs > 0) {
-            const ritardoReale = Math.floor(diffMs / 60000);
-            minutiDiRitardo = calcolaRitardoEffettivo(ritardoReale);
-          }
-        }
-
-        // Se non c'è timbrata_entrata e il turno è passato, applica penalità
-        if (!turno.timbrata_entrata) {
-          const turnoEnd = turno.data && turno.ora_fine ?
-          new Date(`${turno.data}T${turno.ora_fine}:00`) :
-          null;
-          if (turnoEnd && turnoEnd < new Date()) {
-            minutiDiRitardo = config?.penalita_timbratura_mancata || 0;
-          }
-        }
       }
 
       // Store name lookup
