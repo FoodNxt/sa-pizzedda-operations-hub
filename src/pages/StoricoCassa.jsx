@@ -399,7 +399,7 @@ export default function StoricoCassa() {
         });
     });
 
-    const sortedDates = Array.from(allDatesSet).sort();
+    const sortedDates = Array.from(allDatesSet).sort().reverse();
 
     sortedDates.forEach((dateStr, dateIdx) => {
       const dayData = {
