@@ -11,7 +11,9 @@ import {
   DollarSign,
   User,
   Calendar,
-  Euro } from
+  Euro,
+  CheckCircle,
+  XCircle } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, parseISO } from 'date-fns';
@@ -57,6 +59,11 @@ export default function Straordinari() {
       });
       return attivita.sort((a, b) => new Date(b.completato_at) - new Date(a.completato_at));
     }
+  });
+
+  const { data: pagamentiStraordinari = [] } = useQuery({
+    queryKey: ['pagamenti-straordinari'],
+    queryFn: () => base44.entities.PagamentoStraordinario.list('-data_turno', 500)
   });
 
   const activeConfig = disponibilitaConfigs[0] || null;
@@ -284,7 +291,7 @@ export default function Straordinari() {
             </h2>
           </div>
 
-          {attivitaPagamenti.length === 0 ?
+          {pagamentiStraordinari.length === 0 ?
         <div className="text-center py-12">
               <Calendar className="w-16 h-16 text-slate-300 opacity-50 mx-auto mb-4" />
               <p className="text-slate-500">Nessun pagamento straordinario registrato</p>
@@ -294,46 +301,71 @@ export default function Straordinari() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-green-600">
-                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Data</th>
-                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Dipendente Pagato</th>
-                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Pagato da (Cassiere)</th>
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Data Turno</th>
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Dipendente</th>
                     <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
+                    <th className="text-center p-3 text-slate-600 font-medium text-sm">Ore</th>
                     <th className="text-right p-3 text-slate-600 font-medium text-sm">Importo</th>
+                    <th className="text-center p-3 text-slate-600 font-medium text-sm">Stato</th>
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Pagato da</th>
+                    <th className="text-left p-3 text-slate-600 font-medium text-sm">Data Pagamento</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {attivitaPagamenti.map((attivita) =>
-              <tr key={attivita.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                  {pagamentiStraordinari.map((pagamento) => (
+                    <tr key={pagamento.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-slate-400" />
                           <span className="text-slate-700 text-sm">
-                            {attivita.completato_at ? format(parseISO(attivita.completato_at), 'dd/MM/yyyy HH:mm') : '-'}
+                            {pagamento.data_turno ? format(parseISO(pagamento.data_turno), 'dd/MM/yyyy') : '-'}
                           </span>
                         </div>
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-green-600" />
-                          <span className="text-slate-700 font-medium">
-                            {attivita.dipendente_pagato_nome || (
-                      attivita.attivita_nome ? attivita.attivita_nome.replace('Pagamento straordinari - ', '') : '-')}
-                          </span>
+                          <User className="w-4 h-4 text-slate-400" />
+                          <span className="text-slate-700 font-medium">{pagamento.dipendente_nome}</span>
                         </div>
                       </td>
                       <td className="p-3">
-                        <span className="text-slate-700 text-sm">{attivita.dipendente_nome || '-'}</span>
+                        <span className="text-slate-700 text-sm">{pagamento.store_name}</span>
                       </td>
-                      <td className="p-3">
-                        <span className="text-slate-700 text-sm">{getStoreName(attivita.store_id)}</span>
+                      <td className="p-3 text-center">
+                        <span className="text-slate-700 font-bold text-sm">
+                          {pagamento.ore_straordinarie}h
+                        </span>
                       </td>
                       <td className="p-3 text-right">
                         <span className="text-lg font-bold text-green-600">
-                          €{attivita.importo_pagato ? parseFloat(attivita.importo_pagato).toFixed(2) : '0.00'}
+                          €{pagamento.importo_totale?.toFixed(2) || '0.00'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        {pagamento.pagato ? (
+                          <div className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                            <CheckCircle className="w-3 h-3" />
+                            Pagato
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-medium">
+                            <XCircle className="w-3 h-3" />
+                            Non Pagato
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <span className="text-slate-700 text-sm">
+                          {pagamento.pagato_da || '-'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-slate-700 text-sm">
+                          {pagamento.data_pagamento ? format(parseISO(pagamento.data_pagamento), 'dd/MM/yyyy HH:mm') : '-'}
                         </span>
                       </td>
                     </tr>
-              )}
+                  ))}
                 </tbody>
               </table>
             </div>
