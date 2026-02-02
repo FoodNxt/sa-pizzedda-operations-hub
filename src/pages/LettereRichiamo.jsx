@@ -77,6 +77,41 @@ export default function LettereRichiamo() {
     },
   });
 
+  const inviaChiusuraMutation = useMutation({
+    mutationFn: async (data) => {
+      const templateChiusura = templates.find(t => t.id === data.template_id);
+      const lettera = selectedLettera;
+
+      let contenuto = templateChiusura.contenuto;
+      contenuto = contenuto.replace(/{{nome_dipendente}}/g, lettera.user_name);
+      contenuto = contenuto.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
+      contenuto = contenuto.replace(/{{data_visualizzazione_richiamo}}/g, new Date(lettera.data_visualizzazione || lettera.data_firma).toLocaleDateString('it-IT'));
+      contenuto = contenuto.replace(/{{mese_firma_richiamo}}/g, new Date(lettera.data_firma || lettera.created_date).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }));
+
+      await base44.entities.LetteraRichiamo.create({
+        user_id: lettera.user_id,
+        user_email: lettera.user_email,
+        user_name: lettera.user_name,
+        tipo_lettera: 'chiusura_procedura',
+        contenuto_lettera: contenuto,
+        data_invio: new Date().toISOString(),
+        status: 'inviata',
+        lettera_richiamo_id: lettera.id
+      });
+
+      await base44.entities.LetteraRichiamo.update(lettera.id, {
+        chiusura_procedura_schedulata: true,
+        chiusura_procedura_in_sospeso: false
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lettere-richiamo'] });
+      setShowChiusuraModal(false);
+      setSelectedLettera(null);
+      alert('Chiusura procedura inviata con successo!');
+    },
+  });
+
   const inviaLetteraMutation = useMutation({
     mutationFn: async (data) => {
       const template = templates.find(t => t.id === data.template_id);
