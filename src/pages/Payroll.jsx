@@ -86,8 +86,27 @@ export default function Payroll() {
         scheduledMinutes = endH * 60 + endM - (startH * 60 + startM);
       }
 
-      // ✅ Usa SEMPRE calcolato_ritardo dal database (come in Timbrature)
-      let minutiDiRitardo = turno.calcolato_ritardo || 0;
+      // ✅ CALCOLA RITARDO - Priorità 1: usa calcolato_ritardo, Priorità 2: calcola manualmente
+      let minutiDiRitardo = 0;
+      
+      if (turno.calcolato_ritardo && turno.calcolato_ritardo > 0) {
+        // Usa il valore già calcolato dal database
+        minutiDiRitardo = turno.calcolato_ritardo;
+      } else if (turno.timbrata_entrata && scheduledStart) {
+        // Calcola manualmente il ritardo
+        try {
+          const entrata = new Date(turno.timbrata_entrata);
+          const previsto = new Date(scheduledStart);
+          const diffMs = entrata - previsto;
+          
+          if (diffMs > 0) {
+            const ritardoReale = Math.floor(diffMs / 60000);
+            minutiDiRitardo = calcolaRitardoEffettivo(ritardoReale);
+          }
+        } catch (e) {
+          console.error('Errore calcolo ritardo per turno', turno.id, e);
+        }
+      }
 
       // Store name lookup
       const store = stores.find((s) => s.id === turno.store_id);
