@@ -135,12 +135,15 @@ export default function PagamentoStraordinari() {
         ac.importo_pagato
       );
 
+      // Get store name from stores list if not present
+      const storeName = shift.store_nome || stores.find(s => s.id === shift.store_id)?.name || '-';
+
       straordinari.push({
         turno_id: shift.id,
         dipendente_id: shift.dipendente_id,
         dipendente_nome: shift.dipendente_nome,
         store_id: shift.store_id,
-        store_name: shift.store_nome,
+        store_name: storeName,
         data_turno: shift.data,
         ore_straordinarie: oreStr,
         costo_orario: costoOrario,
@@ -394,10 +397,12 @@ export default function PagamentoStraordinari() {
                         </div>
                       </td>
                       <td className="p-2 lg:p-3">
-                        <div className="flex items-center gap-2">
-                          <Store className="w-4 h-4 text-slate-400" />
-                          <span className="text-slate-700 text-sm">{straordinario.store_name}</span>
-                        </div>
+                       <div className="flex items-center gap-2">
+                         <Store className="w-4 h-4 text-slate-400" />
+                         <span className="text-slate-700 text-sm">
+                           {straordinario.store_name || stores.find(s => s.id === straordinario.store_id)?.name || '-'}
+                         </span>
+                       </div>
                       </td>
                       <td className="p-2 lg:p-3 text-center">
                         <span className="text-slate-700 text-xs">
