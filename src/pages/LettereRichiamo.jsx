@@ -348,13 +348,38 @@ export default function LettereRichiamo() {
 
         {activeTab === 'lettere' && (
           <div className="space-y-4">
-            {lettere.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Nessuna lettera inviata</p>
-              </div>
-            ) : (
-              lettere.map(lettera => (
+            {/* Lettere di Richiamo */}
+            <NeumorphicCard className="p-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-slate-800">Lettere di Richiamo</h3>
+                  <div className="flex gap-2 flex-wrap">
+                    {['inviate', 'visualizzate', 'firmate', 'chiusura'].map(filter => (
+                      <button
+                        key={filter}
+                        onClick={() => setFilterRichiami(filter)}
+                        className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                          filterRichiami === filter
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {filter === 'inviate' && 'Inviate'}
+                        {filter === 'visualizzate' && 'Visualizzate'}
+                        {filter === 'firmate' && 'Firmate'}
+                        {filter === 'chiusura' && 'Chiusura in corso'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {getRichiamiByFilter().length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-slate-400 text-sm">Nessuna lettera in questo stato</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {getRichiamiByFilter().map(lettera => (
                 <NeumorphicCard key={lettera.id} className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
