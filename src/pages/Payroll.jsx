@@ -493,8 +493,8 @@ export default function Payroll() {
         actual_end: turno.timbrata_uscita,
         scheduled_minutes: scheduledMinutes,
         shift_type: turno.tipo_turno,
-        minuti_di_ritardo: turno.calcolato_ritardo || 0,
-        calcolato_ritardo: turno.calcolato_ritardo,
+        minuti_di_ritardo: turno.minuti_ritardo_conteggiato || 0,
+        minuti_ritardo_conteggiato: turno.minuti_ritardo_conteggiato,
         created_date: turno.created_date
       };
 
@@ -508,11 +508,10 @@ export default function Payroll() {
       }
 
       // ✅ CASO 2: TUTTI i turni con minuti_ritardo_conteggiato > 0 (DIRETTO DAL DATABASE - GIÀ ARROTONDATO)
-      // Il campo minuti_ritardo_conteggiato contiene il ritardo GIÀ ARROTONDATO secondo la config
       const ritardoConteggiato = turno.minuti_ritardo_conteggiato || 0;
       
       if (ritardoConteggiato > 0) {
-        console.log(`✅ RITARDO TROVATO per turno ${turno.id} del ${turno.data}: ${ritardoConteggiato} minuti (GIÀ ARROTONDATO)`);
+        console.log(`✅ RITARDO TROVATO per turno ${turno.id} del ${turno.data}: ${ritardoConteggiato} minuti (GIÀ ARROTONDATO - minuti_ritardo_conteggiato)`);
         
         // Aggiungi come voce separata
         unpaidShifts.push({
