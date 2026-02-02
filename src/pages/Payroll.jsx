@@ -843,34 +843,12 @@ export default function Payroll() {
     payrollData.employees.forEach((employee) => {
       const employeeData = allDailyData.filter((d) => d.employee_name === employee.employee_name);
 
-      // Row 1: Employee name
+      // Row 1: Employee name (no data, just label)
       csv += `"${employee.employee_name}",`;
       sortedWeeks.forEach((weekKey) => {
-        const weekStart = parseISO(weekKey);
-        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
         const weekDates = weeks.get(weekKey);
-        // Day values
-        weekDates.forEach((date) => {
-          const dayData = employeeData.find((d) => d.date === date);
-          if (dayData) {
-            const totalMinutes = Object.values(dayData.shift_types).reduce((sum, m) => sum + m, 0);
-            csv += `"${formatMinutes(totalMinutes, format)}",`;
-          } else {
-            csv += '-,';
-          }
-        });
-        // Weekly total
-        const weekTotal = employeeData
-          .filter((d) => {
-            try {
-              const dayDate = parseISO(d.date);
-              return dayDate >= weekStart && dayDate <= weekEnd;
-            } catch (e) {
-              return false;
-            }
-          })
-          .reduce((sum, d) => sum + Object.values(d.shift_types).reduce((s, m) => s + m, 0), 0);
-        csv += `"${formatMinutes(weekTotal, format)}",`;
+        weekDates.forEach(() => csv += ',');
+        csv += ','; // Empty weekly total column
       });
       csv += '\n';
 
