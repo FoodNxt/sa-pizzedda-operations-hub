@@ -14,7 +14,8 @@ import {
   Eye,
   ChevronDown,
   ChevronUp,
-  Trash } from
+  Trash,
+  Settings } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -31,6 +32,11 @@ export default function MatchingOrdiniSbagliati() {
   const [showAllUnmatched, setShowAllUnmatched] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null); // NEW: for order details modal
   const [debugLog, setDebugLog] = useState([]); // NEW: Debug log
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({
+    excluded_shift_types: [],
+    excluded_employee_groups: []
+  });
 
   const queryClient = useQueryClient();
 
@@ -138,8 +144,8 @@ export default function MatchingOrdiniSbagliati() {
       const user = await base44.auth.me();
       let matchedCount = 0;
       let failedCount = 0;
-      const excludedShiftTypes = ['Malattia (Certificato)', 'Assenza non retribuita', 'Ferie'];
-      const excludedEmployeeGroups = ['Volantinaggio', 'Preparazioni'];
+      const excludedShiftTypes = activeConfig.excluded_shift_types || [];
+      const excludedEmployeeGroups = activeConfig.excluded_employee_groups || [];
 
       log.push(`🚀 Inizio matching per ${wrongOrders.length} ordini`);
       log.push(`📊 Turni disponibili: ${shifts.length}`);
@@ -383,24 +389,38 @@ export default function MatchingOrdiniSbagliati() {
             <h1 className="text-slate-50 mb-2 text-3xl font-bold">🔗 Matching Ordini Sbagliati</h1>
             <p className="text-slate-50">Abbina ordini sbagliati ai dipendenti in turno</p>
           </div>
-          <NeumorphicButton
-            onClick={handleAutoMatch}
-            disabled={matching || wrongOrders.length === 0}
-            variant="primary"
-            className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <NeumorphicButton
+              onClick={() => {
+                setSettingsForm({
+                  excluded_shift_types: activeConfig.excluded_shift_types || [],
+                  excluded_employee_groups: activeConfig.excluded_employee_groups || []
+                });
+                setShowSettingsModal(true);
+              }}
+              className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Impostazioni
+            </NeumorphicButton>
+            <NeumorphicButton
+              onClick={handleAutoMatch}
+              disabled={matching || wrongOrders.length === 0}
+              variant="primary"
+              className="flex items-center gap-2">
 
-            {matching ?
-            <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Matching...
-              </> :
+              {matching ?
+              <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Matching...
+                </> :
 
-            <>
-                <LinkIcon className="w-5 h-5" />
-                Fai Match
-              </>
-            }
-          </NeumorphicButton>
+              <>
+                  <LinkIcon className="w-5 h-5" />
+                  Fai Match
+                </>
+              }
+            </NeumorphicButton>
+          </div>
         </div>
       </div>
 
@@ -847,7 +867,7 @@ export default function MatchingOrdiniSbagliati() {
               <li><strong>Matching senza tolleranza:</strong> Gli ordini vengono abbinati SOLO ai dipendenti che erano in turno all'ora ESATTA dell'ordine (senza tolleranza)</li>
               <li><strong>Manuale:</strong> Modificato manualmente dall'utente</li>
               <li><strong>Abbinamento multiplo:</strong> Un ordine può essere abbinato a TUTTI i dipendenti in turno al momento dell'ordine</li>
-              <li><strong>Esclusioni:</strong> Non vengono considerati turni di tipo "Malattia (Certificato)", "Assenza non retribuita", "Ferie", né dipendenti con "Volantinaggio" o "Preparazioni" come gruppo</li>
+              <li><strong>Esclusioni:</strong> Turni e gruppi esclusi sono configurabili tramite Impostazioni (vedi pulsante in alto)</li>
               <li><strong>Modifica abbinamenti:</strong> Clicca sull'icona matita per modificare manualmente l'assegnazione di un ordine</li>
               <li>Clicca su "Fai Match" e controlla il <strong>"Log Matching"</strong> sopra per vedere i dettagli del processo</li>
               <li>Clicca su un ordine per vederne i dettagli completi</li>
@@ -855,6 +875,134 @@ export default function MatchingOrdiniSbagliati() {
           </div>
         </div>
       </NeumorphicCard>
+
+      {/* Settings Modal */}
+      {showSettingsModal &&
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
+                <Settings className="w-6 h-6" />
+                Impostazioni Matching
+              </h2>
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
+                <X className="w-5 h-5 text-[#9b9b9b]" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Excluded Shift Types */}
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
+                  Tipi Turno da Escludere
+                </label>
+                <div className="space-y-2">
+                  {['Malattia (Certificato)', 'Assenza non retribuita', 'Ferie', 'Permesso', 'ROL', 'Congedo'].map((tipo) => (
+                    <label key={tipo} className="flex items-center gap-3 neumorphic-pressed p-3 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={settingsForm.excluded_shift_types.includes(tipo)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSettingsForm({
+                              ...settingsForm,
+                              excluded_shift_types: [...settingsForm.excluded_shift_types, tipo]
+                            });
+                          } else {
+                            setSettingsForm({
+                              ...settingsForm,
+                              excluded_shift_types: settingsForm.excluded_shift_types.filter(t => t !== tipo)
+                            });
+                          }
+                        }}
+                        className="w-5 h-5" />
+                      <span className="text-sm text-[#6b6b6b]">{tipo}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Excluded Employee Groups */}
+              <div>
+                <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
+                  Gruppi Dipendenti da Escludere
+                </label>
+                <div className="space-y-2">
+                  {['Volantinaggio', 'Preparazioni', 'Pulizie', 'Manutenzione'].map((gruppo) => (
+                    <label key={gruppo} className="flex items-center gap-3 neumorphic-pressed p-3 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={settingsForm.excluded_employee_groups.includes(gruppo)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSettingsForm({
+                              ...settingsForm,
+                              excluded_employee_groups: [...settingsForm.excluded_employee_groups, gruppo]
+                            });
+                          } else {
+                            setSettingsForm({
+                              ...settingsForm,
+                              excluded_employee_groups: settingsForm.excluded_employee_groups.filter(g => g !== gruppo)
+                            });
+                          }
+                        }}
+                        className="w-5 h-5" />
+                      <span className="text-sm text-[#6b6b6b]">{gruppo}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Current Active Config Display */}
+              <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
+                <p className="text-sm font-bold text-blue-800 mb-2">📋 Configurazione Attuale:</p>
+                <div className="text-xs text-blue-700 space-y-1">
+                  <p>• Turni esclusi: {activeConfig.excluded_shift_types?.join(', ') || 'Nessuno'}</p>
+                  <p>• Gruppi esclusi: {activeConfig.excluded_employee_groups?.join(', ') || 'Nessuno'}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <NeumorphicButton
+                  onClick={() => setShowSettingsModal(false)}
+                  className="flex-1">
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={async () => {
+                    try {
+                      const existingConfig = matchingConfigs.find(c => c.is_active);
+                      
+                      if (existingConfig) {
+                        await updateConfigMutation.mutateAsync({
+                          id: existingConfig.id,
+                          data: {
+                            ...settingsForm,
+                            is_active: true
+                          }
+                        });
+                      } else {
+                        await createConfigMutation.mutateAsync({
+                          ...settingsForm,
+                          is_active: true
+                        });
+                      }
+                    } catch (error) {
+                      alert('Errore nel salvare la configurazione: ' + error.message);
+                    }
+                  }}
+                  variant="primary"
+                  className="flex-1">
+                  <Save className="w-4 h-4 mr-2" />
+                  Salva Impostazioni
+                </NeumorphicButton>
+              </div>
+            </div>
+          </NeumorphicCard>
+        </div>
+      }
     </div>);
 
 }
