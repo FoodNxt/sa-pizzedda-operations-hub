@@ -869,7 +869,7 @@ export default function Payroll() {
       csv += '\n';
 
       // Row 2: Turno normale
-      csv += `-,`;
+      csv += `Turno normale,`;
       sortedDates.forEach((date) => {
         const dayData = employeeData.find((d) => d.date === date);
         const minuti = dayData?.shift_types['Turno normale'] || 0;
