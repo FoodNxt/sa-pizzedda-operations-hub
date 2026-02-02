@@ -14,7 +14,9 @@ export default function Payroll() {
   const [viewMode, setViewMode] = useState('daily');
   const [showUnpaidAbsenceModal, setShowUnpaidAbsenceModal] = useState(false);
   const [unpaidAbsenceDetails, setUnpaidAbsenceDetails] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(null); // 'ferie', 'straordinario', etc.
+  const [showDetailModal, setShowDetailModal] = useState(null);
+  const [showDownloadModal, setShowDownloadModal] = useState(null);
+  const [downloadFormat, setDownloadFormat] = useState('hm');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
