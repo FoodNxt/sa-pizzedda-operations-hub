@@ -698,6 +698,337 @@ export default function Payroll() {
     setShowDownloadModal(null);
   };
 
+  // ✅ NEW: Export daily breakdown with restructured format (employee per row group)
+  const exportAllEmployeesDailyNewFormat = (downloadFmt, includeOvertime) => {
+    let csv = 'Report Giornaliero - Tutti i Dipendenti\n';
+    csv += `Periodo: ${startDate || 'Tutti i turni'} - ${endDate || 'Tutti i turni'}\n`;
+    csv += `Locale: ${selectedStore === 'all' ? 'Tutti i Locali' : stores.find((s) => s.id === selectedStore)?.name || selectedStore}\n\n`;
+
+    // Collect all daily data for all employees
+    const allDailyData = [];
+    const allDates = new Set();
+
+    payrollData.employees.forEach((employee) => {
+      const employeeNormalizedName = normalizeEmployeeName(employee.employee_name);
+      let employeeShifts = shifts.filter((s) => {
+        if (normalizeEmployeeName(s.employee_name) !== employeeNormalizedName) return false;
+        if (selectedStore !== 'all' && s.store_id !== selectedStore) return false;
+
+        if (startDate || endDate) {
+          if (!s.shift_date) return false;
+          try {
+            const shiftDate = parseISO(s.shift_date);
+            if (isNaN(shiftDate.getTime())) return false;
+            const start = startDate ? parseISO(startDate + 'T00:00:00') : null;
+            const end = endDate ? parseISO(endDate + 'T23:59:59') : null;
+
+            if (start && end) {
+              return isWithinInterval(shiftDate, { start, end });
+            } else if (start) {
+              return shiftDate >= start;
+            } else if (end) {
+              return shiftDate <= end;
+            }
+          } catch (e) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      // Group by date
+      const dailyData = {};
+      employeeShifts.forEach((shift) => {
+        if (!shift.shift_date) return;
+        try {
+          const date = shift.shift_date;
+          allDates.add(date);
+
+          if (!dailyData[date]) {
+            dailyData[date] = {
+              date,
+              shift_types: {}
+            };
+          }
+
+          let workedMinutes = shift.scheduled_minutes || 0;
+          let shiftType = normalizeShiftType(shift.shift_type);
+
+          if (!dailyData[date].shift_types[shiftType]) {
+            dailyData[date].shift_types[shiftType] = 0;
+          }
+
+          dailyData[date].shift_types[shiftType] += workedMinutes;
+
+          if (shift.minuti_di_ritardo && shift.minuti_di_ritardo > 0) {
+            if (!dailyData[date].ritardo_minutes) {
+              dailyData[date].ritardo_minutes = 0;
+            }
+            dailyData[date].ritardo_minutes += shift.minuti_di_ritardo;
+          }
+        } catch (e) {
+          console.error('Error processing shift date:', e);
+        }
+      });
+
+      // Process ritardi
+      Object.keys(dailyData).forEach((date) => {
+        const day = dailyData[date];
+        if (day.ritardo_minutes && day.ritardo_minutes > 0) {
+          if (day.shift_types['Turno normale']) {
+            day.shift_types['Turno normale'] -= day.ritardo_minutes;
+            if (day.shift_types['Turno normale'] < 0) {
+              day.shift_types['Turno normale'] = 0;
+            }
+          }
+          if (!day.shift_types['Assenza non retribuita']) {
+            day.shift_types['Assenza non retribuita'] = 0;
+          }
+          day.shift_types['Assenza non retribuita'] += day.ritardo_minutes;
+        }
+      });
+
+      // Add to collection
+      Object.values(dailyData).forEach((day) => {
+        allDailyData.push({
+          employee_name: employee.employee_name,
+          ...day
+        });
+      });
+    });
+
+    // Sort dates
+    const sortedDates = Array.from(allDates).sort((a, b) => {
+      try {
+        return new Date(a) - new Date(b);
+      } catch (e) {
+        return 0;
+      }
+    });
+
+    // Header row: Dipendente + dates + weekly totals
+    csv += 'Dipendente,';
+    sortedDates.forEach((date) => {
+      try {
+        csv += `${format(parseISO(date), 'd/M')},`;
+      } catch (e) {
+        csv += `${date},`;
+      }
+    });
+
+    // Add weekly columns
+    const weeks = new Set();
+    sortedDates.forEach((date) => {
+      try {
+        const weekStart = startOfWeek(parseISO(date), { weekStartsOn: 1 });
+        weeks.add(format(weekStart, 'yyyy-MM-dd'));
+      } catch (e) {
+        // ignore
+      }
+    });
+
+    Array.from(weeks).sort().forEach(() => {
+      csv += 'W,';
+    });
+
+    csv += '\n';
+
+    // Employee rows with 6 lines each (name, turno normale, assenza, ferie, malattia, straordinari)
+    payrollData.employees.forEach((employee) => {
+      const employeeData = allDailyData.filter((d) => d.employee_name === employee.employee_name);
+      const employeeDates = new Set(employeeData.map((d) => d.date));
+
+      // Row 1: Employee name
+      csv += `"${employee.employee_name}",`;
+      sortedDates.forEach((date) => {
+        const dayData = employeeData.find((d) => d.date === date);
+        if (dayData) {
+          const totalMinutes = Object.values(dayData.shift_types).reduce((sum, m) => sum + m, 0);
+          csv += `"${formatMinutes(totalMinutes, format)}",`;
+        } else {
+          csv += '-,';
+        }
+      });
+      // Weekly totals row 1
+      Array.from(weeks).sort().forEach((weekKey) => {
+        const weekStart = parseISO(weekKey);
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        const weekDays = employeeData.filter((d) => {
+          try {
+            const dayDate = parseISO(d.date);
+            return dayDate >= weekStart && dayDate <= weekEnd;
+          } catch (e) {
+            return false;
+          }
+        });
+        const weekTotal = weekDays.reduce((sum, d) => sum + Object.values(d.shift_types).reduce((s, m) => s + m, 0), 0);
+        csv += `"${formatMinutes(weekTotal, format)}",`;
+      });
+      csv += '\n';
+
+      // Row 2: Turno normale
+      csv += `-,`;
+      sortedDates.forEach((date) => {
+        const dayData = employeeData.find((d) => d.date === date);
+        const minuti = dayData?.shift_types['Turno normale'] || 0;
+        csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
+      });
+      Array.from(weeks).sort().forEach((weekKey) => {
+        const weekStart = parseISO(weekKey);
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        const weekTotal = employeeData
+          .filter((d) => {
+            try {
+              const dayDate = parseISO(d.date);
+              return dayDate >= weekStart && dayDate <= weekEnd;
+            } catch (e) {
+              return false;
+            }
+          })
+          .reduce((sum, d) => sum + (d.shift_types['Turno normale'] || 0), 0);
+        csv += `"${weekTotal > 0 ? formatMinutes(weekTotal, format) : '-'}",`;
+      });
+      csv += '\n';
+
+      // Row 3: Assenza non retribuita
+      csv += `-,`;
+      sortedDates.forEach((date) => {
+        const dayData = employeeData.find((d) => d.date === date);
+        const minuti = dayData?.shift_types['Assenza non retribuita'] || 0;
+        csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
+      });
+      Array.from(weeks).sort().forEach((weekKey) => {
+        const weekStart = parseISO(weekKey);
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        const weekTotal = employeeData
+          .filter((d) => {
+            try {
+              const dayDate = parseISO(d.date);
+              return dayDate >= weekStart && dayDate <= weekEnd;
+            } catch (e) {
+              return false;
+            }
+          })
+          .reduce((sum, d) => sum + (d.shift_types['Assenza non retribuita'] || 0), 0);
+        csv += `"${weekTotal > 0 ? formatMinutes(weekTotal, format) : '-'}",`;
+      });
+      csv += '\n';
+
+      // Row 4: Ferie
+      csv += `-,`;
+      sortedDates.forEach((date) => {
+        const dayData = employeeData.find((d) => d.date === date);
+        const minuti = dayData?.shift_types['Ferie'] || 0;
+        csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
+      });
+      Array.from(weeks).sort().forEach((weekKey) => {
+        const weekStart = parseISO(weekKey);
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        const weekTotal = employeeData
+          .filter((d) => {
+            try {
+              const dayDate = parseISO(d.date);
+              return dayDate >= weekStart && dayDate <= weekEnd;
+            } catch (e) {
+              return false;
+            }
+          })
+          .reduce((sum, d) => sum + (d.shift_types['Ferie'] || 0), 0);
+        csv += `"${weekTotal > 0 ? formatMinutes(weekTotal, format) : '-'}",`;
+      });
+      csv += '\n';
+
+      // Row 5: Malattia
+      csv += `-,`;
+      sortedDates.forEach((date) => {
+        const dayData = employeeData.find((d) => d.date === date);
+        const minuti = dayData?.shift_types['Malattia (Certificata)'] || 0;
+        csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
+      });
+      Array.from(weeks).sort().forEach((weekKey) => {
+        const weekStart = parseISO(weekKey);
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        const weekTotal = employeeData
+          .filter((d) => {
+            try {
+              const dayDate = parseISO(d.date);
+              return dayDate >= weekStart && dayDate <= weekEnd;
+            } catch (e) {
+              return false;
+            }
+          })
+          .reduce((sum, d) => sum + (d.shift_types['Malattia (Certificata)'] || 0), 0);
+        csv += `"${weekTotal > 0 ? formatMinutes(weekTotal, format) : '-'}",`;
+      });
+      csv += '\n';
+
+      // Row 6: Straordinari (only if included)
+      if (includeOvertime) {
+        csv += `-,`;
+        sortedDates.forEach((date) => {
+          const dayData = employeeData.find((d) => d.date === date);
+          const minuti = dayData?.shift_types['Straordinario'] || 0;
+          csv += `"${minuti > 0 ? formatMinutes(minuti, format) : '-'}",`;
+        });
+        Array.from(weeks).sort().forEach((weekKey) => {
+          const weekStart = parseISO(weekKey);
+          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+          const weekTotal = employeeData
+            .filter((d) => {
+              try {
+                const dayDate = parseISO(d.date);
+                return dayDate >= weekStart && dayDate <= weekEnd;
+              } catch (e) {
+                return false;
+              }
+            })
+            .reduce((sum, d) => sum + (d.shift_types['Straordinario'] || 0), 0);
+          csv += `"${weekTotal > 0 ? formatMinutes(weekTotal, format) : '-'}",`;
+        });
+        csv += '\n';
+      }
+
+      // Totale row
+      csv += 'Totale,';
+      sortedDates.forEach((date) => {
+        const dayData = employeeData.find((d) => d.date === date);
+        const totalMinutes = dayData ? Object.values(dayData.shift_types).reduce((sum, m) => sum + m, 0) : 0;
+        csv += `"${totalMinutes > 0 ? formatMinutes(totalMinutes, format) : '-'}",`;
+      });
+      Array.from(weeks).sort().forEach((weekKey) => {
+        const weekStart = parseISO(weekKey);
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+        const weekTotal = employeeData
+          .filter((d) => {
+            try {
+              const dayDate = parseISO(d.date);
+              return dayDate >= weekStart && dayDate <= weekEnd;
+            } catch (e) {
+              return false;
+            }
+          })
+          .reduce((sum, d) => sum + Object.values(d.shift_types).reduce((s, m) => s + m, 0), 0);
+        csv += `"${formatMinutes(weekTotal, format)}",`;
+      });
+      csv += '\n\n';
+    });
+
+    // Create download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+
+    const filename = `payroll_daily_${startDate || 'all'}_${endDate || 'all'}.csv`;
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setShowDownloadModal(null);
+  };
+
   // ✅ UPDATED: Export daily breakdown for ALL employees with overtime exclusion
   const exportAllEmployeesDailyCSV = (downloadFmt) => {
     let csv = 'Report Giornaliero - Tutti i Dipendenti\n';
