@@ -8,6 +8,7 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import PlandayStoreView from "../components/planday/PlandayStoreView";
 import PlandayEmployeeView from "../components/planday/PlandayEmployeeView";
+import PlandayTeamView from "../components/planday/PlandayTeamView";
 import DisponibilitaCalendar from "../components/disponibilita/DisponibilitaCalendar";
 import DisponibilitaRicorrenti from "../components/disponibilita/DisponibilitaRicorrenti";
 import {
@@ -1678,12 +1679,18 @@ export default function Planday() {
                   )}
               </select>
               
-              <div className="flex rounded-xl overflow-hidden neumorphic-pressed">
+              <div className="flex rounded-xl overflow-hidden neumorphic-pressed flex-wrap">
                 <button
                     onClick={() => setViewMode('calendario')}
                     className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'calendario' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}>
 
                   <LayoutGrid className="w-4 h-4" /> Calendario
+                </button>
+                <button
+                    onClick={() => setViewMode('squadra')}
+                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'squadra' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}>
+
+                  <Users className="w-4 h-4" /> Squadra
                 </button>
                 <button
                     onClick={() => setViewMode('dipendenti')}
@@ -2232,6 +2239,21 @@ export default function Planday() {
             candidati={candidati} />
 
           }
+
+        {/* Vista Squadra */}
+        {viewMode === 'squadra' &&
+          <PlandayTeamView
+            turni={turni}
+            users={users}
+            stores={stores}
+            weekStart={weekStart}
+            setWeekStart={setWeekStart}
+            onEditTurno={handleEditTurno}
+            onDeleteTurno={(id) => deleteMutation.mutate(id)}
+            getStoreName={getStoreName}
+            coloriRuolo={coloriRuolo}
+          />
+        }
 
         {/* Vista Singolo Dipendente */}
         {viewMode === 'singolo' &&
