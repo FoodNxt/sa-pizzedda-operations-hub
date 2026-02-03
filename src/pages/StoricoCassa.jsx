@@ -1820,6 +1820,11 @@ export default function StoricoCassa() {
                               </span>
                             </td>
                             <td className="p-2 lg:p-3 text-right">
+                              <span className="text-orange-600 font-bold text-sm">
+                                -€{dipendente.pagamentiStraordinari.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                              </span>
+                            </td>
+                            <td className="p-2 lg:p-3 text-right">
                               <span className={`font-bold text-base lg:text-lg ${
                                 dipendente.saldo > 0 ? 'text-orange-600' :
                                 dipendente.saldo < 0 ? 'text-green-600' :
