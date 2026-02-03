@@ -174,15 +174,15 @@ export default function Valutazione() {
 
     return wrongOrders.filter((wo) => {
       if (!matchedOrderIds.includes(wo.id)) return false;
-      // Apply date filter
+      // Apply date filter - between monthStart and monthEnd
       try {
         const orderDate = new Date(wo.created_date || wo.order_date);
-        return orderDate >= filterDate;
+        return orderDate >= monthStart && orderDate <= monthEnd;
       } catch (e) {
         return true;
       }
     }).sort((a, b) => new Date(b.created_date || b.order_date) - new Date(a.created_date || a.order_date));
-  }, [user, wrongOrders, wrongOrderMatches, filterDate]);
+  }, [user, wrongOrders, wrongOrderMatches, monthStart, monthEnd]);
 
   // Filter data for current employee
   const employeeData = useMemo(() => {
@@ -302,7 +302,7 @@ export default function Valutazione() {
       averageRating,
       avgCleaningScore,
       myCleaningInspections,
-      totalDelayMinutes: ritardiDipendente.reduce((acc, r) => acc + (r.minuti_ritardo_conteggiato || 0), 0),
+      totalDelayMinutes: ritardiDipendente.reduce((acc, r) => acc + (r.minuti_ritardo_reale || 0), 0),
       overallScore: Math.round(overallScore)
     };
   }, [user, matchedEmployee, myShifts, myReviews, myWrongOrders, cleaningInspections, ritardi, filterDate, userStoreIds, monthStart, monthEnd]);
@@ -466,11 +466,10 @@ export default function Valutazione() {
                     <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(ritardo.data)}</span>
                       {ritardo.store_nome && <span className="text-sm text-[#9b9b9b]">• {ritardo.store_nome}</span>}
                     </div>
-                    <span className="text-lg font-bold text-red-600">+{ritardo.minuti_ritardo_conteggiato || 0} min</span>
+                    <span className="text-lg font-bold text-red-600">+{ritardo.minuti_ritardo_reale || 0} min</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
                 <strong>Previsto:</strong> {ritardo.ora_inizio_prevista || 'N/A'} → <strong>Effettivo:</strong> {ritardo.ora_timbratura_entrata ? safeFormatTime(ritardo.ora_timbratura_entrata) : 'N/A'}
-                <div className="mt-1 text-xs">Ritardo reale: {ritardo.minuti_ritardo_reale} min • Conteggiato: {ritardo.minuti_ritardo_conteggiato} min</div>
                 </div>
               </div>
           )}
