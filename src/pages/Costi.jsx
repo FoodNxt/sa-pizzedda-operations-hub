@@ -297,6 +297,7 @@ export default function Costi() {
               let totalSubscriptions = 0;
               let totalCommissioni = 0;
               let totalAds = 0;
+              let totalAdsPiattaforme = 0;
 
               stores.forEach((store) => {
                 const storeId = store.id;
@@ -380,6 +381,32 @@ export default function Costi() {
                   return sum;
                 }, 0) * proRata;
 
+                // Ads piattaforme delivery (da Piano Quarter)
+                const costoAdsPiattaforme = pianiAds.reduce((sum, piano) => {
+                  const dataInizio = moment(piano.data_inizio);
+                  const dataFine = moment(piano.data_fine);
+                  const meseInizio = moment(selectedMonth).startOf('month');
+                  const meseFine = moment(selectedMonth).endOf('month');
+
+                  if (dataFine.isBefore(meseInizio) || dataInizio.isAfter(meseFine)) {
+                    return sum;
+                  }
+
+                  if (!piano.stores_ids || !piano.stores_ids.includes(storeId)) {
+                    return sum;
+                  }
+
+                  const durataInMesi = dataFine.diff(dataInizio, 'months', true);
+                  const numStoresAssegnati = piano.stores_ids.length;
+                  const budgetPerLocale = piano.budget / numStoresAssegnati;
+                  const budgetMensilePerLocale = budgetPerLocale / durataInMesi;
+                  const percentualeCofinanziamento = piano.percentuale_cofinanziamento || 0;
+                  const costoEffettivo = budgetMensilePerLocale * (1 - percentualeCofinanziamento / 100);
+                  const costoMeseConProrata = costoEffettivo * proRata;
+
+                  return sum + costoMeseConProrata;
+                }, 0);
+
                 totalRicavi += ricaviMese;
                 totalAffitto += costoAffitto;
                 totalUtenze += costoUtenze;
@@ -388,9 +415,10 @@ export default function Costi() {
                 totalSubscriptions += totaleSubscriptions;
                 totalCommissioni += costoCommissioni;
                 totalAds += costoAds;
+                totalAdsPiattaforme += costoAdsPiattaforme;
               });
 
-              const totalCosti = totalAffitto + totalUtenze + totalCOGS + totalPersonale + totalSubscriptions + totalCommissioni + totalAds;
+              const totalCosti = totalAffitto + totalUtenze + totalCOGS + totalPersonale + totalSubscriptions + totalCommissioni + totalAds + totalAdsPiattaforme;
               const totalMargine = totalRicavi - totalCosti;
               const totalMarginePerc = totalRicavi > 0 ? totalMargine / totalRicavi * 100 : 0;
 
@@ -450,9 +478,9 @@ export default function Costi() {
                         <p className="text-xs text-slate-400">{(totalAds / totalCosti * 100).toFixed(1)}%</p>
                       </div>
                       <div className="neumorphic-flat p-3 rounded-lg">
-                        <p className="text-xs text-slate-500 mb-1">Num. Locali</p>
-                        <p className="font-bold text-slate-800">{numStores}</p>
-                        <p className="text-xs text-slate-400">Media</p>
+                        <p className="text-xs text-slate-500 mb-1">Ads Piattaforme</p>
+                        <p className="font-bold text-slate-800">{formatEuro(totalAdsPiattaforme)}</p>
+                        <p className="text-xs text-slate-400">{(totalAdsPiattaforme / totalCosti * 100).toFixed(1)}%</p>
                       </div>
                     </div>
                   </div>);
