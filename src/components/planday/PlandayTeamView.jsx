@@ -105,17 +105,27 @@ export default function PlandayTeamView({
         const turniCount = dayTurni.length;
 
         return (
-          <NeumorphicCard key={dayKey} className="p-4">
+          <NeumorphicCard key={dayKey} className={`p-6 border-l-4 transition-all ${
+            day.isSame(moment(), 'day') ? 'border-l-blue-600 bg-blue-50' : 'border-l-slate-300'
+          }`}>
             {/* Header giorno */}
             <button
               onClick={() => setExpandedDays(prev => ({...prev, [dayKey]: !isExpanded}))}
-              className="w-full flex items-center justify-between mb-4 hover:opacity-70 transition-opacity"
+              className="w-full flex items-center justify-between hover:opacity-70 transition-opacity mb-4"
             >
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">{dayLabel}</h3>
-                <p className="text-sm text-slate-500">{turniCount} turni</p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <h3 className={`text-xl font-bold ${day.isSame(moment(), 'day') ? 'text-blue-700' : 'text-slate-800'}`}>
+                    {dayLabel}
+                  </h3>
+                  <p className={`text-sm ${day.isSame(moment(), 'day') ? 'text-blue-600' : 'text-slate-500'}`}>
+                    {turniCount} turni programmati
+                  </p>
+                </div>
               </div>
-              <div className="text-2xl">{isExpanded ? '▼' : '▶'}</div>
+              <div className={`text-3xl font-bold transition-transform ${isExpanded ? 'rotate-180' : ''} text-slate-600`}>
+                ▼
+              </div>
             </button>
 
             {isExpanded && (

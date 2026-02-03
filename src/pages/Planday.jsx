@@ -45,7 +45,7 @@ export default function Planday() {
   const [showForm, setShowForm] = useState(false);
   const [editingTurno, setEditingTurno] = useState(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
-  const [viewMode, setViewMode] = useState('calendario'); // calendario, dipendenti, singolo
+  const [viewMode, setViewMode] = useState('dipendenti'); // squadra, dipendenti, singolo
   const [selectedDipendente, setSelectedDipendente] = useState(null);
   const [expandedTurno, setExpandedTurno] = useState(null);
 
@@ -1680,12 +1680,6 @@ export default function Planday() {
               </select>
               
               <div className="flex rounded-xl overflow-hidden neumorphic-pressed flex-wrap">
-                <button
-                    onClick={() => setViewMode('calendario')}
-                    className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'calendario' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}>
-
-                  <LayoutGrid className="w-4 h-4" /> Calendario
-                </button>
                 <button
                     onClick={() => setViewMode('squadra')}
                     className={`px-3 py-2 text-sm font-medium flex items-center gap-1 ${viewMode === 'squadra' ? 'bg-blue-500 text-white' : 'text-slate-700'}`}>
