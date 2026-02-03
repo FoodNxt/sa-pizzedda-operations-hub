@@ -13,6 +13,7 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4'
 
 export default function FoodCost() {
   const [selectedStore, setSelectedStore] = useState('all');
+  const [foodCostView, setFoodCostView] = useState('reale'); // reale | teorico | confronto
   const [dateRange, setDateRange] = useState({
     start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     end: format(new Date(), 'yyyy-MM-dd')
@@ -55,8 +56,11 @@ export default function FoodCost() {
         (selectedStore === 'all' || d.store_id === selectedStore);
     });
 
-    // Calcola costo totale dagli ordini fornitori arrivati
-    let costoTotale = 0;
+    // Revenue totale
+    const revenueTotale = revenueData.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
+
+    // COSTO REALE: dagli ordini fornitori arrivati
+    let costoReale = 0;
     const ordiniArrivati = ordiniFornitori.filter(o => {
       if (o.status !== 'completato') return false;
       if (!o.data_arrivo_effettiva) return false;
@@ -71,23 +75,40 @@ export default function FoodCost() {
         ordine.prodotti.forEach(prod => {
           const quantita = prod.quantita_ricevuta || prod.quantita_ordinata || 0;
           const prezzo = prod.prezzo_unitario || 0;
-          costoTotale += quantita * prezzo;
+          costoReale += quantita * prezzo;
         });
       }
     });
 
-    // Revenue totale
-    const revenueTotale = revenueData.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
+    // COSTO TEORICO: dalle ricette e prodotti venduti
+    const prodotti = prodottiVenduti.filter(p => {
+      const orderDate = new Date(p.order_date);
+      return orderDate >= startDate && orderDate <= endDate &&
+        (selectedStore === 'all' || p.store_id === selectedStore);
+    });
 
-    // Food cost percentuale
-    const foodCostPercentuale = revenueTotale > 0 ? (costoTotale / revenueTotale) * 100 : 0;
+    let costoTeorico = 0;
+    prodotti.forEach(prod => {
+      const ricetta = ricette.find(r => r.nome_prodotto === prod.product_name);
+      if (ricetta && ricetta.costo_unitario) {
+        costoTeorico += ricetta.costo_unitario * (prod.quantity || 0);
+      }
+    });
+
+    // Food cost percentuali
+    const foodCostReale = revenueTotale > 0 ? (costoReale / revenueTotale) * 100 : 0;
+    const foodCostTeorico = revenueTotale > 0 ? (costoTeorico / revenueTotale) * 100 : 0;
 
     return {
-      costoTotale,
+      costoReale,
+      costoTeorico,
       revenueTotale,
-      foodCostPercentuale
+      foodCostReale,
+      foodCostTeorico,
+      varianza: costoReale - costoTeorico,
+      varianzaPerc: costoTeorico > 0 ? ((costoReale - costoTeorico) / costoTeorico) * 100 : 0
     };
-  }, [iPraticoData, ordiniFornitori, dateRange, selectedStore]);
+  }, [iPraticoData, ordiniFornitori, prodottiVenduti, ricette, dateRange, selectedStore]);
 
   // Food cost per store
   const foodCostByStore = useMemo(() => {
@@ -102,33 +123,52 @@ export default function FoodCost() {
         return orderDate >= startDate && orderDate <= endDate && d.store_id === store.id;
       }).reduce((sum, d) => sum + (d.total_revenue || 0), 0);
 
+      // Costo reale
       const storeOrdini = ordiniFornitori.filter(o => {
         if (o.status !== 'completato' || !o.data_arrivo_effettiva) return false;
         const dataArrivo = new Date(o.data_arrivo_effettiva);
         return dataArrivo >= startDate && dataArrivo <= endDate && o.store_id === store.id;
       });
 
-      let storeCosto = 0;
+      let storeCostoReale = 0;
       storeOrdini.forEach(ordine => {
         if (ordine.prodotti && Array.isArray(ordine.prodotti)) {
           ordine.prodotti.forEach(prod => {
             const quantita = prod.quantita_ricevuta || prod.quantita_ordinata || 0;
             const prezzo = prod.prezzo_unitario || 0;
-            storeCosto += quantita * prezzo;
+            storeCostoReale += quantita * prezzo;
           });
         }
       });
 
-      const foodCostPerc = storeRevenue > 0 ? (storeCosto / storeRevenue) * 100 : 0;
+      // Costo teorico
+      const storeProdotti = prodottiVenduti.filter(p => {
+        const orderDate = new Date(p.order_date);
+        return orderDate >= startDate && orderDate <= endDate && p.store_id === store.id;
+      });
+
+      let storeCostoTeorico = 0;
+      storeProdotti.forEach(prod => {
+        const ricetta = ricette.find(r => r.nome_prodotto === prod.product_name);
+        if (ricetta && ricetta.costo_unitario) {
+          storeCostoTeorico += ricetta.costo_unitario * (prod.quantity || 0);
+        }
+      });
+
+      const foodCostReale = storeRevenue > 0 ? (storeCostoReale / storeRevenue) * 100 : 0;
+      const foodCostTeorico = storeRevenue > 0 ? (storeCostoTeorico / storeRevenue) * 100 : 0;
 
       return {
         store: store.name,
-        foodCost: foodCostPerc,
-        costo: storeCosto,
-        revenue: storeRevenue
+        foodCostReale,
+        foodCostTeorico,
+        costoReale: storeCostoReale,
+        costoTeorico: storeCostoTeorico,
+        revenue: storeRevenue,
+        varianza: storeCostoReale - storeCostoTeorico
       };
     }).filter(d => d.revenue > 0);
-  }, [stores, iPraticoData, ordiniFornitori, dateRange, selectedStore]);
+  }, [stores, iPraticoData, ordiniFornitori, prodottiVenduti, ricette, dateRange, selectedStore]);
 
   // Trend giornaliero food cost
   const trendGiornaliero = useMemo(() => {
@@ -164,12 +204,33 @@ export default function FoodCost() {
           weekStart.setDate(dataArrivo.getDate() - dataArrivo.getDay());
           const weekKey = format(weekStart, 'yyyy-MM-dd');
 
-          if (weeklyData[weekKey] && o.prodotti && Array.isArray(o.prodotti)) {
+          if (!weeklyData[weekKey]) {
+            weeklyData[weekKey] = { date: weekKey, revenue: 0, costoReale: 0, costoTeorico: 0 };
+          }
+          if (o.prodotti && Array.isArray(o.prodotti)) {
             o.prodotti.forEach(prod => {
               const quantita = prod.quantita_ricevuta || prod.quantita_ordinata || 0;
               const prezzo = prod.prezzo_unitario || 0;
-              weeklyData[weekKey].costo += quantita * prezzo;
+              weeklyData[weekKey].costoReale += quantita * prezzo;
             });
+          }
+        }
+      });
+
+      prodottiVenduti.forEach(p => {
+        const orderDate = new Date(p.order_date);
+        if (orderDate >= startDate && orderDate <= endDate &&
+          (selectedStore === 'all' || p.store_id === selectedStore)) {
+          const weekStart = new Date(orderDate);
+          weekStart.setDate(orderDate.getDate() - orderDate.getDay());
+          const weekKey = format(weekStart, 'yyyy-MM-dd');
+
+          if (!weeklyData[weekKey]) {
+            weeklyData[weekKey] = { date: weekKey, revenue: 0, costoReale: 0, costoTeorico: 0 };
+          }
+          const ricetta = ricette.find(r => r.nome_prodotto === p.product_name);
+          if (ricetta && ricetta.costo_unitario) {
+            weeklyData[weekKey].costoTeorico += ricetta.costo_unitario * (p.quantity || 0);
           }
         }
       });
@@ -177,7 +238,8 @@ export default function FoodCost() {
       return Object.values(weeklyData)
         .map(d => ({
           date: format(new Date(d.date), 'dd MMM', { locale: it }),
-          foodCost: d.revenue > 0 ? (d.costo / d.revenue) * 100 : 0
+          foodCostReale: d.revenue > 0 ? (d.costoReale / d.revenue) * 100 : 0,
+          foodCostTeorico: d.revenue > 0 ? (d.costoTeorico / d.revenue) * 100 : 0
         }))
         .sort((a, b) => new Date(a.date) - new Date(b.date));
     } else {
@@ -305,70 +367,174 @@ export default function FoodCost() {
           </div>
         </NeumorphicCard>
 
+        {/* View Toggle */}
+        <NeumorphicCard className="p-4">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFoodCostView('reale')}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                foodCostView === 'reale' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Costo Reale
+            </button>
+            <button
+              onClick={() => setFoodCostView('teorico')}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                foodCostView === 'teorico' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Costo Teorico
+            </button>
+            <button
+              onClick={() => setFoodCostView('confronto')}
+              className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                foodCostView === 'confronto' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Confronto
+            </button>
+          </div>
+        </NeumorphicCard>
+
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <NeumorphicCard className="p-6">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <p className="text-sm text-slate-500 mb-1">Food Cost Medio</p>
-                <p className="text-3xl font-bold text-slate-800">
-                  {foodCostData.foodCostPercentuale.toFixed(1)}%
-                </p>
+        {foodCostView === 'confronto' ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Food Cost Reale</p>
+                  <p className="text-3xl font-bold text-orange-600">
+                    {foodCostData.foodCostReale.toFixed(1)}%
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                  <ChefHat className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                <ChefHat className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              {foodCostData.foodCostPercentuale <= 30 ? (
-                <>
-                  <TrendingDown className="w-4 h-4 text-green-600" />
-                  <p className="text-xs text-green-600 font-medium">Ottimo controllo</p>
-                </>
-              ) : foodCostData.foodCostPercentuale <= 35 ? (
-                <>
-                  <TrendingUp className="w-4 h-4 text-yellow-600" />
-                  <p className="text-xs text-yellow-600 font-medium">Nella media</p>
-                </>
-              ) : (
-                <>
-                  <TrendingUp className="w-4 h-4 text-red-600" />
-                  <p className="text-xs text-red-600 font-medium">Sopra target</p>
-                </>
-              )}
-            </div>
-          </NeumorphicCard>
+              <p className="text-xs text-slate-500">Da ordini fornitori</p>
+            </NeumorphicCard>
 
-          <NeumorphicCard className="p-6">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <p className="text-sm text-slate-500 mb-1">Costo Ingredienti</p>
-                <p className="text-3xl font-bold text-red-600">
-                  {formatEuro(foodCostData.costoTotale)}
-                </p>
+            <NeumorphicCard className="p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Food Cost Teorico</p>
+                  <p className="text-3xl font-bold text-blue-600">
+                    {foodCostData.foodCostTeorico.toFixed(1)}%
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                  <ChefHat className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-                <TrendingDown className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            <p className="text-xs text-slate-500 mt-2">Costo totale materie prime</p>
-          </NeumorphicCard>
+              <p className="text-xs text-slate-500">Da ricette</p>
+            </NeumorphicCard>
 
-          <NeumorphicCard className="p-6">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <p className="text-sm text-slate-500 mb-1">Revenue Totale</p>
-                <p className="text-3xl font-bold text-green-600">
-                  {formatEuro(foodCostData.revenueTotale)}
-                </p>
+            <NeumorphicCard className="p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Varianza €</p>
+                  <p className={`text-3xl font-bold ${foodCostData.varianza > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {foodCostData.varianza > 0 ? '+' : ''}{formatEuro(foodCostData.varianza)}
+                  </p>
+                </div>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  foodCostData.varianza > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : 'bg-gradient-to-br from-green-500 to-green-600'
+                }`}>
+                  {foodCostData.varianza > 0 ? <TrendingUp className="w-6 h-6 text-white" /> : <TrendingDown className="w-6 h-6 text-white" />}
+                </div>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-white" />
+              <p className="text-xs text-slate-500">Differenza reale vs teorico</p>
+            </NeumorphicCard>
+
+            <NeumorphicCard className="p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Varianza %</p>
+                  <p className={`text-3xl font-bold ${foodCostData.varianzaPerc > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {foodCostData.varianzaPerc > 0 ? '+' : ''}{foodCostData.varianzaPerc.toFixed(1)}%
+                  </p>
+                </div>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                  foodCostData.varianzaPerc > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : 'bg-gradient-to-br from-green-500 to-green-600'
+                }`}>
+                  {foodCostData.varianzaPerc > 0 ? <TrendingUp className="w-6 h-6 text-white" /> : <TrendingDown className="w-6 h-6 text-white" />}
+                </div>
               </div>
-            </div>
-            <p className="text-xs text-slate-500 mt-2">Revenue nel periodo selezionato</p>
-          </NeumorphicCard>
-        </div>
+              <p className="text-xs text-slate-500">% sul teorico</p>
+            </NeumorphicCard>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Food Cost {foodCostView === 'reale' ? 'Reale' : 'Teorico'}</p>
+                  <p className="text-3xl font-bold text-slate-800">
+                    {(foodCostView === 'reale' ? foodCostData.foodCostReale : foodCostData.foodCostTeorico).toFixed(1)}%
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                  <ChefHat className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                {(foodCostView === 'reale' ? foodCostData.foodCostReale : foodCostData.foodCostTeorico) <= 30 ? (
+                  <>
+                    <TrendingDown className="w-4 h-4 text-green-600" />
+                    <p className="text-xs text-green-600 font-medium">Ottimo controllo</p>
+                  </>
+                ) : (foodCostView === 'reale' ? foodCostData.foodCostReale : foodCostData.foodCostTeorico) <= 35 ? (
+                  <>
+                    <TrendingUp className="w-4 h-4 text-yellow-600" />
+                    <p className="text-xs text-yellow-600 font-medium">Nella media</p>
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="w-4 h-4 text-red-600" />
+                    <p className="text-xs text-red-600 font-medium">Sopra target</p>
+                  </>
+                )}
+              </div>
+            </NeumorphicCard>
+
+            <NeumorphicCard className="p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Costo Ingredienti</p>
+                  <p className="text-3xl font-bold text-red-600">
+                    {formatEuro(foodCostView === 'reale' ? foodCostData.costoReale : foodCostData.costoTeorico)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                  <TrendingDown className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">{foodCostView === 'reale' ? 'Da ordini fornitori' : 'Da ricette'}</p>
+            </NeumorphicCard>
+
+            <NeumorphicCard className="p-6">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Revenue Totale</p>
+                  <p className="text-3xl font-bold text-green-600">
+                    {formatEuro(foodCostData.revenueTotale)}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">Revenue nel periodo selezionato</p>
+            </NeumorphicCard>
+          </div>
+        )}
 
         {/* Trend nel tempo */}
         <NeumorphicCard className="p-6">
@@ -383,14 +549,27 @@ export default function FoodCost() {
                   contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '8px', color: '#f1f5f9' }}
                   formatter={(value) => `${value.toFixed(2)}%`}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="foodCost" 
-                  stroke="#f59e0b" 
-                  strokeWidth={3}
-                  name="Food Cost %"
-                  dot={{ fill: '#f59e0b', r: 4 }}
-                />
+                <Legend />
+                {(foodCostView === 'reale' || foodCostView === 'confronto') && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="foodCostReale" 
+                    stroke="#f59e0b" 
+                    strokeWidth={3}
+                    name="Food Cost Reale %"
+                    dot={{ fill: '#f59e0b', r: 4 }}
+                  />
+                )}
+                {(foodCostView === 'teorico' || foodCostView === 'confronto') && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="foodCostTeorico" 
+                    stroke="#3b82f6" 
+                    strokeWidth={3}
+                    name="Food Cost Teorico %"
+                    dot={{ fill: '#3b82f6', r: 4 }}
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -414,7 +593,13 @@ export default function FoodCost() {
                     contentStyle={{ background: '#1e293b', border: 'none', borderRadius: '8px', color: '#f1f5f9' }}
                     formatter={(value) => `${value.toFixed(2)}%`}
                   />
-                  <Bar dataKey="foodCost" fill="#f59e0b" name="Food Cost %" radius={[8, 8, 0, 0]} />
+                  <Legend />
+                  {(foodCostView === 'reale' || foodCostView === 'confronto') && (
+                    <Bar dataKey="foodCostReale" fill="#f59e0b" name="Reale %" radius={[8, 8, 0, 0]} />
+                  )}
+                  {(foodCostView === 'teorico' || foodCostView === 'confronto') && (
+                    <Bar dataKey="foodCostTeorico" fill="#3b82f6" name="Teorico %" radius={[8, 8, 0, 0]} />
+                  )}
                 </BarChart>
               </ResponsiveContainer>
             </NeumorphicCard>
@@ -456,35 +641,70 @@ export default function FoodCost() {
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 px-4 text-sm font-bold text-slate-700">Locale</th>
                     <th className="text-right py-3 px-4 text-sm font-bold text-slate-700">Revenue</th>
-                    <th className="text-right py-3 px-4 text-sm font-bold text-slate-700">Costo Ingredienti</th>
-                    <th className="text-right py-3 px-4 text-sm font-bold text-slate-700">Food Cost %</th>
-                    <th className="text-right py-3 px-4 text-sm font-bold text-slate-700">Margine</th>
+                    {(foodCostView === 'reale' || foodCostView === 'confronto') && (
+                      <>
+                        <th className="text-right py-3 px-4 text-sm font-bold text-slate-700">Costo Reale</th>
+                        <th className="text-right py-3 px-4 text-sm font-bold text-slate-700">FC Reale %</th>
+                      </>
+                    )}
+                    {(foodCostView === 'teorico' || foodCostView === 'confronto') && (
+                      <>
+                        <th className="text-right py-3 px-4 text-sm font-bold text-slate-700">Costo Teorico</th>
+                        <th className="text-right py-3 px-4 text-sm font-bold text-slate-700">FC Teorico %</th>
+                      </>
+                    )}
+                    {foodCostView === 'confronto' && (
+                      <th className="text-right py-3 px-4 text-sm font-bold text-slate-700">Varianza</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {foodCostByStore.map((row, idx) => {
-                    const margine = row.revenue - row.costo;
                     return (
                       <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="py-3 px-4 text-sm font-medium text-slate-800">{row.store}</td>
                         <td className="py-3 px-4 text-sm text-right text-green-600 font-bold">
                           {formatEuro(row.revenue)}
                         </td>
-                        <td className="py-3 px-4 text-sm text-right text-red-600 font-bold">
-                          {formatEuro(row.costo)}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-right font-bold">
-                          <span className={`px-2 py-1 rounded-lg ${
-                            row.foodCost <= 30 ? 'bg-green-100 text-green-700' :
-                            row.foodCost <= 35 ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
+                        {(foodCostView === 'reale' || foodCostView === 'confronto') && (
+                          <>
+                            <td className="py-3 px-4 text-sm text-right text-red-600 font-bold">
+                              {formatEuro(row.costoReale)}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-right font-bold">
+                              <span className={`px-2 py-1 rounded-lg ${
+                                row.foodCostReale <= 30 ? 'bg-green-100 text-green-700' :
+                                row.foodCostReale <= 35 ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {row.foodCostReale.toFixed(1)}%
+                              </span>
+                            </td>
+                          </>
+                        )}
+                        {(foodCostView === 'teorico' || foodCostView === 'confronto') && (
+                          <>
+                            <td className="py-3 px-4 text-sm text-right text-blue-600 font-bold">
+                              {formatEuro(row.costoTeorico)}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-right font-bold">
+                              <span className={`px-2 py-1 rounded-lg ${
+                                row.foodCostTeorico <= 30 ? 'bg-green-100 text-green-700' :
+                                row.foodCostTeorico <= 35 ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {row.foodCostTeorico.toFixed(1)}%
+                              </span>
+                            </td>
+                          </>
+                        )}
+                        {foodCostView === 'confronto' && (
+                          <td className={`py-3 px-4 text-sm text-right font-bold ${
+                            row.varianza > 0 ? 'text-red-600' : 'text-green-600'
                           }`}>
-                            {row.foodCost.toFixed(1)}%
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-right text-blue-600 font-bold">
-                          {formatEuro(margine)}
-                        </td>
+                            {row.varianza > 0 ? '+' : ''}{formatEuro(row.varianza)}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
