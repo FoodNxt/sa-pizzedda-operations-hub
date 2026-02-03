@@ -162,10 +162,37 @@ export default function PagamentoStraordinari() {
     return straordinari;
   }, [shifts, straordinariConfigs, pagamentiStraordinari, currentUser, stores, activeConfig, attivitaCompletate]);
 
-  // Merge existing payments with calculated ones
+  // Merge existing payments with calculated ones and enrich with deposito data
   const allStraordinari = useMemo(() => {
-    return [...pagamentiStraordinari, ...straordinariDaTurni];
-  }, [pagamentiStraordinari, straordinariDaTurni]);
+    const pagamentiArricchiti = pagamentiStraordinari.map(p => {
+      // Se pagato_da è già presente, ritorna il pagamento così com'è
+      if (p.pagato && p.pagato_da) {
+        return p;
+      }
+      
+      // Altrimenti cerca il deposito correlato per recuperare chi ha pagato
+      if (p.pagato && p.data_pagamento) {
+        const depositoCorrelato = depositi.find(d => {
+          // Match basato su data simile e importo
+          const diffMs = Math.abs(new Date(d.data_deposito) - new Date(p.data_pagamento));
+          const diffMinutes = diffMs / 1000 / 60;
+          return Math.abs(d.importo - p.importo_totale) < 0.01 && diffMinutes < 5;
+        });
+        
+        if (depositoCorrelato) {
+          return {
+            ...p,
+            pagato_da: depositoCorrelato.rilevato_da,
+            data_pagamento: depositoCorrelato.data_deposito
+          };
+        }
+      }
+      
+      return p;
+    });
+    
+    return [...pagamentiArricchiti, ...straordinariDaTurni];
+  }, [pagamentiStraordinari, straordinariDaTurni, depositi]);
 
   const filteredStraordinari = useMemo(() => {
     let filtered = allStraordinari;
