@@ -189,7 +189,7 @@ export default function FoodCost() {
           const weekKey = format(weekStart, 'yyyy-MM-dd');
 
           if (!weeklyData[weekKey]) {
-            weeklyData[weekKey] = { date: weekKey, revenue: 0, costo: 0 };
+            weeklyData[weekKey] = { date: weekKey, revenue: 0, costoReale: 0, costoTeorico: 0 };
           }
           weeklyData[weekKey].revenue += d.total_revenue || 0;
         }
@@ -252,7 +252,7 @@ export default function FoodCost() {
           (selectedStore === 'all' || d.store_id === selectedStore)) {
           const dateKey = d.order_date;
           if (!dailyData[dateKey]) {
-            dailyData[dateKey] = { date: dateKey, revenue: 0, costo: 0 };
+            dailyData[dateKey] = { date: dateKey, revenue: 0, costoReale: 0, costoTeorico: 0 };
           }
           dailyData[dateKey].revenue += d.total_revenue || 0;
         }
@@ -265,14 +265,29 @@ export default function FoodCost() {
           (selectedStore === 'all' || o.store_id === selectedStore)) {
           const dateKey = format(dataArrivo, 'yyyy-MM-dd');
           if (!dailyData[dateKey]) {
-            dailyData[dateKey] = { date: dateKey, revenue: 0, costo: 0 };
+            dailyData[dateKey] = { date: dateKey, revenue: 0, costoReale: 0, costoTeorico: 0 };
           }
           if (o.prodotti && Array.isArray(o.prodotti)) {
             o.prodotti.forEach(prod => {
               const quantita = prod.quantita_ricevuta || prod.quantita_ordinata || 0;
               const prezzo = prod.prezzo_unitario || 0;
-              dailyData[dateKey].costo += quantita * prezzo;
+              dailyData[dateKey].costoReale += quantita * prezzo;
             });
+          }
+        }
+      });
+
+      prodottiVenduti.forEach(p => {
+        const orderDate = new Date(p.order_date);
+        if (orderDate >= startDate && orderDate <= endDate &&
+          (selectedStore === 'all' || p.store_id === selectedStore)) {
+          const dateKey = p.order_date;
+          if (!dailyData[dateKey]) {
+            dailyData[dateKey] = { date: dateKey, revenue: 0, costoReale: 0, costoTeorico: 0 };
+          }
+          const ricetta = ricette.find(r => r.nome_prodotto === p.product_name);
+          if (ricetta && ricetta.costo_unitario) {
+            dailyData[dateKey].costoTeorico += ricetta.costo_unitario * (p.quantity || 0);
           }
         }
       });
@@ -280,11 +295,12 @@ export default function FoodCost() {
       return Object.values(dailyData)
         .map(d => ({
           date: format(new Date(d.date), 'dd MMM', { locale: it }),
-          foodCost: d.revenue > 0 ? (d.costo / d.revenue) * 100 : 0
+          foodCostReale: d.revenue > 0 ? (d.costoReale / d.revenue) * 100 : 0,
+          foodCostTeorico: d.revenue > 0 ? (d.costoTeorico / d.revenue) * 100 : 0
         }))
         .sort((a, b) => new Date(a.date) - new Date(b.date));
     }
-  }, [iPraticoData, prodottiVenduti, ricette, dateRange, selectedStore]);
+  }, [iPraticoData, ordiniFornitori, prodottiVenduti, ricette, dateRange, selectedStore]);
 
   // Quick date range buttons
   const setQuickRange = (days) => {

@@ -87,6 +87,7 @@ import Employees from './pages/Employees';
 import FeedbackP2P from './pages/FeedbackP2P';
 import FinancialForms from './pages/FinancialForms';
 import Financials from './pages/Financials';
+import FoodCost from './pages/FoodCost';
 import FormCantina from './pages/FormCantina';
 import FormDebug from './pages/FormDebug';
 import FormDeposito from './pages/FormDeposito';
@@ -160,10 +161,10 @@ import Straordinari from './pages/Straordinari';
 import strutturamen from './pages/StrutturaMenù';
 import StrutturaTurno from './pages/StrutturaTurno';
 import SummaryAI from './pages/SummaryAI';
-import Uscite from './pages/Uscite';
 import TeglieButtate from './pages/TeglieButtate';
 import TurniDipendente from './pages/TurniDipendente';
 import UploadFattureXML from './pages/UploadFattureXML';
+import Uscite from './pages/Uscite';
 import UsersManagement from './pages/UsersManagement';
 import Valutazione from './pages/Valutazione';
 import ValutazioneProvaForm from './pages/ValutazioneProvaForm';
@@ -172,7 +173,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import FoodCost from './pages/FoodCost';
 import __Layout from './Layout.jsx';
 
 
@@ -217,6 +217,7 @@ export const PAGES = {
     "FeedbackP2P": FeedbackP2P,
     "FinancialForms": FinancialForms,
     "Financials": Financials,
+    "FoodCost": FoodCost,
     "FormCantina": FormCantina,
     "FormDebug": FormDebug,
     "FormDeposito": FormDeposito,
@@ -290,10 +291,10 @@ export const PAGES = {
     "StrutturaMenù": strutturamen,
     "StrutturaTurno": StrutturaTurno,
     "SummaryAI": SummaryAI,
-    "Uscite": Uscite,
     "TeglieButtate": TeglieButtate,
     "TurniDipendente": TurniDipendente,
     "UploadFattureXML": UploadFattureXML,
+    "Uscite": Uscite,
     "UsersManagement": UsersManagement,
     "Valutazione": Valutazione,
     "ValutazioneProvaForm": ValutazioneProvaForm,
@@ -302,7 +303,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "FoodCost": FoodCost,
 }
 
 export const pagesConfig = {
