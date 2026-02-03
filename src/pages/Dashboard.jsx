@@ -1024,16 +1024,21 @@ export default function Dashboard() {
         {/* Metriche Principali */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Ricavi */}
-          <NeumorphicCard className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
-                <DollarSign className="w-6 h-6 text-white" />
+          <NeumorphicCard className="p-4 hover:shadow-lg transition-shadow">
+            <Link to={createPageUrl('Financials')} className="block">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                    <DollarSign className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800">{formatEuro(processedData.totalRevenue)}</h3>
+                    <p className="text-xs text-slate-500">Ricavi Totali</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-5 h-5 text-green-600" />
               </div>
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800">{formatEuro(processedData.totalRevenue)}</h3>
-                <p className="text-xs text-slate-500">Ricavi Totali</p>
-              </div>
-            </div>
+            </Link>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-green-600">🏆 {topRevenueStore.top?.name || 'N/A'}</span>
@@ -1047,16 +1052,21 @@ export default function Dashboard() {
           </NeumorphicCard>
 
           {/* Food Cost % */}
-          <NeumorphicCard className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg">
-                <Package className="w-6 h-6 text-white" />
+          <NeumorphicCard className="p-4 hover:shadow-lg transition-shadow">
+            <Link to={createPageUrl('FoodCost')} className="block">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg">
+                    <Package className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800">{foodCostStats.avg.toFixed(1)}%</h3>
+                    <p className="text-xs text-slate-500">Food Cost Medio</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-5 h-5 text-orange-600" />
               </div>
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800">{foodCostStats.avg.toFixed(1)}%</h3>
-                <p className="text-xs text-slate-500">Food Cost Medio</p>
-              </div>
-            </div>
+            </Link>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-green-600">🏆 {foodCostStats.best?.name || 'N/A'}</span>
@@ -1070,16 +1080,21 @@ export default function Dashboard() {
           </NeumorphicCard>
 
           {/* Dipendenti */}
-          <NeumorphicCard className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
-                <Users className="w-6 h-6 text-white" />
+          <NeumorphicCard className="p-4 hover:shadow-lg transition-shadow">
+            <Link to={createPageUrl('EmployeeReviewsPerformance')} className="block">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800">{employeePerformance.total}</h3>
+                    <p className="text-xs text-slate-500">Dipendenti Totali</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-5 h-5 text-purple-600" />
               </div>
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800">{employeePerformance.total}</h3>
-                <p className="text-xs text-slate-500">Dipendenti Totali</p>
-              </div>
-            </div>
+            </Link>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-green-600">🏆 {employeePerformance.top?.name || 'N/A'}</span>
@@ -1093,16 +1108,21 @@ export default function Dashboard() {
           </NeumorphicCard>
 
           {/* Produttività */}
-          <NeumorphicCard className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                <Clock className="w-6 h-6 text-white" />
+          <NeumorphicCard className="p-4 hover:shadow-lg transition-shadow">
+            <Link to={createPageUrl('Produttivita')} className="block">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <Clock className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800">{formatEuro(produttivitaStats.avg)}/h</h3>
+                    <p className="text-xs text-slate-500">Produttività Media</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-5 h-5 text-blue-600" />
               </div>
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800">{formatEuro(produttivitaStats.avg)}/h</h3>
-                <p className="text-xs text-slate-500">Produttività Media</p>
-              </div>
-            </div>
+            </Link>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-green-600">🏆 {produttivitaStats.best?.name || 'N/A'}</span>
