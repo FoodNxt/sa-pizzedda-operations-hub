@@ -44,6 +44,8 @@ export default function Financials() {
   const [showAIAnalysis, setShowAIAnalysis] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [conversationMessages, setConversationMessages] = useState([]);
+  const [userQuestion, setUserQuestion] = useState('');
 
   // Confronto Mensile State
   const [periodo1Store, setPeriodo1Store] = useState('all');
@@ -1567,7 +1569,7 @@ export default function Financials() {
   const handleAIAnalysis = async () => {
     setIsAnalyzing(true);
     setShowAIAnalysis(true);
-    setAiAnalysis(null);
+    setConversationMessages([]);
 
     try {
       const response = await base44.functions.invoke('analyzeFinancialData', {
@@ -1588,17 +1590,80 @@ export default function Financials() {
           selectedChannels,
           selectedApps,
           selectedPaymentMethods
-        }
+        },
+        conversationHistory: []
       });
 
       if (response.data.success) {
-        setAiAnalysis(response.data.analysis);
+        setConversationMessages([
+          { role: 'assistant', content: response.data.analysis }
+        ]);
       } else {
-        setAiAnalysis('Errore durante l\'analisi. Riprova.');
+        setConversationMessages([
+          { role: 'assistant', content: 'Errore durante l\'analisi. Riprova.' }
+        ]);
       }
     } catch (error) {
       console.error('Error analyzing data:', error);
-      setAiAnalysis('Errore durante l\'analisi. Riprova.');
+      setConversationMessages([
+        { role: 'assistant', content: 'Errore durante l\'analisi. Riprova.' }
+      ]);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleAskQuestion = async (e) => {
+    e.preventDefault();
+    if (!userQuestion.trim() || isAnalyzing) return;
+
+    const question = userQuestion.trim();
+    setUserQuestion('');
+    
+    const newMessages = [...conversationMessages, { role: 'user', content: question }];
+    setConversationMessages(newMessages);
+    setIsAnalyzing(true);
+
+    try {
+      const response = await base44.functions.invoke('analyzeFinancialData', {
+        currentData: {
+          totalRevenue: processedData.totalRevenue,
+          totalOrders: processedData.totalOrders,
+          avgOrderValue: processedData.avgOrderValue,
+          percentInStore: processedData.percentInStore,
+          channelBreakdown: processedData.channelBreakdown,
+          deliveryAppBreakdown: processedData.deliveryAppBreakdown,
+          storeBreakdown: processedData.storeBreakdown
+        },
+        filters: {
+          selectedStore,
+          dateRange,
+          startDate,
+          endDate,
+          selectedChannels,
+          selectedApps,
+          selectedPaymentMethods
+        },
+        conversationHistory: newMessages
+      });
+
+      if (response.data.success) {
+        setConversationMessages([
+          ...newMessages,
+          { role: 'assistant', content: response.data.analysis }
+        ]);
+      } else {
+        setConversationMessages([
+          ...newMessages,
+          { role: 'assistant', content: 'Errore durante l\'analisi. Riprova.' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error asking question:', error);
+      setConversationMessages([
+        ...newMessages,
+        { role: 'assistant', content: 'Errore durante l\'analisi. Riprova.' }
+      ]);
     } finally {
       setIsAnalyzing(false);
     }
@@ -1799,51 +1864,100 @@ export default function Financials() {
                   </button>
                 </div>
 
-                {isAnalyzing && (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
-                    <p className="text-slate-600">Sto analizzando i dati finanziari...</p>
-                    <p className="text-xs text-slate-500 mt-2">Questo potrebbe richiedere alcuni secondi</p>
-                  </div>
+                <div className="space-y-4 mb-4 max-h-[60vh] overflow-y-auto">
+                  {conversationMessages.map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] rounded-xl p-4 ${
+                        msg.role === 'user' 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-white border border-slate-200'
+                      }`}>
+                        {msg.role === 'assistant' ? (
+                          <ReactMarkdown
+                            className="prose prose-sm max-w-none"
+                            components={{
+                              h1: ({children}) => <h1 className="text-xl font-bold text-slate-800 mt-4 mb-2">{children}</h1>,
+                              h2: ({children}) => <h2 className="text-lg font-bold text-slate-800 mt-3 mb-2">{children}</h2>,
+                              h3: ({children}) => <h3 className="text-base font-bold text-slate-700 mt-2 mb-1">{children}</h3>,
+                              p: ({children}) => <p className="text-slate-700 mb-2 leading-relaxed">{children}</p>,
+                              ul: ({children}) => <ul className="list-disc list-inside space-y-1 mb-3 text-slate-700">{children}</ul>,
+                              ol: ({children}) => <ol className="list-decimal list-inside space-y-1 mb-3 text-slate-700">{children}</ol>,
+                              li: ({children}) => <li className="text-slate-700 text-sm">{children}</li>,
+                              strong: ({children}) => <strong className="font-bold text-slate-800">{children}</strong>,
+                              em: ({children}) => <em className="italic text-slate-600">{children}</em>,
+                            }}
+                          >
+                            {msg.content}
+                          </ReactMarkdown>
+                        ) : (
+                          <p className="text-sm">{msg.content}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {isAnalyzing && (
+                    <div className="flex justify-start">
+                      <div className="bg-white border border-slate-200 rounded-xl p-4">
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />
+                          <p className="text-sm text-slate-600">Sto pensando...</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {conversationMessages.length > 0 && (
+                  <form onSubmit={handleAskQuestion} className="border-t border-slate-200 pt-4">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={userQuestion}
+                        onChange={(e) => setUserQuestion(e.target.value)}
+                        placeholder="Fai una domanda sui dati finanziari..."
+                        disabled={isAnalyzing}
+                        className="flex-1 px-4 py-3 rounded-xl border border-slate-300 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 disabled:opacity-50 text-sm"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isAnalyzing || !userQuestion.trim()}
+                        className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 text-white font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {isAnalyzing ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </form>
                 )}
 
-                {!isAnalyzing && aiAnalysis && (
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown
-                      components={{
-                        h1: ({children}) => <h1 className="text-2xl font-bold text-slate-800 mt-6 mb-3">{children}</h1>,
-                        h2: ({children}) => <h2 className="text-xl font-bold text-slate-800 mt-5 mb-2">{children}</h2>,
-                        h3: ({children}) => <h3 className="text-lg font-bold text-slate-700 mt-4 mb-2">{children}</h3>,
-                        p: ({children}) => <p className="text-slate-700 mb-3 leading-relaxed">{children}</p>,
-                        ul: ({children}) => <ul className="list-disc list-inside space-y-2 mb-4 text-slate-700">{children}</ul>,
-                        ol: ({children}) => <ol className="list-decimal list-inside space-y-2 mb-4 text-slate-700">{children}</ol>,
-                        li: ({children}) => <li className="text-slate-700">{children}</li>,
-                        strong: ({children}) => <strong className="font-bold text-slate-800">{children}</strong>,
-                        em: ({children}) => <em className="italic text-slate-600">{children}</em>,
+                <div className="mt-4 flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setShowAIAnalysis(false);
+                      setConversationMessages([]);
+                      setUserQuestion('');
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition-colors"
+                  >
+                    Chiudi
+                  </button>
+                  {conversationMessages.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setConversationMessages([]);
+                        handleAIAnalysis();
                       }}
-                    >
-                      {aiAnalysis}
-                    </ReactMarkdown>
-                  </div>
-                )}
-
-                {!isAnalyzing && aiAnalysis && (
-                  <div className="mt-6 pt-6 border-t border-slate-200 flex justify-end gap-3">
-                    <button
-                      onClick={() => setShowAIAnalysis(false)}
-                      className="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition-colors"
-                    >
-                      Chiudi
-                    </button>
-                    <button
-                      onClick={handleAIAnalysis}
                       className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 text-white font-medium hover:shadow-lg transition-all flex items-center gap-2"
                     >
                       <Sparkles className="w-4 h-4" />
-                      Rigenera Analisi
+                      Nuova Analisi
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </NeumorphicCard>
             </div>
           </div>

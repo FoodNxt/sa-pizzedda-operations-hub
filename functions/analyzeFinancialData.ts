@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { currentData, filters } = await req.json();
+    const { currentData, filters, conversationHistory = [] } = await req.json();
 
     // Fetch historical data (last 12 months)
     const historicalData = await base44.entities.iPratico.list('-order_date', 2000);
@@ -103,8 +103,42 @@ Deno.serve(async (req) => {
     });
     const totalWaste = recentSprechi.reduce((sum, s) => sum + (s.valore_economico || 0), 0);
 
-    // Build comprehensive prompt
-    const prompt = `Sei un business analyst esperto nel settore della ristorazione, specializzato in pizzerie multi-store.
+    // Build comprehensive prompt or answer user question
+    const isFollowUpQuestion = conversationHistory.length > 0;
+    
+    let prompt;
+    
+    if (isFollowUpQuestion) {
+      const userQuestion = conversationHistory[conversationHistory.length - 1].content;
+      
+      prompt = `Sei un business analyst esperto nel settore della ristorazione, specializzato in pizzerie multi-store.
+
+**CONTESTO CONVERSAZIONE PRECEDENTE:**
+${conversationHistory.slice(0, -1).map(msg => `${msg.role === 'user' ? 'DOMANDA' : 'RISPOSTA'}: ${msg.content}`).join('\n\n')}
+
+**DATI PERIODO VISUALIZZATO:**
+- Revenue totale: €${currentData.totalRevenue.toFixed(2)}
+- Ordini totali: ${currentData.totalOrders}
+- AOV: €${currentData.avgOrderValue.toFixed(2)}
+- % in Store: ${currentData.percentInStore.toFixed(1)}%
+
+**BREAKDOWN CANALI:**
+${currentData.channelBreakdown.map(ch => `- ${ch.name}: €${ch.value.toFixed(2)} (${ch.orders} ordini)`).join('\n')}
+
+**BREAKDOWN LOCALI:**
+${currentData.storeBreakdown.map(s => `- ${s.name}: €${s.revenue.toFixed(2)} (${s.orders} ordini)`).join('\n')}
+
+**DATI STORICI DISPONIBILI:**
+- Revenue ultimi 30 giorni: €${getLast30DaysRevenue.toFixed(2)}
+- Revenue ultimi 90 giorni: €${getLast90DaysRevenue.toFixed(2)}
+- Revenue ultimi 12 mesi: €${getLast12MonthsRevenue.toFixed(2)}
+
+**NUOVA DOMANDA UTENTE:**
+${userQuestion}
+
+Rispondi alla domanda in modo specifico e pratico, usando i dati a disposizione. Sii conciso ma completo.`;
+    } else {
+      prompt = `Sei un business analyst esperto nel settore della ristorazione, specializzato in pizzerie multi-store.
 
 **CONTESTO BUSINESS:**
 L'azienda gestisce ${stores.length} locali pizzeria.
@@ -162,6 +196,7 @@ Analizza questi dati come se fossi il proprietario dell'attività. Fornisci:
 
 Sii specifico, usa i numeri, e fornisci raccomandazioni pratiche e immediatamente applicabili per un ristoratore.
 Concentrati su: ottimizzazione revenue, riduzione sprechi, miglioramento efficienza operativa, customer satisfaction.`;
+    }
 
     const analysis = await base44.integrations.Core.InvokeLLM({
       prompt,
