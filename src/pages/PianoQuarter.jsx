@@ -48,6 +48,7 @@ const getQuartersInRange = (startDate, endDate) => {
 export default function PianoQuarter() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('ads');
+  const [roasCampaigns, setRoasCampaigns] = useState({});
   const [showFormAds, setShowFormAds] = useState(false);
   const [showFormPromo, setShowFormPromo] = useState(false);
   const [editingAds, setEditingAds] = useState(null);
@@ -549,7 +550,7 @@ export default function PianoQuarter() {
 
         {/* Tabs */}
         <NeumorphicCard className="p-2">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <button
               onClick={() => setActiveTab('ads')}
               className={`px-6 py-3 rounded-lg font-medium transition-all ${
@@ -582,6 +583,17 @@ export default function PianoQuarter() {
 
               <DollarSign className="w-5 h-5 inline mr-2" />
               Conto Economico
+            </button>
+            <button
+              onClick={() => setActiveTab('roas')}
+              className={`px-6 py-3 rounded-lg font-medium transition-all ${
+              activeTab === 'roas' ?
+              'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+              'text-slate-600 hover:bg-slate-50'}`
+              }>
+
+              <TrendingUp className="w-5 h-5 inline mr-2" />
+              ROAS
             </button>
           </div>
         </NeumorphicCard>
@@ -1440,6 +1452,189 @@ export default function PianoQuarter() {
             </div>
           </>
         }
+
+        {/* Sezione ROAS */}
+        {activeTab === 'roas' && (
+          <>
+            <NeumorphicCard className="p-6 mb-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">Parametri di Calcolo</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Food Cost %</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={foodCostPercentage}
+                    onChange={(e) => setFoodCostPercentage(parseFloat(e.target.value))}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Platform Fees %</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={platformFeesPercentage}
+                    onChange={(e) => setPlatformFeesPercentage(parseFloat(e.target.value))}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                  />
+                </div>
+              </div>
+            </NeumorphicCard>
+
+            <div className="space-y-4">
+              {pianiAds.filter(p => p.piattaforma === 'Glovo' || p.piattaforma === 'Deliveroo').map((campagna) => {
+                const cofinanziamento = parseFloat(campagna.percentuale_cofinanziamento) || 0;
+                const budget = parseFloat(campagna.budget) || 0;
+                const costoEffettivo = budget * (1 - cofinanziamento / 100);
+
+                // ROAS Break Even = 1 / (1 - Food Cost% - Platform Fee%)
+                const marginePercentuale = 1 - (foodCostPercentage / 100) - (platformFeesPercentage / 100);
+                const roasBreakEven = marginePercentuale > 0 ? 1 / marginePercentuale : 0;
+
+                // Get current ROAS from state
+                const currentRoas = roasCampaigns[campagna.id] || 0;
+                
+                // Calcolo guadagno per euro
+                // Se ROAS = 3 e investo 1€, genero 3€ di revenue
+                // Margine = Revenue * (1 - FoodCost% - PlatformFee%)
+                // Profitto = Margine - Investimento
+                // Per euro investito = Profitto / Investimento = (Revenue * margine% - 1€) / 1€
+                const revenuePerEuro = currentRoas;
+                const marginePerEuro = revenuePerEuro * marginePercentuale;
+                const profittoPerEuro = marginePerEuro - 1;
+
+                return (
+                  <NeumorphicCard key={campagna.id} className="p-6">
+                    <div className="mb-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-bold text-slate-800">{campagna.nome}</h3>
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg font-medium text-sm">
+                          {campagna.piattaforma}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600">
+                        📅 {format(parseISO(campagna.data_inizio), 'dd MMM yyyy', { locale: it })} - {format(parseISO(campagna.data_fine), 'dd MMM yyyy', { locale: it })}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="neumorphic-pressed p-4 rounded-xl">
+                        <p className="text-xs text-slate-500 mb-1">Budget Totale</p>
+                        <p className="text-xl font-bold text-slate-800">€{budget.toFixed(2)}</p>
+                      </div>
+                      <div className="neumorphic-pressed p-4 rounded-xl">
+                        <p className="text-xs text-slate-500 mb-1">Cofinanziamento</p>
+                        <p className="text-xl font-bold text-green-600">{cofinanziamento}%</p>
+                      </div>
+                      <div className="neumorphic-pressed p-4 rounded-xl">
+                        <p className="text-xs text-slate-500 mb-1">Costo Effettivo</p>
+                        <p className="text-xl font-bold text-orange-600">€{costoEffettivo.toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-4">
+                      <p className="text-sm font-bold text-purple-800 mb-2">🎯 ROAS Break-Even</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-3xl font-bold text-purple-600">{roasBreakEven.toFixed(2)}</p>
+                        <p className="text-sm text-purple-700">per ogni €1 investito</p>
+                      </div>
+                      <p className="text-xs text-purple-600 mt-2">
+                        Con Food Cost {foodCostPercentage}% e Platform Fee {platformFeesPercentage}%, devi generare €{roasBreakEven.toFixed(2)} di revenue per ogni €1 speso in ads per essere in pareggio.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">ROAS Attuale della Campagna</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={currentRoas}
+                          onChange={(e) => setRoasCampaigns({ ...roasCampaigns, [campagna.id]: parseFloat(e.target.value) || 0 })}
+                          placeholder="es. 3.50"
+                          className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                        />
+                      </div>
+
+                      {currentRoas > 0 && (
+                        <div className={`rounded-xl p-4 border-2 ${
+                          currentRoas >= roasBreakEven 
+                            ? 'bg-green-50 border-green-300' 
+                            : 'bg-red-50 border-red-300'
+                        }`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-bold text-slate-800">Risultato Campagna</p>
+                            {currentRoas >= roasBreakEven ? (
+                              <span className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-bold">
+                                ✓ PROFITTO
+                              </span>
+                            ) : (
+                              <span className="px-3 py-1 bg-red-500 text-white rounded-lg text-xs font-bold">
+                                ✗ PERDITA
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <p className="text-xs text-slate-600 mb-1">Revenue Generato</p>
+                              <p className="text-lg font-bold text-slate-800">€{(costoEffettivo * currentRoas).toFixed(2)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-600 mb-1">Margine Lordo</p>
+                              <p className="text-lg font-bold text-blue-600">€{(costoEffettivo * currentRoas * marginePercentuale).toFixed(2)}</p>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-slate-200">
+                            <p className="text-xs text-slate-600 mb-1">Guadagno/Perdita per € Investito</p>
+                            <div className="flex items-baseline gap-2">
+                              <p className={`text-3xl font-bold ${profittoPerEuro >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {profittoPerEuro >= 0 ? '+' : ''}€{profittoPerEuro.toFixed(2)}
+                              </p>
+                              <p className="text-sm text-slate-600">per ogni €1 speso</p>
+                            </div>
+                          </div>
+
+                          {profittoPerEuro >= 0 && (
+                            <div className="mt-3 pt-3 border-t border-slate-200">
+                              <p className="text-xs text-slate-600 mb-1">Profitto Totale Stimato</p>
+                              <p className="text-2xl font-bold text-green-600">€{(profittoPerEuro * costoEffettivo).toFixed(2)}</p>
+                            </div>
+                          )}
+
+                          {profittoPerEuro < 0 && (
+                            <div className="mt-3 pt-3 border-t border-slate-200">
+                              <p className="text-xs text-slate-600 mb-1">Perdita Totale Stimata</p>
+                              <p className="text-2xl font-bold text-red-600">€{(profittoPerEuro * costoEffettivo).toFixed(2)}</p>
+                              <p className="text-xs text-orange-600 mt-2">
+                                💡 Per raggiungere il break-even devi aumentare il ROAS a {roasBreakEven.toFixed(2)} (attualmente {currentRoas.toFixed(2)})
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </NeumorphicCard>
+                );
+              })}
+
+              {pianiAds.filter(p => p.piattaforma === 'Glovo' || p.piattaforma === 'Deliveroo').length === 0 && (
+                <div className="text-center py-12 text-slate-500">
+                  <TrendingUp className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <p>Nessuna campagna ads disponibile per Glovo o Deliveroo</p>
+                  <p className="text-xs mt-2">Crea una campagna nella tab "Ads" per iniziare</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </ProtectedPage>);
 
