@@ -659,7 +659,7 @@ export default function Financials() {
       deliveryAppBreakdown,
       comparisonData
     };
-  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, selectedStoresForTrend, channelMapping, appMapping, compareMode, compareStartDate, compareEndDate, selectedChannels, selectedApps, selectedPaymentMethods]);
+  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, selectedStoresForTrend, channelMapping, appMapping, compareMode, compareStartDate, compareEndDate, selectedChannels, selectedApps, selectedPaymentMethods, trendView]);
 
   // Payment Methods Analysis
   const paymentMethodsData = useMemo(() => {
