@@ -1492,9 +1492,10 @@ export default function PianoQuarter() {
                 const budget = parseFloat(campagna.budget) || 0;
                 const costoEffettivo = budget * (1 - cofinanziamento / 100);
 
-                // ROAS Break Even = 1 / (1 - Food Cost% - Platform Fee%)
+                // ROAS Break Even considerando il cofinanziamento
+                // ROAS = (1 - Cofinanziamento%) / (1 - FoodCost% - PlatformFee%)
                 const marginePercentuale = 1 - (foodCostPercentage / 100) - (platformFeesPercentage / 100);
-                const roasBreakEven = marginePercentuale > 0 ? 1 / marginePercentuale : 0;
+                const roasBreakEven = marginePercentuale > 0 ? (1 - cofinanziamento / 100) / marginePercentuale : 0;
 
                 // Get current ROAS from state
                 const currentRoas = roasCampaigns[campagna.id] || 0;
