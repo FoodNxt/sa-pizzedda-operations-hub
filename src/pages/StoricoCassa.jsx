@@ -1783,12 +1783,13 @@ export default function StoricoCassa() {
                 </div> :
 
             <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
-                  <table className="w-full min-w-[500px]">
+                  <table className="w-full min-w-[600px]">
                     <thead>
                       <tr className="border-b-2 border-blue-600">
                         <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Dipendente</th>
                         <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Prelievi</th>
                         <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Depositi</th>
+                        <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Pag. Straord.</th>
                         <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Saldo</th>
                       </tr>
                     </thead>
