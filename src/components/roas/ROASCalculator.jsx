@@ -6,6 +6,8 @@ import { Info, TrendingUp, TrendingDown, ChevronDown, ChevronRight } from 'lucid
 export default function ROASCalculator({ foodCostPercentage, platformFeesPercentage }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showCampaignB, setShowCampaignB] = useState(false);
+  const [expandedCampaignA, setExpandedCampaignA] = useState(false);
+  const [expandedCampaignB, setExpandedCampaignB] = useState(false);
   
   const [campaignA, setCampaignA] = useState({
     budget: '',
@@ -269,20 +271,30 @@ export default function ROASCalculator({ foodCostPercentage, platformFeesPercent
 
       {isExpanded && (
         <NeumorphicCard className="p-6 mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
             {/* Campagna A */}
-            <div className="neumorphic-pressed p-5 rounded-xl">
-              {renderCampaignForm(campaignA, setCampaignA, 'Campagna A')}
-              {resultsA && (
-                <div className="mt-6">
-                  {renderResults(resultsA, 'Risultati A')}
+            <NeumorphicCard className="p-0">
+              <button 
+                onClick={() => setExpandedCampaignA(!expandedCampaignA)}
+                className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  {expandedCampaignA ? <ChevronDown className="w-5 h-5 text-blue-600" /> : <ChevronRight className="w-5 h-5 text-blue-600" />}
+                  <h3 className="font-bold text-slate-800">Campagna A</h3>
+                </div>
+              </button>
+              
+              {expandedCampaignA && (
+                <div className="border-t border-slate-200 p-5 space-y-6">
+                  {renderCampaignForm(campaignA, setCampaignA, 'Campagna A')}
+                  {resultsA && renderResults(resultsA, 'Risultati A')}
                 </div>
               )}
-            </div>
+            </NeumorphicCard>
 
-            {/* Campagna B Toggle */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
+            {/* Campagna B Toggle + Collapse */}
+            <NeumorphicCard className="p-0">
+              <div className="flex items-center justify-between p-4 border-b border-slate-200">
                 <h3 className="font-bold text-slate-800">Campagna B</h3>
                 <button
                   onClick={() => setShowCampaignB(!showCampaignB)}
@@ -297,16 +309,26 @@ export default function ROASCalculator({ foodCostPercentage, platformFeesPercent
               </div>
 
               {showCampaignB && (
-                <div className="neumorphic-pressed p-5 rounded-xl">
-                  {renderCampaignForm(campaignB, setCampaignB, 'Campagna B')}
-                  {resultsB && (
-                    <div className="mt-6">
-                      {renderResults(resultsB, 'Risultati B')}
+                <>
+                  <button 
+                    onClick={() => setExpandedCampaignB(!expandedCampaignB)}
+                    className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors border-b border-slate-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      {expandedCampaignB ? <ChevronDown className="w-5 h-5 text-blue-600" /> : <ChevronRight className="w-5 h-5 text-blue-600" />}
+                      <span className="text-sm text-slate-700">Visualizza dettagli</span>
+                    </div>
+                  </button>
+                  
+                  {expandedCampaignB && (
+                    <div className="p-5 space-y-6">
+                      {renderCampaignForm(campaignB, setCampaignB, 'Campagna B')}
+                      {resultsB && renderResults(resultsB, 'Risultati B')}
                     </div>
                   )}
-                </div>
+                </>
               )}
-            </div>
+            </NeumorphicCard>
           </div>
 
           {/* Confronto */}
