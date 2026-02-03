@@ -442,10 +442,10 @@ export default function Financials() {
       orders: a.orders
     }));
 
-    // Multi-store trend data
+    // Multi-store trend data - aggregated by trendView
     const dailyRevenueByStore = {};
     if (selectedStoresForTrend.length > 0) {
-      iPraticoData.filter((item) => {
+      const filteredItems = iPraticoData.filter((item) => {
         if (!item.order_date) return false;
         const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
         const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
@@ -453,33 +453,60 @@ export default function Financials() {
         if (cutoffDate && isBefore(itemDateEnd, cutoffDate)) return false;
         if (endFilterDate && isAfter(itemDateStart, endFilterDate)) return false;
         return selectedStoresForTrend.includes(item.store_id);
-      }).forEach((item) => {
-        if (!dailyRevenueByStore[item.order_date]) {
-          dailyRevenueByStore[item.order_date] = {};
+      });
+
+      filteredItems.forEach((item) => {
+        const itemDate = safeParseDate(item.order_date + 'T00:00:00');
+        if (!itemDate) return;
+
+        let periodKey;
+        if (trendView === 'daily') {
+          periodKey = item.order_date;
+        } else if (trendView === 'weekly') {
+          const weekStart = new Date(itemDate);
+          const dayOfWeek = weekStart.getDay();
+          const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+          weekStart.setDate(weekStart.getDate() + diff);
+          weekStart.setHours(0, 0, 0, 0);
+          periodKey = format(weekStart, 'yyyy-MM-dd');
+        } else if (trendView === 'monthly') {
+          periodKey = format(itemDate, 'yyyy-MM');
+        }
+
+        if (!dailyRevenueByStore[periodKey]) {
+          dailyRevenueByStore[periodKey] = { parsedDate: trendView === 'daily' ? itemDate : (trendView === 'weekly' ? safeParseDate(periodKey + 'T00:00:00') : safeParseDate(periodKey + '-01T00:00:00')) };
         }
         const storeName = item.store_name || 'Unknown';
-        if (!dailyRevenueByStore[item.order_date][storeName]) {
-          dailyRevenueByStore[item.order_date][storeName] = { revenue: 0, orders: 0 };
+        if (!dailyRevenueByStore[periodKey][storeName]) {
+          dailyRevenueByStore[periodKey][storeName] = { revenue: 0, orders: 0 };
         }
-        dailyRevenueByStore[item.order_date][storeName].revenue += item.total_revenue || 0;
-        dailyRevenueByStore[item.order_date][storeName].orders += item.total_orders || 0;
+        dailyRevenueByStore[periodKey][storeName].revenue += item.total_revenue || 0;
+        dailyRevenueByStore[periodKey][storeName].orders += item.total_orders || 0;
       });
     }
 
     const dailyRevenueMultiStore = Object.entries(dailyRevenueByStore).
-    map(([date, storeData]) => {
-      const parsedDate = safeParseDate(date);
-      const entry = { date: safeFormatDate(parsedDate, 'dd/MM'), parsedDate };
-      Object.entries(storeData).forEach(([storeName, data]) => {
-        entry[`${storeName}_revenue`] = parseFloat(data.revenue.toFixed(2));
-        entry[`${storeName}_avgValue`] = data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0;
+    map(([periodKey, storeData]) => {
+      const parsedDate = storeData.parsedDate;
+      let dateLabel;
+      if (trendView === 'daily') {
+        dateLabel = safeFormatDate(parsedDate, 'dd/MM');
+      } else if (trendView === 'weekly') {
+        dateLabel = safeFormatDate(parsedDate, 'dd/MM');
+      } else if (trendView === 'monthly') {
+        dateLabel = safeFormatDate(parsedDate, 'MMM yyyy', { locale: it });
+      }
+
+      const entry = { date: dateLabel, parsedDate };
+      Object.entries(storeData).forEach(([key, data]) => {
+        if (key === 'parsedDate') return;
+        entry[`${key}_revenue`] = parseFloat(data.revenue.toFixed(2));
+        entry[`${key}_avgValue`] = data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0;
       });
       return entry;
     }).
-    filter((d) => d.date !== 'N/A').
-    sort((a, b) => {
-      return a.parsedDate.getTime() - b.parsedDate.getTime();
-    });
+    filter((d) => d.date !== 'N/A' && d.date !== undefined).
+    sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
 
     // Comparison data
     let comparisonData = null;
