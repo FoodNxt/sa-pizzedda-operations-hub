@@ -1881,6 +1881,9 @@ export default function StoricoCassa() {
                                                 <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-medium">Aggiustamento</span>
                                               )}
                                               {movimento.tipo === 'pagamento_straordinario' && (
+                                                <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-medium">Pag. Straordinario Ricevuto</span>
+                                              )}
+                                              {movimento.tipo === 'pagamento_straordinario_effettuato' && (
                                                 <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-medium">Pag. Straordinario</span>
                                               )}
                                               <span className="text-xs text-slate-500">
