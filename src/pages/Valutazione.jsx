@@ -174,14 +174,24 @@ export default function Valutazione() {
 
     return wrongOrders.filter((wo) => {
       if (!matchedOrderIds.includes(wo.id)) return false;
-      // Apply date filter - between monthStart and monthEnd
+      // Apply date filter - parse order_date correctly
       try {
-        const orderDate = new Date(wo.created_date || wo.order_date);
+        // Parse order_date which is in ISO format or use created_date
+        const dateString = wo.order_date || wo.created_date;
+        if (!dateString) return false;
+        
+        const orderDate = new Date(dateString);
+        if (isNaN(orderDate.getTime())) return false;
+        
         return orderDate >= monthStart && orderDate <= monthEnd;
       } catch (e) {
-        return true;
+        return false;
       }
-    }).sort((a, b) => new Date(b.created_date || b.order_date) - new Date(a.created_date || a.order_date));
+    }).sort((a, b) => {
+      const dateA = new Date(a.order_date || a.created_date);
+      const dateB = new Date(b.order_date || b.created_date);
+      return dateB - dateA;
+    });
   }, [user, wrongOrders, wrongOrderMatches, monthStart, monthEnd]);
 
   // Filter data for current employee
@@ -431,20 +441,7 @@ export default function Valutazione() {
            <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Rating Medio</p>
          </NeumorphicCard>
 
-         <NeumorphicCard className="p-3 sm:p-4 text-center">
-           <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
-             <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600 fill-cyan-600" />
-           </div>
-           <h3 className={`text-xl sm:text-2xl font-bold mb-1 ${
-          employeeData.avgCleaningScore >= 80 ? 'text-green-600' :
-          employeeData.avgCleaningScore >= 60 ? 'text-yellow-600' :
-          'text-red-600'}`
-          }>
-             {employeeData.avgCleaningScore > 0 ? employeeData.avgCleaningScore.toFixed(1) + '%' : '-'}
-           </h3>
-           <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Rating Pulizie</p>
-         </NeumorphicCard>
-        </div>
+         </div>
 
       {/* Ritardi */}
       <NeumorphicCard className="p-6">
@@ -594,52 +591,6 @@ export default function Valutazione() {
           </div>
         }
       </NeumorphicCard>
-
-      {/* Score Pulizie */}
-       {employeeData.myCleaningInspections && employeeData.myCleaningInspections.length > 0 &&
-      <NeumorphicCard className="p-6">
-           <div className="flex items-center justify-between mb-4">
-             <div className="flex items-center gap-3">
-               <Sparkles className="w-6 h-6 text-cyan-600" />
-               <h2 className="text-xl font-bold text-[#6b6b6b]">
-                 {expandedView === 'cleanings' ? 'Tutti i Controlli Pulizie' : 'Ultimi 5 Controlli Pulizie'}
-               </h2>
-             </div>
-             {employeeData.myCleaningInspections.length > 5 &&
-          <button
-            onClick={() => setExpandedView(expandedView === 'cleanings' ? null : 'cleanings')}
-            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2">
-
-                 {expandedView === 'cleanings' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutti ({employeeData.myCleaningInspections.length})</>}
-               </button>
-          }
-           </div>
-
-           <div className={`space-y-3 ${expandedView === 'cleanings' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
-             {(expandedView === 'cleanings' ? employeeData.myCleaningInspections : employeeData.myCleaningInspections.slice(0, 5)).map((inspection, index) =>
-          <div key={`${inspection.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
-                 <div className="flex items-center justify-between mb-2">
-                   <div className="flex items-center gap-2">
-                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                     <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(inspection.inspection_date)}</span>
-                     {inspection.store_name && <span className="text-sm text-[#9b9b9b]">• {inspection.store_name}</span>}
-                   </div>
-                   <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-              inspection.overall_score >= 80 ? 'bg-green-100 text-green-700' :
-              inspection.overall_score >= 60 ? 'bg-yellow-100 text-yellow-700' :
-              'bg-red-100 text-red-700'}`
-              }>
-                     {inspection.overall_score || 0}/100
-                   </span>
-                 </div>
-                 <div className="text-xs text-[#9b9b9b]">
-                   <strong>Ruolo:</strong> {inspection.inspector_role}
-                 </div>
-               </div>
-          )}
-           </div>
-         </NeumorphicCard>
-      }
 
       {/* Recensioni Google */}
        <NeumorphicCard className="p-6">
