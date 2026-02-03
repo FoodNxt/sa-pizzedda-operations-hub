@@ -368,7 +368,7 @@ export default function PagamentoStraordinari() {
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€/h</th>
                     <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Totale</th>
                     <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Stato</th>
-                    <th className="text-center p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Azione</th>
+                    <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Pagato da</th>
                   </tr>
                 </thead>
                 <tbody>
