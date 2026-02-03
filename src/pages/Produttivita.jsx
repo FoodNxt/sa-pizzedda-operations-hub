@@ -119,7 +119,7 @@ export default function Produttivita() {
 
   // Calculate AVERAGE hours worked by time slot (per day)
   const hoursWorkedBySlot = useMemo(() => {
-    const slotData = {}; // { slot: { totalHours, daysSet } }
+    const slotDataByDay = {}; // { date: { slot: hours } }
 
     filteredShifts.forEach((shift) => {
       if (!shift.ora_inizio || !shift.ora_fine) return;
@@ -127,6 +127,10 @@ export default function Produttivita() {
 
       const shiftDate = shift.data;
       if (!shiftDate) return;
+
+      if (!slotDataByDay[shiftDate]) {
+        slotDataByDay[shiftDate] = {};
+      }
 
       const startTime = shift.ora_inizio;
       const endTime = shift.ora_fine;
@@ -142,22 +146,33 @@ export default function Produttivita() {
         const m = currentMin % 60;
         const slot = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
 
-        if (!slotData[slot]) {
-          slotData[slot] = { totalHours: 0, daysSet: new Set() };
+        if (!slotDataByDay[shiftDate][slot]) {
+          slotDataByDay[shiftDate][slot] = 0;
         }
-
-        slotData[slot].totalHours += 0.5; // 30 minutes = 0.5 hours
-        slotData[slot].daysSet.add(shiftDate);
+        slotDataByDay[shiftDate][slot] += 0.5; // 30 minutes = 0.5 hours
 
         currentMin += 30;
       }
     });
 
     // Calculate average hours per day for each slot
+    const slotAverages = {};
+    const slotDayCounts = {};
+
+    Object.values(slotDataByDay).forEach((daySlots) => {
+      Object.entries(daySlots).forEach(([slot, hours]) => {
+        if (!slotAverages[slot]) {
+          slotAverages[slot] = 0;
+          slotDayCounts[slot] = 0;
+        }
+        slotAverages[slot] += hours;
+        slotDayCounts[slot] += 1;
+      });
+    });
+
     const avgHours = {};
-    Object.keys(slotData).forEach((slot) => {
-      const daysCount = slotData[slot].daysSet.size;
-      avgHours[slot] = daysCount > 0 ? slotData[slot].totalHours / daysCount : 0;
+    Object.keys(slotAverages).forEach((slot) => {
+      avgHours[slot] = slotDayCounts[slot] > 0 ? slotAverages[slot] / slotDayCounts[slot] : 0;
     });
 
     return avgHours;
@@ -180,15 +195,69 @@ export default function Produttivita() {
 
     if (dataToAggregate.length === 0) return [];
 
-    // Pre-calculate average hours per hour slot (sum of 30-min slots)
-    const avgHoursPerSlot = {};
-    Object.entries(hoursWorkedBySlot || {}).forEach(([slot, hours]) => {
-      if (timeSlotView === '1hour') {
-        const hour = slot.split(':')[0] + ':00';
-        avgHoursPerSlot[hour] = (avgHoursPerSlot[hour] || 0) + hours;
-      } else {
-        avgHoursPerSlot[slot] = hours;
+    // Recalcola ore lavorate per slot aggregato (1hour o 30min)
+    const slotDataByDay = {};
+    
+    filteredShifts.forEach((shift) => {
+      if (!shift.ora_inizio || !shift.ora_fine || !shift.data) return;
+      if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
+
+      // Filter by day of week if selected
+      if (selectedDayOfWeek !== 'all') {
+        const shiftDate = parseISO(shift.data);
+        const dayIndex = shiftDate.getDay();
+        const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+        if (adjustedIndex !== parseInt(selectedDayOfWeek)) return;
       }
+
+      const shiftDate = shift.data;
+      if (!slotDataByDay[shiftDate]) {
+        slotDataByDay[shiftDate] = {};
+      }
+
+      const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
+      const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
+
+      let currentMin = startHour * 60 + startMin;
+      const endMinTotal = endHour * 60 + endMin;
+
+      while (currentMin < endMinTotal) {
+        const h = Math.floor(currentMin / 60);
+        const m = currentMin % 60;
+        
+        let key;
+        if (timeSlotView === '1hour') {
+          key = `${String(h).padStart(2, '0')}:00`;
+        } else {
+          key = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
+        }
+
+        if (!slotDataByDay[shiftDate][key]) {
+          slotDataByDay[shiftDate][key] = 0;
+        }
+        slotDataByDay[shiftDate][key] += 0.5;
+
+        currentMin += 30;
+      }
+    });
+
+    // Calculate average hours per slot
+    const avgHoursPerSlot = {};
+    const slotDayCounts = {};
+
+    Object.values(slotDataByDay).forEach((daySlots) => {
+      Object.entries(daySlots).forEach(([slot, hours]) => {
+        if (!avgHoursPerSlot[slot]) {
+          avgHoursPerSlot[slot] = 0;
+          slotDayCounts[slot] = 0;
+        }
+        avgHoursPerSlot[slot] += hours;
+        slotDayCounts[slot] += 1;
+      });
+    });
+
+    Object.keys(avgHoursPerSlot).forEach((slot) => {
+      avgHoursPerSlot[slot] = slotDayCounts[slot] > 0 ? avgHoursPerSlot[slot] / slotDayCounts[slot] : 0;
     });
 
     const aggregation = {};
@@ -216,10 +285,10 @@ export default function Produttivita() {
       slot: item.slot,
       avgRevenue: item.revenue / item.count,
       avgHours: avgHoursPerSlot[item.slot] || 0,
-      revenuePerHour: (avgHoursPerSlot[item.slot] || 0) > 0 ? item.revenue / item.count / (avgHoursPerSlot[item.slot] || 0) : 0
+      revenuePerHour: (avgHoursPerSlot[item.slot] || 0) > 0 ? (item.revenue / item.count) / (avgHoursPerSlot[item.slot]) : 0
     })).
     sort((a, b) => a.slot.localeCompare(b.slot));
-  }, [filteredData, timeSlotView, hoursWorkedBySlot, selectedDayOfWeek]);
+  }, [filteredData, timeSlotView, filteredShifts, selectedStore, selectedDayOfWeek]);
 
   // Daily data for selected date
   const dailySlotData = useMemo(() => {
@@ -290,15 +359,67 @@ export default function Produttivita() {
     const daySlotMap = {};
     const daysOfWeek = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 
-    // Pre-calculate average hours per hour slot (sum of 30-min slots)
-    const avgHoursPerSlot = {};
-    Object.entries(hoursWorkedBySlot || {}).forEach(([slot, hours]) => {
-      if (timeSlotView === '1hour') {
-        const hour = slot.split(':')[0] + ':00';
-        avgHoursPerSlot[hour] = (avgHoursPerSlot[hour] || 0) + hours;
-      } else {
-        avgHoursPerSlot[slot] = hours;
+    // Calcola ore lavorate per giorno della settimana e slot
+    const hoursDataByDayOfWeek = {}; // { dayName: { slot: { totalHours, daysCount } } }
+    
+    filteredShifts.forEach((shift) => {
+      if (!shift.ora_inizio || !shift.ora_fine || !shift.data) return;
+      if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
+
+      const date = parseISO(shift.data);
+      const dayIndex = date.getDay();
+      const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+      const dayName = daysOfWeek[adjustedIndex];
+
+      if (!hoursDataByDayOfWeek[dayName]) {
+        hoursDataByDayOfWeek[dayName] = {};
       }
+
+      const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
+      const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
+
+      let currentMin = startHour * 60 + startMin;
+      const endMinTotal = endHour * 60 + endMin;
+
+      // Traccia quali slot sono coperti per questo shift in questo giorno
+      const shiftDate = shift.data;
+      const dayKey = `${dayName}_${shiftDate}`;
+
+      while (currentMin < endMinTotal) {
+        const h = Math.floor(currentMin / 60);
+        
+        let key;
+        if (timeSlotView === '1hour') {
+          key = `${String(h).padStart(2, '0')}:00`;
+        } else {
+          const m = currentMin % 60;
+          key = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
+        }
+
+        const slotDayKey = `${dayName}_${key}_${shiftDate}`;
+        if (!hoursDataByDayOfWeek[dayName][key]) {
+          hoursDataByDayOfWeek[dayName][key] = { hoursByDay: {}, totalDays: new Set() };
+        }
+        
+        if (!hoursDataByDayOfWeek[dayName][key].hoursByDay[shiftDate]) {
+          hoursDataByDayOfWeek[dayName][key].hoursByDay[shiftDate] = 0;
+        }
+        hoursDataByDayOfWeek[dayName][key].hoursByDay[shiftDate] += 0.5;
+        hoursDataByDayOfWeek[dayName][key].totalDays.add(shiftDate);
+
+        currentMin += 30;
+      }
+    });
+
+    // Calculate average hours per slot per day of week
+    const avgHoursByDayOfWeek = {};
+    Object.entries(hoursDataByDayOfWeek).forEach(([dayName, slots]) => {
+      avgHoursByDayOfWeek[dayName] = {};
+      Object.entries(slots).forEach(([slot, data]) => {
+        const totalHours = Object.values(data.hoursByDay).reduce((sum, h) => sum + h, 0);
+        const daysCount = data.totalDays.size;
+        avgHoursByDayOfWeek[dayName][slot] = daysCount > 0 ? totalHours / daysCount : 0;
+      });
     });
 
     filteredData.forEach((record) => {
@@ -318,7 +439,7 @@ export default function Produttivita() {
 
         const mapKey = `${dayName}|${key}`;
         if (!daySlotMap[mapKey]) {
-          daySlotMap[mapKey] = { revenue: 0, count: 0 };
+          daySlotMap[mapKey] = { revenue: 0, count: 0, dayName };
         }
         daySlotMap[mapKey].revenue += revenue || 0;
         daySlotMap[mapKey].count += 1;
@@ -334,7 +455,7 @@ export default function Produttivita() {
         const slot = k.split('|')[1];
         const data = daySlotMap[k];
         const avgRevenue = data.revenue / data.count;
-        const avgHours = avgHoursPerSlot[slot] || 0;
+        const avgHours = avgHoursByDayOfWeek[day]?.[slot] || 0;
         const productivity = avgHours > 0 ? avgRevenue / avgHours : 0;
 
         dayData[slot] = productivity;
@@ -349,7 +470,7 @@ export default function Produttivita() {
     });
 
     return result;
-  }, [filteredData, timeSlotView, hoursWorkedBySlot]);
+  }, [filteredData, timeSlotView, filteredShifts, selectedStore]);
 
   // Weekly/Monthly productivity by store
   const storeProductivity = useMemo(() => {
