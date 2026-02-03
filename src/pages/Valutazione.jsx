@@ -412,7 +412,7 @@ export default function Valutazione() {
           <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Recensioni</p>
         </NeumorphicCard>
 
-        <NeumorphicCard className="p-3 sm:p-4 text-center col-span-2 md:col-span-1">
+        <NeumorphicCard className="p-3 sm:p-4 text-center">
            <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
              <Star className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 fill-blue-600" />
            </div>
