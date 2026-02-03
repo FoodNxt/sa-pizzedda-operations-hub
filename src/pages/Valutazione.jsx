@@ -206,11 +206,20 @@ export default function Valutazione() {
     // Filtra ritardi per il dipendente corrente
     const ritardiDipendente = ritardi.filter((r) => {
       if (r.dipendente_id !== user.id) return false;
+      if (!r.data) return false;
       try {
-        const ritardoDate = new Date(r.data);
-        return ritardoDate >= monthStart && ritardoDate <= monthEnd;
+        // Parse date string as YYYY-MM-DD in local timezone
+        const [year, month, day] = r.data.split('-').map(Number);
+        const ritardoDate = new Date(year, month - 1, day);
+        
+        // Compare only the date part
+        const ritardoTime = ritardoDate.getTime();
+        const startTime = new Date(monthStart.getFullYear(), monthStart.getMonth(), monthStart.getDate()).getTime();
+        const endTime = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate()).getTime();
+        
+        return ritardoTime >= startTime && ritardoTime <= endTime;
       } catch (e) {
-        return true;
+        return false;
       }
     }).sort((a, b) => new Date(b.data) - new Date(a.data));
 
