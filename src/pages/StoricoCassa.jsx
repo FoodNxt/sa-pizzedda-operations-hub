@@ -520,10 +520,8 @@ export default function StoricoCassa() {
         };
       }
       
-      // Se è un pagamento straordinario, aggiungi alla colonna dedicata
-      if (d.store_id === 'pagamento_straordinario') {
-        saldi[dipendente].pagamentiStraordinari += d.importo || 0;
-      } else {
+      // Non contare i pagamenti straordinari qui, vengono gestiti separatamente
+      if (d.store_id !== 'pagamento_straordinario') {
         saldi[dipendente].depositi += d.importo || 0;
       }
       
@@ -535,6 +533,31 @@ export default function StoricoCassa() {
         store: d.store_name,
         note: d.note || ''
       });
+    });
+
+    // Aggiungi i pagamenti straordinari effettuati (chi ha pagato)
+    pagamentiStraordinari.filter(p => p.pagato).forEach((pagamento) => {
+      const dipendenteChePaga = pagamento.pagato_da;
+      if (dipendenteChePaga) {
+        if (!saldi[dipendenteChePaga]) {
+          saldi[dipendenteChePaga] = { 
+            nome: dipendenteChePaga, 
+            prelievi: 0, 
+            depositi: 0,
+            pagamentiStraordinari: 0,
+            saldo: 0,
+            movimenti: []
+          };
+        }
+        saldi[dipendenteChePaga].pagamentiStraordinari += pagamento.importo_totale || 0;
+        saldi[dipendenteChePaga].movimenti.push({
+          tipo: 'pagamento_straordinario_effettuato',
+          data: pagamento.data_pagamento,
+          importo: -(pagamento.importo_totale || 0),
+          store: pagamento.store_name,
+          note: `Pagamento straordinario a ${pagamento.dipendente_nome} - ${pagamento.ore_straordinarie}h`
+        });
+      }
     });
 
     // Calculate saldo: prelievi - depositi - pagamentiStraordinari
@@ -552,7 +575,7 @@ export default function StoricoCassa() {
 
     // Return as array sorted by saldo (highest first)
     return Object.values(saldi).sort((a, b) => b.saldo - a.saldo);
-  }, [prelievi, depositi]);
+  }, [prelievi, depositi, pagamentiStraordinari]);
 
   return (
     <ProtectedPage pageName="StoricoCassa">
