@@ -48,7 +48,17 @@ const getQuartersInRange = (startDate, endDate) => {
 export default function PianoQuarter() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('ads');
+  const [adsView, setAdsView] = useState('budget'); // budget | consuntivo
+  const [roasView, setRoasView] = useState('budget'); // budget | consuntivo
   const [roasCampaigns, setRoasCampaigns] = useState({});
+  const [showAggiustamentoForm, setShowAggiustamentoForm] = useState(false);
+  const [selectedPianoForAggiustamento, setSelectedPianoForAggiustamento] = useState(null);
+  const [aggiustamentoForm, setAggiustamentoForm] = useState({
+    data_inizio: '',
+    data_fine: '',
+    spesa_effettiva: '',
+    note: ''
+  });
   const [showFormAds, setShowFormAds] = useState(false);
   const [showFormPromo, setShowFormPromo] = useState(false);
   const [editingAds, setEditingAds] = useState(null);
@@ -128,6 +138,11 @@ export default function PianoQuarter() {
   const { data: promoTargets = [] } = useQuery({
     queryKey: ['promo-targets'],
     queryFn: () => base44.entities.PromoTargetConfig.list('ordine')
+  });
+
+  const { data: aggiustamentiConsuntivo = [] } = useQuery({
+    queryKey: ['aggiustamenti-consuntivo'],
+    queryFn: () => base44.entities.PianoAdsConsuntivo.list()
   });
 
   // Carica food cost percentage e platform fees dalla configurazione
@@ -250,6 +265,23 @@ export default function PianoQuarter() {
     mutationFn: (id) => base44.entities.PromoTargetConfig.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['promo-targets'] });
+    }
+  });
+
+  const createAggiustamentoMutation = useMutation({
+    mutationFn: (data) => base44.entities.PianoAdsConsuntivo.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aggiustamenti-consuntivo'] });
+      setShowAggiustamentoForm(false);
+      setSelectedPianoForAggiustamento(null);
+      setAggiustamentoForm({ data_inizio: '', data_fine: '', spesa_effettiva: '', note: '' });
+    }
+  });
+
+  const deleteAggiustamentoMutation = useMutation({
+    mutationFn: (id) => base44.entities.PianoAdsConsuntivo.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aggiustamenti-consuntivo'] });
     }
   });
 
@@ -387,6 +419,47 @@ export default function PianoQuarter() {
       ...prev,
       prodotti_scontati: prev.prodotti_scontati.filter((_, i) => i !== index)
     }));
+  };
+
+  // Calcola budget consuntivo per un piano
+  const calcolaBudgetConsuntivo = (piano) => {
+    const aggiustamenti = aggiustamentiConsuntivo.filter(a => a.piano_ads_id === piano.id);
+    
+    if (aggiustamenti.length === 0) {
+      return {
+        budgetTotale: piano.budget,
+        costoEffettivo: piano.budget * (1 - (piano.percentuale_cofinanziamento || 0) / 100),
+        aggiustamenti: []
+      };
+    }
+
+    const pStart = new Date(piano.data_inizio);
+    const pEnd = new Date(piano.data_fine);
+    const giorniTotaliPiano = Math.floor((pEnd - pStart) / (1000 * 60 * 60 * 24)) + 1;
+    const mediaGiornaliera = piano.budget / giorniTotaliPiano;
+    const costoEffettivoGiornaliero = mediaGiornaliera * (1 - (piano.percentuale_cofinanziamento || 0) / 100);
+
+    let giorniAggiustati = 0;
+    let speseAggiustate = 0;
+
+    aggiustamenti.forEach(agg => {
+      const aggStart = new Date(agg.data_inizio);
+      const aggEnd = new Date(agg.data_fine);
+      const giorniAgg = Math.floor((aggEnd - aggStart) / (1000 * 60 * 60 * 24)) + 1;
+      giorniAggiustati += giorniAgg;
+      speseAggiustate += agg.spesa_effettiva;
+    });
+
+    const giorniNonAggiustati = giorniTotaliPiano - giorniAggiustati;
+    const spesaNonAggiustata = costoEffettivoGiornaliero * giorniNonAggiustati;
+    const costoEffettivoTotale = spesaNonAggiustata + speseAggiustate;
+    const budgetTotaleConsuntivo = costoEffettivoTotale / (1 - (piano.percentuale_cofinanziamento || 0) / 100);
+
+    return {
+      budgetTotale: budgetTotaleConsuntivo,
+      costoEffettivo: costoEffettivoTotale,
+      aggiustamenti
+    };
   };
 
   // Filter piani per quarter selezionato
@@ -602,18 +675,45 @@ export default function PianoQuarter() {
         {activeTab === 'ads' &&
         <>
             <div className="flex justify-between items-center">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Quarter</label>
-                <select
-                value={selectedQuarter}
-                onChange={(e) => setSelectedQuarter(e.target.value)}
-                className="neumorphic-pressed px-4 py-2 rounded-lg">
+              <div className="flex gap-4 items-end">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Quarter</label>
+                  <select
+                  value={selectedQuarter}
+                  onChange={(e) => setSelectedQuarter(e.target.value)}
+                  className="neumorphic-pressed px-4 py-2 rounded-lg">
 
-                  <option value="Q1-26">Q1-26 (Gen-Mar)</option>
-                  <option value="Q2-26">Q2-26 (Apr-Giu)</option>
-                  <option value="Q3-26">Q3-26 (Lug-Set)</option>
-                  <option value="Q4-26">Q4-26 (Ott-Dic)</option>
-                </select>
+                    <option value="Q1-26">Q1-26 (Gen-Mar)</option>
+                    <option value="Q2-26">Q2-26 (Apr-Giu)</option>
+                    <option value="Q3-26">Q3-26 (Lug-Set)</option>
+                    <option value="Q4-26">Q4-26 (Ott-Dic)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Vista</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setAdsView('budget')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        adsView === 'budget' 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      Budget
+                    </button>
+                    <button
+                      onClick={() => setAdsView('consuntivo')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        adsView === 'consuntivo' 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      Consuntivo
+                    </button>
+                  </div>
+                </div>
               </div>
               <NeumorphicButton
               onClick={() => setShowFormAds(true)}
@@ -756,71 +856,232 @@ export default function PianoQuarter() {
           }
 
             <div className="space-y-4">
-              {pianiAdsQuarter.map((piano) =>
-            <NeumorphicCard key={piano.id} className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-bold text-slate-800">{piano.nome}</h3>
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg font-medium text-sm">
-                          {piano.piattaforma}
-                        </span>
-                        {piano.quarters?.map((q) =>
-                    <span key={q} className="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-medium">
-                            {q}
+              {pianiAdsQuarter.map((piano) => {
+                const consuntivo = calcolaBudgetConsuntivo(piano);
+                const budgetDisplay = adsView === 'consuntivo' ? consuntivo.budgetTotale : piano.budget;
+                const costoDisplay = adsView === 'consuntivo' ? consuntivo.costoEffettivo : piano.budget * (1 - (piano.percentuale_cofinanziamento || 0) / 100);
+
+                return (
+                  <NeumorphicCard key={piano.id} className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="text-lg font-bold text-slate-800">{piano.nome}</h3>
+                          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg font-medium text-sm">
+                            {piano.piattaforma}
                           </span>
-                    )}
+                          {adsView === 'consuntivo' && consuntivo.aggiustamenti.length > 0 && (
+                            <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">
+                              {consuntivo.aggiustamenti.length} aggiustamenti
+                            </span>
+                          )}
+                          {piano.quarters?.map((q) =>
+                            <span key={q} className="px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs font-medium">
+                              {q}
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                          <div>
+                            <p className="text-xs text-slate-500">{adsView === 'budget' ? 'Budget' : 'Budget Consuntivo'}</p>
+                            <p className="text-lg font-bold text-slate-700">€{budgetDisplay.toFixed(2)}</p>
+                            {adsView === 'consuntivo' && budgetDisplay !== piano.budget && (
+                              <p className="text-xs text-orange-600">
+                                (Budget: €{piano.budget})
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Costo Effettivo</p>
+                            <p className="text-lg font-bold text-orange-600">€{costoDisplay.toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Cofinanziamento</p>
+                            <p className="text-lg font-bold text-green-600">{piano.percentuale_cofinanziamento}%</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Periodo</p>
+                            <p className="text-sm font-medium text-slate-700">
+                              {format(parseISO(piano.data_inizio), 'dd MMM', { locale: it })} - {format(parseISO(piano.data_fine), 'dd MMM', { locale: it })}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {adsView === 'consuntivo' && consuntivo.aggiustamenti.length > 0 && (
+                          <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <p className="text-xs font-bold text-orange-800 mb-2">Aggiustamenti:</p>
+                            <div className="space-y-2">
+                              {consuntivo.aggiustamenti.map(agg => (
+                                <div key={agg.id} className="flex items-center justify-between text-xs">
+                                  <div>
+                                    <span className="font-medium">{format(parseISO(agg.data_inizio), 'dd/MM', { locale: it })} - {format(parseISO(agg.data_fine), 'dd/MM', { locale: it })}</span>
+                                    <span className="text-slate-600 ml-2">Spesa: €{agg.spesa_effettiva}</span>
+                                    {agg.note && <span className="text-slate-500 ml-2">({agg.note})</span>}
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      if (confirm('Eliminare questo aggiustamento?')) {
+                                        deleteAggiustamentoMutation.mutate(agg.id);
+                                      }
+                                    }}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {piano.note && <p className="text-sm text-slate-600 mt-2">{piano.note}</p>}
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                        <div>
-                          <p className="text-xs text-slate-500">Budget</p>
-                          <p className="text-lg font-bold text-slate-700">€{piano.budget}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-500">Cofinanziamento</p>
-                          <p className="text-lg font-bold text-green-600">{piano.percentuale_cofinanziamento}%</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-500">Periodo</p>
-                          <p className="text-sm font-medium text-slate-700">
-                            {format(parseISO(piano.data_inizio), 'dd MMM', { locale: it })} - {format(parseISO(piano.data_fine), 'dd MMM', { locale: it })}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-500">Locali</p>
-                          <p className="text-sm font-medium text-slate-700">{piano.stores_names?.length || 0}</p>
-                        </div>
+                      <div className="flex gap-2">
+                        {adsView === 'consuntivo' && (
+                          <button
+                            onClick={() => {
+                              setSelectedPianoForAggiustamento(piano);
+                              setShowAggiustamentoForm(true);
+                            }}
+                            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                            title="Aggiungi aggiustamento"
+                          >
+                            <Plus className="w-4 h-4 text-orange-600" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleEditAds(piano)}
+                          className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                          <Edit className="w-4 h-4 text-blue-600" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Eliminare questo piano ads?')) {
+                              deleteAdsMutation.mutate(piano.id);
+                            }
+                          }}
+                          className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
                       </div>
-                      {piano.note && <p className="text-sm text-slate-600 mt-2">{piano.note}</p>}
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                    onClick={() => handleEditAds(piano)}
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-
-                        <Edit className="w-4 h-4 text-blue-600" />
-                      </button>
-                      <button
-                    onClick={() => {
-                      if (confirm('Eliminare questo piano ads?')) {
-                        deleteAdsMutation.mutate(piano.id);
-                      }
-                    }}
-                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-                </NeumorphicCard>
-            )}
+                  </NeumorphicCard>
+                );
+              })}
 
               {pianiAdsQuarter.length === 0 && !showFormAds &&
-            <div className="text-center py-12 text-slate-500">
+                <div className="text-center py-12 text-slate-500">
                   Nessun piano ads per {selectedQuarter}
                 </div>
-            }
+              }
             </div>
+
+            {/* Modal Aggiustamento Consuntivo */}
+            {showAggiustamentoForm && selectedPianoForAggiustamento && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <NeumorphicCard className="max-w-2xl w-full p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-slate-800">Aggiungi Aggiustamento Consuntivo</h2>
+                    <button onClick={() => {
+                      setShowAggiustamentoForm(false);
+                      setSelectedPianoForAggiustamento(null);
+                      setAggiustamentoForm({ data_inizio: '', data_fine: '', spesa_effettiva: '', note: '' });
+                    }} className="p-2 hover:bg-slate-100 rounded-lg">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-blue-800">
+                      <span className="font-bold">Piano:</span> {selectedPianoForAggiustamento.nome}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Specifica un periodo con spesa effettiva diversa dalla media giornaliera del piano
+                    </p>
+                  </div>
+
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    createAggiustamentoMutation.mutate({
+                      piano_ads_id: selectedPianoForAggiustamento.id,
+                      piano_ads_nome: selectedPianoForAggiustamento.nome,
+                      ...aggiustamentoForm
+                    });
+                  }} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Data Inizio</label>
+                        <input
+                          type="date"
+                          value={aggiustamentoForm.data_inizio}
+                          onChange={(e) => setAggiustamentoForm({ ...aggiustamentoForm, data_inizio: e.target.value })}
+                          min={selectedPianoForAggiustamento.data_inizio}
+                          max={selectedPianoForAggiustamento.data_fine}
+                          className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Data Fine</label>
+                        <input
+                          type="date"
+                          value={aggiustamentoForm.data_fine}
+                          onChange={(e) => setAggiustamentoForm({ ...aggiustamentoForm, data_fine: e.target.value })}
+                          min={aggiustamentoForm.data_inizio || selectedPianoForAggiustamento.data_inizio}
+                          max={selectedPianoForAggiustamento.data_fine}
+                          className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Spesa Effettiva (€)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={aggiustamentoForm.spesa_effettiva}
+                        onChange={(e) => setAggiustamentoForm({ ...aggiustamentoForm, spesa_effettiva: e.target.value })}
+                        placeholder="Costo effettivo dopo cofinanziamento"
+                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                        required
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        💡 Inserisci il costo che hai effettivamente sostenuto (dopo cofinanziamento)
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Note</label>
+                      <textarea
+                        value={aggiustamentoForm.note}
+                        onChange={(e) => setAggiustamentoForm({ ...aggiustamentoForm, note: e.target.value })}
+                        placeholder="es. Promozione speciale, budget extra..."
+                        className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
+                        rows="3"
+                      />
+                    </div>
+
+                    <div className="flex gap-3 justify-end pt-4">
+                      <NeumorphicButton 
+                        type="button" 
+                        onClick={() => {
+                          setShowAggiustamentoForm(false);
+                          setSelectedPianoForAggiustamento(null);
+                          setAggiustamentoForm({ data_inizio: '', data_fine: '', spesa_effettiva: '', note: '' });
+                        }}
+                      >
+                        Annulla
+                      </NeumorphicButton>
+                      <NeumorphicButton type="submit" variant="primary">
+                        Aggiungi
+                      </NeumorphicButton>
+                    </div>
+                  </form>
+                </NeumorphicCard>
+              </div>
+            )}
           </>
         }
 
@@ -1458,7 +1719,32 @@ export default function PianoQuarter() {
           <>
             <NeumorphicCard className="p-6 mb-6">
               <h3 className="text-lg font-bold text-slate-800 mb-4">Parametri di Calcolo</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Vista Dati</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setRoasView('budget')}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        roasView === 'budget' 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      Budget
+                    </button>
+                    <button
+                      onClick={() => setRoasView('consuntivo')}
+                      className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        roasView === 'consuntivo' 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      Consuntivo
+                    </button>
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Food Cost %</label>
                   <input
@@ -1489,8 +1775,11 @@ export default function PianoQuarter() {
             <div className="space-y-4">
               {pianiAds.filter(p => p.piattaforma === 'Glovo' || p.piattaforma === 'Deliveroo').map((campagna) => {
                 const cofinanziamento = parseFloat(campagna.percentuale_cofinanziamento) || 0;
-                const budget = parseFloat(campagna.budget) || 0;
-                const costoEffettivo = budget * (1 - cofinanziamento / 100);
+                
+                // Usa budget o consuntivo in base alla vista selezionata
+                const consuntivo = calcolaBudgetConsuntivo(campagna);
+                const budget = roasView === 'consuntivo' ? consuntivo.budgetTotale : parseFloat(campagna.budget) || 0;
+                const costoEffettivo = roasView === 'consuntivo' ? consuntivo.costoEffettivo : budget * (1 - cofinanziamento / 100);
 
                 // ROAS Break Even considerando il cofinanziamento
                 // ROAS = (1 - Cofinanziamento%) / (1 - FoodCost% - PlatformFee%)
@@ -1519,6 +1808,11 @@ export default function PianoQuarter() {
                         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg font-medium text-sm">
                           {campagna.piattaforma}
                         </span>
+                        {roasView === 'consuntivo' && consuntivo.aggiustamenti.length > 0 && (
+                          <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">
+                            Consuntivo ({consuntivo.aggiustamenti.length} agg.)
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-slate-600">
                         📅 {format(parseISO(campagna.data_inizio), 'dd MMM yyyy', { locale: it })} - {format(parseISO(campagna.data_fine), 'dd MMM yyyy', { locale: it })}
