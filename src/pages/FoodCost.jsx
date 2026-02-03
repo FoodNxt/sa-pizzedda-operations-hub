@@ -63,9 +63,9 @@ export default function FoodCost() {
     let costoReale = 0;
     const ordiniArrivati = ordiniFornitori.filter(o => {
       if (o.status !== 'completato') return false;
-      if (!o.data_arrivo_effettiva) return false;
+      if (!o.data_completamento) return false;
       
-      const dataArrivo = new Date(o.data_arrivo_effettiva);
+      const dataArrivo = new Date(o.data_completamento);
       return dataArrivo >= startDate && dataArrivo <= endDate &&
         (selectedStore === 'all' || o.store_id === selectedStore);
     });
@@ -125,8 +125,8 @@ export default function FoodCost() {
 
       // Costo reale
       const storeOrdini = ordiniFornitori.filter(o => {
-        if (o.status !== 'completato' || !o.data_arrivo_effettiva) return false;
-        const dataArrivo = new Date(o.data_arrivo_effettiva);
+        if (o.status !== 'completato' || !o.data_completamento) return false;
+        const dataArrivo = new Date(o.data_completamento);
         return dataArrivo >= startDate && dataArrivo <= endDate && o.store_id === store.id;
       });
 
@@ -196,8 +196,8 @@ export default function FoodCost() {
       });
 
       ordiniFornitori.forEach(o => {
-        if (o.status !== 'completato' || !o.data_arrivo_effettiva) return;
-        const dataArrivo = new Date(o.data_arrivo_effettiva);
+        if (o.status !== 'completato' || !o.data_completamento) return;
+        const dataArrivo = new Date(o.data_completamento);
         if (dataArrivo >= startDate && dataArrivo <= endDate &&
           (selectedStore === 'all' || o.store_id === selectedStore)) {
           const weekStart = new Date(dataArrivo);
@@ -259,8 +259,8 @@ export default function FoodCost() {
       });
 
       ordiniFornitori.forEach(o => {
-        if (o.status !== 'completato' || !o.data_arrivo_effettiva) return;
-        const dataArrivo = new Date(o.data_arrivo_effettiva);
+        if (o.status !== 'completato' || !o.data_completamento) return;
+        const dataArrivo = new Date(o.data_completamento);
         if (dataArrivo >= startDate && dataArrivo <= endDate &&
           (selectedStore === 'all' || o.store_id === selectedStore)) {
           const dateKey = format(dataArrivo, 'yyyy-MM-dd');
