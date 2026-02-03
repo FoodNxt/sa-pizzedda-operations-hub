@@ -1891,7 +1891,7 @@ export default function StoricoCassa() {
 
               <div className="mt-6 neumorphic-pressed p-4 rounded-xl bg-blue-50">
                 <p className="text-sm text-blue-800">
-                  <strong>ℹ️ Legenda:</strong> Saldo positivo = il dipendente ha prelevato più di quanto depositato. Saldo negativo = ha depositato più di quanto prelevato.
+                  <strong>ℹ️ Legenda:</strong> Saldo calcolato come: Prelievi - Depositi - Pagamenti Straordinari. Saldo positivo = il dipendente ha prelevato più di quanto depositato. Saldo negativo = ha depositato più di quanto prelevato.
                 </p>
               </div>
             </NeumorphicCard>
