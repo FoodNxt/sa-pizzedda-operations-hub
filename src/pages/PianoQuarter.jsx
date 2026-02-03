@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { Plus, Euro, TrendingDown, Trash2, Edit, X, Calendar, DollarSign, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { Plus, Euro, TrendingDown, Trash2, Edit, X, Calendar, DollarSign, ChevronLeft, ChevronRight, Settings, TrendingUp } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWithinInterval } from "date-fns";
 import { it } from 'date-fns/locale';
 
