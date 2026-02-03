@@ -1726,12 +1726,12 @@ export default function PianoQuarter() {
         {/* Sezione ROAS */}
         {activeTab === 'roas' && (
           <>
-            <ROASCalculator 
-              foodCostPercentage={foodCostPercentage}
-              platformFeesPercentage={platformFeesPercentage}
-            />
-
             <NeumorphicCard className="p-6 mb-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                <p className="text-sm text-blue-800">
+                  <span className="font-bold">Parametri Attivi:</span> Food Cost {foodCostPercentage}% • Platform Fees {platformFeesPercentage}%
+                </p>
+              </div>
               <h3 className="text-lg font-bold text-slate-800 mb-4">Parametri di Calcolo</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -1793,6 +1793,11 @@ export default function PianoQuarter() {
                 </div>
               </div>
             </NeumorphicCard>
+
+            <ROASCalculator 
+              foodCostPercentage={foodCostPercentage}
+              platformFeesPercentage={platformFeesPercentage}
+            />
 
             <div className="space-y-4">
               {pianiAds.filter(p => p.piattaforma === 'Glovo' || p.piattaforma === 'Deliveroo').map((campagna) => {

@@ -269,15 +269,6 @@ export default function ROASCalculator({ foodCostPercentage, platformFeesPercent
 
       {isExpanded && (
         <NeumorphicCard className="p-6 mt-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              <span className="font-bold">Parametri:</span> Food Cost {foodCostPercentage}% • Platform Fees {platformFeesPercentage}%
-            </p>
-            <p className="text-xs text-blue-600 mt-1">
-              Calcola e confronta i risultati di diverse campagne ads
-            </p>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Campagna A */}
             <div className="neumorphic-pressed p-5 rounded-xl">
