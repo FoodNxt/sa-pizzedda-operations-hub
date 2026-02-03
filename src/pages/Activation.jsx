@@ -1359,11 +1359,9 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
             return 0;
           }).
           map(([personId, data]) => {
-            const isExpanded = expandedPersonCards[personId] ?? true;
+            const isExpanded = expandedPersonCards[personId] ?? false;
             const completedCount = data.activations.filter((a) => a.stato === 'completata').length;
             const inProgressCount = data.activations.filter((a) => a.stato === 'in_corso' || a.stato === 'annullata').length;
-
-            const isExpanded = expandedPersonCards[personId] ?? false;
 
             return (
               <NeumorphicCard key={personId} className="p-6">
