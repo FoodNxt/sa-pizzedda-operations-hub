@@ -563,66 +563,68 @@ export default function Sconti() {
                 </div> :
 
             <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b-2 border-slate-200">
-                        <th className="text-left p-3 text-sm font-bold text-slate-700">Data</th>
-                        <th className="text-left p-3 text-sm font-bold text-slate-700">Store</th>
-                        <th className="text-right p-3 text-sm font-bold text-slate-700">Sconto</th>
-                        <th className="text-left p-3 text-sm font-bold text-slate-700">App</th>
-                        <th className="text-left p-3 text-sm font-bold text-slate-700">Tipo</th>
-                        <th className="text-left p-3 text-sm font-bold text-slate-700">Pagamento</th>
+                        <th className="text-left p-2 text-xs font-bold text-slate-700">Data</th>
+                        <th className="text-left p-2 text-xs font-bold text-slate-700">Store</th>
+                        <th className="text-right p-2 text-xs font-bold text-slate-700">Totale</th>
+                        <th className="text-right p-2 text-xs font-bold text-blue-600">Glovo</th>
+                        <th className="text-right p-2 text-xs font-bold text-blue-600">Deliveroo</th>
+                        <th className="text-right p-2 text-xs font-bold text-blue-600">JustEat</th>
+                        <th className="text-right p-2 text-xs font-bold text-blue-600">Store</th>
+                        <th className="text-right p-2 text-xs font-bold text-green-600">Delivery</th>
+                        <th className="text-right p-2 text-xs font-bold text-green-600">Takeaway</th>
+                        <th className="text-right p-2 text-xs font-bold text-green-600">Store</th>
+                        <th className="text-right p-2 text-xs font-bold text-purple-600">Online</th>
+                        <th className="text-right p-2 text-xs font-bold text-purple-600">Contanti</th>
+                        <th className="text-right p-2 text-xs font-bold text-purple-600">Carta</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredSconti.map((sconto, idx) => {
-                    const sourceApp = [
-                    sconto.sourceApp_glovo && 'Glovo',
-                    sconto.sourceApp_deliveroo && 'Deliveroo',
-                    sconto.sourceApp_justeat && 'JustEat',
-                    sconto.sourceApp_onlineordering && 'Online Ordering',
-                    sconto.sourceApp_ordertable && 'OrderTable',
-                    sconto.sourceApp_tabesto && 'Tabesto',
-                    sconto.sourceApp_deliverect && 'Deliverect',
-                    sconto.sourceApp_store && 'Store'].
-                    filter(Boolean).join(', ') || '-';
-
-                    const sourceType = [
-                    sconto.sourceType_delivery && 'Delivery',
-                    sconto.sourceType_takeaway && 'Takeaway',
-                    sconto.sourceType_takeawayOnSite && 'Takeaway On Site',
-                    sconto.sourceType_store && 'Store'].
-                    filter(Boolean).join(', ') || '-';
-
-                    const moneyType = [
-                    sconto.moneyType_bancomat && 'Bancomat',
-                    sconto.moneyType_cash && 'Contanti',
-                    sconto.moneyType_online && 'Online',
-                    sconto.moneyType_satispay && 'Satispay',
-                    sconto.moneyType_credit_card && 'Carta',
-                    sconto.moneyType_fidelity_card_points && 'Punti Fidelity'].
-                    filter(Boolean).join(', ') || '-';
-
-                    return (
+                      {filteredSconti.map((sconto, idx) => (
                       <tr key={sconto.id} className={`border-b border-slate-100 hover:bg-slate-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                            <td className="p-3 text-sm text-slate-700">
-                              {format(parseISO(sconto.order_date), 'dd MMM yyyy', { locale: it })}
+                            <td className="p-2 text-xs text-slate-700 whitespace-nowrap">
+                              {format(parseISO(sconto.order_date), 'dd/MM/yy', { locale: it })}
                             </td>
-                            <td className="p-3 text-sm text-slate-700">
+                            <td className="p-2 text-xs text-slate-700">
                               {sconto.store_name || sconto.channel || '-'}
-                              {!sconto.store_id && sconto.channel &&
-                          <span className="ml-2 text-xs text-orange-600">(non trovato)</span>
-                          }
                             </td>
-                            <td className="p-3 text-sm font-bold text-right text-red-600">
+                            <td className="p-2 text-xs font-bold text-right text-red-600 whitespace-nowrap">
                               €{sconto.total_discount_price.toFixed(2)}
                             </td>
-                            <td className="p-3 text-xs text-slate-600">{sourceApp}</td>
-                            <td className="p-3 text-xs text-slate-600">{sourceType}</td>
-                            <td className="p-3 text-xs text-slate-600">{moneyType}</td>
-                          </tr>);
-
-                  })}
+                            <td className="p-2 text-xs text-right text-slate-700">
+                              {sconto.sourceApp_glovo > 0 ? `€${sconto.sourceApp_glovo.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="p-2 text-xs text-right text-slate-700">
+                              {sconto.sourceApp_deliveroo > 0 ? `€${sconto.sourceApp_deliveroo.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="p-2 text-xs text-right text-slate-700">
+                              {sconto.sourceApp_justeat > 0 ? `€${sconto.sourceApp_justeat.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="p-2 text-xs text-right text-slate-700">
+                              {sconto.sourceApp_store > 0 ? `€${sconto.sourceApp_store.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="p-2 text-xs text-right text-slate-600">
+                              {sconto.sourceType_delivery > 0 ? `€${sconto.sourceType_delivery.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="p-2 text-xs text-right text-slate-600">
+                              {sconto.sourceType_takeaway > 0 ? `€${sconto.sourceType_takeaway.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="p-2 text-xs text-right text-slate-600">
+                              {sconto.sourceType_store > 0 ? `€${sconto.sourceType_store.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="p-2 text-xs text-right text-slate-500">
+                              {sconto.moneyType_online > 0 ? `€${sconto.moneyType_online.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="p-2 text-xs text-right text-slate-500">
+                              {sconto.moneyType_cash > 0 ? `€${sconto.moneyType_cash.toFixed(2)}` : '-'}
+                            </td>
+                            <td className="p-2 text-xs text-right text-slate-500">
+                              {sconto.moneyType_credit_card > 0 ? `€${sconto.moneyType_credit_card.toFixed(2)}` : '-'}
+                            </td>
+                          </tr>
+                  ))}
                     </tbody>
                   </table>
                 </div>
