@@ -274,20 +274,78 @@ export default function Financials() {
       revenueByDate[date].orders += item.total_orders || 0;
     });
 
-    const dailyRevenue = Object.values(revenueByDate).
-    map((d) => ({
-      ...d,
-      parsedDate: safeParseDate(d.date)
-    })).
-    filter((d) => d.parsedDate !== null).
-    sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime()).
-    map((d) => ({
-      date: safeFormatDate(d.parsedDate, 'dd/MM'),
-      revenue: parseFloat(d.revenue.toFixed(2)),
-      orders: d.orders,
-      avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0
-    })).
-    filter((d) => d.date !== 'N/A');
+    // Aggregate based on view type
+    let aggregatedData = [];
+    if (trendView === 'daily') {
+      aggregatedData = Object.values(revenueByDate).
+        map((d) => ({
+          ...d,
+          parsedDate: safeParseDate(d.date)
+        })).
+        filter((d) => d.parsedDate !== null).
+        sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime()).
+        map((d) => ({
+          date: safeFormatDate(d.parsedDate, 'dd/MM'),
+          revenue: parseFloat(d.revenue.toFixed(2)),
+          orders: d.orders,
+          avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0
+        })).
+        filter((d) => d.date !== 'N/A');
+    } else if (trendView === 'weekly') {
+      const weeklyMap = {};
+      Object.values(revenueByDate).forEach((d) => {
+        const date = safeParseDate(d.date);
+        if (!date) return;
+        
+        const weekStart = new Date(date);
+        const dayOfWeek = weekStart.getDay();
+        const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        weekStart.setDate(weekStart.getDate() + diff);
+        weekStart.setHours(0, 0, 0, 0);
+        
+        const weekKey = format(weekStart, 'dd/MM');
+        if (!weeklyMap[weekKey]) {
+          weeklyMap[weekKey] = { revenue: 0, orders: 0, parsedDate: weekStart };
+        }
+        weeklyMap[weekKey].revenue += d.revenue;
+        weeklyMap[weekKey].orders += d.orders;
+      });
+      
+      aggregatedData = Object.entries(weeklyMap).
+        map(([weekKey, data]) => ({
+          date: weekKey,
+          revenue: parseFloat(data.revenue.toFixed(2)),
+          orders: data.orders,
+          avgValue: data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0,
+          parsedDate: data.parsedDate
+        })).
+        sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
+    } else if (trendView === 'monthly') {
+      const monthlyMap = {};
+      Object.values(revenueByDate).forEach((d) => {
+        const date = safeParseDate(d.date);
+        if (!date) return;
+        
+        const monthKey = format(date, 'MMM yyyy', { locale: it });
+        if (!monthlyMap[monthKey]) {
+          monthlyMap[monthKey] = { revenue: 0, orders: 0, parsedDate: date };
+        }
+        monthlyMap[monthKey].revenue += d.revenue;
+        monthlyMap[monthKey].orders += d.orders;
+      });
+      
+      aggregatedData = Object.entries(monthlyMap).
+        map(([monthKey, data]) => ({
+          date: monthKey,
+          revenue: parseFloat(data.revenue.toFixed(2)),
+          orders: data.orders,
+          avgValue: data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0,
+          parsedDate: data.parsedDate
+        })).
+        sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
+    }
+
+    const dailyRevenue = aggregatedData;
 
     const revenueByStore = {};
 
