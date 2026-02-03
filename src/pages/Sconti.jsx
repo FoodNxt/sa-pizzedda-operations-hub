@@ -7,7 +7,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import { TrendingDown, Calendar, Filter, Download, BarChart3 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
 
 export default function Sconti() {
   const [activeView, setActiveView] = useState('sconti');
