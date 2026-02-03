@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save, CreditCard, Wallet, ChevronUp, ChevronDown, BarChart3 } from 'lucide-react';
+import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save, CreditCard, Wallet, ChevronUp, ChevronDown, BarChart3, Sparkles, Loader2 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears } from 'date-fns';
 import { it } from 'date-fns/locale';
 import ProtectedPage from "../components/ProtectedPage";
 import { formatCurrency, formatEuro } from "../components/utils/formatCurrency";
+import ReactMarkdown from 'react-markdown';
 
 export default function Financials() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -40,6 +41,9 @@ export default function Financials() {
   const [dailyMetric, setDailyMetric] = useState('revenue');
   const [dailyDays, setDailyDays] = useState(90);
   const [trendView, setTrendView] = useState('daily'); // 'daily', 'weekly', 'monthly'
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Confronto Mensile State
   const [periodo1Store, setPeriodo1Store] = useState('all');
@@ -1560,6 +1564,46 @@ export default function Financials() {
 
   const PAYMENT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
 
+  const handleAIAnalysis = async () => {
+    setIsAnalyzing(true);
+    setShowAIAnalysis(true);
+    setAiAnalysis(null);
+
+    try {
+      const response = await base44.functions.invoke('analyzeFinancialData', {
+        currentData: {
+          totalRevenue: processedData.totalRevenue,
+          totalOrders: processedData.totalOrders,
+          avgOrderValue: processedData.avgOrderValue,
+          percentInStore: processedData.percentInStore,
+          channelBreakdown: processedData.channelBreakdown,
+          deliveryAppBreakdown: processedData.deliveryAppBreakdown,
+          storeBreakdown: processedData.storeBreakdown
+        },
+        filters: {
+          selectedStore,
+          dateRange,
+          startDate,
+          endDate,
+          selectedChannels,
+          selectedApps,
+          selectedPaymentMethods
+        }
+      });
+
+      if (response.data.success) {
+        setAiAnalysis(response.data.analysis);
+      } else {
+        setAiAnalysis('Errore durante l\'analisi. Riprova.');
+      }
+    } catch (error) {
+      console.error('Error analyzing data:', error);
+      setAiAnalysis('Errore durante l\'analisi. Riprova.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   // Calculate data for monthly comparison
   const calculatePeriodData = (storeId, startD, endD, channels, apps) => {
     if (!startD || !endD) return null;
@@ -1708,12 +1752,102 @@ export default function Financials() {
   return (
     <ProtectedPage pageName="Financials">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
-        <div className="mb-4 lg:mb-6">
-          <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Analisi Finanziaria
-
-          </h1>
-          <p className="text-slate-50 text-sm">Dati iPratico</p>
+        <div className="mb-4 lg:mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Analisi Finanziaria</h1>
+            <p className="text-slate-50 text-sm">Dati iPratico</p>
+          </div>
+          <button
+            onClick={handleAIAnalysis}
+            disabled={isAnalyzing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 text-white font-medium text-sm shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Analisi...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Analisi AI
+              </>
+            )}
+          </button>
         </div>
+
+        {/* AI Analysis Modal */}
+        {showAIAnalysis && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                      <Sparkles className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-800">Analisi AI Business</h2>
+                      <p className="text-xs text-slate-500">Insights e raccomandazioni strategiche</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowAIAnalysis(false)}
+                    className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                  >
+                    <X className="w-5 h-5 text-slate-600" />
+                  </button>
+                </div>
+
+                {isAnalyzing && (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
+                    <p className="text-slate-600">Sto analizzando i dati finanziari...</p>
+                    <p className="text-xs text-slate-500 mt-2">Questo potrebbe richiedere alcuni secondi</p>
+                  </div>
+                )}
+
+                {!isAnalyzing && aiAnalysis && (
+                  <div className="prose prose-sm max-w-none">
+                    <ReactMarkdown
+                      components={{
+                        h1: ({children}) => <h1 className="text-2xl font-bold text-slate-800 mt-6 mb-3">{children}</h1>,
+                        h2: ({children}) => <h2 className="text-xl font-bold text-slate-800 mt-5 mb-2">{children}</h2>,
+                        h3: ({children}) => <h3 className="text-lg font-bold text-slate-700 mt-4 mb-2">{children}</h3>,
+                        p: ({children}) => <p className="text-slate-700 mb-3 leading-relaxed">{children}</p>,
+                        ul: ({children}) => <ul className="list-disc list-inside space-y-2 mb-4 text-slate-700">{children}</ul>,
+                        ol: ({children}) => <ol className="list-decimal list-inside space-y-2 mb-4 text-slate-700">{children}</ol>,
+                        li: ({children}) => <li className="text-slate-700">{children}</li>,
+                        strong: ({children}) => <strong className="font-bold text-slate-800">{children}</strong>,
+                        em: ({children}) => <em className="italic text-slate-600">{children}</em>,
+                      }}
+                    >
+                      {aiAnalysis}
+                    </ReactMarkdown>
+                  </div>
+                )}
+
+                {!isAnalyzing && aiAnalysis && (
+                  <div className="mt-6 pt-6 border-t border-slate-200 flex justify-end gap-3">
+                    <button
+                      onClick={() => setShowAIAnalysis(false)}
+                      className="px-6 py-2.5 rounded-xl bg-slate-200 text-slate-700 font-medium hover:bg-slate-300 transition-colors"
+                    >
+                      Chiudi
+                    </button>
+                    <button
+                      onClick={handleAIAnalysis}
+                      className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 text-white font-medium hover:shadow-lg transition-all flex items-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Rigenera Analisi
+                    </button>
+                  </div>
+                )}
+              </NeumorphicCard>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-2">
