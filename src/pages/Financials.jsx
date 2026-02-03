@@ -39,6 +39,7 @@ export default function Financials() {
   const [historicalAvgDays, setHistoricalAvgDays] = useState(90);
   const [dailyMetric, setDailyMetric] = useState('revenue');
   const [dailyDays, setDailyDays] = useState(90);
+  const [trendView, setTrendView] = useState('daily'); // 'daily', 'weekly', 'monthly'
 
   // Confronto Mensile State
   const [periodo1Store, setPeriodo1Store] = useState('all');
