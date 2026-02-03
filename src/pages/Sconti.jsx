@@ -750,9 +750,26 @@ export default function Sconti() {
                   formatter={(value) => `€${value}`} />
 
                     <Legend />
-                    <Bar dataKey="grossSales" fill="#3b82f6" name="Gross Sales (€)" />
-                    <Bar dataKey="revenue" fill="#10b981" name="Net Revenue (€)" />
-                    <Bar dataKey="sconto" fill="#ef4444" name="Sconti (€)" />
+                    <Bar dataKey="grossSales" fill="#3b82f6" name="Gross Sales (€)">
+                      <LabelList dataKey="grossSales" position="top" formatter={(value) => `€${value.toFixed(0)}`} style={{ fontSize: '10px', fill: '#1e40af' }} />
+                    </Bar>
+                    <Bar dataKey="revenue" fill="#10b981" name="Net Revenue (€)">
+                      <LabelList dataKey="revenue" position="top" formatter={(value) => `€${value.toFixed(0)}`} style={{ fontSize: '10px', fill: '#047857' }} />
+                    </Bar>
+                    <Bar dataKey="sconto" fill="#ef4444" name="Sconti (€)">
+                      <LabelList 
+                        dataKey="sconto" 
+                        position="top" 
+                        content={({ x, y, width, value, index }) => {
+                          const pct = grossSalesChartData[index]?.percentualeSconto || 0;
+                          return (
+                            <text x={x + width / 2} y={y - 5} fill="#dc2626" textAnchor="middle" fontSize="10px">
+                              {`€${value.toFixed(0)} (${pct.toFixed(1)}%)`}
+                            </text>
+                          );
+                        }}
+                      />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer> :
 
