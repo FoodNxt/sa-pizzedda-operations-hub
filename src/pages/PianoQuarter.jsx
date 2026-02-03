@@ -1894,11 +1894,11 @@ export default function PianoQuarter() {
                           <div className="grid grid-cols-2 gap-3 mb-3">
                             <div>
                               <p className="text-xs text-slate-600 mb-1">Revenue Generato</p>
-                              <p className="text-lg font-bold text-slate-800">€{(costoEffettivo * currentRoas).toFixed(2)}</p>
+                              <p className="text-lg font-bold text-slate-800">€{(budget * currentRoas).toFixed(2)}</p>
                             </div>
                             <div>
                               <p className="text-xs text-slate-600 mb-1">Margine Lordo</p>
-                              <p className="text-lg font-bold text-blue-600">€{(costoEffettivo * currentRoas * marginePercentuale).toFixed(2)}</p>
+                              <p className="text-lg font-bold text-blue-600">€{(budget * currentRoas * marginePercentuale).toFixed(2)}</p>
                             </div>
                           </div>
 
