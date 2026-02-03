@@ -1836,8 +1836,8 @@ export default function StoricoCassa() {
                           </tr>
                           
                           {expandedDipendente === dipendente.nome && (
-                            <tr>
-                              <td colSpan="4" className="p-0">
+                          <tr>
+                          <td colSpan="5" className="p-0">
                                 <div className="bg-slate-50 p-4 border-l-4 border-blue-500">
                                   <h4 className="text-sm font-bold text-slate-800 mb-3">Storico Movimenti</h4>
                                   {dipendente.movimenti.length === 0 ? (
