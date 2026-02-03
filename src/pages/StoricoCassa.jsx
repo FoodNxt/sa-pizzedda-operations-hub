@@ -536,27 +536,18 @@ export default function StoricoCassa() {
     });
 
     // Aggiungi i pagamenti straordinari effettuati (chi ha pagato)
-    pagamentiStraordinari.filter(p => p.pagato).forEach((pagamento) => {
-      const dipendenteChePaga = pagamento.pagato_da;
-      if (dipendenteChePaga) {
-        if (!saldi[dipendenteChePaga]) {
-          saldi[dipendenteChePaga] = { 
-            nome: dipendenteChePaga, 
-            prelievi: 0, 
-            depositi: 0,
-            pagamentiStraordinari: 0,
-            saldo: 0,
-            movimenti: []
-          };
-        }
-        saldi[dipendenteChePaga].pagamentiStraordinari += pagamento.importo_totale || 0;
-        saldi[dipendenteChePaga].movimenti.push({
-          tipo: 'pagamento_straordinario_effettuato',
-          data: pagamento.data_pagamento,
-          importo: -(pagamento.importo_totale || 0),
-          store: pagamento.store_name,
-          note: `Pagamento straordinario a ${pagamento.dipendente_nome} - ${pagamento.ore_straordinarie}h`
-        });
+    // I pagamenti vengono registrati come Depositi con store_id='pagamento_straordinario'
+    // Quindi sono già inclusi nei depositi sopra
+    // Ma dobbiamo assicurarci che vengano contati nella colonna corretta
+    
+    // Aggiorniamo: quando un deposito ha store_id='pagamento_straordinario',
+    // significa che chi l'ha creato (rilevato_da) ha pagato uno straordinario
+    depositi.filter(d => d.store_id === 'pagamento_straordinario').forEach((deposito) => {
+      const dipendenteChePaga = deposito.rilevato_da;
+      if (dipendenteChePaga && saldi[dipendenteChePaga]) {
+        // Rimuovi dai depositi e aggiungi ai pagamenti straordinari
+        saldi[dipendenteChePaga].depositi -= deposito.importo || 0;
+        saldi[dipendenteChePaga].pagamentiStraordinari += deposito.importo || 0;
       }
     });
 
