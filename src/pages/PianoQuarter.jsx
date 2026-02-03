@@ -148,7 +148,13 @@ export default function PianoQuarter() {
 
   // Carica food cost percentage e platform fees dalla configurazione
   useEffect(() => {
-    if (financeConfigs.length > 0) {
+    const savedFoodCost = localStorage.getItem('foodCostPercentage');
+    const savedPlatformFees = localStorage.getItem('platformFeesPercentage');
+    
+    if (savedFoodCost) setFoodCostPercentage(parseFloat(savedFoodCost));
+    if (savedPlatformFees) setPlatformFeesPercentage(parseFloat(savedPlatformFees));
+    
+    if (financeConfigs.length > 0 && !savedFoodCost && !savedPlatformFees) {
       const activeConfig = financeConfigs.find((c) => c.is_active);
       if (activeConfig?.default_food_cost_percentage) {
         setFoodCostPercentage(activeConfig.default_food_cost_percentage);
@@ -1584,6 +1590,7 @@ export default function PianoQuarter() {
                 onChange={(e) => {
                   const newValue = parseFloat(e.target.value);
                   setFoodCostPercentage(newValue);
+                  localStorage.setItem('foodCostPercentage', newValue);
                   updateFoodCostMutation.mutate(newValue);
                 }}
                 className="w-full neumorphic-pressed px-4 py-2 rounded-lg" />
@@ -1600,6 +1607,7 @@ export default function PianoQuarter() {
                 onChange={(e) => {
                   const newValue = parseFloat(e.target.value);
                   setPlatformFeesPercentage(newValue);
+                  localStorage.setItem('platformFeesPercentage', newValue);
                   updatePlatformFeesMutation.mutate(newValue);
                 }}
                 className="w-full neumorphic-pressed px-4 py-2 rounded-lg" />
@@ -1759,7 +1767,11 @@ export default function PianoQuarter() {
                     max="100"
                     step="1"
                     value={foodCostPercentage}
-                    onChange={(e) => setFoodCostPercentage(parseFloat(e.target.value))}
+                    onChange={(e) => {
+                      const newValue = parseFloat(e.target.value);
+                      setFoodCostPercentage(newValue);
+                      localStorage.setItem('foodCostPercentage', newValue);
+                    }}
                     className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
                   />
                 </div>
@@ -1771,7 +1783,11 @@ export default function PianoQuarter() {
                     max="100"
                     step="1"
                     value={platformFeesPercentage}
-                    onChange={(e) => setPlatformFeesPercentage(parseFloat(e.target.value))}
+                    onChange={(e) => {
+                      const newValue = parseFloat(e.target.value);
+                      setPlatformFeesPercentage(newValue);
+                      localStorage.setItem('platformFeesPercentage', newValue);
+                    }}
                     className="w-full neumorphic-pressed px-4 py-2 rounded-lg"
                   />
                 </div>

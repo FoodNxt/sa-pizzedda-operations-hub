@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import NeumorphicCard from '../neumorphic/NeumorphicCard';
 import NeumorphicButton from '../neumorphic/NeumorphicButton';
-import { Info, TrendingUp, TrendingDown } from 'lucide-react';
+import { Info, TrendingUp, TrendingDown, ChevronDown, ChevronRight } from 'lucide-react';
 
 export default function ROASCalculator({ foodCostPercentage, platformFeesPercentage }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showCampaignB, setShowCampaignB] = useState(false);
+  
   const [campaignA, setCampaignA] = useState({
     budget: '',
     roas: '',
@@ -101,11 +104,14 @@ export default function ROASCalculator({ foodCostPercentage, platformFeesPercent
   const renderResults = (results, label) => {
     if (!results) {
       return (
-        <div className="text-center py-8 text-slate-500">
+        <div className="text-center py-6 text-slate-500">
           <p className="text-sm">Inserisci i dati della campagna per vedere i risultati</p>
         </div>
       );
     }
+
+    const foodCost = results.revenue * (foodCostPercentage / 100);
+    const platformFees = results.revenue * (platformFeesPercentage / 100);
 
     return (
       <div className="space-y-4">
@@ -124,55 +130,56 @@ export default function ROASCalculator({ foodCostPercentage, platformFeesPercent
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="neumorphic-pressed p-3 rounded-xl">
-            <p className="text-xs text-slate-500 mb-1">Budget Totale</p>
-            <p className="text-lg font-bold text-slate-800">€{results.budget.toFixed(2)}</p>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="neumorphic-pressed p-2 rounded-lg">
+            <p className="text-xs text-slate-500">Budget</p>
+            <p className="font-bold text-slate-800">€{results.budget.toFixed(2)}</p>
           </div>
-          <div className="neumorphic-pressed p-3 rounded-xl">
-            <p className="text-xs text-slate-500 mb-1">Costo Effettivo</p>
-            <p className="text-lg font-bold text-orange-600">€{results.costoEffettivo.toFixed(2)}</p>
+          <div className="neumorphic-pressed p-2 rounded-lg">
+            <p className="text-xs text-slate-500">ROAS</p>
+            <p className="font-bold text-blue-600">{results.roas.toFixed(2)}</p>
           </div>
-          <div className="neumorphic-pressed p-3 rounded-xl">
-            <p className="text-xs text-slate-500 mb-1">ROAS</p>
-            <p className="text-lg font-bold text-blue-600">{results.roas.toFixed(2)}</p>
+          <div className="neumorphic-pressed p-2 rounded-lg">
+            <p className="text-xs text-slate-500">Cofinanziamento</p>
+            <p className="font-bold text-slate-800">{results.cofinanziamento}%</p>
           </div>
-          <div className="neumorphic-pressed p-3 rounded-xl">
-            <p className="text-xs text-slate-500 mb-1">ROAS Break-Even</p>
-            <p className="text-lg font-bold text-purple-600">{results.roasBreakEven.toFixed(2)}</p>
+          <div className="neumorphic-pressed p-2 rounded-lg">
+            <p className="text-xs text-slate-500">Break-Even ROAS</p>
+            <p className="font-bold text-purple-600">{results.roasBreakEven.toFixed(2)}</p>
           </div>
         </div>
 
-        <div className={`rounded-xl p-4 border-2 ${
+        <div className={`rounded-xl p-4 border-2 space-y-3 ${
           results.isProfit ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
         }`}>
-          <div className="space-y-3">
-            <div>
-              <p className="text-xs text-slate-600 mb-1">Revenue Generato</p>
-              <p className="text-xl font-bold text-slate-800">€{results.revenue.toFixed(2)}</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-300">
+              <span className="text-slate-700">Revenue Generato</span>
+              <span className="font-bold text-slate-800">€{results.revenue.toFixed(2)}</span>
             </div>
-            <div>
-              <p className="text-xs text-slate-600 mb-1">Margine Lordo</p>
-              <p className="text-xl font-bold text-blue-600">€{results.margine.toFixed(2)}</p>
+            <div className="flex justify-between items-center text-red-600">
+              <span>- Food Cost ({foodCostPercentage}%)</span>
+              <span className="font-bold">-€{foodCost.toFixed(2)}</span>
             </div>
-            <div className="pt-3 border-t border-slate-200">
-              <p className="text-xs text-slate-600 mb-1">Profitto/Perdita per € Investito</p>
-              <p className={`text-2xl font-bold ${results.isProfit ? 'text-green-600' : 'text-red-600'}`}>
-                {results.profittoPerEuro >= 0 ? '+' : ''}€{results.profittoPerEuro.toFixed(2)}
-              </p>
+            <div className="flex justify-between items-center text-red-600">
+              <span>- Platform Fees ({platformFeesPercentage}%)</span>
+              <span className="font-bold">-€{platformFees.toFixed(2)}</span>
             </div>
-            <div>
-              <p className="text-xs text-slate-600 mb-1">ROI</p>
-              <p className={`text-2xl font-bold ${results.isProfit ? 'text-green-600' : 'text-red-600'}`}>
-                {results.profittoPerEuro >= 0 ? '+' : ''}{results.roi.toFixed(1)}%
-              </p>
+            <div className="flex justify-between items-center text-red-600">
+              <span>- Investimento Ads</span>
+              <span className="font-bold">-€{results.costoEffettivo.toFixed(2)}</span>
             </div>
-            <div className="pt-3 border-t border-slate-200">
-              <p className="text-xs text-slate-600 mb-1">Profitto/Perdita Totale</p>
-              <p className={`text-3xl font-bold ${results.isProfit ? 'text-green-600' : 'text-red-600'}`}>
-                {results.profittoTotale >= 0 ? '+' : ''}€{results.profittoTotale.toFixed(2)}
-              </p>
+            <div className={`flex justify-between items-center pt-2 border-t-2 border-slate-300 text-lg ${
+              results.isProfit ? 'text-green-600' : 'text-red-600'
+            }`}>
+              <span className="font-bold">= Profitto/Perdita</span>
+              <span className="font-bold">{results.profittoTotale >= 0 ? '+' : ''}€{results.profittoTotale.toFixed(2)}</span>
             </div>
+          </div>
+          
+          <div className="pt-2 border-t border-slate-300">
+            <p className="text-xs text-slate-600 mb-1">ROI: {results.profittoPerEuro >= 0 ? '+' : ''}{results.roi.toFixed(1)}%</p>
+            <p className="text-xs text-slate-600">Profitto per €1 investito: {results.profittoPerEuro >= 0 ? '+' : ''}€{results.profittoPerEuro.toFixed(2)}</p>
           </div>
         </div>
       </div>
@@ -245,45 +252,76 @@ export default function ROASCalculator({ foodCostPercentage, platformFeesPercent
   };
 
   return (
-    <NeumorphicCard className="p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <TrendingUp className="w-6 h-6 text-blue-600" />
-        <h2 className="text-2xl font-bold text-slate-800">ROAS Calculator</h2>
-      </div>
+    <>
+      <NeumorphicCard className="p-4">
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center justify-between hover:bg-slate-50 p-2 rounded-lg transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            {isExpanded ? <ChevronDown className="w-5 h-5 text-blue-600" /> : <ChevronRight className="w-5 h-5 text-blue-600" />}
+            <TrendingUp className="w-5 h-5 text-blue-600" />
+            <h2 className="text-lg font-bold text-slate-800">ROAS Calculator</h2>
+          </div>
+          {!isExpanded && <span className="text-xs text-slate-500">Clicca per espandere</span>}
+        </button>
+      </NeumorphicCard>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-        <p className="text-sm text-blue-800">
-          <span className="font-bold">Parametri:</span> Food Cost {foodCostPercentage}% • Platform Fees {platformFeesPercentage}%
-        </p>
-        <p className="text-xs text-blue-600 mt-1">
-          Calcola e confronta i risultati di diverse campagne ads
-        </p>
-      </div>
+      {isExpanded && (
+        <NeumorphicCard className="p-6 mt-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <p className="text-sm text-blue-800">
+              <span className="font-bold">Parametri:</span> Food Cost {foodCostPercentage}% • Platform Fees {platformFeesPercentage}%
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Calcola e confronta i risultati di diverse campagne ads
+            </p>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Campagna A */}
-        <div className="neumorphic-pressed p-5 rounded-xl">
-          {renderCampaignForm(campaignA, setCampaignA, 'Campagna A')}
-          {resultsA && (
-            <div className="mt-6">
-              {renderResults(resultsA, 'Risultati A')}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Campagna A */}
+            <div className="neumorphic-pressed p-5 rounded-xl">
+              {renderCampaignForm(campaignA, setCampaignA, 'Campagna A')}
+              {resultsA && (
+                <div className="mt-6">
+                  {renderResults(resultsA, 'Risultati A')}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Campagna B */}
-        <div className="neumorphic-pressed p-5 rounded-xl">
-          {renderCampaignForm(campaignB, setCampaignB, 'Campagna B')}
-          {resultsB && (
-            <div className="mt-6">
-              {renderResults(resultsB, 'Risultati B')}
+            {/* Campagna B Toggle */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-800">Campagna B</h3>
+                <button
+                  onClick={() => setShowCampaignB(!showCampaignB)}
+                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                    showCampaignB 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  }`}
+                >
+                  {showCampaignB ? 'Attiva ✓' : 'Disattiva'}
+                </button>
+              </div>
+
+              {showCampaignB && (
+                <div className="neumorphic-pressed p-5 rounded-xl">
+                  {renderCampaignForm(campaignB, setCampaignB, 'Campagna B')}
+                  {resultsB && (
+                    <div className="mt-6">
+                      {renderResults(resultsB, 'Risultati B')}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Confronto */}
-      {resultsA && resultsB && renderComparison()}
-    </NeumorphicCard>
+          {/* Confronto */}
+          {showCampaignB && resultsA && resultsB && renderComparison()}
+        </NeumorphicCard>
+      )}
+    </>
   );
 }
