@@ -2182,9 +2182,32 @@ export default function Financials() {
 
         <div className="grid grid-cols-1 gap-4 lg:gap-6">
           <NeumorphicCard className="p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-3">
               <h2 className="text-base lg:text-lg font-bold text-slate-800">Trend Giornaliero</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setTrendView('daily')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      trendView === 'daily' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
+                    }`}>
+                    Giornaliero
+                  </button>
+                  <button
+                    onClick={() => setTrendView('weekly')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      trendView === 'weekly' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
+                    }`}>
+                    Settimanale
+                  </button>
+                  <button
+                    onClick={() => setTrendView('monthly')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      trendView === 'monthly' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
+                    }`}>
+                    Mensile
+                  </button>
+                </div>
                 <button
                     onClick={() => setShowRevenue(!showRevenue)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
