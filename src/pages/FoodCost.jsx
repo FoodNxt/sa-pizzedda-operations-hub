@@ -38,6 +38,11 @@ export default function FoodCost() {
     queryFn: () => base44.entities.Ricetta.list()
   });
 
+  const { data: ordiniFornitori = [] } = useQuery({
+    queryKey: ['ordini-fornitori'],
+    queryFn: () => base44.entities.OrdineFornitore.list()
+  });
+
   // Calcola food cost per periodo
   const foodCostData = useMemo(() => {
     const startDate = new Date(dateRange.start);
@@ -50,19 +55,24 @@ export default function FoodCost() {
         (selectedStore === 'all' || d.store_id === selectedStore);
     });
 
-    // Filtra prodotti venduti nel range
-    const prodotti = prodottiVenduti.filter(p => {
-      const orderDate = new Date(p.order_date);
-      return orderDate >= startDate && orderDate <= endDate &&
-        (selectedStore === 'all' || p.store_id === selectedStore);
+    // Calcola costo totale dagli ordini fornitori arrivati
+    let costoTotale = 0;
+    const ordiniArrivati = ordiniFornitori.filter(o => {
+      if (o.status !== 'completato') return false;
+      if (!o.data_arrivo_effettiva) return false;
+      
+      const dataArrivo = new Date(o.data_arrivo_effettiva);
+      return dataArrivo >= startDate && dataArrivo <= endDate &&
+        (selectedStore === 'all' || o.store_id === selectedStore);
     });
 
-    // Calcola costo totale dei prodotti venduti
-    let costoTotale = 0;
-    prodotti.forEach(prod => {
-      const ricetta = ricette.find(r => r.nome_prodotto === prod.product_name);
-      if (ricetta && ricetta.costo_unitario) {
-        costoTotale += ricetta.costo_unitario * (prod.quantity || 0);
+    ordiniArrivati.forEach(ordine => {
+      if (ordine.prodotti && Array.isArray(ordine.prodotti)) {
+        ordine.prodotti.forEach(prod => {
+          const quantita = prod.quantita_ricevuta || prod.quantita_ordinata || 0;
+          const prezzo = prod.prezzo_unitario || 0;
+          costoTotale += quantita * prezzo;
+        });
       }
     });
 
@@ -77,7 +87,7 @@ export default function FoodCost() {
       revenueTotale,
       foodCostPercentuale
     };
-  }, [iPraticoData, prodottiVenduti, ricette, dateRange, selectedStore]);
+  }, [iPraticoData, ordiniFornitori, dateRange, selectedStore]);
 
   // Food cost per store
   const foodCostByStore = useMemo(() => {
@@ -92,16 +102,20 @@ export default function FoodCost() {
         return orderDate >= startDate && orderDate <= endDate && d.store_id === store.id;
       }).reduce((sum, d) => sum + (d.total_revenue || 0), 0);
 
-      const storeProdotti = prodottiVenduti.filter(p => {
-        const orderDate = new Date(p.order_date);
-        return orderDate >= startDate && orderDate <= endDate && p.store_id === store.id;
+      const storeOrdini = ordiniFornitori.filter(o => {
+        if (o.status !== 'completato' || !o.data_arrivo_effettiva) return false;
+        const dataArrivo = new Date(o.data_arrivo_effettiva);
+        return dataArrivo >= startDate && dataArrivo <= endDate && o.store_id === store.id;
       });
 
       let storeCosto = 0;
-      storeProdotti.forEach(prod => {
-        const ricetta = ricette.find(r => r.nome_prodotto === prod.product_name);
-        if (ricetta && ricetta.costo_unitario) {
-          storeCosto += ricetta.costo_unitario * (prod.quantity || 0);
+      storeOrdini.forEach(ordine => {
+        if (ordine.prodotti && Array.isArray(ordine.prodotti)) {
+          ordine.prodotti.forEach(prod => {
+            const quantita = prod.quantita_ricevuta || prod.quantita_ordinata || 0;
+            const prezzo = prod.prezzo_unitario || 0;
+            storeCosto += quantita * prezzo;
+          });
         }
       });
 
@@ -114,7 +128,7 @@ export default function FoodCost() {
         revenue: storeRevenue
       };
     }).filter(d => d.revenue > 0);
-  }, [stores, iPraticoData, prodottiVenduti, ricette, dateRange, selectedStore]);
+  }, [stores, iPraticoData, ordiniFornitori, dateRange, selectedStore]);
 
   // Trend giornaliero food cost
   const trendGiornaliero = useMemo(() => {
@@ -141,19 +155,21 @@ export default function FoodCost() {
         }
       });
 
-      prodottiVenduti.forEach(p => {
-        const orderDate = new Date(p.order_date);
-        if (orderDate >= startDate && orderDate <= endDate &&
-          (selectedStore === 'all' || p.store_id === selectedStore)) {
-          const weekStart = new Date(orderDate);
-          weekStart.setDate(orderDate.getDate() - orderDate.getDay());
+      ordiniFornitori.forEach(o => {
+        if (o.status !== 'completato' || !o.data_arrivo_effettiva) return;
+        const dataArrivo = new Date(o.data_arrivo_effettiva);
+        if (dataArrivo >= startDate && dataArrivo <= endDate &&
+          (selectedStore === 'all' || o.store_id === selectedStore)) {
+          const weekStart = new Date(dataArrivo);
+          weekStart.setDate(dataArrivo.getDate() - dataArrivo.getDay());
           const weekKey = format(weekStart, 'yyyy-MM-dd');
 
-          if (weeklyData[weekKey]) {
-            const ricetta = ricette.find(r => r.nome_prodotto === p.product_name);
-            if (ricetta && ricetta.costo_unitario) {
-              weeklyData[weekKey].costo += ricetta.costo_unitario * (p.quantity || 0);
-            }
+          if (weeklyData[weekKey] && o.prodotti && Array.isArray(o.prodotti)) {
+            o.prodotti.forEach(prod => {
+              const quantita = prod.quantita_ricevuta || prod.quantita_ordinata || 0;
+              const prezzo = prod.prezzo_unitario || 0;
+              weeklyData[weekKey].costo += quantita * prezzo;
+            });
           }
         }
       });
@@ -180,16 +196,21 @@ export default function FoodCost() {
         }
       });
 
-      prodottiVenduti.forEach(p => {
-        const orderDate = new Date(p.order_date);
-        if (orderDate >= startDate && orderDate <= endDate &&
-          (selectedStore === 'all' || p.store_id === selectedStore)) {
-          const dateKey = p.order_date;
-          if (dailyData[dateKey]) {
-            const ricetta = ricette.find(r => r.nome_prodotto === p.product_name);
-            if (ricetta && ricetta.costo_unitario) {
-              dailyData[dateKey].costo += ricetta.costo_unitario * (p.quantity || 0);
-            }
+      ordiniFornitori.forEach(o => {
+        if (o.status !== 'completato' || !o.data_arrivo_effettiva) return;
+        const dataArrivo = new Date(o.data_arrivo_effettiva);
+        if (dataArrivo >= startDate && dataArrivo <= endDate &&
+          (selectedStore === 'all' || o.store_id === selectedStore)) {
+          const dateKey = format(dataArrivo, 'yyyy-MM-dd');
+          if (!dailyData[dateKey]) {
+            dailyData[dateKey] = { date: dateKey, revenue: 0, costo: 0 };
+          }
+          if (o.prodotti && Array.isArray(o.prodotti)) {
+            o.prodotti.forEach(prod => {
+              const quantita = prod.quantita_ricevuta || prod.quantita_ordinata || 0;
+              const prezzo = prod.prezzo_unitario || 0;
+              dailyData[dateKey].costo += quantita * prezzo;
+            });
           }
         }
       });
