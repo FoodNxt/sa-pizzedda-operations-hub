@@ -61,6 +61,11 @@ export default function PagamentoStraordinari() {
     queryFn: () => base44.entities.AttivitaCompletata.list('-completato_at', 500)
   });
 
+  const { data: depositi = [] } = useQuery({
+    queryKey: ['depositi'],
+    queryFn: () => base44.entities.Deposito.filter({ store_id: 'pagamento_straordinario' })
+  });
+
   const activeConfig = disponibilitaConfigs[0] || null;
 
   const effettuaPagamentoMutation = useMutation({
