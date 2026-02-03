@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { Plus, Euro, TrendingDown, Trash2, Edit, X, Calendar, DollarSign, ChevronLeft, ChevronRight, Settings, TrendingUp } from "lucide-react";
+import { Plus, Euro, TrendingDown, Trash2, Edit, X, Calendar, DollarSign, ChevronLeft, ChevronRight, Settings, TrendingUp, Info } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWithinInterval } from "date-fns";
 import { it } from 'date-fns/locale';
 
@@ -1500,13 +1500,15 @@ export default function PianoQuarter() {
                 // Get current ROAS from state
                 const currentRoas = roasCampaigns[campagna.id] || 0;
                 
-                // Calcolo guadagno per euro
-                // Se ROAS = 3 e investo 1€, genero 3€ di revenue
+                // Calcolo guadagno per euro EFFETTIVAMENTE speso (dopo cofinanziamento)
+                // Per ogni 1€ speso effettivamente, il budget totale è = 1€ / (1 - cofinanziamento%)
+                // ROAS si calcola sul budget totale, non sul costo effettivo
+                // Revenue = ROAS * Budget Totale
                 // Margine = Revenue * (1 - FoodCost% - PlatformFee%)
-                // Profitto = Margine - Investimento
-                // Per euro investito = Profitto / Investimento = (Revenue * margine% - 1€) / 1€
-                const revenuePerEuro = currentRoas;
-                const marginePerEuro = revenuePerEuro * marginePercentuale;
+                // Profitto = Margine - 1€ (costo effettivo)
+                const budgetTotalePerEuroSpeso = 1 / (1 - cofinanziamento / 100);
+                const revenuePerEuroSpeso = currentRoas * budgetTotalePerEuroSpeso;
+                const marginePerEuro = revenuePerEuroSpeso * marginePercentuale;
                 const profittoPerEuro = marginePerEuro - 1;
 
                 return (
@@ -1539,13 +1541,26 @@ export default function PianoQuarter() {
                     </div>
 
                     <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-4">
-                      <p className="text-sm font-bold text-purple-800 mb-2">🎯 ROAS Break-Even</p>
+                      <div className="flex items-start justify-between mb-2">
+                        <p className="text-sm font-bold text-purple-800">🎯 ROAS Break-Even</p>
+                        <div className="group relative">
+                          <Info className="w-4 h-4 text-purple-600 cursor-help" />
+                          <div className="absolute right-0 top-6 w-72 bg-slate-800 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                            <p className="font-bold mb-1">Formula:</p>
+                            <p className="mb-2">ROAS Break-Even = (1 - Cofinanziamento%) / (1 - Food Cost% - Platform Fee%)</p>
+                            <p className="text-slate-300">
+                              Con cofinanziamento {cofinanziamento}%, Food Cost {foodCostPercentage}% e Platform Fee {platformFeesPercentage}%, 
+                              devi generare €{roasBreakEven.toFixed(2)} di revenue per ogni €1 di budget totale speso per coprire tutti i costi.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                       <div className="flex items-baseline gap-2">
                         <p className="text-3xl font-bold text-purple-600">{roasBreakEven.toFixed(2)}</p>
-                        <p className="text-sm text-purple-700">per ogni €1 investito</p>
+                        <p className="text-sm text-purple-700">sul budget totale</p>
                       </div>
                       <p className="text-xs text-purple-600 mt-2">
-                        Con Food Cost {foodCostPercentage}% e Platform Fee {platformFeesPercentage}%, devi generare €{roasBreakEven.toFixed(2)} di revenue per ogni €1 speso in ads per essere in pareggio.
+                        Per ogni €1 di budget totale (prima del cofinanziamento), devi generare €{roasBreakEven.toFixed(2)} di revenue per essere in pareggio.
                       </p>
                     </div>
 
@@ -1594,25 +1609,66 @@ export default function PianoQuarter() {
                           </div>
 
                           <div className="pt-3 border-t border-slate-200">
-                            <p className="text-xs text-slate-600 mb-1">Guadagno/Perdita per € Investito</p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-xs text-slate-600">Guadagno/Perdita per € Investito</p>
+                              <div className="group relative">
+                                <Info className="w-3 h-3 text-slate-500 cursor-help" />
+                                <div className="absolute left-0 top-5 w-80 bg-slate-800 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                                  <p className="font-bold mb-1">Formula:</p>
+                                  <p className="mb-2">
+                                    1. Budget totale per €1 speso = 1 / (1 - {cofinanziamento}%) = €{budgetTotalePerEuroSpeso.toFixed(2)}<br/>
+                                    2. Revenue = ROAS × Budget totale = {currentRoas.toFixed(2)} × €{budgetTotalePerEuroSpeso.toFixed(2)} = €{revenuePerEuroSpeso.toFixed(2)}<br/>
+                                    3. Margine = Revenue × ({100 - foodCostPercentage - platformFeesPercentage}%) = €{marginePerEuro.toFixed(2)}<br/>
+                                    4. Profitto = Margine - €1 speso = €{profittoPerEuro.toFixed(2)}
+                                  </p>
+                                  <p className="text-slate-300">
+                                    Questo è il guadagno netto per ogni euro che paghi effettivamente (dopo cofinanziamento).
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                             <div className="flex items-baseline gap-2">
                               <p className={`text-3xl font-bold ${profittoPerEuro >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {profittoPerEuro >= 0 ? '+' : ''}€{profittoPerEuro.toFixed(2)}
                               </p>
-                              <p className="text-sm text-slate-600">per ogni €1 speso</p>
+                              <p className="text-sm text-slate-600">per ogni €1 effettivamente speso</p>
                             </div>
                           </div>
 
                           {profittoPerEuro >= 0 && (
                             <div className="mt-3 pt-3 border-t border-slate-200">
-                              <p className="text-xs text-slate-600 mb-1">Profitto Totale Stimato</p>
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-xs text-slate-600">Profitto Totale Stimato</p>
+                                <div className="group relative">
+                                  <Info className="w-3 h-3 text-slate-500 cursor-help" />
+                                  <div className="absolute left-0 top-5 w-64 bg-slate-800 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                                    <p className="font-bold mb-1">Formula:</p>
+                                    <p>Profitto per €1 × Costo Effettivo Totale</p>
+                                    <p className="mt-2 text-slate-300">
+                                      €{profittoPerEuro.toFixed(2)} × €{costoEffettivo.toFixed(2)} = €{(profittoPerEuro * costoEffettivo).toFixed(2)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
                               <p className="text-2xl font-bold text-green-600">€{(profittoPerEuro * costoEffettivo).toFixed(2)}</p>
                             </div>
                           )}
 
                           {profittoPerEuro < 0 && (
                             <div className="mt-3 pt-3 border-t border-slate-200">
-                              <p className="text-xs text-slate-600 mb-1">Perdita Totale Stimata</p>
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-xs text-slate-600">Perdita Totale Stimata</p>
+                                <div className="group relative">
+                                  <Info className="w-3 h-3 text-slate-500 cursor-help" />
+                                  <div className="absolute left-0 top-5 w-64 bg-slate-800 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                                    <p className="font-bold mb-1">Formula:</p>
+                                    <p>Perdita per €1 × Costo Effettivo Totale</p>
+                                    <p className="mt-2 text-slate-300">
+                                      €{profittoPerEuro.toFixed(2)} × €{costoEffettivo.toFixed(2)} = €{(profittoPerEuro * costoEffettivo).toFixed(2)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
                               <p className="text-2xl font-bold text-red-600">€{(profittoPerEuro * costoEffettivo).toFixed(2)}</p>
                               <p className="text-xs text-orange-600 mt-2">
                                 💡 Per raggiungere il break-even devi aumentare il ROAS a {roasBreakEven.toFixed(2)} (attualmente {currentRoas.toFixed(2)})
