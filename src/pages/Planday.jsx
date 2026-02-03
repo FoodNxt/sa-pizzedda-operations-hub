@@ -46,6 +46,7 @@ export default function Planday() {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [viewMode, setViewMode] = useState('calendario'); // calendario, dipendenti, singolo
   const [selectedDipendente, setSelectedDipendente] = useState(null);
+  const [expandedTurno, setExpandedTurno] = useState(null);
 
   // Disponibilità
   const [showDisponibilitaModal, setShowDisponibilitaModal] = useState(false);
@@ -721,14 +722,14 @@ export default function Planday() {
     const endSlot = (endH - 8) * 2 + (endM >= 30 ? 1 : 0);
     const duration = endSlot - startSlot;
 
-    // Calcola larghezza e posizione per turni sovrapposti
+    // Calcola larghezza e posizione per turni sovrapposti - compatta
     const width = total > 1 ? `${100 / total}%` : '100%';
     const left = total > 1 ? `${index * 100 / total}%` : '0';
 
     return {
-      top: `${startSlot * 25}px`,
-      height: `${Math.max(duration * 25, 25)}px`,
-      minHeight: '25px',
+      top: `${startSlot * 15}px`,
+      height: `${Math.max(duration * 15, 18)}px`,
+      minHeight: '18px',
       width,
       left
     };
@@ -2031,7 +2032,7 @@ export default function Planday() {
                 {/* Griglia oraria con slot 30 min */}
                 <div className="relative">
                   {timeSlots.map((slot, idx) =>
-                <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '25px' }}>
+                <div key={`${slot.hour}-${slot.minute}`} className="grid grid-cols-8 gap-1" style={{ height: '15px' }}>
                       <div className="text-center text-xs text-slate-500 font-medium flex items-center justify-center">
                         {slot.minute === 0 ? slot.label : ''}
                       </div>
@@ -2076,7 +2077,7 @@ export default function Planday() {
                 )}
 
                   {/* Turni posizionati in overlay */}
-                  <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 25}px` }}>
+                  <div className="absolute top-0 left-0 right-0 grid grid-cols-8 gap-1 pointer-events-none" style={{ height: `${timeSlots.length * 15}px` }}>
                     <div />
                     {weekDays.map((day) => {
                     const dayKey = day.format('YYYY-MM-DD');
@@ -2094,110 +2095,108 @@ export default function Planday() {
                           {overlappingGroups.map((group, groupIdx) =>
                         group.map((turno, idx) => {
                           const style = getTurnoStyle(turno, idx, group.length);
+                          const isExpanded = expandedTurno === turno.id;
+                          
+                          // Icone ruolo compatte
+                          const ruoloIcon = turno.ruolo === 'Pizzaiolo' ? '🍕' : turno.ruolo === 'Cassiere' ? '💰' : '👨‍💼';
+                          
                           return (
                             <div
                               key={turno.id}
                               draggable
                               onDragStart={(e) => handleTurnoDragStart(e, turno)}
                               onDragEnd={handleTurnoDragEnd}
-                              className={`absolute p-1 rounded-lg border-2 text-xs cursor-grab pointer-events-auto overflow-hidden shadow-md text-white ${draggingTurno?.id === turno.id ? 'opacity-50' : ''}`}
+                              className={`absolute rounded-md border cursor-pointer pointer-events-auto shadow-sm transition-all ${
+                                draggingTurno?.id === turno.id ? 'opacity-50' : ''
+                              } ${isExpanded ? 'z-50 shadow-xl scale-110' : 'z-10'}`}
                               style={{
                                 ...style,
                                 marginLeft: '1px',
                                 marginRight: '1px',
-                                ...getRuoloStyle(turno.ruolo)
+                                ...getRuoloStyle(turno.ruolo),
+                                padding: isExpanded ? '6px' : '2px'
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setEditingTurno(turno);
-                                setTurnoForm({
-                                  store_id: turno.store_id,
-                                  data: turno.data,
-                                  ora_inizio: turno.ora_inizio,
-                                  ora_fine: turno.ora_fine,
-                                  ruolo: turno.ruolo,
-                                  dipendente_id: turno.dipendente_id || '',
-                                  tipo_turno: turno.tipo_turno || 'Normale',
-                                  note: turno.note || ''
-                                });
-                                setShowForm(true);
+                                if (isExpanded) {
+                                  setExpandedTurno(null);
+                                } else {
+                                  setExpandedTurno(turno.id);
+                                }
                               }}>
 
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-bold text-[10px]">{turno.ora_inizio}-{turno.ora_fine}</span>
-                                    <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm('Eliminare questo turno?')) {
-                                      deleteMutation.mutate(turno.id);
-                                    }
-                                  }}
-                                  className="hover:text-red-200">
-
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
+                              {isExpanded ? (
+                                // Vista espansa con dettagli
+                                <div className="text-white space-y-1">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="font-bold text-xs">{turno.ora_inizio}-{turno.ora_fine}</span>
+                                    <div className="flex gap-1">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditTurno(turno);
+                                          setExpandedTurno(null);
+                                        }}
+                                        className="p-0.5 hover:bg-white hover:bg-opacity-20 rounded"
+                                        title="Modifica"
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (confirm('Eliminare questo turno?')) {
+                                            deleteMutation.mutate(turno.id);
+                                          }
+                                          setExpandedTurno(null);
+                                        }}
+                                        className="p-0.5 hover:bg-white hover:bg-opacity-20 rounded"
+                                        title="Elimina"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
                                   </div>
-                                  {/* Tipo turno badge più visibile */}
-                                  {turno.is_prova &&
-                              <div className="absolute top-0 left-0 px-1 py-0.5 text-[8px] font-bold text-white rounded-br bg-purple-600">
-                                     🧪 PROVA
-                                   </div>
-                              }
-                                  {turno.tipo_turno && turno.tipo_turno !== 'Normale' &&
-                              <div
-                                className="absolute top-0 right-5 px-1 py-0.5 text-[8px] font-bold text-white rounded-b"
-                                style={{ backgroundColor: coloriTipoTurno[turno.tipo_turno] || '#94a3b8' }}>
-
-                                     {turno.tipo_turno.slice(0, 3).toUpperCase()}
-                                   </div>
-                              }
-                                  <div className="truncate text-[10px] font-medium">{turno.ruolo}</div>
-                                  {turno.dipendente_nome &&
-                              <div className="truncate text-[10px] font-bold">{turno.dipendente_nome}</div>
-                              }
-                                  {turno.is_prova &&
-                              <div className="text-[8px] px-1 bg-purple-500 bg-opacity-60 rounded mt-0.5">
+                                  <div className="text-[10px] font-medium">{turno.ruolo}</div>
+                                  {turno.dipendente_nome && (
+                                    <div className="text-[10px] font-bold truncate">{turno.dipendente_nome}</div>
+                                  )}
+                                  {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
+                                    <div className="text-[8px] px-1 py-0.5 bg-white bg-opacity-20 rounded">
+                                      {turno.tipo_turno}
+                                    </div>
+                                  )}
+                                  {turno.is_prova && (
+                                    <div className="text-[8px] px-1 py-0.5 bg-purple-600 rounded">
                                       🧪 PROVA
                                     </div>
-                              }
-                                  {!selectedStore &&
-                              <div className="truncate text-[9px] opacity-80">{getStoreName(turno.store_id)}</div>
-                              }
-                                  {/* Form + Attività per questo turno */}
-                                  {(() => {
-                                const formDovuti = getFormDovutiPerTurno(turno, turniByDayHour[turno.data] || []);
-                                const attivita = getAttivitaTurno(turno);
-                                const totalItems = formDovuti.length + attivita.length;
-
-                                if (totalItems > 0) {
-                                  return (
-                                    <div className="mt-0.5 flex flex-wrap gap-0.5">
-                                          {formDovuti.slice(0, 2).map((form, idx) =>
-                                      <span key={`f-${idx}`} className="text-[8px] px-1 bg-green-500 bg-opacity-40 rounded">
-                                              📋 {form.slice(0, 3)}
-                                            </span>
-                                      )}
-                                          {attivita.slice(0, 1).map((att, idx) =>
-                                      <span key={`a-${idx}`} className="text-[8px] px-1 bg-blue-500 bg-opacity-40 rounded">
-                                              ✓ {att.slice(0, 3)}
-                                            </span>
-                                      )}
-                                          {totalItems > 3 &&
-                                      <span className="text-[8px] px-1 bg-white bg-opacity-30 rounded">
-                                              +{totalItems - 3}
-                                            </span>
-                                      }
-                                        </div>);
-
-                                }
-                                return null;
-                              })()}
-                                </div>);
-
+                                  )}
+                                  {!selectedStore && (
+                                    <div className="text-[9px] opacity-90 truncate">{getStoreName(turno.store_id)}</div>
+                                  )}
+                                </div>
+                              ) : (
+                                // Vista compatta con icone
+                                <div className="flex items-center justify-between h-full px-1">
+                                  <div className="flex items-center gap-0.5 flex-1 min-w-0">
+                                    <span className="text-xs">{ruoloIcon}</span>
+                                    {turno.dipendente_nome && (
+                                      <span className="text-[9px] font-bold truncate flex-1 min-w-0">
+                                        {turno.dipendente_nome.split(' ')[0]}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {turno.is_prova && (
+                                    <span className="text-[8px]">🧪</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
                         })
                         )}
-                        </div>);
-
+                        </div>
+                    );
                   })}
                   </div>
                 </div>
