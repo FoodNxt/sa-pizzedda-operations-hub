@@ -1714,64 +1714,64 @@ export default function Employees() {
                   </div>
                 </div>
 
-                {/* Metriche Summary */}
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-3">
-                  <div className="neumorphic-pressed p-2 rounded-lg text-center">
-                    <ShoppingCart className="w-4 h-4 mx-auto mb-1 text-red-600" />
-                    <p className={`text-sm font-bold ${employee.wrongOrders > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {/* Metriche Summary - ULTRA COMPACT */}
+                <div className="grid grid-cols-5 gap-1.5 mb-3">
+                  <div className="neumorphic-pressed p-1.5 rounded-lg text-center">
+                    <ShoppingCart className="w-3 h-3 mx-auto mb-0.5 text-red-600" />
+                    <p className={`text-xs font-bold ${employee.wrongOrders > 0 ? 'text-red-600' : 'text-green-600'}`}>
                       {employee.wrongOrders}
                     </p>
-                    <p className="text-xs text-slate-500">Ordini</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">Ordini</p>
                   </div>
 
-                  <div className="neumorphic-pressed p-2 rounded-lg text-center">
-                    <Clock className="w-4 h-4 mx-auto mb-1 text-orange-600" />
-                    <p className={`text-sm font-bold ${employee.numeroRitardi > 3 ? 'text-red-600' : 'text-green-600'}`}>
+                  <div className="neumorphic-pressed p-1.5 rounded-lg text-center">
+                    <Clock className="w-3 h-3 mx-auto mb-0.5 text-orange-600" />
+                    <p className={`text-xs font-bold ${employee.numeroRitardi > 3 ? 'text-red-600' : 'text-green-600'}`}>
                       {employee.numeroRitardi}
                     </p>
-                    <p className="text-xs text-slate-500">Ritardi</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">Ritardi</p>
                   </div>
 
-                  <div className="neumorphic-pressed p-2 rounded-lg text-center">
-                    <AlertCircle className="w-4 h-4 mx-auto mb-1 text-yellow-600" />
-                    <p className={`text-sm font-bold ${employee.numeroTimbratureMancate > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  <div className="neumorphic-pressed p-1.5 rounded-lg text-center">
+                    <AlertCircle className="w-3 h-3 mx-auto mb-0.5 text-yellow-600" />
+                    <p className={`text-xs font-bold ${employee.numeroTimbratureMancate > 0 ? 'text-red-600' : 'text-green-600'}`}>
                       {employee.numeroTimbratureMancate}
                     </p>
-                    <p className="text-xs text-slate-500">Mancate</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">Timbr.</p>
                   </div>
 
-                  <div className="neumorphic-pressed p-2 rounded-lg text-center">
-                    <Star className="w-4 h-4 mx-auto mb-1 text-yellow-500 fill-yellow-500" />
+                  <div className="neumorphic-pressed p-1.5 rounded-lg text-center">
+                    <Star className="w-3 h-3 mx-auto mb-0.5 text-yellow-500 fill-yellow-500" />
                     {employee.googleReviewCount > 0 ?
                 <>
-                        <p className="text-sm font-bold text-slate-700">{employee.avgGoogleRating.toFixed(1)}</p>
-                        <p className="text-xs text-slate-500">({employee.googleReviewCount})</p>
+                        <p className="text-xs font-bold text-slate-700">{employee.avgGoogleRating.toFixed(1)}</p>
+                        <p className="text-[10px] text-slate-500 leading-tight">({employee.googleReviewCount})</p>
                       </> :
 
                 <>
-                        <p className="text-sm font-bold text-slate-400">-</p>
-                        <p className="text-xs text-slate-500">(0)</p>
+                        <p className="text-xs font-bold text-slate-400">-</p>
+                        <p className="text-[10px] text-slate-500 leading-tight">(0)</p>
                       </>
                 }
                   </div>
 
-                  <div className="neumorphic-pressed p-2 rounded-lg text-center">
-                    <Sparkles className="w-4 h-4 mx-auto mb-1 text-cyan-600" />
+                  <div className="neumorphic-pressed p-1.5 rounded-lg text-center">
+                    <Sparkles className="w-3 h-3 mx-auto mb-0.5 text-cyan-600" />
                     {(() => {
                   const cleaningData = getCleaningScoreForEmployee(employee.full_name);
                   return cleaningData.count > 0 ?
                   <>
-                          <p className={`text-sm font-bold ${
+                          <p className={`text-xs font-bold ${
                     cleaningData.percentualePulito >= 80 ? 'text-green-600' : 'text-red-600'}`
                     }>
                             {cleaningData.percentualePulito.toFixed(0)}%
                           </p>
-                          <p className="text-xs text-slate-500">({cleaningData.count})</p>
+                          <p className="text-[10px] text-slate-500 leading-tight">({cleaningData.count})</p>
                         </> :
 
                   <>
-                          <p className="text-sm font-bold text-slate-400">-</p>
-                          <p className="text-xs text-slate-500">(0)</p>
+                          <p className="text-xs font-bold text-slate-400">-</p>
+                          <p className="text-[10px] text-slate-500 leading-tight">(0)</p>
                         </>;
 
                 })()}
