@@ -123,6 +123,12 @@ export default function Valutazione() {
     queryFn: () => base44.entities.CleaningInspection.list('-inspection_date')
   });
 
+  // Fetch ritardi dipendente
+  const { data: ritardi = [] } = useQuery({
+    queryKey: ['ritardi-dipendente'],
+    queryFn: () => base44.entities.RitardoDipendente.list('-data')
+  });
+
   // Calculate user store IDs (SAME AS DASHBOARDSTOREMANAGER)
   const userStoreIds = useMemo(() => {
     if (!user || !shifts.length) return [];
@@ -183,6 +189,7 @@ export default function Valutazione() {
     if (!matchedEmployee || !user) {
       return {
         lateShifts: [],
+        ritardiDipendente: [],
         missingClockIns: [],
         googleReviews: [],
         wrongOrders: [],
@@ -190,9 +197,22 @@ export default function Valutazione() {
         latePercentage: 0,
         averageRating: 0,
         totalDelayMinutes: 0,
+        avgCleaningScore: 0,
+        myCleaningInspections: [],
         overallScore: 0
       };
     }
+
+    // Filtra ritardi per il dipendente corrente
+    const ritardiDipendente = ritardi.filter((r) => {
+      if (r.dipendente_id !== user.id) return false;
+      try {
+        const ritardoDate = new Date(r.data);
+        return ritardoDate >= monthStart && ritardoDate <= monthEnd;
+      } catch (e) {
+        return true;
+      }
+    }).sort((a, b) => new Date(b.data) - new Date(a.data));
 
     const lateShifts = myShifts.filter((s) => s.ritardo === true);
     const missingClockIns = myShifts.filter((s) => s.stato === 'programmato' && new Date(s.shift_date) < new Date());
@@ -212,10 +232,13 @@ export default function Valutazione() {
     googleReviews.reduce((sum, r) => sum + r.rating, 0) / googleReviews.length :
     0;
 
-    // Calculate cleaning score (same as Store Manager - based on stores where user works)
+    // Calculate cleaning score - based on inspections done by this employee
     const myCleaningInspections = cleaningInspections.filter((i) => {
-      // Include inspections from the stores where the user works
-      if (!userStoreIds.includes(i.store_id)) return false;
+      // Check if the current user is the inspector
+      const inspectorName = (i.inspector_name || '').toLowerCase().trim();
+      const userName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
+      if (inspectorName !== userName) return false;
+      
       try {
         const inspDate = new Date(i.inspection_date);
         return inspDate >= monthStart && inspDate <= monthEnd;
@@ -270,6 +293,7 @@ export default function Valutazione() {
 
     return {
       lateShifts: lateShifts.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date)),
+      ritardiDipendente,
       missingClockIns: missingClockIns.sort((a, b) => new Date(b.shift_date) - new Date(a.shift_date)),
       googleReviews: googleReviews.sort((a, b) => new Date(b.review_date) - new Date(a.review_date)),
       wrongOrders: myWrongOrders,
@@ -278,10 +302,10 @@ export default function Valutazione() {
       averageRating,
       avgCleaningScore,
       myCleaningInspections,
-      totalDelayMinutes,
+      totalDelayMinutes: ritardiDipendente.reduce((acc, r) => acc + (r.minuti_ritardo_conteggiato || 0), 0),
       overallScore: Math.round(overallScore)
     };
-  }, [user, matchedEmployee, myShifts, myReviews, myWrongOrders, cleaningInspections, filterDate, userStoreIds]);
+  }, [user, matchedEmployee, myShifts, myReviews, myWrongOrders, cleaningInspections, ritardi, filterDate, userStoreIds, monthStart, monthEnd]);
 
   if (userLoading) {
     return (
@@ -347,33 +371,21 @@ export default function Valutazione() {
             <p className="text-xs sm:text-sm text-[#9b9b9b]">Gruppo: {matchedEmployee.employee_group}</p>
             }
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <div className="neumorphic-pressed px-3 py-2 rounded-xl flex-1 sm:flex-initial text-center">
-              <p className="text-xs text-[#9b9b9b]">Turni</p>
-              <p className="text-lg sm:text-2xl font-bold text-[#6b6b6b]">{employeeData.totalShifts}</p>
-            </div>
-            <div className="neumorphic-pressed px-3 py-2 rounded-xl flex-1 sm:flex-initial text-center">
-              <p className="text-xs text-[#9b9b9b]">Score</p>
-              <p className={`text-lg sm:text-2xl font-bold ${
-              employeeData.overallScore >= 80 ? 'text-green-600' :
-              employeeData.overallScore >= 60 ? 'text-yellow-600' :
-              'text-red-600'}`
-              }>
-                {employeeData.overallScore}
-              </p>
-            </div>
+          <div className="neumorphic-pressed px-3 py-2 rounded-xl text-center">
+            <p className="text-xs text-[#9b9b9b]">Turni</p>
+            <p className="text-lg sm:text-2xl font-bold text-[#6b6b6b]">{employeeData.totalShifts}</p>
           </div>
         </div>
       </NeumorphicCard>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <NeumorphicCard className="p-3 sm:p-4 text-center">
           <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
             <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
           </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-red-600 mb-1">{employeeData.totalDelayMinutes}</h3>
-          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Minuti Ritardo</p>
+          <h3 className="text-xl sm:text-2xl font-bold text-red-600 mb-1">{employeeData.ritardiDipendente.length}</h3>
+          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Ritardi ({employeeData.totalDelayMinutes} min)</p>
         </NeumorphicCard>
 
         <NeumorphicCard className="p-3 sm:p-4 text-center">
@@ -410,7 +422,7 @@ export default function Valutazione() {
            <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Rating Medio</p>
          </NeumorphicCard>
 
-         <NeumorphicCard className="p-3 sm:p-4 text-center col-span-2 md:col-span-1">
+         <NeumorphicCard className="p-3 sm:p-4 text-center">
            <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600 fill-cyan-600" />
            </div>
@@ -419,46 +431,46 @@ export default function Valutazione() {
           employeeData.avgCleaningScore >= 60 ? 'text-yellow-600' :
           'text-red-600'}`
           }>
-             {employeeData.avgCleaningScore > 0 ? Math.round(employeeData.avgCleaningScore) : '-'}
+             {employeeData.avgCleaningScore > 0 ? employeeData.avgCleaningScore.toFixed(1) + '%' : '-'}
            </h3>
-           <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Score Pulizie</p>
+           <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Rating Pulizie</p>
          </NeumorphicCard>
         </div>
 
-      {/* Turni in Ritardo */}
+      {/* Ritardi */}
       <NeumorphicCard className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Clock className="w-6 h-6 text-red-600" />
             <h2 className="text-xl font-bold text-[#6b6b6b]">
-              {expandedView === 'late' ? 'Tutti i Turni in Ritardo' : 'Ultimi 5 Turni in Ritardo'}
+              {expandedView === 'late' ? 'Tutti i Ritardi' : 'Ultimi 5 Ritardi'}
             </h2>
           </div>
-          {employeeData.lateShifts.length > 5 &&
+          {employeeData.ritardiDipendente.length > 5 &&
           <button
             onClick={() => setExpandedView(expandedView === 'late' ? null : 'late')}
             className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2">
 
-              {expandedView === 'late' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutti ({employeeData.lateShifts.length})</>}
+              {expandedView === 'late' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutti ({employeeData.ritardiDipendente.length})</>}
             </button>
           }
         </div>
 
-        {employeeData.lateShifts.length > 0 ?
+        {employeeData.ritardiDipendente.length > 0 ?
         <div className={`space-y-3 ${expandedView === 'late' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
-            {(expandedView === 'late' ? employeeData.lateShifts : employeeData.lateShifts.slice(0, 5)).map((shift, index) =>
-          <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
+            {(expandedView === 'late' ? employeeData.ritardiDipendente : employeeData.ritardiDipendente.slice(0, 5)).map((ritardo, index) =>
+          <div key={`${ritardo.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.shift_date)}</span>
-                      {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
+                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(ritardo.data)}</span>
+                      {ritardo.store_nome && <span className="text-sm text-[#9b9b9b]">• {ritardo.store_nome}</span>}
                     </div>
-                    <span className="text-lg font-bold text-red-600">+{shift.minuti_di_ritardo || 0} min</span>
+                    <span className="text-lg font-bold text-red-600">+{ritardo.minuti_ritardo_conteggiato || 0} min</span>
                 </div>
                 <div className="text-sm text-[#9b9b9b]">
-                <strong>Previsto:</strong> {shift.scheduled_start ? safeFormatTime(shift.scheduled_start) : 'N/A'} → <strong>Effettivo:</strong> {shift.actual_start ? safeFormatTime(shift.actual_start) : 'N/A'}
-                {shift.minuti_di_ritardo && <div className="mt-1 text-xs">Minuti ritardo: {shift.minuti_di_ritardo}</div>}
+                <strong>Previsto:</strong> {ritardo.ora_inizio_prevista || 'N/A'} → <strong>Effettivo:</strong> {ritardo.ora_timbratura_entrata ? safeFormatTime(ritardo.ora_timbratura_entrata) : 'N/A'}
+                <div className="mt-1 text-xs">Ritardo reale: {ritardo.minuti_ritardo_reale} min • Conteggiato: {ritardo.minuti_ritardo_conteggiato} min</div>
                 </div>
               </div>
           )}
