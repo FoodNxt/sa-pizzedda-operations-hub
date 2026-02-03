@@ -29,10 +29,20 @@ export default function FoodCost() {
     queryFn: () => base44.entities.iPratico.list()
   });
 
-  const { data: prodottiVenduti = [] } = useQuery({
+  const { data: prodottiVendutiRaw = [] } = useQuery({
     queryKey: ['prodotti-venduti'],
     queryFn: () => base44.entities.ProdottiVenduti.list()
   });
+
+  // Normalize prodotti venduti data
+  const prodottiVenduti = useMemo(() => {
+    return prodottiVendutiRaw.map(p => ({
+      ...p,
+      order_date: p.data_vendita,
+      product_name: p.flavor,
+      quantity: p.total_pizzas_sold || 0
+    }));
+  }, [prodottiVendutiRaw]);
 
   const { data: ricette = [] } = useQuery({
     queryKey: ['ricette'],
