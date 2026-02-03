@@ -60,6 +60,8 @@ export default function Activation() {
   const [editingSubattivitaData, setEditingSubattivitaData] = useState({ titolo: '', data_target: '', assegnato_a_id: '', assegnato_a_nome: '' });
   const [expandedPersonCards, setExpandedPersonCards] = useState({});
   const [collapsedCompletedCards, setCollapsedCompletedCards] = useState({});
+  const [expandedCategoryCards, setExpandedCategoryCards] = useState({});
+  const [showSubattivitaInDeadlines, setShowSubattivitaInDeadlines] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     descrizione: '',
@@ -401,6 +403,62 @@ export default function Activation() {
     return grouped;
   }, [activations, categories]);
 
+  // Vista per stato
+  const activationsByStato = useMemo(() => {
+    const grouped = {
+      in_corso: activations.filter((a) => a.stato === 'in_corso'),
+      completata: activations.filter((a) => a.stato === 'completata'),
+      annullata: activations.filter((a) => a.stato === 'annullata')
+    };
+    return grouped;
+  }, [activations]);
+
+  // Vista deadlines
+  const activationsDeadlines = useMemo(() => {
+    const items = [];
+    
+    activations.forEach((activation) => {
+      // Data inizio
+      if (activation.data_inizio) {
+        items.push({
+          type: 'activation',
+          date: activation.data_inizio,
+          label: 'Inizio',
+          activation,
+          priority: 1
+        });
+      }
+      // Data target
+      items.push({
+        type: 'activation',
+        date: activation.data_completamento_target,
+        label: 'Target',
+        activation,
+        priority: 2
+      });
+    });
+
+    if (showSubattivitaInDeadlines) {
+      subattivita.forEach((sub) => {
+        if (sub.data_target) {
+          const activation = activations.find((a) => a.id === sub.activation_id);
+          if (activation) {
+            items.push({
+              type: 'subattivita',
+              date: sub.data_target,
+              label: sub.titolo,
+              subattivita: sub,
+              activation,
+              priority: 3
+            });
+          }
+        }
+      });
+    }
+
+    return items.sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [activations, subattivita, showSubattivitaInDeadlines]);
+
   const getStatoColor = (stato) => {
     switch (stato) {
       case 'in_corso':return 'bg-blue-100 text-blue-700 border-blue-200';
@@ -495,6 +553,13 @@ export default function Activation() {
     setCollapsedCompletedCards((prev) => ({
       ...prev,
       [activationId]: !prev[activationId]
+    }));
+  };
+
+  const toggleCategoryCard = (categoryId) => {
+    setExpandedCategoryCards((prev) => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
     }));
   };
 
@@ -670,6 +735,22 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
 
             <Folder className="w-4 h-4" />
             Per Categoria
+          </NeumorphicButton>
+          <NeumorphicButton
+            onClick={() => setActiveView('per_stato')}
+            variant={activeView === 'per_stato' ? 'primary' : 'default'}
+            className="flex items-center gap-2">
+
+            <BarChart3 className="w-4 h-4" />
+            Per Stato
+          </NeumorphicButton>
+          <NeumorphicButton
+            onClick={() => setActiveView('deadlines')}
+            variant={activeView === 'deadlines' ? 'primary' : 'default'}
+            className="flex items-center gap-2">
+
+            <Clock className="w-4 h-4" />
+            Deadlines
           </NeumorphicButton>
         </div>
 
@@ -1282,6 +1363,8 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
             const completedCount = data.activations.filter((a) => a.stato === 'completata').length;
             const inProgressCount = data.activations.filter((a) => a.stato === 'in_corso' || a.stato === 'annullata').length;
 
+            const isExpanded = expandedPersonCards[personId] ?? false;
+
             return (
               <NeumorphicCard key={personId} className="p-6">
                     <button
@@ -1646,25 +1729,39 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
         {/* Vista per Categoria */}
         {activeView === 'categorie' &&
         <div className="space-y-4">
-            {categories.map((category) =>
+            {categories.map((category) => {
+              const isExpanded = expandedCategoryCards[category.id] ?? false;
+              const categoryActivations = activationsByCategory[category.id] || [];
+              const inCorsoCount = categoryActivations.filter((a) => a.stato === 'in_corso').length;
+              const completataCount = categoryActivations.filter((a) => a.stato === 'completata').length;
+              const annullataCount = categoryActivations.filter((a) => a.stato === 'annullata').length;
+
+              return (
           <NeumorphicCard key={category.id} className="p-6">
-                <div className="flex items-center gap-3 mb-4">
+                <button
+                  onClick={() => toggleCategoryCard(category.id)}
+                  className="w-full flex items-center gap-3 mb-4 hover:opacity-80 transition-opacity">
                   <div
-                className="w-8 h-8 rounded-xl"
+                className="w-8 h-8 rounded-xl flex-shrink-0"
                 style={{ backgroundColor: category.colore }} />
 
-                  <div>
+                  <div className="flex-1 text-left">
                     <h2 className="text-xl font-bold text-slate-800">{category.nome}</h2>
                     {category.descrizione &&
                 <p className="text-sm text-slate-500">{category.descrizione}</p>
                 }
+                    <p className="text-xs text-slate-500 mt-1">
+                      {inCorsoCount} in corso • {completataCount} completate • {annullataCount} annullate
+                    </p>
                   </div>
-                  <span className="ml-auto text-sm text-slate-500">
-                    {activationsByCategory[category.id]?.length || 0} activation
-                  </span>
-                </div>
+                  {isExpanded ?
+                    <ChevronDown className="w-5 h-5 text-slate-500" /> :
+                    <ChevronRight className="w-5 h-5 text-slate-500" />
+                  }
+                </button>
 
-                {activationsByCategory[category.id]?.length === 0 ?
+                {isExpanded && (
+                  activationsByCategory[category.id]?.length === 0 ?
             <p className="text-slate-400 text-sm text-center py-6">Nessuna activation in questa categoria</p> :
 
             <div className="space-y-3">
@@ -1737,23 +1834,37 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       </div>
               )}
                   </div>
-            }
-              </NeumorphicCard>
-          )}
+            )}
+              </NeumorphicCard>);
+            })}
 
             {/* Uncategorized */}
-            {activationsByCategory['uncategorized']?.length > 0 &&
-          <NeumorphicCard className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-xl bg-slate-300" />
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-800">Senza Categoria</h2>
-                  </div>
-                  <span className="ml-auto text-sm text-slate-500">
-                    {activationsByCategory['uncategorized'].length} activation
-                  </span>
-                </div>
+            {activationsByCategory['uncategorized']?.length > 0 && (() => {
+              const isExpanded = expandedCategoryCards['uncategorized'] ?? false;
+              const uncategorizedActivations = activationsByCategory['uncategorized'] || [];
+              const inCorsoCount = uncategorizedActivations.filter((a) => a.stato === 'in_corso').length;
+              const completataCount = uncategorizedActivations.filter((a) => a.stato === 'completata').length;
+              const annullataCount = uncategorizedActivations.filter((a) => a.stato === 'annullata').length;
 
+              return (
+          <NeumorphicCard className="p-6">
+                <button
+                  onClick={() => toggleCategoryCard('uncategorized')}
+                  className="w-full flex items-center gap-3 mb-4 hover:opacity-80 transition-opacity">
+                  <div className="w-8 h-8 rounded-xl bg-slate-300 flex-shrink-0" />
+                  <div className="flex-1 text-left">
+                    <h2 className="text-xl font-bold text-slate-800">Senza Categoria</h2>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {inCorsoCount} in corso • {completataCount} completate • {annullataCount} annullate
+                    </p>
+                  </div>
+                  {isExpanded ?
+                    <ChevronDown className="w-5 h-5 text-slate-500" /> :
+                    <ChevronRight className="w-5 h-5 text-slate-500" />
+                  }
+                </button>
+
+                {isExpanded && (
                 <div className="space-y-2">
                   {activationsByCategory['uncategorized'].map((activation) =>
               <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
@@ -1790,9 +1901,229 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                     </div>
               )}
                 </div>
-              </NeumorphicCard>
-          }
+                )}
+              </NeumorphicCard>);
+            })()}
           </div>
+        }
+
+        {/* Vista Per Stato */}
+        {activeView === 'per_stato' &&
+        <div className="space-y-4">
+            {Object.entries(activationsByStato).map(([stato, stateActivations]) => {
+              if (stateActivations.length === 0) return null;
+              
+              return (
+                <NeumorphicCard key={stato} className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${getStatoColor(stato)}`}>
+                      {getStatoIcon(stato)}
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="text-xl font-bold text-slate-800 capitalize">
+                        {stato.replace('_', ' ')}
+                      </h2>
+                      <p className="text-sm text-slate-500">{stateActivations.length} activation</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {stateActivations.map((activation) => {
+                      const subattivitaList = subattivita.filter((s) => s.activation_id === activation.id);
+                      const subattivitaComplete = subattivitaList.filter((s) => s.completata).length;
+
+                      return (
+                        <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <h3 className="font-bold text-slate-800">{activation.nome}</h3>
+                              </div>
+                              {activation.descrizione &&
+                                <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>
+                              }
+                              <div className="flex flex-wrap gap-3 text-xs text-slate-500 mb-2">
+                                {activation.data_inizio &&
+                                  <span>Inizio: {format(parseISO(activation.data_inizio), 'dd/MM/yy')}</span>
+                                }
+                                <span>Target: {format(parseISO(activation.data_completamento_target), 'dd/MM/yy')}</span>
+                                {activation.assegnato_a_nome &&
+                                  <span className="flex items-center gap-1 text-slate-600 bg-slate-100 px-2 py-1 rounded">
+                                    <User className="w-3 h-3" />
+                                    {activation.assegnato_a_nome}
+                                  </span>
+                                }
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {activation.categorie_ids && activation.categorie_ids.length > 0 &&
+                                  activation.categorie_ids.map((catId) => {
+                                    const cat = categories.find((c) => c.id === catId);
+                                    if (!cat) return null;
+                                    return (
+                                      <span
+                                        key={catId}
+                                        className="text-xs px-2 py-1 rounded-full text-white font-medium"
+                                        style={{ backgroundColor: cat.colore }}>
+                                        {cat.nome}
+                                      </span>
+                                    );
+                                  })
+                                }
+                              </div>
+                            </div>
+                            <div className="flex gap-2 ml-2 flex-shrink-0">
+                              <button onClick={() => handleEdit(activation)} className="p-2 rounded-lg hover:bg-blue-50">
+                                <Edit className="w-4 h-4 text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedActivationForChecklist(activation);
+                                  setShowChecklistModal(true);
+                                }}
+                                className="p-2 rounded-lg hover:bg-green-50">
+                                <CheckSquare className="w-4 h-4 text-green-600" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {subattivitaList.length > 0 &&
+                            <div className="bg-slate-50 rounded-lg p-3 mt-3 border-l-2 border-slate-300">
+                              <p className="text-xs font-medium text-slate-600 mb-2">
+                                Sottoattività: {subattivitaComplete} / {subattivitaList.length}
+                              </p>
+                              <div className="space-y-1">
+                                {subattivitaList.slice(0, 3).map((item) =>
+                                  <div key={item.id} className="flex items-start gap-2 text-xs">
+                                    <span className="mt-1">
+                                      {item.completata ?
+                                        <CheckSquare className="w-3 h-3 text-green-600" /> :
+                                        <Square className="w-3 h-3 text-slate-400" />
+                                      }
+                                    </span>
+                                    <p className={item.completata ? 'line-through text-slate-500' : 'text-slate-700'}>
+                                      {item.titolo}
+                                    </p>
+                                  </div>
+                                )}
+                                {subattivitaList.length > 3 &&
+                                  <p className="text-xs text-slate-500">+{subattivitaList.length - 3} altre</p>
+                                }
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      );
+                    })}
+                  </div>
+                </NeumorphicCard>
+              );
+            })}
+          </div>
+        }
+
+        {/* Vista Deadlines */}
+        {activeView === 'deadlines' &&
+        <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <h2 className="text-xl font-bold text-slate-800">Timeline Deadlines</h2>
+              <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showSubattivitaInDeadlines}
+                  onChange={(e) => setShowSubattivitaInDeadlines(e.target.checked)}
+                  className="w-4 h-4 rounded" />
+                Mostra sottoattività
+              </label>
+            </div>
+
+            {activationsDeadlines.length === 0 ?
+              <div className="text-center py-12">
+                <Clock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Nessuna deadline da visualizzare</p>
+              </div> :
+
+              <div className="space-y-2">
+                {activationsDeadlines.map((item, idx) => {
+                  const isOverdue = new Date(item.date) < new Date() && item.activation.stato !== 'completata';
+                  const isToday = format(new Date(item.date), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+
+                  return (
+                    <div
+                      key={`${item.type}-${idx}`}
+                      className={`neumorphic-pressed p-4 rounded-xl ${
+                        isOverdue ? 'border-l-4 border-red-500' : 
+                        isToday ? 'border-l-4 border-blue-500' : ''
+                      }`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className={`text-xs font-bold px-2 py-1 rounded ${
+                              isOverdue ? 'bg-red-100 text-red-700' :
+                              isToday ? 'bg-blue-100 text-blue-700' :
+                              'bg-slate-100 text-slate-700'
+                            }`}>
+                              {format(parseISO(item.date), 'dd MMM yyyy', { locale: it })}
+                            </span>
+                            {item.type === 'activation' && (
+                              <span className={`text-xs px-2 py-1 rounded ${getStatoColor(item.activation.stato)}`}>
+                                {item.label}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {item.type === 'activation' ? (
+                            <div>
+                              <h3 className="font-bold text-slate-800">{item.activation.nome}</h3>
+                              {item.activation.descrizione &&
+                                <p className="text-sm text-slate-600 mt-1">{item.activation.descrizione}</p>
+                              }
+                              {item.activation.assegnato_a_nome &&
+                                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  {item.activation.assegnato_a_nome}
+                                </p>
+                              }
+                            </div>
+                          ) : (
+                            <div className="pl-4 border-l-2 border-slate-300">
+                              <p className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                {item.subattivita.completata ?
+                                  <CheckSquare className="w-4 h-4 text-green-600" /> :
+                                  <Square className="w-4 h-4 text-slate-400" />
+                                }
+                                {item.label}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                da {item.activation.nome}
+                              </p>
+                              {item.subattivita.assegnato_a_nome &&
+                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  {item.subattivita.assegnato_a_nome}
+                                </p>
+                              }
+                            </div>
+                          )}
+                        </div>
+                        
+                        <button
+                          onClick={() => {
+                            if (item.type === 'activation') {
+                              handleEdit(item.activation);
+                            } else {
+                              handleEdit(item.activation);
+                            }
+                          }}
+                          className="p-2 rounded-lg hover:bg-blue-50 flex-shrink-0">
+                          <Edit className="w-4 h-4 text-blue-600" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            }
+          </NeumorphicCard>
         }
 
         {/* View Only Modal (from calendar) */}
