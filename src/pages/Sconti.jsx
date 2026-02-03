@@ -135,17 +135,14 @@ export default function Sconti() {
       store: 0
     };
     filteredSconti.forEach((s) => {
-      const appCount = [s.sourceApp_glovo, s.sourceApp_deliveroo, s.sourceApp_justeat, s.sourceApp_onlineordering, s.sourceApp_ordertable, s.sourceApp_tabesto, s.sourceApp_deliverect, s.sourceApp_store].filter(Boolean).length;
-      const discountPortion = appCount > 0 ? (s.total_discount_price || 0) / appCount : 0;
-
-      if (s.sourceApp_glovo) byApp.glovo += discountPortion;
-      if (s.sourceApp_deliveroo) byApp.deliveroo += discountPortion;
-      if (s.sourceApp_justeat) byApp.justeat += discountPortion;
-      if (s.sourceApp_onlineordering) byApp.onlineordering += discountPortion;
-      if (s.sourceApp_ordertable) byApp.ordertable += discountPortion;
-      if (s.sourceApp_tabesto) byApp.tabesto += discountPortion;
-      if (s.sourceApp_deliverect) byApp.deliverect += discountPortion;
-      if (s.sourceApp_store) byApp.store += discountPortion;
+      byApp.glovo += s.sourceApp_glovo || 0;
+      byApp.deliveroo += s.sourceApp_deliveroo || 0;
+      byApp.justeat += s.sourceApp_justeat || 0;
+      byApp.onlineordering += s.sourceApp_onlineordering || 0;
+      byApp.ordertable += s.sourceApp_ordertable || 0;
+      byApp.tabesto += s.sourceApp_tabesto || 0;
+      byApp.deliverect += s.sourceApp_deliverect || 0;
+      byApp.store += s.sourceApp_store || 0;
     });
 
     return {
@@ -196,21 +193,46 @@ export default function Sconti() {
     // Calculate by App using appMapping
     const byApp = {};
     filteredSconti.forEach((s) => {
-      const apps = [];
-      if (s.sourceApp_glovo) apps.push(appMapping['glovo'] || 'glovo');
-      if (s.sourceApp_deliveroo) apps.push(appMapping['deliveroo'] || 'deliveroo');
-      if (s.sourceApp_justeat) apps.push(appMapping['justeat'] || 'justeat');
-      if (s.sourceApp_onlineordering) apps.push(appMapping['onlineordering'] || 'onlineordering');
-      if (s.sourceApp_ordertable) apps.push(appMapping['ordertable'] || 'ordertable');
-      if (s.sourceApp_tabesto) apps.push(appMapping['tabesto'] || 'tabesto');
-      if (s.sourceApp_deliverect) apps.push(appMapping['deliverect'] || 'deliverect');
-      if (s.sourceApp_store) apps.push(appMapping['store'] || 'store');
-
-      const portion = apps.length > 0 ? (s.total_discount_price || 0) / apps.length : 0;
-      apps.forEach((app) => {
+      if (s.sourceApp_glovo > 0) {
+        const app = appMapping['glovo'] || 'glovo';
         if (!byApp[app]) byApp[app] = { discount: 0, revenue: 0 };
-        byApp[app].discount += portion;
-      });
+        byApp[app].discount += s.sourceApp_glovo;
+      }
+      if (s.sourceApp_deliveroo > 0) {
+        const app = appMapping['deliveroo'] || 'deliveroo';
+        if (!byApp[app]) byApp[app] = { discount: 0, revenue: 0 };
+        byApp[app].discount += s.sourceApp_deliveroo;
+      }
+      if (s.sourceApp_justeat > 0) {
+        const app = appMapping['justeat'] || 'justeat';
+        if (!byApp[app]) byApp[app] = { discount: 0, revenue: 0 };
+        byApp[app].discount += s.sourceApp_justeat;
+      }
+      if (s.sourceApp_onlineordering > 0) {
+        const app = appMapping['onlineordering'] || 'onlineordering';
+        if (!byApp[app]) byApp[app] = { discount: 0, revenue: 0 };
+        byApp[app].discount += s.sourceApp_onlineordering;
+      }
+      if (s.sourceApp_ordertable > 0) {
+        const app = appMapping['ordertable'] || 'ordertable';
+        if (!byApp[app]) byApp[app] = { discount: 0, revenue: 0 };
+        byApp[app].discount += s.sourceApp_ordertable;
+      }
+      if (s.sourceApp_tabesto > 0) {
+        const app = appMapping['tabesto'] || 'tabesto';
+        if (!byApp[app]) byApp[app] = { discount: 0, revenue: 0 };
+        byApp[app].discount += s.sourceApp_tabesto;
+      }
+      if (s.sourceApp_deliverect > 0) {
+        const app = appMapping['deliverect'] || 'deliverect';
+        if (!byApp[app]) byApp[app] = { discount: 0, revenue: 0 };
+        byApp[app].discount += s.sourceApp_deliverect;
+      }
+      if (s.sourceApp_store > 0) {
+        const app = appMapping['store'] || 'store';
+        if (!byApp[app]) byApp[app] = { discount: 0, revenue: 0 };
+        byApp[app].discount += s.sourceApp_store;
+      }
     });
 
     filteredIPratico.forEach((item) => {
@@ -233,17 +255,26 @@ export default function Sconti() {
     // Calculate by Type using channelMapping
     const byType = {};
     filteredSconti.forEach((s) => {
-      const types = [];
-      if (s.sourceType_delivery) types.push(channelMapping['delivery'] || 'delivery');
-      if (s.sourceType_takeaway) types.push(channelMapping['takeaway'] || 'takeaway');
-      if (s.sourceType_takeawayOnSite) types.push(channelMapping['takeawayOnSite'] || 'takeawayOnSite');
-      if (s.sourceType_store) types.push(channelMapping['store'] || 'store');
-
-      const portion = types.length > 0 ? (s.total_discount_price || 0) / types.length : 0;
-      types.forEach((type) => {
+      if (s.sourceType_delivery > 0) {
+        const type = channelMapping['delivery'] || 'delivery';
         if (!byType[type]) byType[type] = { discount: 0, revenue: 0 };
-        byType[type].discount += portion;
-      });
+        byType[type].discount += s.sourceType_delivery;
+      }
+      if (s.sourceType_takeaway > 0) {
+        const type = channelMapping['takeaway'] || 'takeaway';
+        if (!byType[type]) byType[type] = { discount: 0, revenue: 0 };
+        byType[type].discount += s.sourceType_takeaway;
+      }
+      if (s.sourceType_takeawayOnSite > 0) {
+        const type = channelMapping['takeawayOnSite'] || 'takeawayOnSite';
+        if (!byType[type]) byType[type] = { discount: 0, revenue: 0 };
+        byType[type].discount += s.sourceType_takeawayOnSite;
+      }
+      if (s.sourceType_store > 0) {
+        const type = channelMapping['store'] || 'store';
+        if (!byType[type]) byType[type] = { discount: 0, revenue: 0 };
+        byType[type].discount += s.sourceType_store;
+      }
     });
 
     filteredIPratico.forEach((item) => {
@@ -262,19 +293,30 @@ export default function Sconti() {
     // Calculate by Payment Method
     const byPayment = {};
     filteredSconti.forEach((s) => {
-      const methods = [];
-      if (s.moneyType_bancomat) methods.push('bancomat');
-      if (s.moneyType_cash) methods.push('cash');
-      if (s.moneyType_online) methods.push('online');
-      if (s.moneyType_satispay) methods.push('satispay');
-      if (s.moneyType_credit_card) methods.push('credit_card');
-      if (s.moneyType_fidelity_card_points) methods.push('fidelity_card_points');
-
-      const portion = methods.length > 0 ? (s.total_discount_price || 0) / methods.length : 0;
-      methods.forEach((method) => {
-        if (!byPayment[method]) byPayment[method] = { discount: 0, revenue: 0 };
-        byPayment[method].discount += portion;
-      });
+      if (s.moneyType_bancomat > 0) {
+        if (!byPayment['bancomat']) byPayment['bancomat'] = { discount: 0, revenue: 0 };
+        byPayment['bancomat'].discount += s.moneyType_bancomat;
+      }
+      if (s.moneyType_cash > 0) {
+        if (!byPayment['cash']) byPayment['cash'] = { discount: 0, revenue: 0 };
+        byPayment['cash'].discount += s.moneyType_cash;
+      }
+      if (s.moneyType_online > 0) {
+        if (!byPayment['online']) byPayment['online'] = { discount: 0, revenue: 0 };
+        byPayment['online'].discount += s.moneyType_online;
+      }
+      if (s.moneyType_satispay > 0) {
+        if (!byPayment['satispay']) byPayment['satispay'] = { discount: 0, revenue: 0 };
+        byPayment['satispay'].discount += s.moneyType_satispay;
+      }
+      if (s.moneyType_credit_card > 0) {
+        if (!byPayment['credit_card']) byPayment['credit_card'] = { discount: 0, revenue: 0 };
+        byPayment['credit_card'].discount += s.moneyType_credit_card;
+      }
+      if (s.moneyType_fidelity_card_points > 0) {
+        if (!byPayment['fidelity_card_points']) byPayment['fidelity_card_points'] = { discount: 0, revenue: 0 };
+        byPayment['fidelity_card_points'].discount += s.moneyType_fidelity_card_points;
+      }
     });
 
     filteredIPratico.forEach((item) => {
