@@ -56,8 +56,8 @@ Deno.serve(async (req) => {
         // Create PagamentoStraordinario record
         await base44.asServiceRole.entities.PagamentoStraordinario.create({
           turno_id: attivita.turno_id,
-          dipendente_id: shift.dipendente_id,
-          dipendente_nome: shift.dipendente_nome,
+          dipendente_id: attivita.dipendente_pagato_id || shift.dipendente_id,
+          dipendente_nome: attivita.dipendente_pagato_nome || shift.dipendente_nome,
           store_id: shift.store_id,
           store_name: shift.store_nome,
           data_turno: shift.data,
@@ -66,7 +66,8 @@ Deno.serve(async (req) => {
           importo_totale: attivita.importo_pagato,
           pagato: true,
           data_pagamento: attivita.completato_at,
-          pagato_da: attivita.completato_da,
+          pagato_da: attivita.dipendente_nome, // Chi ha fatto l'azione = chi ha pagato
+          pagato_da_id: attivita.dipendente_id,
           note: 'Migrato da vecchia logica (AttivitaCompletata)'
         });
 
