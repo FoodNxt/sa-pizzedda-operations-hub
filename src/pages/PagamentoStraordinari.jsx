@@ -437,23 +437,29 @@ export default function PagamentoStraordinari() {
                           </div>
                         )}
                       </td>
-                      <td className="p-2 lg:p-3 text-center">
-                        {!straordinario.pagato && (
+                      <td className="p-2 lg:p-3 text-left">
+                        {straordinario.pagato ? (
+                          <div className="text-xs text-slate-700">
+                            <p className="font-medium">{straordinario.pagato_da || '-'}</p>
+                            {straordinario.data_pagamento && (
+                              <p className="text-slate-500">
+                                {(() => {
+                                  try {
+                                    return format(parseISO(straordinario.data_pagamento), 'dd/MM HH:mm', { locale: it });
+                                  } catch (e) {
+                                    return straordinario.data_pagamento;
+                                  }
+                                })()}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
                           <NeumorphicButton
                             onClick={() => handleEffettuaPagamento(straordinario)}
                             className="text-xs px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white"
                             disabled={effettuaPagamentoMutation.isPending}>
                             Paga
                           </NeumorphicButton>
-                        )}
-                        {straordinario.pagato && straordinario.pagato_da && (
-                          <div className="text-xs text-slate-500">
-                            <p>Pagato da:</p>
-                            <p className="font-medium">{straordinario.pagato_da}</p>
-                            <p className="text-xs">
-                              {format(parseISO(straordinario.data_pagamento), 'dd/MM HH:mm', { locale: it })}
-                            </p>
-                          </div>
                         )}
                       </td>
                     </tr>
