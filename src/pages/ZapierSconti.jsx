@@ -122,7 +122,6 @@ export default function ZapierSconti() {
                     <div className="bg-white p-3 rounded-lg border border-slate-200 text-xs font-mono space-y-1">
                       <p>secret: <span className="text-orange-600">[Il tuo ZAPIER_SCONTI_WEBHOOK_SECRET]</span></p>
                       <p>order_date: <span className="text-blue-600">[Mappa la colonna order_date]</span></p>
-                      <p>total_discount_price: <span className="text-blue-600">[Mappa la colonna total_discount_price]</span></p>
                       <p>channel: <span className="text-blue-600">[Mappa la colonna channel - nome dello store]</span></p>
                       <p>sourceApp_glovo: <span className="text-blue-600">[Mappa la colonna sourceApp_glovo]</span></p>
                       <p>sourceApp_deliveroo: <span className="text-blue-600">[Mappa la colonna sourceApp_deliveroo]</span></p>
@@ -143,6 +142,9 @@ export default function ZapierSconti() {
                       <p>moneyType_credit_card: <span className="text-blue-600">[Mappa la colonna moneyType_credit_card]</span></p>
                       <p>moneyType_fidelity_card_points: <span className="text-blue-600">[Mappa la colonna moneyType_fidelity_card_points]</span></p>
                     </div>
+                    <p className="text-xs text-slate-600 mt-2 bg-yellow-50 p-2 rounded">
+                      ⚠️ <strong>Nota:</strong> Il campo <code>total_discount_price</code> non è più richiesto e viene calcolato automaticamente come somma di tutti i campi source*, money*, e type*.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -180,9 +182,8 @@ export default function ZapierSconti() {
                 <div className="neumorphic-pressed p-4 rounded-xl bg-slate-50">
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="space-y-1">
-                      <p className="font-mono text-slate-700">• order_date</p>
-                      <p className="font-mono text-slate-700">• total_discount_price</p>
-                      <p className="font-mono text-slate-700">• channel</p>
+                      <p className="font-mono text-slate-700">• order_date <span className="text-red-600">*</span></p>
+                      <p className="font-mono text-slate-700">• channel <span className="text-red-600">*</span></p>
                       <p className="font-mono text-slate-700">• sourceApp_glovo</p>
                       <p className="font-mono text-slate-700">• sourceApp_deliveroo</p>
                       <p className="font-mono text-slate-700">• sourceApp_justeat</p>
@@ -212,10 +213,9 @@ export default function ZapierSconti() {
                   </p>
                   <ul className="text-sm text-yellow-800 list-disc ml-5 mt-2 space-y-1">
                     <li>Il campo <code>order_date</code> deve essere in formato YYYY-MM-DD (es. 2026-01-15)</li>
-                    <li>Il campo <code>total_discount_price</code> è lo sconto totale dell'ordine in euro (es. 12.50)</li>
                     <li>Il campo <code>channel</code> indica il nome dello store (es. "Roma Centro", "Milano Duomo")</li>
                     <li>I campi sourceApp_*, sourceType_* e moneyType_* sono valori monetari in euro che indicano lo sconto per singolo canale/tipo/metodo (es. 5.00, 0, 7.50)</li>
-                    <li>La somma dei vari campi di sconto dovrebbe corrispondere al total_discount_price</li>
+                    <li><strong>IMPORTANTE:</strong> Il campo <code>total_discount_price</code> NON è più richiesto - viene calcolato automaticamente come somma di tutti i campi di sconto</li>
                   </ul>
                 </div>
               </div>
@@ -230,13 +230,13 @@ export default function ZapierSconti() {
               <div className="ml-9">
                 <div className="neumorphic-pressed p-4 rounded-xl bg-slate-50 overflow-x-auto">
                   <pre className="text-xs font-mono text-slate-700">
-{`order_date | total_discount_price | channel     | sourceApp_glovo | sourceApp_deliveroo | sourceType_delivery | moneyType_online | ...
-2026-01-15 | 12.50                | Roma Centro | 12.50           | 0                   | 12.50               | 12.50            | ...
-2026-01-15 | 8.30                 | Milano      | 0               | 8.30                | 8.30                | 0                | ...`}
+{`order_date | channel     | sourceApp_glovo | sourceApp_deliveroo | sourceType_delivery | moneyType_online | ...
+2026-01-15 | Roma Centro | 12.50           | 0                   | 12.50               | 12.50            | ...
+2026-01-15 | Milano      | 0               | 8.30                | 8.30                | 0                | ...`}
                   </pre>
                 </div>
                 <p className="text-sm text-slate-600 mt-3">
-                  Ogni riga del foglio rappresenta un ordine con sconto. La colonna <code>channel</code> deve contenere il nome dello store. I valori nelle colonne sourceApp_*, sourceType_* e moneyType_* sono importi in euro (non TRUE/FALSE), che rappresentano lo sconto specifico per quel canale/tipo/metodo di pagamento.
+                  Ogni riga del foglio rappresenta un ordine con sconto. La colonna <code>channel</code> deve contenere il nome dello store. I valori nelle colonne sourceApp_*, sourceType_* e moneyType_* sono importi in euro (non TRUE/FALSE), che rappresentano lo sconto specifico per quel canale/tipo/metodo di pagamento. Il <code>total_discount_price</code> viene calcolato automaticamente sommando tutti i campi.
                 </p>
               </div>
             </div>

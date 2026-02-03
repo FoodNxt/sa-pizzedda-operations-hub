@@ -69,8 +69,8 @@ export default function BulkImportSconti() {
       const headers = parseCSVLine(lines[0]);
       console.log('Headers trovati:', headers);
       
-      // Verifica che le colonne principali esistano
-      const requiredColumns = ['order_date', 'total_discount_price', 'channel'];
+      // Verifica che le colonne principali esistano (total_discount_price non è più richiesta)
+      const requiredColumns = ['order_date', 'channel'];
       const missingColumns = requiredColumns.filter(col => !headers.includes(col));
       if (missingColumns.length > 0) {
         throw new Error(`Colonne mancanti: ${missingColumns.join(', ')}. Headers trovati: ${headers.join(', ')}`);
@@ -100,35 +100,62 @@ export default function BulkImportSconti() {
         return row;
       });
       
-      // Match stores
+      // Match stores and calculate total_discount_price
       const scontiWithStores = scontiData.map(sconto => {
         const matchedStore = stores.find(s => 
           s.name?.toLowerCase().trim() === sconto.channel?.toLowerCase().trim()
         );
 
+        const sourceApp_glovo = parseFloat(sconto.sourceApp_glovo) || 0;
+        const sourceApp_deliveroo = parseFloat(sconto.sourceApp_deliveroo) || 0;
+        const sourceApp_justeat = parseFloat(sconto.sourceApp_justeat) || 0;
+        const sourceApp_onlineordering = parseFloat(sconto.sourceApp_onlineordering) || 0;
+        const sourceApp_ordertable = parseFloat(sconto.sourceApp_ordertable) || 0;
+        const sourceApp_tabesto = parseFloat(sconto.sourceApp_tabesto) || 0;
+        const sourceApp_deliverect = parseFloat(sconto.sourceApp_deliverect) || 0;
+        const sourceApp_store = parseFloat(sconto.sourceApp_store) || 0;
+        const sourceType_delivery = parseFloat(sconto.sourceType_delivery) || 0;
+        const sourceType_takeaway = parseFloat(sconto.sourceType_takeaway) || 0;
+        const sourceType_takeawayOnSite = parseFloat(sconto.sourceType_takeawayOnSite) || 0;
+        const sourceType_store = parseFloat(sconto.sourceType_store) || 0;
+        const moneyType_bancomat = parseFloat(sconto.moneyType_bancomat) || 0;
+        const moneyType_cash = parseFloat(sconto.moneyType_cash) || 0;
+        const moneyType_online = parseFloat(sconto.moneyType_online) || 0;
+        const moneyType_satispay = parseFloat(sconto.moneyType_satispay) || 0;
+        const moneyType_credit_card = parseFloat(sconto.moneyType_credit_card) || 0;
+        const moneyType_fidelity_card_points = parseFloat(sconto.moneyType_fidelity_card_points) || 0;
+
+        // Calculate total as sum of all discount sources
+        const total_discount_price = sourceApp_glovo + sourceApp_deliveroo + sourceApp_justeat + 
+                                      sourceApp_onlineordering + sourceApp_ordertable + sourceApp_tabesto + 
+                                      sourceApp_deliverect + sourceApp_store + sourceType_delivery + 
+                                      sourceType_takeaway + sourceType_takeawayOnSite + sourceType_store + 
+                                      moneyType_bancomat + moneyType_cash + moneyType_online + 
+                                      moneyType_satispay + moneyType_credit_card + moneyType_fidelity_card_points;
+
         return {
           ...sconto,
           store_id: matchedStore?.id || null,
           store_name: matchedStore?.name || null,
-          total_discount_price: parseFloat(sconto.total_discount_price) || 0,
-          sourceApp_glovo: parseFloat(sconto.sourceApp_glovo) || 0,
-          sourceApp_deliveroo: parseFloat(sconto.sourceApp_deliveroo) || 0,
-          sourceApp_justeat: parseFloat(sconto.sourceApp_justeat) || 0,
-          sourceApp_onlineordering: parseFloat(sconto.sourceApp_onlineordering) || 0,
-          sourceApp_ordertable: parseFloat(sconto.sourceApp_ordertable) || 0,
-          sourceApp_tabesto: parseFloat(sconto.sourceApp_tabesto) || 0,
-          sourceApp_deliverect: parseFloat(sconto.sourceApp_deliverect) || 0,
-          sourceApp_store: parseFloat(sconto.sourceApp_store) || 0,
-          sourceType_delivery: parseFloat(sconto.sourceType_delivery) || 0,
-          sourceType_takeaway: parseFloat(sconto.sourceType_takeaway) || 0,
-          sourceType_takeawayOnSite: parseFloat(sconto.sourceType_takeawayOnSite) || 0,
-          sourceType_store: parseFloat(sconto.sourceType_store) || 0,
-          moneyType_bancomat: parseFloat(sconto.moneyType_bancomat) || 0,
-          moneyType_cash: parseFloat(sconto.moneyType_cash) || 0,
-          moneyType_online: parseFloat(sconto.moneyType_online) || 0,
-          moneyType_satispay: parseFloat(sconto.moneyType_satispay) || 0,
-          moneyType_credit_card: parseFloat(sconto.moneyType_credit_card) || 0,
-          moneyType_fidelity_card_points: parseFloat(sconto.moneyType_fidelity_card_points) || 0
+          total_discount_price,
+          sourceApp_glovo,
+          sourceApp_deliveroo,
+          sourceApp_justeat,
+          sourceApp_onlineordering,
+          sourceApp_ordertable,
+          sourceApp_tabesto,
+          sourceApp_deliverect,
+          sourceApp_store,
+          sourceType_delivery,
+          sourceType_takeaway,
+          sourceType_takeawayOnSite,
+          sourceType_store,
+          moneyType_bancomat,
+          moneyType_cash,
+          moneyType_online,
+          moneyType_satispay,
+          moneyType_credit_card,
+          moneyType_fidelity_card_points
         };
       });
       
@@ -253,7 +280,7 @@ export default function BulkImportSconti() {
                 Il file CSV deve contenere le seguenti colonne (header richiesto):
               </p>
               <div className="bg-white p-3 rounded-lg text-xs font-mono space-y-1">
-                <p>order_date, total_discount_price, channel, sourceApp_glovo, sourceApp_deliveroo,</p>
+                <p>order_date, channel, sourceApp_glovo, sourceApp_deliveroo,</p>
                 <p>sourceApp_justeat, sourceApp_onlineordering, sourceApp_ordertable, sourceApp_tabesto,</p>
                 <p>sourceApp_deliverect, sourceApp_store, sourceType_delivery, sourceType_takeaway,</p>
                 <p>sourceType_takeawayOnSite, sourceType_store, moneyType_bancomat, moneyType_cash,</p>
@@ -263,9 +290,9 @@ export default function BulkImportSconti() {
                 <p className="font-bold mb-1">Note:</p>
                 <ul className="list-disc ml-5 space-y-1">
                   <li><code>order_date</code>: formato YYYY-MM-DD</li>
-                  <li><code>total_discount_price</code>: sconto totale in euro (numero)</li>
                   <li><code>channel</code>: nome dello store (es. "Roma Centro")</li>
                   <li><code>sourceApp_*</code>, <code>sourceType_*</code>, <code>moneyType_*</code>: valori in euro per ogni canale</li>
+                  <li>Il <code>total_discount_price</code> viene calcolato automaticamente come somma di tutti i campi</li>
                 </ul>
               </div>
             </div>

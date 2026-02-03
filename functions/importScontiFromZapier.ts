@@ -39,10 +39,33 @@ Deno.serve(async (req) => {
     // Log body for debugging
     console.log('Received body:', JSON.stringify(body, null, 2));
     
-    // Extract sconto data - try multiple field name variations
-    const totalDiscount = parseFloat(body.total_discount_price) || 
-                          parseFloat(body.totalDiscountPrice) || 
-                          parseFloat(body.Total_Discount_Price) || 0;
+    // Extract all discount values
+    const sourceApp_glovo = parseFloat(body.sourceApp_glovo || body.Glovo) || 0;
+    const sourceApp_deliveroo = parseFloat(body.sourceApp_deliveroo || body.Deliveroo) || 0;
+    const sourceApp_justeat = parseFloat(body.sourceApp_justeat || body.JustEat) || 0;
+    const sourceApp_onlineordering = parseFloat(body.sourceApp_onlineordering || body.OnlineOrdering) || 0;
+    const sourceApp_ordertable = parseFloat(body.sourceApp_ordertable || body.OrderTable) || 0;
+    const sourceApp_tabesto = parseFloat(body.sourceApp_tabesto || body.Tabesto) || 0;
+    const sourceApp_deliverect = parseFloat(body.sourceApp_deliverect || body.Deliverect) || 0;
+    const sourceApp_store = parseFloat(body.sourceApp_store || body.Store) || 0;
+    const sourceType_delivery = parseFloat(body.sourceType_delivery || body.Delivery) || 0;
+    const sourceType_takeaway = parseFloat(body.sourceType_takeaway || body.Takeaway) || 0;
+    const sourceType_takeawayOnSite = parseFloat(body.sourceType_takeawayOnSite || body.TakeawayOnSite) || 0;
+    const sourceType_store = parseFloat(body.sourceType_store || body.StoreType) || 0;
+    const moneyType_bancomat = parseFloat(body.moneyType_bancomat || body.Bancomat) || 0;
+    const moneyType_cash = parseFloat(body.moneyType_cash || body.Cash) || 0;
+    const moneyType_online = parseFloat(body.moneyType_online || body.Online) || 0;
+    const moneyType_satispay = parseFloat(body.moneyType_satispay || body.Satispay) || 0;
+    const moneyType_credit_card = parseFloat(body.moneyType_credit_card || body.CreditCard) || 0;
+    const moneyType_fidelity_card_points = parseFloat(body.moneyType_fidelity_card_points || body.FidelityCardPoints) || 0;
+    
+    // Calculate total_discount_price as sum of all discounts
+    const totalDiscount = sourceApp_glovo + sourceApp_deliveroo + sourceApp_justeat + 
+                          sourceApp_onlineordering + sourceApp_ordertable + sourceApp_tabesto + 
+                          sourceApp_deliverect + sourceApp_store + sourceType_delivery + 
+                          sourceType_takeaway + sourceType_takeawayOnSite + sourceType_store + 
+                          moneyType_bancomat + moneyType_cash + moneyType_online + 
+                          moneyType_satispay + moneyType_credit_card + moneyType_fidelity_card_points;
     
     const scontoData = {
       order_date: body.order_date || body.orderDate,
@@ -50,24 +73,24 @@ Deno.serve(async (req) => {
       channel: body.channel || body.store_name || '',
       store_id: store_id,
       store_name: store_name || body.channel,
-      sourceApp_glovo: parseFloat(body.sourceApp_glovo || body.Glovo) || 0,
-      sourceApp_deliveroo: parseFloat(body.sourceApp_deliveroo || body.Deliveroo) || 0,
-      sourceApp_justeat: parseFloat(body.sourceApp_justeat || body.JustEat) || 0,
-      sourceApp_onlineordering: parseFloat(body.sourceApp_onlineordering || body.OnlineOrdering) || 0,
-      sourceApp_ordertable: parseFloat(body.sourceApp_ordertable || body.OrderTable) || 0,
-      sourceApp_tabesto: parseFloat(body.sourceApp_tabesto || body.Tabesto) || 0,
-      sourceApp_deliverect: parseFloat(body.sourceApp_deliverect || body.Deliverect) || 0,
-      sourceApp_store: parseFloat(body.sourceApp_store || body.Store) || 0,
-      sourceType_delivery: parseFloat(body.sourceType_delivery || body.Delivery) || 0,
-      sourceType_takeaway: parseFloat(body.sourceType_takeaway || body.Takeaway) || 0,
-      sourceType_takeawayOnSite: parseFloat(body.sourceType_takeawayOnSite || body.TakeawayOnSite) || 0,
-      sourceType_store: parseFloat(body.sourceType_store || body.StoreType) || 0,
-      moneyType_bancomat: parseFloat(body.moneyType_bancomat || body.Bancomat) || 0,
-      moneyType_cash: parseFloat(body.moneyType_cash || body.Cash) || 0,
-      moneyType_online: parseFloat(body.moneyType_online || body.Online) || 0,
-      moneyType_satispay: parseFloat(body.moneyType_satispay || body.Satispay) || 0,
-      moneyType_credit_card: parseFloat(body.moneyType_credit_card || body.CreditCard) || 0,
-      moneyType_fidelity_card_points: parseFloat(body.moneyType_fidelity_card_points || body.FidelityCardPoints) || 0
+      sourceApp_glovo,
+      sourceApp_deliveroo,
+      sourceApp_justeat,
+      sourceApp_onlineordering,
+      sourceApp_ordertable,
+      sourceApp_tabesto,
+      sourceApp_deliverect,
+      sourceApp_store,
+      sourceType_delivery,
+      sourceType_takeaway,
+      sourceType_takeawayOnSite,
+      sourceType_store,
+      moneyType_bancomat,
+      moneyType_cash,
+      moneyType_online,
+      moneyType_satispay,
+      moneyType_credit_card,
+      moneyType_fidelity_card_points
     };
     
     console.log('Processed scontoData:', JSON.stringify(scontoData, null, 2));
