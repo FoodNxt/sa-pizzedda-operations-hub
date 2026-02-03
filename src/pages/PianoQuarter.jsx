@@ -1903,29 +1903,55 @@ export default function PianoQuarter() {
                           </div>
 
                           <div className="pt-3 border-t border-slate-200">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-xs text-slate-600">Guadagno/Perdita per € Investito</p>
-                              <div className="group relative">
-                                <Info className="w-3 h-3 text-slate-500 cursor-help" />
-                                <div className="absolute left-0 top-5 w-80 bg-slate-800 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
-                                  <p className="font-bold mb-1">Formula:</p>
-                                  <p className="mb-2">
-                                    1. Budget totale per €1 speso = 1 / (1 - {cofinanziamento}%) = €{budgetTotalePerEuroSpeso.toFixed(2)}<br/>
-                                    2. Revenue = ROAS × Budget totale = {currentRoas.toFixed(2)} × €{budgetTotalePerEuroSpeso.toFixed(2)} = €{revenuePerEuroSpeso.toFixed(2)}<br/>
-                                    3. Margine = Revenue × ({100 - foodCostPercentage - platformFeesPercentage}%) = €{marginePerEuro.toFixed(2)}<br/>
-                                    4. Profitto = Margine - €1 speso = €{profittoPerEuro.toFixed(2)}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="text-xs text-slate-600">Guadagno/Perdita per € Investito</p>
+                                  <div className="group relative">
+                                    <Info className="w-3 h-3 text-slate-500 cursor-help" />
+                                    <div className="absolute left-0 top-5 w-80 bg-slate-800 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                                      <p className="font-bold mb-1">Formula:</p>
+                                      <p className="mb-2">
+                                        1. Budget totale per €1 speso = 1 / (1 - {cofinanziamento}%) = €{budgetTotalePerEuroSpeso.toFixed(2)}<br/>
+                                        2. Revenue = ROAS × Budget totale = {currentRoas.toFixed(2)} × €{budgetTotalePerEuroSpeso.toFixed(2)} = €{revenuePerEuroSpeso.toFixed(2)}<br/>
+                                        3. Margine = Revenue × ({100 - foodCostPercentage - platformFeesPercentage}%) = €{marginePerEuro.toFixed(2)}<br/>
+                                        4. Profitto = Margine - €1 speso = €{profittoPerEuro.toFixed(2)}
+                                      </p>
+                                      <p className="text-slate-300">
+                                        Questo è il guadagno netto per ogni euro che paghi effettivamente (dopo cofinanziamento).
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                  <p className={`text-3xl font-bold ${profittoPerEuro >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {profittoPerEuro >= 0 ? '+' : ''}€{profittoPerEuro.toFixed(2)}
                                   </p>
-                                  <p className="text-slate-300">
-                                    Questo è il guadagno netto per ogni euro che paghi effettivamente (dopo cofinanziamento).
+                                  <p className="text-sm text-slate-600">per €1</p>
+                                </div>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="text-xs text-slate-600">ROI sul Costo Effettivo</p>
+                                  <div className="group relative">
+                                    <Info className="w-3 h-3 text-slate-500 cursor-help" />
+                                    <div className="absolute right-0 top-5 w-64 bg-slate-800 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+                                      <p className="font-bold mb-1">Formula:</p>
+                                      <p className="mb-2">
+                                        ROI = (Profitto per €1 / €1) × 100
+                                      </p>
+                                      <p className="text-slate-300">
+                                        ROI = (€{profittoPerEuro.toFixed(2)} / €1) × 100 = {(profittoPerEuro * 100).toFixed(1)}%
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                  <p className={`text-3xl font-bold ${profittoPerEuro >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {profittoPerEuro >= 0 ? '+' : ''}{(profittoPerEuro * 100).toFixed(1)}%
                                   </p>
                                 </div>
                               </div>
-                            </div>
-                            <div className="flex items-baseline gap-2">
-                              <p className={`text-3xl font-bold ${profittoPerEuro >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {profittoPerEuro >= 0 ? '+' : ''}€{profittoPerEuro.toFixed(2)}
-                              </p>
-                              <p className="text-sm text-slate-600">per ogni €1 effettivamente speso</p>
                             </div>
                           </div>
 
