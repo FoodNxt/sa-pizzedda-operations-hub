@@ -491,7 +491,8 @@ export default function StoricoCassa() {
         saldi[dipendente] = { 
           nome: dipendente, 
           prelievi: 0, 
-          depositi: 0, 
+          depositi: 0,
+          pagamentiStraordinari: 0,
           saldo: 0,
           movimenti: []
         };
@@ -512,12 +513,20 @@ export default function StoricoCassa() {
         saldi[dipendente] = { 
           nome: dipendente, 
           prelievi: 0, 
-          depositi: 0, 
+          depositi: 0,
+          pagamentiStraordinari: 0,
           saldo: 0,
           movimenti: []
         };
       }
-      saldi[dipendente].depositi += d.importo || 0;
+      
+      // Se è un pagamento straordinario, aggiungi alla colonna dedicata
+      if (d.store_id === 'pagamento_straordinario') {
+        saldi[dipendente].pagamentiStraordinari += d.importo || 0;
+      } else {
+        saldi[dipendente].depositi += d.importo || 0;
+      }
+      
       saldi[dipendente].movimenti.push({
         tipo: d.store_id === 'manual_adjustment' ? 'aggiustamento' : 
               d.store_id === 'pagamento_straordinario' ? 'pagamento_straordinario' : 'deposito',
@@ -528,9 +537,9 @@ export default function StoricoCassa() {
       });
     });
 
-    // Calculate saldo: prelievi - depositi
+    // Calculate saldo: prelievi - depositi - pagamentiStraordinari
     Object.keys(saldi).forEach((dipendente) => {
-      saldi[dipendente].saldo = saldi[dipendente].prelievi - saldi[dipendente].depositi;
+      saldi[dipendente].saldo = saldi[dipendente].prelievi - saldi[dipendente].depositi - saldi[dipendente].pagamentiStraordinari;
       // Sort movimenti by date (most recent first)
       saldi[dipendente].movimenti.sort((a, b) => {
         try {
