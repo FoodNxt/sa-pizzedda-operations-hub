@@ -125,6 +125,12 @@ const navigationStructure = [
         icon: TrendingUp,
       },
       {
+        title: "Food Cost",
+        page: "FoodCost",
+        url: createPageUrl("FoodCost"),
+        icon: ChefHat,
+      },
+      {
         title: "Sconti",
         page: "Sconti",
         url: createPageUrl("Sconti"),
