@@ -59,13 +59,10 @@ Deno.serve(async (req) => {
     const moneyType_credit_card = parseFloat(body.moneyType_credit_card || body.CreditCard) || 0;
     const moneyType_fidelity_card_points = parseFloat(body.moneyType_fidelity_card_points || body.FidelityCardPoints) || 0;
     
-    // Calculate total_discount_price as sum of all discounts
+    // Calculate total_discount_price as sum of sourceApp only (sourceType and moneyType are alternative aggregations of the same total)
     const totalDiscount = sourceApp_glovo + sourceApp_deliveroo + sourceApp_justeat + 
                           sourceApp_onlineordering + sourceApp_ordertable + sourceApp_tabesto + 
-                          sourceApp_deliverect + sourceApp_store + sourceType_delivery + 
-                          sourceType_takeaway + sourceType_takeawayOnSite + sourceType_store + 
-                          moneyType_bancomat + moneyType_cash + moneyType_online + 
-                          moneyType_satispay + moneyType_credit_card + moneyType_fidelity_card_points;
+                          sourceApp_deliverect + sourceApp_store;
     
     const scontoData = {
       order_date: body.order_date || body.orderDate,

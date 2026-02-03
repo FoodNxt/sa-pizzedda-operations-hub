@@ -214,8 +214,9 @@ export default function ZapierSconti() {
                   <ul className="text-sm text-yellow-800 list-disc ml-5 mt-2 space-y-1">
                     <li>Il campo <code>order_date</code> deve essere in formato YYYY-MM-DD (es. 2026-01-15)</li>
                     <li>Il campo <code>channel</code> indica il nome dello store (es. "Roma Centro", "Milano Duomo")</li>
-                    <li>I campi sourceApp_*, sourceType_* e moneyType_* sono valori monetari in euro che indicano lo sconto per singolo canale/tipo/metodo (es. 5.00, 0, 7.50)</li>
-                    <li><strong>IMPORTANTE:</strong> Il campo <code>total_discount_price</code> NON è più richiesto - viene calcolato automaticamente come somma di tutti i campi di sconto</li>
+                    <li><code>sourceApp_*</code>: sconti in euro per app (es. sourceApp_glovo=60€, sourceApp_deliveroo=40€)</li>
+                    <li><code>sourceType_*</code> e <code>moneyType_*</code>: sono aggregazioni alternative dello STESSO totale, per tipo e metodo pagamento</li>
+                    <li><strong>IMPORTANTE:</strong> Il <code>total_discount_price</code> viene calcolato automaticamente come somma dei soli sourceApp_* (non sommare anche sourceType e moneyType perché sono lo stesso importo aggregato in modo diverso)</li>
                   </ul>
                 </div>
               </div>
@@ -230,13 +231,15 @@ export default function ZapierSconti() {
               <div className="ml-9">
                 <div className="neumorphic-pressed p-4 rounded-xl bg-slate-50 overflow-x-auto">
                   <pre className="text-xs font-mono text-slate-700">
-{`order_date | channel     | sourceApp_glovo | sourceApp_deliveroo | sourceType_delivery | moneyType_online | ...
-2026-01-15 | Roma Centro | 12.50           | 0                   | 12.50               | 12.50            | ...
-2026-01-15 | Milano      | 0               | 8.30                | 8.30                | 0                | ...`}
+{`order_date | channel     | sourceApp_glovo | sourceApp_deliveroo | sourceType_delivery | moneyType_online
+2026-01-15 | Roma Centro | 60.00           | 40.00               | 100.00              | 100.00
+2026-01-15 | Milano      | 30.00           | 20.00               | 50.00               | 50.00`}
                   </pre>
                 </div>
                 <p className="text-sm text-slate-600 mt-3">
-                  Ogni riga del foglio rappresenta un ordine con sconto. La colonna <code>channel</code> deve contenere il nome dello store. I valori nelle colonne sourceApp_*, sourceType_* e moneyType_* sono importi in euro (non TRUE/FALSE), che rappresentano lo sconto specifico per quel canale/tipo/metodo di pagamento. Il <code>total_discount_price</code> viene calcolato automaticamente sommando tutti i campi.
+                  <strong>Logica dei campi:</strong> I campi sourceApp_*, sourceType_* e moneyType_* rappresentano TUTTI lo stesso totale sconto, ma aggregato in modi diversi. 
+                  Ad esempio: se uno sconto totale è 100€, sourceApp_glovo + sourceApp_deliveroo = 100€, sourceType_delivery + sourceType_takeaway = 100€, moneyType_cash + moneyType_online = 100€. 
+                  Il <code>total_discount_price</code> viene calcolato come somma dei soli sourceApp_*.
                 </p>
               </div>
             </div>

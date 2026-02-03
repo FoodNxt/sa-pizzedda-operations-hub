@@ -125,13 +125,10 @@ export default function BulkImportSconti() {
         const moneyType_credit_card = parseFloat(sconto.moneyType_credit_card) || 0;
         const moneyType_fidelity_card_points = parseFloat(sconto.moneyType_fidelity_card_points) || 0;
 
-        // Calculate total as sum of all discount sources
+        // Calculate total as sum of sourceApp only (sourceType and moneyType are alternative aggregations of the same total)
         const total_discount_price = sourceApp_glovo + sourceApp_deliveroo + sourceApp_justeat + 
                                       sourceApp_onlineordering + sourceApp_ordertable + sourceApp_tabesto + 
-                                      sourceApp_deliverect + sourceApp_store + sourceType_delivery + 
-                                      sourceType_takeaway + sourceType_takeawayOnSite + sourceType_store + 
-                                      moneyType_bancomat + moneyType_cash + moneyType_online + 
-                                      moneyType_satispay + moneyType_credit_card + moneyType_fidelity_card_points;
+                                      sourceApp_deliverect + sourceApp_store;
 
         return {
           ...sconto,
@@ -291,8 +288,10 @@ export default function BulkImportSconti() {
                 <ul className="list-disc ml-5 space-y-1">
                   <li><code>order_date</code>: formato YYYY-MM-DD</li>
                   <li><code>channel</code>: nome dello store (es. "Roma Centro")</li>
-                  <li><code>sourceApp_*</code>, <code>sourceType_*</code>, <code>moneyType_*</code>: valori in euro per ogni canale</li>
-                  <li>Il <code>total_discount_price</code> viene calcolato automaticamente come somma di tutti i campi</li>
+                  <li><code>sourceApp_*</code>: sconti in euro per app (la somma di tutti i sourceApp rappresenta il totale sconti del giorno)</li>
+                  <li><code>sourceType_*</code>: sconti in euro per tipo (aggregazione alternativa dello stesso totale)</li>
+                  <li><code>moneyType_*</code>: sconti in euro per metodo pagamento (aggregazione alternativa dello stesso totale)</li>
+                  <li>Il <code>total_discount_price</code> viene calcolato automaticamente come somma dei soli sourceApp_*</li>
                 </ul>
               </div>
             </div>
