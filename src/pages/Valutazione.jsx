@@ -409,14 +409,6 @@ export default function Valutazione() {
 
         <NeumorphicCard className="p-3 sm:p-4 text-center">
           <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
-            <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-orange-600 mb-1">{employeeData.missingClockIns.length}</h3>
-          <p className="text-[10px] sm:text-xs text-[#9b9b9b]">Timb. Manc.</p>
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-3 sm:p-4 text-center">
-          <div className="neumorphic-flat w-10 h-10 sm:w-12 sm:h-12 rounded-full mx-auto mb-2 sm:mb-3 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
           </div>
           <h3 className="text-xl sm:text-2xl font-bold text-purple-600 mb-1">{employeeData.wrongOrders.length}</h3>
@@ -484,51 +476,6 @@ export default function Valutazione() {
         <div className="text-center py-8">
             <TrendingUp className="w-12 h-12 text-green-600 mx-auto mb-3" />
             <p className="text-[#6b6b6b] font-medium">Nessun ritardo registrato! 🎉</p>
-          </div>
-        }
-      </NeumorphicCard>
-
-      {/* Timbrature Mancanti */}
-      <NeumorphicCard className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-6 h-6 text-orange-600" />
-            <h2 className="text-xl font-bold text-[#6b6b6b]">
-              {expandedView === 'missing' ? 'Tutte le Timbrature Mancanti' : 'Ultime 5 Timbrature Mancanti'}
-            </h2>
-          </div>
-          {employeeData.missingClockIns.length > 5 &&
-          <button
-            onClick={() => setExpandedView(expandedView === 'missing' ? null : 'missing')}
-            className="neumorphic-flat px-4 py-2 rounded-lg text-sm text-[#8b7355] hover:text-[#6b6b6b] transition-colors flex items-center gap-2">
-
-              {expandedView === 'missing' ? <><X className="w-4 h-4" />Chiudi</> : <><Eye className="w-4 h-4" />Vedi tutte ({employeeData.missingClockIns.length})</>}
-            </button>
-          }
-        </div>
-
-        {employeeData.missingClockIns.length > 0 ?
-        <div className={`space-y-3 ${expandedView === 'missing' ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
-            {(expandedView === 'missing' ? employeeData.missingClockIns : employeeData.missingClockIns.slice(0, 5)).map((shift, index) =>
-          <div key={`${shift.id}-${index}`} className="neumorphic-pressed p-4 rounded-xl border-2 border-orange-200">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#9b9b9b]" />
-                    <span className="font-medium text-[#6b6b6b]">{safeFormatDateLocale(shift.shift_date)}</span>
-                     {shift.store_name && <span className="text-sm text-[#9b9b9b]">• {shift.store_name}</span>}
-                    </div>
-                    <span className="text-xs font-bold text-orange-600 bg-orange-100 px-3 py-1 rounded-full">NON TIMBRATO</span>
-                    </div>
-                    <div className="text-sm text-[#9b9b9b]">
-                    <strong>Orario Previsto:</strong> {shift.scheduled_start ? safeFormatTime(shift.scheduled_start) : 'N/A'} - {shift.scheduled_end ? safeFormatTime(shift.scheduled_end) : 'N/A'}
-                </div>
-              </div>
-          )}
-          </div> :
-
-        <div className="text-center py-8">
-            <TrendingUp className="w-12 h-12 text-green-600 mx-auto mb-3" />
-            <p className="text-[#6b6b6b] font-medium">Nessuna timbratura mancante! 🎉</p>
           </div>
         }
       </NeumorphicCard>
