@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
+import ROASCalculator from "../components/roas/ROASCalculator";
 import { Plus, Euro, TrendingDown, Trash2, Edit, X, Calendar, DollarSign, ChevronLeft, ChevronRight, Settings, TrendingUp, Info } from "lucide-react";
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWithinInterval } from "date-fns";
 import { it } from 'date-fns/locale';
@@ -1717,6 +1718,11 @@ export default function PianoQuarter() {
         {/* Sezione ROAS */}
         {activeTab === 'roas' && (
           <>
+            <ROASCalculator 
+              foodCostPercentage={foodCostPercentage}
+              platformFeesPercentage={platformFeesPercentage}
+            />
+
             <NeumorphicCard className="p-6 mb-6">
               <h3 className="text-lg font-bold text-slate-800 mb-4">Parametri di Calcolo</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
