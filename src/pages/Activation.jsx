@@ -1866,7 +1866,9 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
 
                 {isExpanded && (
                 <div className="space-y-2">
-                  {activationsByCategory['uncategorized'].map((activation) =>
+                 {[...activationsByCategory['uncategorized']].sort((a, b) => 
+                   new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
+                 ).map((activation) =>
               <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
