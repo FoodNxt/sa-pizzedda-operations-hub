@@ -338,6 +338,139 @@ export default function Optimizations() {
 
         return { issues: [], suggestions };
       }
+    },
+    {
+      id: 'loading_speed',
+      title: 'Velocità Caricamento',
+      description: 'Test velocità caricamento app per admin e dipendenti',
+      icon: RefreshCw,
+      severity: 'high',
+      async run() {
+        const issues = [];
+        const suggestions = [];
+
+        // Simula caricamento admin (query più comuni)
+        const adminQueries = [
+          { name: 'iPratico', fn: () => base44.entities.iPratico.list('-order_date', 1000) },
+          { name: 'TurnoPlanday', fn: () => base44.entities.TurnoPlanday.list('-data', 1000) },
+          { name: 'Review', fn: () => base44.entities.Review.list('-review_date', 1000) },
+          { name: 'MateriePrime', fn: () => base44.entities.MateriePrime.list() },
+          { name: 'Store', fn: () => base44.entities.Store.list() }
+        ];
+
+        const adminResults = [];
+        let totalAdminTime = 0;
+
+        for (const query of adminQueries) {
+          const start = performance.now();
+          try {
+            await query.fn();
+            const time = performance.now() - start;
+            adminResults.push({ name: query.name, time: Math.round(time) });
+            totalAdminTime += time;
+          } catch (error) {
+            adminResults.push({ name: query.name, time: -1, error: true });
+          }
+        }
+
+        // Simula caricamento dipendente (query più leggere)
+        const dipendenteQueries = [
+          { name: 'User (me)', fn: () => base44.auth.me() },
+          { name: 'TurnoPlanday (filtrati)', fn: () => base44.entities.TurnoPlanday.filter({ data: { $gte: new Date().toISOString().split('T')[0] } }) },
+          { name: 'Store', fn: () => base44.entities.Store.list() }
+        ];
+
+        const dipendenteResults = [];
+        let totalDipendenteTime = 0;
+
+        for (const query of dipendenteQueries) {
+          const start = performance.now();
+          try {
+            await query.fn();
+            const time = performance.now() - start;
+            dipendenteResults.push({ name: query.name, time: Math.round(time) });
+            totalDipendenteTime += time;
+          } catch (error) {
+            dipendenteResults.push({ name: query.name, time: -1, error: true });
+          }
+        }
+
+        // Analisi risultati ADMIN
+        const avgAdminTime = totalAdminTime / adminQueries.length;
+        
+        if (totalAdminTime > 5000) {
+          issues.push({
+            severity: 'high',
+            message: `Caricamento Admin LENTO: ${Math.round(totalAdminTime)}ms totali`,
+            detail: `Tempo medio per query: ${Math.round(avgAdminTime)}ms. Target: <3000ms totali. Query più lente: ${adminResults.sort((a, b) => b.time - a.time).slice(0, 3).map(r => `${r.name} (${r.time}ms)`).join(', ')}`
+          });
+        } else if (totalAdminTime > 3000) {
+          suggestions.push({
+            severity: 'medium',
+            message: `Caricamento Admin accettabile: ${Math.round(totalAdminTime)}ms`,
+            detail: `Puoi migliorare ottimizzando: ${adminResults.sort((a, b) => b.time - a.time).slice(0, 2).map(r => `${r.name} (${r.time}ms)`).join(', ')}`
+          });
+        } else {
+          suggestions.push({
+            severity: 'low',
+            message: `✅ Caricamento Admin ottimo: ${Math.round(totalAdminTime)}ms`,
+            detail: 'Performance eccellente per caricamento admin'
+          });
+        }
+
+        // Analisi risultati DIPENDENTE
+        const avgDipendenteTime = totalDipendenteTime / dipendenteQueries.length;
+
+        if (totalDipendenteTime > 2000) {
+          issues.push({
+            severity: 'high',
+            message: `Caricamento Dipendente LENTO: ${Math.round(totalDipendenteTime)}ms`,
+            detail: `Target: <1500ms. Query più lente: ${dipendenteResults.sort((a, b) => b.time - a.time).map(r => `${r.name} (${r.time}ms)`).join(', ')}`
+          });
+        } else if (totalDipendenteTime > 1500) {
+          suggestions.push({
+            severity: 'medium',
+            message: `Caricamento Dipendente accettabile: ${Math.round(totalDipendenteTime)}ms`,
+            detail: 'Ottimizza query con filtri specifici per migliorare la UX mobile'
+          });
+        } else {
+          suggestions.push({
+            severity: 'low',
+            message: `✅ Caricamento Dipendente ottimo: ${Math.round(totalDipendenteTime)}ms`,
+            detail: 'Performance eccellente per caricamento dipendente'
+          });
+        }
+
+        // Suggerimenti specifici per query lente
+        adminResults.forEach(result => {
+          if (result.time > 1000) {
+            suggestions.push({
+              severity: 'high',
+              message: `Query ${result.name} molto lenta: ${result.time}ms`,
+              detail: 'Aggiungi limit più basso, usa filtri specifici, o implementa paginazione'
+            });
+          }
+        });
+
+        // Dettaglio breakdown
+        const detailMessage = `
+📊 BREAKDOWN ADMIN:
+${adminResults.map(r => `  • ${r.name}: ${r.time}ms`).join('\n')}
+  TOTALE: ${Math.round(totalAdminTime)}ms
+
+📱 BREAKDOWN DIPENDENTE:
+${dipendenteResults.map(r => `  • ${r.name}: ${r.time}ms`).join('\n')}
+  TOTALE: ${Math.round(totalDipendenteTime)}ms
+        `;
+
+        suggestions.push({
+          severity: 'low',
+          message: 'Dettaglio tempi di caricamento',
+          detail: detailMessage.trim()
+        });
+
+        return { issues, suggestions };
+      }
     }
   ];
 
