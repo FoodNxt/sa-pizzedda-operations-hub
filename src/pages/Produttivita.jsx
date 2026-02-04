@@ -359,6 +359,22 @@ export default function Produttivita() {
     const daySlotMap = {};
     const daysOfWeek = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 
+    // Get date range for filtering shifts (same as filteredData)
+    const now = new Date();
+    let shiftStartDate, shiftEndDate;
+    
+    if (dateRange === 'month') {
+      shiftStartDate = startOfMonth(now);
+      shiftEndDate = endOfMonth(now);
+    } else if (dateRange === 'custom') {
+      shiftStartDate = parseISO(startDate);
+      shiftEndDate = parseISO(endDate);
+    } else {
+      // 'all' - don't filter
+      shiftStartDate = null;
+      shiftEndDate = null;
+    }
+
     // Calcola ore lavorate per giorno della settimana e slot
     const hoursDataByDayOfWeek = {}; // { dayName: { slot: { totalHours, daysCount } } }
     
@@ -367,6 +383,10 @@ export default function Produttivita() {
       if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
 
       const date = parseISO(shift.data);
+      
+      // Apply same date filtering as revenue data
+      if (shiftStartDate && date < shiftStartDate) return;
+      if (shiftEndDate && date > shiftEndDate) return;
       const dayIndex = date.getDay();
       const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
       const dayName = daysOfWeek[adjustedIndex];
@@ -422,6 +442,7 @@ export default function Produttivita() {
       });
     });
 
+    // Process revenue data - already filtered by filteredData
     filteredData.forEach((record) => {
       const date = parseISO(record.date);
       const dayIndex = date.getDay(); // 0=Sunday, 1=Monday, etc.
