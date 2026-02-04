@@ -586,7 +586,26 @@ export default function Dashboard() {
       endFilterDate = new Date();
     }
 
+    // Get unique dipendenti IDs from Planday shifts (same as EmployeeReviewsPerformance)
+    const dipendenteIdsWithShifts = new Set(
+      turni.filter((t) => t.dipendente_id).map((t) => t.dipendente_id)
+    );
+
+    // Filter users to only those with Planday shifts
+    const validUsers = allUsers.filter((u) => dipendenteIdsWithShifts.has(u.id));
+
+    // Create a map of normalized names to user IDs for matching
+    const nameToUserMap = new Map();
+    validUsers.forEach((user) => {
+      const displayName = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
+      if (displayName) {
+        nameToUserMap.set(displayName, user);
+      }
+    });
+
+    // Filter reviews by date and employee_assigned_name
     const filteredReviews = reviews.filter((r) => {
+      if (!r.employee_assigned_name) return false;
       if (!r.review_date) return false;
       const itemDate = safeParseDate(r.review_date);
       if (!itemDate) return false;
@@ -595,46 +614,72 @@ export default function Dashboard() {
       return true;
     });
 
-    const reviewsByEmployee = allUsers.
-    filter((u) => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0).
-    map((emp) => {
-      const employeeName = emp.nome_cognome || emp.full_name;
-      const assignedReviews = filteredReviews.filter((r) => {
-        if (!r.employee_assigned_name) return false;
-        const assignedNames = r.employee_assigned_name.split(',').map((n) => n.trim().toLowerCase());
-        return assignedNames.includes(employeeName.toLowerCase());
-      });
-      return { name: employeeName, count: assignedReviews.length };
-    }).
-    filter((e) => e.count > 0).
-    sort((a, b) => b.count - a.count);
+    // Group by employee - ONLY valid users with Planday shifts
+    const employeeMap = new Map();
 
-    const avgRatingByEmployee = allUsers.
-    filter((u) => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0).
-    map((emp) => {
-      const employeeName = emp.nome_cognome || emp.full_name;
-      const assignedReviews = filteredReviews.filter((r) => {
-        if (!r.employee_assigned_name) return false;
-        const assignedNames = r.employee_assigned_name.split(',').map((n) => n.trim().toLowerCase());
-        return assignedNames.includes(employeeName.toLowerCase());
+    filteredReviews.forEach((review) => {
+      const employeeNames = (review.employee_assigned_name || '').
+        split(',').
+        map((n) => n.trim()).
+        filter((n) => n.length > 0);
+
+      const uniqueNamesThisReview = [...new Set(
+        employeeNames.map((name) => name.toLowerCase())
+      )].map((lowerName) => {
+        return employeeNames.find((n) => n.toLowerCase() === lowerName) || lowerName;
       });
-      const avgRating = assignedReviews.length > 0 ?
-      assignedReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / assignedReviews.length :
-      0;
-      return { name: employeeName, rating: avgRating, count: assignedReviews.length };
-    }).
-    filter((e) => e.count > 0).
-    sort((a, b) => b.rating - a.rating);
+
+      uniqueNamesThisReview.forEach((employeeName) => {
+        const mapKey = employeeName.toLowerCase();
+
+        // ONLY process if this name matches a valid user with Planday shifts
+        const matchedUser = nameToUserMap.get(mapKey);
+        if (!matchedUser) return; // Skip if no matching user
+
+        if (!employeeMap.has(mapKey)) {
+          employeeMap.set(mapKey, {
+            name: matchedUser.nome_cognome || matchedUser.full_name,
+            userId: matchedUser.id,
+            reviews: [],
+            reviewIds: new Set(),
+            totalReviews: 0,
+            totalRating: 0,
+            avgRating: 0
+          });
+        }
+
+        const emp = employeeMap.get(mapKey);
+
+        // Prevent duplicate reviews
+        if (!emp.reviewIds.has(review.id)) {
+          emp.reviewIds.add(review.id);
+          emp.reviews.push(review);
+          emp.totalReviews++;
+          emp.totalRating += review.rating;
+        }
+      });
+    });
+
+    // Calculate averages
+    const employeeArray = Array.from(employeeMap.values()).map((emp) => {
+      emp.avgRating = emp.totalReviews > 0 ? emp.totalRating / emp.totalReviews : 0;
+      return emp;
+    });
+
+    // Sort by count for "best/worst by count"
+    const byCount = [...employeeArray].sort((a, b) => b.totalReviews - a.totalReviews);
+    // Sort by rating for "best/worst by rating"
+    const byRating = [...employeeArray].sort((a, b) => b.avgRating - a.avgRating);
 
     return {
       totalReviews: filteredReviews.length,
-      bestEmployeeCount: reviewsByEmployee[0],
-      worstEmployeeCount: reviewsByEmployee[reviewsByEmployee.length - 1],
+      bestEmployeeCount: byCount[0],
+      worstEmployeeCount: byCount[byCount.length - 1],
       avgScore: filteredReviews.length > 0 ? filteredReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / filteredReviews.length : 0,
-      bestEmployeeScore: avgRatingByEmployee[0],
-      worstEmployeeScore: avgRatingByEmployee[avgRatingByEmployee.length - 1]
+      bestEmployeeScore: byRating[0],
+      worstEmployeeScore: byRating[byRating.length - 1]
     };
-  }, [reviews, allUsers, dateRange, startDate, endDate]);
+  }, [reviews, allUsers, dateRange, startDate, endDate, turni]);
 
   // Metriche operative
   const cassaStats = useMemo(() => {
