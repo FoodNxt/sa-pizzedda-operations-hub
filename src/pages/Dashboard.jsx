@@ -20,7 +20,9 @@ export default function Dashboard() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list()
+    queryFn: () => base44.entities.Store.list(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   const { data: reviews = [] } = useQuery({
@@ -63,7 +65,9 @@ export default function Dashboard() {
 
   const { data: alertsCassaConfig = [] } = useQuery({
     queryKey: ['alerts-cassa-config'],
-    queryFn: () => base44.entities.AlertCassaConfig.list()
+    queryFn: () => base44.entities.AlertCassaConfig.list(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   const { data: sprechi = [] } = useQuery({
@@ -78,7 +82,9 @@ export default function Dashboard() {
 
   const { data: materiePrime = [] } = useQuery({
     queryKey: ['materie-prime'],
-    queryFn: () => base44.entities.MateriePrime.list()
+    queryFn: () => base44.entities.MateriePrime.list(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   const { data: wrongOrderMatches = [] } = useQuery({
@@ -88,17 +94,23 @@ export default function Dashboard() {
 
   const { data: metricWeights = [] } = useQuery({
     queryKey: ['metric-weights'],
-    queryFn: () => base44.entities.MetricWeight.list()
+    queryFn: () => base44.entities.MetricWeight.list(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   const { data: attrezzature = [] } = useQuery({
     queryKey: ['attrezzature'],
-    queryFn: () => base44.entities.Attrezzatura.list()
+    queryFn: () => base44.entities.Attrezzatura.list(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   const { data: domande = [] } = useQuery({
     queryKey: ['domande-pulizia'],
-    queryFn: () => base44.entities.DomandaPulizia.list()
+    queryFn: () => base44.entities.DomandaPulizia.list(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   const { data: malattie = [] } = useQuery({
@@ -139,7 +151,9 @@ export default function Dashboard() {
 
   const { data: regoleOrdini = [] } = useQuery({
     queryKey: ['regole-ordini'],
-    queryFn: () => base44.entities.RegolaOrdine.filter({ is_active: true })
+    queryFn: () => base44.entities.RegolaOrdine.filter({ is_active: true }),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   const { data: inventario = [] } = useQuery({
