@@ -246,12 +246,12 @@ export default function FoodCost() {
       });
 
       return Object.values(weeklyData)
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
         .map(d => ({
           date: format(new Date(d.date), 'dd MMM', { locale: it }),
           foodCostReale: d.revenue > 0 ? (d.costoReale / d.revenue) * 100 : 0,
           foodCostTeorico: d.revenue > 0 ? (d.costoTeorico / d.revenue) * 100 : 0
-        }))
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
+        }));
     } else {
       // Aggregazione giornaliera
       const dailyData = {};
@@ -303,12 +303,12 @@ export default function FoodCost() {
       });
 
       return Object.values(dailyData)
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
         .map(d => ({
           date: format(new Date(d.date), 'dd MMM', { locale: it }),
           foodCostReale: d.revenue > 0 ? (d.costoReale / d.revenue) * 100 : 0,
           foodCostTeorico: d.revenue > 0 ? (d.costoTeorico / d.revenue) * 100 : 0
-        }))
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
+        }));
     }
   }, [iPraticoData, ordiniFornitori, prodottiVenduti, ricette, dateRange, selectedStore]);
 
