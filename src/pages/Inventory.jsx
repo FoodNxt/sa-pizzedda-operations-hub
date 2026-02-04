@@ -385,11 +385,13 @@ export default function Inventory() {
 
   // Optimization analysis
   const optimizationData = useMemo(() => {
+    const cutoffDate = subDays(new Date(), optimizationRange);
     const allInventory = [...inventory, ...inventoryCantina];
     const productAnalysis = {};
 
-    // Analyze each product
+    // Analyze each product (filter by date range)
     allInventory.forEach((reading) => {
+      if (new Date(reading.data_rilevazione) < cutoffDate) return;
       const key = `${reading.store_id}-${reading.prodotto_id}`;
       if (!productAnalysis[key]) {
         productAnalysis[key] = {
@@ -455,7 +457,7 @@ export default function Inventory() {
       increaseStock: increaseStock.sort((a, b) => b.zeroCount - a.zeroCount),
       decreaseStock: decreaseStock.sort((a, b) => b.avgQuantity - a.avgQuantity)
     };
-  }, [inventory, inventoryCantina, products]);
+  }, [inventory, inventoryCantina, products, optimizationRange]);
 
   // Calculate product trends
   const getProductTrend = (productId, storeId) => {
@@ -1080,6 +1082,48 @@ export default function Inventory() {
         {/* Optimizations Tab */}
         {activeTab === 'optimizations' &&
         <div className="space-y-6">
+            {/* Date Range Filter */}
+            <NeumorphicCard className="p-4 lg:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 mb-1">Periodo Analisi</h3>
+                  <p className="text-sm text-slate-500">Seleziona il range temporale per l'analisi</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setOptimizationRange(30)}
+                    className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                      optimizationRange === 30 
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
+                        : 'neumorphic-flat text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    30 giorni
+                  </button>
+                  <button
+                    onClick={() => setOptimizationRange(60)}
+                    className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                      optimizationRange === 60 
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
+                        : 'neumorphic-flat text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    60 giorni
+                  </button>
+                  <button
+                    onClick={() => setOptimizationRange(90)}
+                    className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                      optimizationRange === 90 
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' 
+                        : 'neumorphic-flat text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    90 giorni
+                  </button>
+                </div>
+              </div>
+            </NeumorphicCard>
+
             {/* Increase Stock */}
             <NeumorphicCard className="p-4 lg:p-6">
               <div className="flex items-center gap-3 mb-4">
