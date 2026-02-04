@@ -75,12 +75,25 @@ export default function MatchingOrdiniSbagliati() {
         scheduled_end: turno.data && turno.ora_fine ? `${turno.data}T${turno.ora_fine}:00` : null,
         employee_name: turno.dipendente_nome,
         store_id: turno.store_id,
-        shift_type: turno.turno_tipo,
+        shift_type: turno.tipo_turno,
         employee_group_name: turno.employee_group_name,
         created_date: turno.created_date
       }));
     }
   });
+
+  const { data: matchingConfigs = [] } = useQuery({
+    queryKey: ['matching-configs'],
+    queryFn: () => base44.entities.MatchingConfig.list()
+  });
+
+  const activeConfig = useMemo(() => {
+    const active = matchingConfigs.find(c => c.is_active);
+    return active || {
+      excluded_shift_types: ['Malattia (Certificato)', 'Assenza non retribuita', 'Ferie'],
+      excluded_employee_groups: ['Volantinaggio', 'Preparazioni']
+    };
+  }, [matchingConfigs]);
 
   const createMatchMutation = useMutation({
     mutationFn: (data) => base44.entities.WrongOrderMatch.create(data),
@@ -101,6 +114,22 @@ export default function MatchingOrdiniSbagliati() {
     mutationFn: (id) => base44.entities.WrongOrderMatch.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wrong-order-matches'] });
+    }
+  });
+
+  const createConfigMutation = useMutation({
+    mutationFn: (data) => base44.entities.MatchingConfig.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matching-configs'] });
+      setShowSettingsModal(false);
+    }
+  });
+
+  const updateConfigMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.MatchingConfig.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matching-configs'] });
+      setShowSettingsModal(false);
     }
   });
 
