@@ -384,7 +384,9 @@ export default function Inventory() {
   // Calculate product trends
   const getProductTrend = (productId, storeId) => {
     const last30Days = subDays(new Date(), 30);
-    const productReadings = inventory.
+    const allInventory = [...inventory, ...inventoryCantina];
+    
+    const productReadings = allInventory.
     filter((item) =>
     item.prodotto_id === productId &&
     item.store_id === storeId &&
@@ -407,7 +409,9 @@ export default function Inventory() {
 
   const getProductHistory = (productId, storeId) => {
     const last30Days = subDays(new Date(), 30);
-    return inventory.
+    const allInventory = [...inventory, ...inventoryCantina];
+    
+    return allInventory.
     filter((item) =>
     item.prodotto_id === productId &&
     item.store_id === storeId &&
