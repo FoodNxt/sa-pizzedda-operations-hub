@@ -11,12 +11,14 @@ import {
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ProgressBar from "../components/neumorphic/ProgressBar";
 
 export default function BulkImportProdottiVenduti() {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedStore, setSelectedStore] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -42,16 +44,30 @@ export default function BulkImportProdottiVenduti() {
 
     setUploading(true);
     setResult(null);
+    setUploadProgress(0);
+
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + 8;
+      });
+    }, 400);
 
     try {
+      setUploadProgress(10);
+      
       // Read file content
       const fileContent = await selectedFile.text();
+      setUploadProgress(25);
 
       // Get store details
       const store = stores.find(s => s.id === selectedStore);
       if (!store) {
+        clearInterval(progressInterval);
         throw new Error('Negozio non trovato');
       }
+
+      setUploadProgress(35);
 
       // Call import function
       const response = await base44.functions.invoke('bulkImportProdottiVenduti', {
@@ -60,18 +76,25 @@ export default function BulkImportProdottiVenduti() {
         store_id: store.id
       });
 
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
       setResult({
         success: true,
         data: response.data
       });
 
+      setTimeout(() => setUploadProgress(0), 1000);
+
     } catch (error) {
+      clearInterval(progressInterval);
       console.error('Upload error:', error);
       setResult({
         success: false,
         error: error.message,
         details: error.response?.data
       });
+      setUploadProgress(0);
     }
 
     setUploading(false);
@@ -197,6 +220,13 @@ export default function BulkImportProdottiVenduti() {
                   </div>
                 </div>
               </div>
+
+              {uploading && uploadProgress > 0 && (
+                <ProgressBar 
+                  progress={uploadProgress} 
+                  label="Importazione in corso..." 
+                />
+              )}
 
               <NeumorphicButton
                 onClick={handleUpload}
