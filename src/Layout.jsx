@@ -573,6 +573,12 @@ const navigationStructure = [
         url: createPageUrl("NotificheMail"),
         icon: Bell,
         requiredUserType: ["admin"]
+      },
+      {
+        title: "Optimizations",
+        url: createPageUrl("Optimizations"),
+        icon: Zap,
+        requiredUserType: ["admin"]
       }
     ]
   }
