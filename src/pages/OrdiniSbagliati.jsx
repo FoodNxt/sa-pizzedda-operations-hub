@@ -36,7 +36,7 @@ export default function OrdiniSbagliati() {
   const [showMappingModal, setShowMappingModal] = useState(false);
   const [unmappedStores, setUnmappedStores] = useState([]);
   const [storeMapping, setStoreMapping] = useState({});
-  const [activeTab, setActiveTab] = useState('list'); // 'list' or 'analytics'
+  const [activeTab, setActiveTab] = useState('analytics'); // 'list' or 'analytics'
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('month'); // 'week', 'month', 'all', 'custom'
   const [customStartDate, setCustomStartDate] = useState('');

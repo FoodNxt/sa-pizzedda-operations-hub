@@ -418,16 +418,6 @@ export default function Activation() {
     const items = [];
     
     activations.forEach((activation) => {
-      // Data inizio
-      if (activation.data_inizio) {
-        items.push({
-          type: 'activation',
-          date: activation.data_inizio,
-          label: 'Inizio',
-          activation,
-          priority: 1
-        });
-      }
       // Data target
       items.push({
         type: 'activation',
