@@ -25,6 +25,7 @@ import {
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
+import ProgressBar from "../components/neumorphic/ProgressBar";
 
 export default function MateriePrime() {
   const [showForm, setShowForm] = useState(false);
@@ -73,6 +74,7 @@ export default function MateriePrime() {
     foto_url: ''
   });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [inUsoPerStore, setInUsoPerStore] = useState({});
   const [storeQuantitaCritica, setStoreQuantitaCritica] = useState({});
   const [storeQuantitaOrdine, setStoreQuantitaOrdine] = useState({});
@@ -652,6 +654,13 @@ export default function MateriePrime() {
                           </button>
                         </div>
                     }
+                      {uploadingPhoto && (
+                        <ProgressBar 
+                          progress={uploadProgress} 
+                          label="Caricamento foto..." 
+                          className="mb-3"
+                        />
+                      )}
                       <label className="neumorphic-pressed p-3 rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-blue-50 transition-colors">
                         <Upload className="w-4 h-4 text-blue-600" />
                         <span className="text-sm font-medium text-blue-600">
@@ -664,13 +673,30 @@ export default function MateriePrime() {
                           const file = e.target.files?.[0];
                           if (file) {
                             setUploadingPhoto(true);
+                            setUploadProgress(0);
+                            
+                            // Simula progress per upload
+                            const progressInterval = setInterval(() => {
+                              setUploadProgress(prev => {
+                                if (prev >= 90) return prev;
+                                return prev + 10;
+                              });
+                            }, 100);
+                            
                             try {
                               const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                              setUploadProgress(100);
                               setFormData({ ...formData, foto_url: file_url });
+                              clearInterval(progressInterval);
+                              setTimeout(() => {
+                                setUploadingPhoto(false);
+                                setUploadProgress(0);
+                              }, 500);
                             } catch (error) {
+                              clearInterval(progressInterval);
                               alert('Errore nel caricamento: ' + error.message);
-                            } finally {
                               setUploadingPhoto(false);
+                              setUploadProgress(0);
                             }
                           }
                         }}

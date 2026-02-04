@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
+import ProgressBar from "../components/neumorphic/ProgressBar";
 import {
   Zap,
   AlertTriangle,
@@ -23,6 +24,7 @@ export default function Optimizations() {
   const [activeChecks, setActiveChecks] = useState({});
   const [checkResults, setCheckResults] = useState({});
   const [expandedChecks, setExpandedChecks] = useState({});
+  const [checkProgress, setCheckProgress] = useState({});
 
   // Fetch all entities to analyze
   const { data: allEntities = [], refetch: refetchEntities } = useQuery({
@@ -476,10 +478,24 @@ ${dipendenteResults.map(r => `  • ${r.name}: ${r.time}ms`).join('\n')}
 
   const runCheck = async (checkId) => {
     setActiveChecks(prev => ({ ...prev, [checkId]: true }));
+    setCheckProgress(prev => ({ ...prev, [checkId]: 0 }));
+    
+    // Simula progress durante l'esecuzione
+    const progressInterval = setInterval(() => {
+      setCheckProgress(prev => {
+        const current = prev[checkId] || 0;
+        if (current >= 90) return { ...prev, [checkId]: current };
+        return { ...prev, [checkId]: current + 10 };
+      });
+    }, 200);
     
     try {
       const check = checks.find(c => c.id === checkId);
       const result = await check.run();
+      
+      clearInterval(progressInterval);
+      setCheckProgress(prev => ({ ...prev, [checkId]: 100 }));
+      
       setCheckResults(prev => ({
         ...prev,
         [checkId]: {
@@ -488,7 +504,12 @@ ${dipendenteResults.map(r => `  • ${r.name}: ${r.time}ms`).join('\n')}
           timestamp: new Date().toISOString()
         }
       }));
+      
+      setTimeout(() => {
+        setCheckProgress(prev => ({ ...prev, [checkId]: 0 }));
+      }, 1000);
     } catch (error) {
+      clearInterval(progressInterval);
       setCheckResults(prev => ({
         ...prev,
         [checkId]: {
@@ -497,6 +518,7 @@ ${dipendenteResults.map(r => `  • ${r.name}: ${r.time}ms`).join('\n')}
           timestamp: new Date().toISOString()
         }
       }));
+      setCheckProgress(prev => ({ ...prev, [checkId]: 0 }));
     } finally {
       setActiveChecks(prev => ({ ...prev, [checkId]: false }));
     }
@@ -664,6 +686,16 @@ ${dipendenteResults.map(r => `  • ${r.name}: ${r.time}ms`).join('\n')}
                       </NeumorphicButton>
                     </div>
                   </div>
+
+                  {/* Progress Bar */}
+                  {isRunning && checkProgress[check.id] > 0 && (
+                    <div className="mt-4">
+                      <ProgressBar 
+                        progress={checkProgress[check.id]} 
+                        label="Analisi in corso..." 
+                      />
+                    </div>
+                  )}
 
                   {/* Results */}
                   {result && isExpanded && (
