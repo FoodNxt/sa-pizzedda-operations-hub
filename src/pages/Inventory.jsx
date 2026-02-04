@@ -43,6 +43,7 @@ export default function Inventory() {
   const [sendingEmail, setSendingEmail] = useState({});
   const [emailSent, setEmailSent] = useState({});
   const [editingOrder, setEditingOrder] = useState(null);
+  const [optimizationRange, setOptimizationRange] = useState(30);
 
   const queryClient = useQueryClient();
 
