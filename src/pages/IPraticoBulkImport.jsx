@@ -1,8 +1,8 @@
-
 import { useState } from "react";
 import { Upload, FileText, CheckCircle, AlertCircle, Download, Copy, FileSpreadsheet } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ProgressBar from "../components/neumorphic/ProgressBar";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -12,6 +12,7 @@ export default function IPraticoBulkImport() {
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
   const [selectedStore, setSelectedStore] = useState('');
+  const [importProgress, setImportProgress] = useState(0);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -230,6 +231,15 @@ export default function IPraticoBulkImport() {
 
     setImporting(true);
     setResult(null);
+    setImportProgress(0);
+
+    // Progress simulation
+    const progressInterval = setInterval(() => {
+      setImportProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + 5;
+      });
+    }, 300);
 
     try {
       // Parse JSON input
@@ -237,28 +247,40 @@ export default function IPraticoBulkImport() {
       try {
         data = JSON.parse(jsonInput);
       } catch (e) {
+        clearInterval(progressInterval);
         throw new Error('JSON non valido: ' + e.message);
       }
+
+      setImportProgress(20);
 
       // Add secret if not present
       if (!data.secret) {
         data.secret = webhookSecret;
       }
 
+      setImportProgress(30);
+
       // Call bulk import function
       const response = await base44.functions.invoke('bulkImportIPratico', data);
+
+      clearInterval(progressInterval);
+      setImportProgress(100);
 
       setResult({
         success: true,
         data: response.data
       });
 
+      setTimeout(() => setImportProgress(0), 1000);
+
     } catch (error) {
+      clearInterval(progressInterval);
       setResult({
         success: false,
         error: error.message,
         data: error.response?.data
       });
+      setImportProgress(0);
     }
 
     setImporting(false);
@@ -448,6 +470,15 @@ export default function IPraticoBulkImport() {
           placeholder="Incolla qui il JSON con i dati o carica un file CSV sopra..."
           className="w-full h-96 neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none font-mono text-sm"
         />
+
+        {importing && importProgress > 0 && (
+          <div className="mt-4">
+            <ProgressBar 
+              progress={importProgress} 
+              label="Importazione in corso..." 
+            />
+          </div>
+        )}
 
         <NeumorphicButton
           onClick={handleImport}
