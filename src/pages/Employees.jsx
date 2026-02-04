@@ -628,9 +628,10 @@ export default function Employees() {
         performanceScore -= reviewPenalty;
       }
 
-      // Bonus per ogni recensione ottenuta
-      if (googleReviews.length > 0 && w_bonus_recensione > 0) {
-        const reviewBonus = googleReviews.length * w_bonus_recensione;
+      // Bonus per ogni recensione con 4 o 5 stelle
+      const highRatingReviews = googleReviews.filter((r) => r.rating >= 4);
+      if (highRatingReviews.length > 0 && w_bonus_recensione > 0) {
+        const reviewBonus = highRatingReviews.length * w_bonus_recensione;
         performanceScore += reviewBonus;
       }
 
@@ -1934,9 +1935,13 @@ export default function Employees() {
                     {selectedEmployee.weights.w_punteggio_recensioni > 0 && selectedEmployee.googleReviewCount > 0 && selectedEmployee.avgGoogleRating < 5 &&
                       <p className="text-red-600"><strong>- Media Recensioni &lt; 5:</strong> (5 - {selectedEmployee.avgGoogleRating.toFixed(1)}) × {selectedEmployee.weights.w_punteggio_recensioni} = -{((5 - selectedEmployee.avgGoogleRating) * selectedEmployee.weights.w_punteggio_recensioni).toFixed(1)}</p>
                     }
-                    {selectedEmployee.weights.w_bonus_recensione > 0 && selectedEmployee.googleReviewCount > 0 &&
-                      <p className="text-green-600"><strong>+ Bonus Recensioni:</strong> {selectedEmployee.googleReviewCount} × {selectedEmployee.weights.w_bonus_recensione} = +{(selectedEmployee.googleReviewCount * selectedEmployee.weights.w_bonus_recensione).toFixed(1)}</p>
-                    }
+                    {selectedEmployee.weights.w_bonus_recensione > 0 && selectedEmployee.googleReviewCount > 0 && (() => {
+                      const highRatingCount = getAllGoogleReviews(selectedEmployee.full_name).filter((r) => r.rating >= 4).length;
+                      if (highRatingCount > 0) {
+                        return <p className="text-green-600"><strong>+ Bonus Recensioni (4-5★):</strong> {highRatingCount} × {selectedEmployee.weights.w_bonus_recensione} = +{(highRatingCount * selectedEmployee.weights.w_bonus_recensione).toFixed(1)}</p>;
+                      }
+                      return null;
+                    })()}
                     {selectedEmployee.weights.w_min_recensioni > 0 && selectedEmployee.googleReviewCount < selectedEmployee.weights.w_min_recensioni && selectedEmployee.weights.w_malus_recensioni > 0 &&
                       <p className="text-red-600"><strong>- Sotto Minimo Recensioni:</strong> ({selectedEmployee.weights.w_min_recensioni} - {selectedEmployee.googleReviewCount}) × {selectedEmployee.weights.w_malus_recensioni} = -{((selectedEmployee.weights.w_min_recensioni - selectedEmployee.googleReviewCount) * selectedEmployee.weights.w_malus_recensioni).toFixed(1)}</p>
                     }
@@ -2614,7 +2619,7 @@ function MetricWeightsModal({ weights, onClose }) {
     ritardi: 'Peso Ritardi',
     timbrature_mancanti: 'Peso Timbrature Mancanti',
     straordinari: 'Peso Straordinari',
-    bonus_per_recensione: 'Bonus per Recensione',
+    bonus_per_recensione: 'Bonus per Recensione (4-5 stelle)',
     min_recensioni: 'Numero Minimo Recensioni',
     malus_sotto_minimo_recensioni: 'Malus per Recensione Mancante (sotto minimo)',
     punteggio_recensioni: 'Peso Punteggio Recensioni',
