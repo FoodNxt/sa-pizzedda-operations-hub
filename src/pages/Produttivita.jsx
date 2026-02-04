@@ -273,10 +273,11 @@ export default function Produttivita() {
         }
 
         if (!aggregation[key]) {
-          aggregation[key] = { slot: key, revenue: 0, count: 0 };
+          aggregation[key] = { slot: key, revenue: 0, count: 0, dates: new Set() };
         }
         aggregation[key].revenue += revenue || 0;
-        aggregation[key].count += 1;
+        aggregation[key].dates.add(record.date);
+        aggregation[key].count = aggregation[key].dates.size;
       });
     });
 
