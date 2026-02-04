@@ -418,6 +418,9 @@ export default function Activation() {
     const items = [];
     
     activations.forEach((activation) => {
+      // Skip completed activations
+      if (activation.stato === 'completata') return;
+      
       // Data target
       items.push({
         type: 'activation',
@@ -430,9 +433,12 @@ export default function Activation() {
 
     if (showSubattivitaInDeadlines) {
       subattivita.forEach((sub) => {
+        // Skip completed subattivita
+        if (sub.completata) return;
+        
         if (sub.data_target) {
           const activation = activations.find((a) => a.id === sub.activation_id);
-          if (activation) {
+          if (activation && activation.stato !== 'completata') {
             items.push({
               type: 'subattivita',
               date: sub.data_target,
@@ -1236,7 +1242,9 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
               </div> :
 
           <div className="space-y-3">
-                {activations.map((activation) =>
+                {[...activations].sort((a, b) => 
+                  new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
+                ).map((activation) =>
             <div key={activation.id} className="neumorphic-pressed p-5 rounded-xl">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
@@ -1379,7 +1387,9 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
 
                     {isExpanded &&
                 <div className="space-y-3">
-                        {data.activations.map((activation) => {
+                        {[...data.activations].sort((a, b) => 
+                          new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
+                        ).map((activation) => {
                     const subattivitaList = subattivita.filter((s) => s.activation_id === activation.id);
                     const subattivitaComplete = subattivitaList.filter((s) => s.completata).length;
                     const isCompleted = activation.stato === 'completata';
@@ -1753,7 +1763,9 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
             <p className="text-slate-400 text-sm text-center py-6">Nessuna activation in questa categoria</p> :
 
             <div className="space-y-3">
-                    {activationsByCategory[category.id]?.map((activation) =>
+                    {[...(activationsByCategory[category.id] || [])].sort((a, b) => 
+                      new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
+                    ).map((activation) =>
               <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
@@ -1916,7 +1928,9 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   </div>
 
                   <div className="space-y-3">
-                    {stateActivations.map((activation) => {
+                    {[...stateActivations].sort((a, b) => 
+                      new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
+                    ).map((activation) => {
                       const subattivitaList = subattivita.filter((s) => s.activation_id === activation.id);
                       const subattivitaComplete = subattivitaList.filter((s) => s.completata).length;
 
