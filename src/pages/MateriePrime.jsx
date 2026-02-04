@@ -90,12 +90,16 @@ export default function MateriePrime() {
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['materie-prime'],
-    queryFn: () => base44.entities.MateriePrime.list()
+    queryFn: () => base44.entities.MateriePrime.list(),
+    staleTime: 5 * 60 * 1000, // 5 minuti
+    refetchOnWindowFocus: false
   });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list()
+    queryFn: () => base44.entities.Store.list(),
+    staleTime: 5 * 60 * 1000, // 5 minuti
+    refetchOnWindowFocus: false
   });
 
   const { data: suppliers = [] } = useQuery({
