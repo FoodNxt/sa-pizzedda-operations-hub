@@ -460,10 +460,11 @@ export default function Produttivita() {
 
         const mapKey = `${dayName}|${key}`;
         if (!daySlotMap[mapKey]) {
-          daySlotMap[mapKey] = { revenue: 0, count: 0, dayName };
+          daySlotMap[mapKey] = { revenue: 0, count: 0, dayName, dates: new Set() };
         }
         daySlotMap[mapKey].revenue += revenue || 0;
-        daySlotMap[mapKey].count += 1;
+        daySlotMap[mapKey].dates.add(record.date);
+        daySlotMap[mapKey].count = daySlotMap[mapKey].dates.size;
       });
     });
 
