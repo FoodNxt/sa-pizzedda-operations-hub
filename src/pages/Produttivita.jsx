@@ -225,19 +225,38 @@ export default function Produttivita() {
     // Recalcola ore lavorate per slot aggregato (1hour o 30min)
     const slotDataByDay = {};
     
+    // Apply date range filtering
+    const now = new Date();
+    let shiftStartDate, shiftEndDate;
+    
+    if (dateRange === 'month') {
+      shiftStartDate = startOfMonth(now);
+      shiftEndDate = endOfMonth(now);
+    } else if (dateRange === 'custom') {
+      shiftStartDate = parseISO(startDate);
+      shiftEndDate = parseISO(endDate);
+    } else {
+      shiftStartDate = null;
+      shiftEndDate = null;
+    }
+    
     filteredShifts.forEach((shift) => {
       if (!shift.ora_inizio || !shift.ora_fine || !shift.data) return;
       if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
 
+      const shiftDate = shift.data;
+      const date = parseISO(shiftDate);
+      
+      // Apply date filtering
+      if (shiftStartDate && date < shiftStartDate) return;
+      if (shiftEndDate && date > shiftEndDate) return;
+
       // Filter by day of week if selected
       if (selectedDayOfWeek !== 'all') {
-        const shiftDate = parseISO(shift.data);
-        const dayIndex = shiftDate.getDay();
+        const dayIndex = date.getDay();
         const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
         if (adjustedIndex !== parseInt(selectedDayOfWeek)) return;
       }
-
-      const shiftDate = shift.data;
       if (!slotDataByDay[shiftDate]) {
         slotDataByDay[shiftDate] = {};
       }
@@ -316,7 +335,7 @@ export default function Produttivita() {
       revenuePerHour: (avgHoursPerSlot[item.slot] || 0) > 0 ? (item.revenue / item.count) / (avgHoursPerSlot[item.slot]) : 0
     })).
     sort((a, b) => a.slot.localeCompare(b.slot));
-  }, [filteredData, timeSlotView, filteredShifts, selectedStore, selectedDayOfWeek]);
+  }, [filteredData, timeSlotView, filteredShifts, selectedStore, selectedDayOfWeek, dateRange, startDate, endDate]);
 
   // Daily data for selected date
   const dailySlotData = useMemo(() => {
