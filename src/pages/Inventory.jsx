@@ -68,7 +68,7 @@ export default function Inventory() {
 
   const { data: inventory = [] } = useQuery({
     queryKey: ['rilevazione-inventario'],
-    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 500)
+    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 5000)
   });
 
   const { data: products = [] } = useQuery({
@@ -85,7 +85,7 @@ export default function Inventory() {
 
   const { data: inventoryCantina = [] } = useQuery({
     queryKey: ['rilevazione-inventario-cantina'],
-    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 500)
+    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 5000)
   });
 
   // Filter inventory by store (combine negozio and cantina)
@@ -929,7 +929,7 @@ export default function Inventory() {
               const sortedCompletions = Object.values(formCompletions).
               sort((a, b) => new Date(b.data) - new Date(a.data)).
               filter((fc) => selectedStore === 'all' || fc.store_id === selectedStore).
-              slice(0, 50);
+              slice(0, 500);
 
               if (sortedCompletions.length === 0) {
                 return (
