@@ -119,6 +119,21 @@ export default function Produttivita() {
 
   // Calculate AVERAGE hours worked by time slot (per day)
   const hoursWorkedBySlot = useMemo(() => {
+    // Apply date range filtering
+    const now = new Date();
+    let shiftStartDate, shiftEndDate;
+    
+    if (dateRange === 'month') {
+      shiftStartDate = startOfMonth(now);
+      shiftEndDate = endOfMonth(now);
+    } else if (dateRange === 'custom') {
+      shiftStartDate = parseISO(startDate);
+      shiftEndDate = parseISO(endDate);
+    } else {
+      shiftStartDate = null;
+      shiftEndDate = null;
+    }
+
     const slotDataByDay = {}; // { date: { slot: hours } }
 
     filteredShifts.forEach((shift) => {
@@ -127,6 +142,18 @@ export default function Produttivita() {
 
       const shiftDate = shift.data;
       if (!shiftDate) return;
+
+      // Apply date filtering
+      const date = parseISO(shiftDate);
+      if (shiftStartDate && date < shiftStartDate) return;
+      if (shiftEndDate && date > shiftEndDate) return;
+
+      // Apply day of week filtering
+      if (selectedDayOfWeek !== 'all') {
+        const dayIndex = date.getDay();
+        const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+        if (adjustedIndex !== parseInt(selectedDayOfWeek)) return;
+      }
 
       if (!slotDataByDay[shiftDate]) {
         slotDataByDay[shiftDate] = {};
@@ -497,6 +524,21 @@ export default function Produttivita() {
 
   // Weekly/Monthly productivity by store
   const storeProductivity = useMemo(() => {
+    // Apply date range filtering for shifts
+    const now = new Date();
+    let shiftStartDate, shiftEndDate;
+    
+    if (dateRange === 'month') {
+      shiftStartDate = startOfMonth(now);
+      shiftEndDate = endOfMonth(now);
+    } else if (dateRange === 'custom') {
+      shiftStartDate = parseISO(startDate);
+      shiftEndDate = parseISO(endDate);
+    } else {
+      shiftStartDate = null;
+      shiftEndDate = null;
+    }
+
     const storeData = {};
 
     // Group by store and time period (week/month)
@@ -538,6 +580,11 @@ export default function Produttivita() {
       if (!shift.ora_inizio || !shift.ora_fine || !shift.data || !shift.store_id) return;
 
       const date = parseISO(shift.data);
+      
+      // Apply date filtering
+      if (shiftStartDate && date < shiftStartDate) return;
+      if (shiftEndDate && date > shiftEndDate) return;
+
       const weekKey = `${format(startOfWeek(date, { locale: it }), 'yyyy-MM-dd')}`;
       const monthKey = format(date, 'yyyy-MM');
 
@@ -573,10 +620,25 @@ export default function Produttivita() {
     });
 
     return storeData;
-  }, [filteredData, filteredShifts]);
+  }, [filteredData, filteredShifts, dateRange, startDate, endDate]);
 
   // Daily productivity by store
   const dailyProductivity = useMemo(() => {
+    // Apply date range filtering for shifts
+    const now = new Date();
+    let shiftStartDate, shiftEndDate;
+    
+    if (dateRange === 'month') {
+      shiftStartDate = startOfMonth(now);
+      shiftEndDate = endOfMonth(now);
+    } else if (dateRange === 'custom') {
+      shiftStartDate = parseISO(startDate);
+      shiftEndDate = parseISO(endDate);
+    } else {
+      shiftStartDate = null;
+      shiftEndDate = null;
+    }
+
     const dailyData = {};
 
     // Aggregate revenue by date and store
@@ -598,6 +660,12 @@ export default function Produttivita() {
     filteredShifts.forEach((shift) => {
       if (!shift.ora_inizio || !shift.ora_fine || !shift.data || !shift.store_id) return;
 
+      const date = parseISO(shift.data);
+      
+      // Apply date filtering
+      if (shiftStartDate && date < shiftStartDate) return;
+      if (shiftEndDate && date > shiftEndDate) return;
+
       const key = `${shift.data}_${shift.store_id}`;
 
       // Calculate shift duration in hours
@@ -617,7 +685,7 @@ export default function Produttivita() {
       productivity: item.hours > 0 ? item.revenue / item.hours : 0
     })).
     sort((a, b) => b.date.localeCompare(a.date));
-  }, [filteredData, filteredShifts]);
+  }, [filteredData, filteredShifts, dateRange, startDate, endDate]);
 
   const stats = {
     totalRevenue: filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0),
