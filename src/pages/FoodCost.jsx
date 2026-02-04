@@ -21,7 +21,9 @@ export default function FoodCost() {
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list()
+    queryFn: () => base44.entities.Store.list(),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   const { data: iPraticoData = [] } = useQuery({

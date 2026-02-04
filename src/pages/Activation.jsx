@@ -1235,20 +1235,21 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
         }
 
         {/* Lista View */}
-        {activeView === 'lista' &&
+        {activeView === 'lista' && (
+          activations.length === 0 ?
         <NeumorphicCard className="p-6">
             <h2 className="text-xl font-bold text-slate-800 mb-4">Tutte le Activation</h2>
-            
-            {activations.length === 0 ?
-          <div className="text-center py-12">
-                <Zap className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Nessuna activation creata</p>
-              </div> :
-
+            <div className="text-center py-12">
+              <Zap className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500">Nessuna activation creata</p>
+            </div>
+          </NeumorphicCard> :
+        <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Tutte le Activation</h2>
           <div className="space-y-3">
                 {[...activations].sort((a, b) => 
                   new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
-                ).map((activation) =>
+                ).map((activation) => (
             <div key={activation.id} className="neumorphic-pressed p-5 rounded-xl">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
@@ -1338,11 +1339,10 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       </div>
                     </div>
                   </div>
-            )}
-              </div>
-          }
-          </NeumorphicCard>
-        }
+                  ))}
+                  </div>
+                  </NeumorphicCard>
+                  )}
 
         {/* Vista Per Persona */}
         {activeView === 'per_persona' &&

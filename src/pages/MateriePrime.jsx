@@ -1145,9 +1145,20 @@ export default function MateriePrime() {
         }
 
         {isLoading ?
-        <NeumorphicCard className="p-12 text-center">
-            <p className="text-slate-500">Caricamento...</p>
-          </NeumorphicCard> :
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <NeumorphicCard key={idx} className="p-6">
+              <div className="animate-pulse space-y-3">
+                <div className="h-6 bg-slate-200 rounded w-48 mb-4" />
+                <div className="space-y-2">
+                  <div className="h-12 bg-slate-200 rounded" />
+                  <div className="h-12 bg-slate-200 rounded" />
+                  <div className="h-12 bg-slate-200 rounded" />
+                </div>
+              </div>
+            </NeumorphicCard>
+          ))}
+        </div> :
         filteredProducts.length === 0 ?
         <NeumorphicCard className="p-12 text-center">
             <Package className="w-16 h-16 text-slate-300 mx-auto mb-4 opacity-50" />

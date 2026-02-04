@@ -1466,9 +1466,13 @@ export default function Layout({ children, currentPageName }) {
 
               <nav className="flex-1 space-y-0 px-3 py-4">
                 {!isFullyLoaded ? (
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-3" />
-                    <p className="text-sm text-slate-500">Caricamento menu...</p>
+                  <div className="space-y-2">
+                    {Array.from({ length: 8 }).map((_, idx) => (
+                      <div key={idx} className="animate-pulse flex items-center gap-3 px-3 py-3 rounded-lg">
+                        <div className="w-4 h-4 bg-slate-700 rounded" />
+                        <div className="h-4 bg-slate-700 rounded w-32" />
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   finalNavigation.map((item) => {
@@ -1596,7 +1600,16 @@ export default function Layout({ children, currentPageName }) {
               </div>
 
               <nav className="flex-1 space-y-1">
-              {isFullyLoaded && bottomNavItems && bottomNavItems.length > 0 ? (
+              {!isFullyLoaded ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 6 }).map((_, idx) => (
+                    <div key={idx} className="animate-pulse flex items-center gap-3 px-3 py-3 rounded-lg">
+                      <div className="w-4 h-4 bg-slate-300 rounded" />
+                      <div className="h-4 bg-slate-300 rounded w-24" />
+                    </div>
+                  ))}
+                </div>
+              ) : bottomNavItems && bottomNavItems.length > 0 ? (
                 bottomNavItems.map((item) => {
                   const isActive = isActiveLink(item.url);
                   const Icon = item.icon || User;

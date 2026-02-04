@@ -1199,7 +1199,12 @@ export default function Dashboard() {
         {/* Trend Revenue */}
         <NeumorphicCard className="p-4 lg:p-6">
           <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Revenue</h2>
-          {processedData.dailyRevenue.length > 0 ?
+          {dataLoading ? (
+            <div className="animate-pulse space-y-3">
+              <div className="h-6 bg-slate-200 rounded w-32" />
+              <div className="h-64 bg-slate-200 rounded" />
+            </div>
+          ) : processedData.dailyRevenue.length > 0 ?
           <div className="w-full overflow-x-auto">
               <div style={{ minWidth: '300px' }}>
                 <ResponsiveContainer width="100%" height={250}>

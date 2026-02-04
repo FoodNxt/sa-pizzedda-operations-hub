@@ -1406,8 +1406,21 @@ export default function Ricette() {
 
       {/* Ricette List */}
       {isLoading ? (
-        <NeumorphicCard className="p-12 text-center">
-          <p className="text-slate-500">Caricamento...</p>
+        <NeumorphicCard className="p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-6 bg-slate-200 rounded w-40 mb-4" />
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div key={idx} className="grid grid-cols-6 gap-4">
+                  <div className="h-10 bg-slate-200 rounded col-span-2" />
+                  <div className="h-10 bg-slate-200 rounded" />
+                  <div className="h-10 bg-slate-200 rounded" />
+                  <div className="h-10 bg-slate-200 rounded" />
+                  <div className="h-10 bg-slate-200 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
         </NeumorphicCard>
       ) : filteredRicette.length === 0 ? (
         <NeumorphicCard className="p-12 text-center">
