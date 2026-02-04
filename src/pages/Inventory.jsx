@@ -8,6 +8,8 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  ArrowUp,
+  ArrowDown,
   Filter,
   X,
   ShoppingCart,
@@ -381,6 +383,80 @@ export default function Inventory() {
     return filtered.sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione));
   };
 
+  // Optimization analysis
+  const optimizationData = useMemo(() => {
+    const allInventory = [...inventory, ...inventoryCantina];
+    const productAnalysis = {};
+
+    // Analyze each product
+    allInventory.forEach((reading) => {
+      const key = `${reading.store_id}-${reading.prodotto_id}`;
+      if (!productAnalysis[key]) {
+        productAnalysis[key] = {
+          prodotto_id: reading.prodotto_id,
+          store_id: reading.store_id,
+          nome_prodotto: reading.nome_prodotto,
+          store_name: reading.store_name,
+          unita_misura: reading.unita_misura,
+          readings: []
+        };
+      }
+      productAnalysis[key].readings.push(reading);
+    });
+
+    const increaseStock = [];
+    const decreaseStock = [];
+
+    Object.values(productAnalysis).forEach((analysis) => {
+      if (analysis.readings.length < 3) return; // Skip if not enough data
+
+      const product = products.find((p) => p.id === analysis.prodotto_id);
+      if (!product) return;
+
+      const quantitaCritica = product.store_specific_quantita_critica?.[analysis.store_id] || product.quantita_critica || 0;
+      const quantitaOrdine = product.store_specific_quantita_ordine?.[analysis.store_id] || product.quantita_ordine || 0;
+
+      // Calculate stats from last 10 readings
+      const recentReadings = analysis.readings.slice(-10);
+      const zeroCount = recentReadings.filter((r) => r.quantita_rilevata === 0).length;
+      const belowCriticalCount = recentReadings.filter((r) => r.quantita_rilevata <= quantitaCritica).length;
+      const aboveCriticalCount = recentReadings.filter((r) => r.quantita_rilevata > quantitaCritica * 2).length;
+      const avgQuantity = recentReadings.reduce((sum, r) => sum + r.quantita_rilevata, 0) / recentReadings.length;
+
+      // Prodotti spesso a 0 o sotto critica
+      if (zeroCount >= 3 || belowCriticalCount >= 6) {
+        increaseStock.push({
+          ...analysis,
+          zeroCount,
+          belowCriticalCount,
+          avgQuantity,
+          quantitaCritica,
+          quantitaOrdine,
+          product,
+          suggerimento: zeroCount >= 3 ? 'Aumenta quantità ordine o frequenza ordini' : 'Considera aumento stock minimo'
+        });
+      }
+
+      // Prodotti sempre ben sopra la soglia
+      if (aboveCriticalCount >= 7 && avgQuantity > quantitaCritica * 2.5) {
+        decreaseStock.push({
+          ...analysis,
+          aboveCriticalCount,
+          avgQuantity,
+          quantitaCritica,
+          quantitaOrdine,
+          product,
+          suggerimento: 'Stock eccessivo - riduci quantità critica o ordine'
+        });
+      }
+    });
+
+    return {
+      increaseStock: increaseStock.sort((a, b) => b.zeroCount - a.zeroCount),
+      decreaseStock: decreaseStock.sort((a, b) => b.avgQuantity - a.avgQuantity)
+    };
+  }, [inventory, inventoryCantina, products]);
+
   // Calculate product trends
   const getProductTrend = (productId, storeId) => {
     const last30Days = subDays(new Date(), 30);
@@ -530,7 +606,8 @@ export default function Inventory() {
 
   const tabs = [
   { id: 'overview', label: 'Panoramica', icon: Package },
-  { id: 'history', label: 'Storico', icon: History }];
+  { id: 'history', label: 'Storico', icon: History },
+  { id: 'optimizations', label: 'Ottimizzazioni', icon: TrendingUp }];
 
 
   return (
@@ -996,6 +1073,131 @@ export default function Inventory() {
                   </div>);
 
             })()}
+            </NeumorphicCard>
+          </div>
+        }
+
+        {/* Optimizations Tab */}
+        {activeTab === 'optimizations' &&
+        <div className="space-y-6">
+            {/* Increase Stock */}
+            <NeumorphicCard className="p-4 lg:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                  <ArrowUp className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Aumento Stock Consigliato</h2>
+                  <p className="text-sm text-slate-500">Prodotti spesso a 0 o sotto critica</p>
+                </div>
+              </div>
+
+              {optimizationData.increaseStock.length === 0 ? 
+                <div className="text-center py-8 text-slate-500">
+                  <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-500 opacity-30" />
+                  <p className="text-sm">Nessun prodotto richiede aumento stock</p>
+                </div>
+              :
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-red-600">
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Prodotto</th>
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Media Qtà</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">A Zero</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Sotto Critica</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Qtà Ordine</th>
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Suggerimento</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {optimizationData.increaseStock
+                        .filter((item) => selectedStore === 'all' || item.store_id === selectedStore)
+                        .map((item, idx) => (
+                        <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                          <td className="p-3 text-sm text-slate-700 font-medium">{item.nome_prodotto}</td>
+                          <td className="p-3 text-sm text-slate-700">{item.store_name}</td>
+                          <td className="p-3 text-sm text-right text-slate-700">
+                            {item.avgQuantity.toFixed(1)} {item.unita_misura}
+                          </td>
+                          <td className="p-3 text-sm text-right">
+                            <span className="px-2 py-1 rounded-full bg-red-100 text-red-700 font-bold">
+                              {item.zeroCount}/10
+                            </span>
+                          </td>
+                          <td className="p-3 text-sm text-right">
+                            <span className="px-2 py-1 rounded-full bg-orange-100 text-orange-700 font-bold">
+                              {item.belowCriticalCount}/10
+                            </span>
+                          </td>
+                          <td className="p-3 text-sm text-right font-bold text-blue-600">
+                            {item.quantitaOrdine} {item.unita_misura}
+                          </td>
+                          <td className="p-3 text-sm text-slate-600">{item.suggerimento}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </NeumorphicCard>
+
+            {/* Decrease Stock */}
+            <NeumorphicCard className="p-4 lg:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                  <ArrowDown className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Diminuisci Stock</h2>
+                  <p className="text-sm text-slate-500">Prodotti sempre ben sopra soglia critica</p>
+                </div>
+              </div>
+
+              {optimizationData.decreaseStock.length === 0 ? 
+                <div className="text-center py-8 text-slate-500">
+                  <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-500 opacity-30" />
+                  <p className="text-sm">Nessun prodotto richiede riduzione stock</p>
+                </div>
+              :
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b-2 border-green-600">
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Prodotto</th>
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Media Qtà</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Qtà Critica</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Sopra Critica</th>
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Suggerimento</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {optimizationData.decreaseStock
+                        .filter((item) => selectedStore === 'all' || item.store_id === selectedStore)
+                        .map((item, idx) => (
+                        <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                          <td className="p-3 text-sm text-slate-700 font-medium">{item.nome_prodotto}</td>
+                          <td className="p-3 text-sm text-slate-700">{item.store_name}</td>
+                          <td className="p-3 text-sm text-right font-bold text-green-600">
+                            {item.avgQuantity.toFixed(1)} {item.unita_misura}
+                          </td>
+                          <td className="p-3 text-sm text-right text-slate-700">
+                            {item.quantitaCritica} {item.unita_misura}
+                          </td>
+                          <td className="p-3 text-sm text-right">
+                            <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 font-bold">
+                              {item.aboveCriticalCount}/10
+                            </span>
+                          </td>
+                          <td className="p-3 text-sm text-slate-600">{item.suggerimento}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              }
             </NeumorphicCard>
           </div>
         }
