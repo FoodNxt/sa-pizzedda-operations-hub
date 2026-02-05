@@ -143,20 +143,19 @@ p.text-gray-600 {
 }
 
 /* Page Headings - High Contrast */
-h1, h2, h3, h4, h5, h6,
-.compact-layout h1,
-.compact-layout h2,
-.compact-layout h3,
-.compact-layout h4,
-.compact-layout h5,
-.compact-layout h6 {
-  color: var(--text-primary) !important;
-  -webkit-text-fill-color: unset !important;
+h1, h2, h3, h4, h5, h6 {
+  color: #0f172a !important;
   background: none !important;
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
   text-shadow: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  h1, h2, h3, h4, h5, h6 {
+    color: #f1f5f9 !important;
+  }
 }
 
 .compact-layout h1,
