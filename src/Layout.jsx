@@ -600,6 +600,7 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
@@ -948,10 +949,25 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const toggleSection = (sectionTitle) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [sectionTitle]: !prev[sectionTitle]
-    }));
+    setExpandedSections(prev => {
+      const isCurrentlyExpanded = prev[sectionTitle];
+      
+      // Se la sezione è chiusa e la stiamo aprendo, chiudi tutte le altre
+      if (!isCurrentlyExpanded) {
+        const newState = {};
+        Object.keys(prev).forEach(key => {
+          newState[key] = false;
+        });
+        newState[sectionTitle] = true;
+        return newState;
+      }
+      
+      // Altrimenti solo toggle questa sezione
+      return {
+        ...prev,
+        [sectionTitle]: !prev[sectionTitle]
+      };
+    });
   };
 
   const isActiveLink = (url) => {
@@ -1487,16 +1503,30 @@ export default function Layout({ children, currentPageName }) {
         {normalizedUserType !== 'dipendente' ? (
           <aside className={`
             fixed lg:static inset-y-0 left-0 z-40
-            w-64 transform transition-transform duration-300 ease-in-out
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            transform transition-all duration-300 ease-in-out
+            ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'}
+            ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
             pt-20 lg:pt-0 bg-white
           `}>
             <div className="h-full flex flex-col overflow-y-auto" style={{ background: '#0f172a' }}>
-              <div className="hidden lg:flex items-center gap-2 px-6 py-5 border-b" style={{ borderColor: 'rgba(148, 163, 184, 0.2)' }}>
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-lg">
-                  SP
-                </div>
-                <h1 className="text-sm font-semibold text-slate-100">Sa Pizzedda</h1>
+              <div className="hidden lg:flex items-center justify-between px-6 py-5 border-b" style={{ borderColor: 'rgba(148, 163, 184, 0.2)' }}>
+                {!sidebarCollapsed && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-lg">
+                        SP
+                      </div>
+                      <h1 className="text-sm font-semibold text-slate-100">Sa Pizzedda</h1>
+                    </div>
+                  </>
+                )}
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                  title={sidebarCollapsed ? "Espandi menu" : "Comprimi menu"}
+                >
+                  <ChevronRight className={`w-5 h-5 transition-transform ${sidebarCollapsed ? 'rotate-0' : 'rotate-180'}`} />
+                </button>
               </div>
 
               <nav className="flex-1 space-y-0 px-3 py-4">
@@ -1519,16 +1549,17 @@ export default function Layout({ children, currentPageName }) {
                           to={item.url}
                           onClick={() => setSidebarOpen(false)}
                           className={`
-                            flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm
+                            flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} gap-3 px-3 py-2 rounded-lg text-sm
                             transition-all duration-200
                             ${isActive ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 font-medium text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-100'}
                           `}
+                          title={sidebarCollapsed ? item.title : ''}
                         >
-                          <div className="flex items-center gap-3">
+                          <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
                             <item.icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-400'}`} />
-                            <span>{item.title}</span>
+                            {!sidebarCollapsed && <span>{item.title}</span>}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-slate-400" />
+                          {!sidebarCollapsed && <ChevronRight className="w-4 h-4 text-slate-400" />}
                         </Link>
                       );
                     }
@@ -1542,23 +1573,26 @@ export default function Layout({ children, currentPageName }) {
                           <button
                             onClick={() => toggleSection(item.title)}
                             className={`
-                              w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm
+                              w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} gap-3 px-3 py-2 rounded-lg text-sm
                               transition-all duration-200
                               ${sectionActive ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 font-medium text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-100'}
                             `}
+                            title={sidebarCollapsed ? item.title : ''}
                           >
-                            <div className="flex items-center gap-3">
+                            <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
                               <item.icon className={`w-4 h-4 ${sectionActive ? 'text-blue-400' : 'text-slate-400'}`} />
-                              <span>{item.title}</span>
+                              {!sidebarCollapsed && <span>{item.title}</span>}
                             </div>
-                            {isExpanded ? (
-                              <ChevronDown className="w-4 h-4 text-slate-400" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4 text-slate-400" />
+                            {!sidebarCollapsed && (
+                              isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-slate-400" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-slate-400" />
+                              )
                             )}
                           </button>
 
-                          {isExpanded && (
+                          {isExpanded && !sidebarCollapsed && (
                             <div className="ml-0 mt-1 space-y-0">
                               {item.items.map((subItem) => {
                                 const isActive = isActiveLink(subItem.url);
