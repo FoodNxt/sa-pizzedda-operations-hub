@@ -1459,7 +1459,7 @@ export default function Layout({ children, currentPageName }) {
                 );
               })()}
               <div>
-                    <span className="text-lg font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
+                    <span className="text-lg font-bold text-slate-900">
                       {normalizedUserType === 'dipendente' ? getUserDisplayName() : 'Sa Pizzedda'}
                     </span>
                     <p className="text-xs text-slate-500">
@@ -1629,7 +1629,7 @@ export default function Layout({ children, currentPageName }) {
                   <Pizza className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">Sa Pizzedda</h1>
+                   <h1 className="text-xl font-bold text-slate-900">Sa Pizzedda</h1>
                   <p className="text-xs text-slate-500">Area Dipendente</p>
                 </div>
               </div>
