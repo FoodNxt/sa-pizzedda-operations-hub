@@ -1,7 +1,7 @@
 css
 /* Modern Dark SaaS Dashboard Theme */
 
-/* Root Variables - Light Theme (Default) */
+/* Root Variables for Dark SaaS Theme */
 :root {
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -13,18 +13,18 @@ css
   --header-height: 2.5rem;
   --chart-height: 180px;
   
-  /* Light Theme Colors */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #f1f5f9;
-  --bg-tertiary: #e2e8f0;
+  /* Dark Theme Colors */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
   
-  --card-bg: #ffffff;
-  --card-border: rgba(148, 163, 184, 0.2);
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --card-bg: #1e293b;
+  --card-border: rgba(148, 163, 184, 0.1);
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
   
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
   
   --gradient-blue-start: #3b82f6;
   --gradient-blue-end: #1e40af;
@@ -35,36 +35,14 @@ css
   --gradient-cyan-start: #06b6d4;
   --gradient-cyan-end: #0891b2;
   
-  --glow-blue: rgba(59, 130, 246, 0.2);
-  --glow-green: rgba(16, 185, 129, 0.2);
-  --glow-purple: rgba(139, 92, 246, 0.2);
+  --glow-blue: rgba(59, 130, 246, 0.3);
+  --glow-green: rgba(16, 185, 129, 0.3);
+  --glow-purple: rgba(139, 92, 246, 0.3);
 }
 
-/* Dark Theme (Based on System Preference) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark Theme Colors */
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    
-    --card-bg: #1e293b;
-    --card-border: rgba(148, 163, 184, 0.1);
-    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-    
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-muted: #94a3b8;
-    
-    --glow-blue: rgba(59, 130, 246, 0.3);
-    --glow-green: rgba(16, 185, 129, 0.3);
-    --glow-purple: rgba(139, 92, 246, 0.3);
-  }
-}
-
-/* Background Base */
+/* Dark Background Base */
 body {
-  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: var(--text-primary);
   min-height: 100vh;
   overscroll-behavior: none;
