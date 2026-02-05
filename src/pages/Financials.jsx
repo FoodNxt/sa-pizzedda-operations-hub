@@ -88,6 +88,20 @@ export default function Financials() {
     queryFn: () => base44.entities.FinanceConfig.list()
   });
 
+  const { data: targets = [] } = useQuery({
+    queryKey: ['targets'],
+    queryFn: () => base44.entities.Target.list()
+  });
+
+  const saveTargetMutation = useMutation({
+    mutationFn: (targetData) => base44.entities.Target.create(targetData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['targets'] });
+      setSelectedTargetView('list');
+      setTargetName('');
+    }
+  });
+
   const saveConfigMutation = useMutation({
     mutationFn: async (configData) => {
       const existing = await base44.entities.FinanceConfig.list();
