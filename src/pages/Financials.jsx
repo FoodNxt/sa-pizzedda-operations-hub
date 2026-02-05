@@ -4834,10 +4834,12 @@ export default function Financials() {
                 </>
               );
             })()}
-          </>
-        )}
+            </NeumorphicCard>
+            )}
+            </>
+            )}
 
-        {/* Confronto Mensile Tab - REMOVED */}
+            {/* Confronto Mensile Tab - REMOVED */}
         {activeTab === 'confronto_mensile_removed' &&
         <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
