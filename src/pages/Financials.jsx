@@ -4971,12 +4971,9 @@ export default function Financials() {
                               // Cumula i valori
                               if (isPast) {
                                 cumulativeActual += dayRevenue;
-                                // Per i giorni passati, predicted segue actual
-                                cumulativePredicted = cumulativeActual;
                               } else {
-                                // Per i giorni futuri, predicted parte dall'ultimo actual e continua
-                                if (i === daysPassed) {
-                                  // Primo giorno futuro: parti dall'ultimo actual
+                                // Primo giorno futuro: inizializza predicted con l'actual corrente
+                                if (cumulativePredicted === 0) {
                                   cumulativePredicted = cumulativeActual;
                                 }
                                 cumulativePredicted += predictedDayRevenue;
@@ -4991,6 +4988,8 @@ export default function Financials() {
                                 required: parseFloat(cumulativeRequired.toFixed(2))
                               });
                             }
+
+                            return timelineData;
 
                             return timelineData;
                           })()}>
