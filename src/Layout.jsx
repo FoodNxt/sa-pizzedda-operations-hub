@@ -4,6 +4,8 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import moment from "moment";
 import { motion } from "framer-motion";
+import PullToRefresh from "react-simple-pull-to-refresh";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   MapPin,
@@ -595,6 +597,7 @@ const getNormalizedUserType = (userType) => {
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -1699,15 +1702,27 @@ export default function Layout({ children, currentPageName }) {
           ${normalizedUserType === 'dipendente' ? 'pt-24 pb-44 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
           px-3 py-3 lg:px-6 lg:py-4
         `}>
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
+          <PullToRefresh
+            onRefresh={async () => {
+              await queryClient.refetchQueries();
+            }}
+            pullingContent=""
+            refreshingContent={
+              <div className="flex justify-center py-4">
+                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            }
           >
-            {children}
-          </motion.div>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              {children}
+            </motion.div>
+          </PullToRefresh>
         </main>
       </div>
 
