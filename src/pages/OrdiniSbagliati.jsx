@@ -43,6 +43,7 @@ export default function OrdiniSbagliati() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [showCount, setShowCount] = useState(true);
   const [showRefunds, setShowRefunds] = useState(true);
+  const [trendView, setTrendView] = useState('daily'); // 'daily', 'weekly', 'monthly'
   const [showColumnMapping, setShowColumnMapping] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState([]);
   const [columnMapping, setColumnMapping] = useState({
@@ -798,7 +799,7 @@ export default function OrdiniSbagliati() {
       if (order.platform === 'deliveroo') byStore[storeName].deliveroo++;
     });
 
-    // Group by date - include ALL days in range, even with 0 orders
+    // Group by date based on view mode
     const now = new Date();
     let startDate, endDate;
 
@@ -823,27 +824,62 @@ export default function OrdiniSbagliati() {
       }
     }
 
-    // Create an entry for each day in the range
     const byDate = {};
-    const currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const dateKey = format(currentDate, 'dd/MM', { locale: it });
-      byDate[dateKey] = {
-        date: dateKey,
-        count: 0,
-        refunds: 0
-      };
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
 
-    // Add actual order data
-    filteredOrders.forEach((order) => {
-      const date = format(parseISO(order.order_date), 'dd/MM', { locale: it });
-      if (byDate[date]) {
-        byDate[date].count++;
-        byDate[date].refunds += order.refund_value || 0;
+    if (trendView === 'daily') {
+      // Daily view - one entry per day
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dateKey = format(currentDate, 'dd/MM', { locale: it });
+        byDate[dateKey] = {
+          date: dateKey,
+          count: 0,
+          refunds: 0
+        };
+        currentDate.setDate(currentDate.getDate() + 1);
       }
-    });
+
+      filteredOrders.forEach((order) => {
+        const date = format(parseISO(order.order_date), 'dd/MM', { locale: it });
+        if (byDate[date]) {
+          byDate[date].count++;
+          byDate[date].refunds += order.refund_value || 0;
+        }
+      });
+    } else if (trendView === 'weekly') {
+      // Weekly view - group by week
+      filteredOrders.forEach((order) => {
+        const orderDate = parseISO(order.order_date);
+        const weekStart = startOfWeek(orderDate, { locale: it });
+        const weekKey = `${format(weekStart, 'dd/MM', { locale: it })}`;
+        
+        if (!byDate[weekKey]) {
+          byDate[weekKey] = {
+            date: weekKey,
+            count: 0,
+            refunds: 0
+          };
+        }
+        byDate[weekKey].count++;
+        byDate[weekKey].refunds += order.refund_value || 0;
+      });
+    } else if (trendView === 'monthly') {
+      // Monthly view - group by month
+      filteredOrders.forEach((order) => {
+        const orderDate = parseISO(order.order_date);
+        const monthKey = format(orderDate, 'MM/yyyy', { locale: it });
+        
+        if (!byDate[monthKey]) {
+          byDate[monthKey] = {
+            date: monthKey,
+            count: 0,
+            refunds: 0
+          };
+        }
+        byDate[monthKey].count++;
+        byDate[monthKey].refunds += order.refund_value || 0;
+      });
+    }
 
     return {
       byStore: Object.entries(byStore).map(([name, data]) => ({ name, ...data })),
@@ -853,7 +889,7 @@ export default function OrdiniSbagliati() {
         return monthA !== monthB ? monthA - monthB : dayA - dayB;
       })
     };
-  }, [filteredOrders, stores, dateRange]);
+  }, [filteredOrders, stores, dateRange, trendView]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -1542,6 +1578,29 @@ export default function OrdiniSbagliati() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-[#6b6b6b]">Trend nel Tempo</h3>
               <div className="flex gap-3">
+                <div className="flex gap-2 neumorphic-pressed rounded-lg p-1">
+                  <button
+                    onClick={() => setTrendView('daily')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                      trendView === 'daily' ? 'bg-blue-500 text-white' : 'text-[#6b6b6b]'
+                    }`}>
+                    Giornaliera
+                  </button>
+                  <button
+                    onClick={() => setTrendView('weekly')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                      trendView === 'weekly' ? 'bg-blue-500 text-white' : 'text-[#6b6b6b]'
+                    }`}>
+                    Settimanale
+                  </button>
+                  <button
+                    onClick={() => setTrendView('monthly')}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                      trendView === 'monthly' ? 'bg-blue-500 text-white' : 'text-[#6b6b6b]'
+                    }`}>
+                    Mensile
+                  </button>
+                </div>
                 <NeumorphicButton
                 onClick={() => analyzeWithAI('byDate')}
                 disabled={analyticsData.byDate.length === 0 || loadingAI}
