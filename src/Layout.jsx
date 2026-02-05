@@ -1297,22 +1297,35 @@ export default function Layout({ children, currentPageName }) {
 
   const isFullyLoaded = !isLoadingUser && !isLoadingConfig && currentUser;
 
-  // Get main navigation items for bottom bar (dipendente only) - STABILE
+  // Get main navigation items for bottom bar (ALL roles) - STABILE
   const bottomNavItems = useMemo(() => {
-    if (normalizedUserType !== 'dipendente') return [];
-    
-    // ALWAYS ensure we have items - never return empty
-    if (!dipendenteNav || dipendenteNav.length === 0 || !dipendenteNav[0]?.items || dipendenteNav[0].items.length === 0) {
-      // Fallback garantito - SEMPRE visibile
-      return [
-        { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
-        { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
-      ];
+    if (normalizedUserType === 'dipendente') {
+      // ALWAYS ensure we have items - never return empty
+      if (!dipendenteNav || dipendenteNav.length === 0 || !dipendenteNav[0]?.items || dipendenteNav[0].items.length === 0) {
+        // Fallback garantito - SEMPRE visibile
+        return [
+          { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
+          { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
+        ];
+      }
+      
+      // Return all items from dipendente nav
+      return dipendenteNav[0].items;
     }
     
-    // Return all items from dipendente nav
-    return dipendenteNav[0].items;
-  }, [normalizedUserType, dipendenteNav]);
+    // For admin and manager - get top-level sections
+    if (!filteredNavigation || filteredNavigation.length === 0) return [];
+    
+    // Extract main sections as bottom nav items
+    const mainSections = filteredNavigation.slice(0, 5).map(section => ({
+      title: section.title,
+      url: section.items[0]?.url || '#',
+      icon: section.icon,
+      isSection: true
+    }));
+    
+    return mainSections;
+  }, [normalizedUserType, dipendenteNav, filteredNavigation]);
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
@@ -1674,8 +1687,8 @@ export default function Layout({ children, currentPageName }) {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation (Dipendente only) */}
-      {normalizedUserType === 'dipendente' && bottomNavItems && bottomNavItems.length > 0 && (
+      {/* Mobile Bottom Navigation (ALL roles) */}
+      {bottomNavItems && bottomNavItems.length > 0 && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] safe-area-bottom bg-gradient-to-br from-slate-50 to-slate-100">
           <div className="px-2 pb-2 pt-1">
             <button
@@ -1709,6 +1722,12 @@ export default function Layout({ children, currentPageName }) {
                           <Link
                             key={item.url}
                             to={item.url}
+                            onClick={(e) => {
+                              if (isActive) {
+                                e.preventDefault();
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
                             className={`bottom-nav-item compact ${isActive ? 'active' : ''}`}
                           >
                             <Icon className={`${isActive ? 'text-white' : 'text-slate-600'}`} />
@@ -1745,6 +1764,12 @@ export default function Layout({ children, currentPageName }) {
                           <Link
                             key={item.url}
                             to={item.url}
+                            onClick={(e) => {
+                              if (isActive) {
+                                e.preventDefault();
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
                             className={`bottom-nav-item ${isActive ? 'active' : ''}`}
                           >
                             <Icon className={`${isActive ? 'text-white' : 'text-slate-600'}`} />
@@ -1776,6 +1801,12 @@ export default function Layout({ children, currentPageName }) {
                             <Link
                               key={item.url}
                               to={item.url}
+                              onClick={(e) => {
+                                if (isActive) {
+                                  e.preventDefault();
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                              }}
                               className={`bottom-nav-item ${isActive ? 'active' : ''}`}
                             >
                               <Icon className={`${isActive ? 'text-white' : 'text-slate-600'}`} />
