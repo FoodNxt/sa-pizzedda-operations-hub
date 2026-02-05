@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save, CreditCard, Wallet, ChevronUp, ChevronDown, BarChart3, Sparkles, Loader2 } from 'lucide-react';
+import { DollarSign, TrendingUp, Filter, Calendar, X, Settings, Eye, EyeOff, Save, CreditCard, Wallet, ChevronUp, ChevronDown, BarChart3, Sparkles, Loader2, AlertTriangle, CheckCircle } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears } from 'date-fns';
