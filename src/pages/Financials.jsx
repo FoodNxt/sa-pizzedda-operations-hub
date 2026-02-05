@@ -20,6 +20,9 @@ export default function Financials() {
   const [targetStartDate, setTargetStartDate] = useState('');
   const [targetEndDate, setTargetEndDate] = useState('');
   const [historicalDaysTarget, setHistoricalDaysTarget] = useState(30);
+  const [selectedTargetView, setSelectedTargetView] = useState('list'); // 'list' o 'create'
+  const [selectedTargetId, setSelectedTargetId] = useState(null);
+  const [targetName, setTargetName] = useState('');
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('30');
   const [selectedMonth, setSelectedMonth] = useState('');
