@@ -851,7 +851,7 @@ export default function OrdiniSbagliati() {
       filteredOrders.forEach((order) => {
         const orderDate = parseISO(order.order_date);
         const weekStart = startOfWeek(orderDate, { locale: it });
-        const weekKey = `${format(weekStart, 'dd/MM', { locale: it })}`;
+        const weekKey = `${format(weekStart, 'dd/MM/yy', { locale: it })}`;
         
         if (!byDate[weekKey]) {
           byDate[weekKey] = {
@@ -892,9 +892,11 @@ export default function OrdiniSbagliati() {
       });
     } else if (trendView === 'weekly') {
       sortedByDate.sort((a, b) => {
-        const [dayA, monthA] = a.date.split('/').map(Number);
-        const [dayB, monthB] = b.date.split('/').map(Number);
-        return monthA !== monthB ? monthA - monthB : dayA - dayB;
+        const [dayA, monthA, yearA] = a.date.split('/').map(Number);
+        const [dayB, monthB, yearB] = b.date.split('/').map(Number);
+        if (yearA !== yearB) return yearA - yearB;
+        if (monthA !== monthB) return monthA - monthB;
+        return dayA - dayB;
       });
     } else if (trendView === 'monthly') {
       sortedByDate.sort((a, b) => {
