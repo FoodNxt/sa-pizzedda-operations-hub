@@ -1459,7 +1459,7 @@ export default function Layout({ children, currentPageName }) {
                 );
               })()}
               <div>
-                    <span className="text-lg font-bold text-slate-900">
+                    <span style={{ color: '#000000' }} className="text-lg font-bold">
                       {normalizedUserType === 'dipendente' ? getUserDisplayName() : 'Sa Pizzedda'}
                     </span>
                     <p className="text-xs text-slate-500">
@@ -1629,7 +1629,7 @@ export default function Layout({ children, currentPageName }) {
                   <Pizza className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                   <h1 className="text-xl font-bold text-slate-900">Sa Pizzedda</h1>
+                   <h1 style={{ color: '#000000' }} className="text-xl font-bold">Sa Pizzedda</h1>
                   <p className="text-xs text-slate-500">Area Dipendente</p>
                 </div>
               </div>

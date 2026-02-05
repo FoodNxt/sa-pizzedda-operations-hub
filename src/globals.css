@@ -118,9 +118,9 @@ p.text-gray-600 {
   background-clip: unset !important;
 }
 
-/* HEADINGS - DEFINITIVO - Visibilità garantita */
+/* HEADINGS - DEFINITIVO - Visibilità MASSIMA garantita */
 h1, h2, h3, h4, h5, h6 {
-  color: #0f172a !important;
+  color: #000000 !important;
   background: transparent !important;
   background-image: none !important;
   -webkit-background-clip: unset !important;
@@ -131,12 +131,15 @@ h1, h2, h3, h4, h5, h6 {
   display: block !important;
   text-decoration: none !important;
   letter-spacing: normal !important;
+  font-weight: 700 !important;
+  font-size: inherit !important;
 }
 
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   h1, h2, h3, h4, h5, h6 {
-    color: #f1f5f9 !important;
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
   }
 }
 
