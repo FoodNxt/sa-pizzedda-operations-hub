@@ -91,11 +91,11 @@ button {
    FORCE NUCLEARE: KILL TUTTI I GRADIENT
    ======================================== */
 
-/* MASSIMA PRIORITÀ: Elimina bg-gradient OVUNQUE con attribute selector */
-[class*="bg-gradient"][class*="bg-clip"],
-[class*="bg-gradient"][class*="text-transparent"],
-.compact-layout [class*="bg-gradient"][class*="bg-clip"],
-.compact-layout [class*="bg-gradient"][class*="text-transparent"] {
+/* MASSIMA PRIORITÀ: Elimina bg-gradient OVUNQUE con attribute selector - BUT NOT ON NATIVE HEADINGS */
+[class*="bg-gradient"][class*="bg-clip"]:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+[class*="bg-gradient"][class*="text-transparent"]:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+.compact-layout [class*="bg-gradient"][class*="bg-clip"]:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+.compact-layout [class*="bg-gradient"][class*="text-transparent"]:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
   background: none !important;
   background-image: none !important;
   -webkit-background-clip: unset !important;
@@ -104,38 +104,14 @@ button {
   color: #ffffff !important;
 }
 
-/* TUTTI gli heading e paragrafi BIANCHI - specificità massima */
-.compact-layout h1,
-.compact-layout h1 *,
-.compact-layout h1 span,
-.compact-layout h1 div,
-.compact-layout h2,
-.compact-layout h2 *,
-.compact-layout h2 span,
-.compact-layout h2 div,
-.compact-layout h3,
-.compact-layout h3 *,
-.compact-layout h3 span,
-.compact-layout h3 div,
-.compact-layout h4,
-.compact-layout h4 *,
-.compact-layout h5,
-.compact-layout h5 *,
-.compact-layout h6,
-.compact-layout h6 *,
+/* Paragraphs and other text elements */
 .compact-layout p,
 .compact-layout p *,
 .compact-layout p span,
-h1, h1 *, h1 span, h1 div,
-h2, h2 *, h2 span, h2 div,
-h3, h3 *, h3 span, h3 div,
-h4, h4 *,
 p.text-slate-500,
 p.text-slate-600,
 p.text-gray-500,
 p.text-gray-600 {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
   background: none !important;
   background-image: none !important;
   -webkit-background-clip: unset !important;
@@ -405,8 +381,8 @@ svg defs {
 }
 
 .compact-layout button:hover:not(:disabled) {
-  border-color: rgba(59, 130, 246, 0.5) !important;
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2) !important;
+  border-color: rgba(148, 163, 184, 0.2) !important; /* Adjusted for dark theme consistency */
+  box-shadow: 0 8px 12px -1px rgba(0, 0, 0, 0.4), 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
 }
 
 .compact-layout button.text-xs {
@@ -453,8 +429,6 @@ svg defs {
   color: var(--text-secondary) !important;
   font-weight: 500 !important;
 }
-
-/* Removed hardcoded force overrides - now theme-aware via CSS variables */ /* MODIFIED - ENTIRE BLOCK REPLACED */
 
 /* Dark SaaS Page Headers */
 .compact-layout .mb-6:first-child {
