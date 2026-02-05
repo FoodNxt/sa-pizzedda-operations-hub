@@ -235,8 +235,8 @@ export default function ConfrontoListini() {
           <div className="flex items-center gap-3">
             <DollarSign className="w-10 h-10 text-[#8b7355]" />
             <div>
-              <h1 className="text-slate-50 text-3xl font-bold">Confronto Listini</h1>
-              <p className="text-slate-50 text-sm">Confronta prezzi dello stesso prodotto da fornitori diversi</p>
+              <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Confronto Listini</h1>
+              <p className="text-sm" style={{ color: '#000000' }}>Confronta prezzi dello stesso prodotto da fornitori diversi</p>
             </div>
           </div>
           <button

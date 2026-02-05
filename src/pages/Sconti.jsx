@@ -388,8 +388,8 @@ export default function Sconti() {
     <ProtectedPage pageName="Sconti">
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
-          <h1 className="text-slate-50 mb-2 text-3xl font-bold">Analisi Sconti</h1>
-          <p className="text-slate-50">Monitora gli sconti applicati agli ordini</p>
+          <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Analisi Sconti</h1>
+          <p style={{ color: '#000000' }}>Monitora gli sconti applicati agli ordini</p>
         </div>
 
         <NeumorphicCard className="p-2">

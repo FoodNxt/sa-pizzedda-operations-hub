@@ -279,8 +279,8 @@ export default function PulizieMatch() {
     <ProtectedPage pageName="PulizieMatch">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-slate-50 mb-2 text-3xl font-bold">🎯 Match Pulizie</h1>
-          <p className="text-slate-50">Performance controlli pulizia per dipendente</p>
+          <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>🎯 Match Pulizie</h1>
+          <p style={{ color: '#000000' }}>Performance controlli pulizia per dipendente</p>
         </div>
 
         {/* Filters */}

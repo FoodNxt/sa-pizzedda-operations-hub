@@ -407,9 +407,9 @@ export default function ProdottiVenduti() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <ShoppingCart className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-slate-50 text-3xl font-bold">Prodotti Venduti</h1>
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Prodotti Venduti</h1>
         </div>
-        <p className="text-slate-50">Analisi vendite per prodotto</p>
+        <p style={{ color: '#000000' }}>Analisi vendite per prodotto</p>
       </div>
 
       {/* Filters */}
