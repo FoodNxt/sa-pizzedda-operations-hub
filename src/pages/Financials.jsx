@@ -5828,6 +5828,15 @@ export default function Financials() {
                           <span className="text-sm text-slate-600">Richiesto ad Oggi (cumulativo)</span>
                           <span className="text-sm font-bold text-orange-600">
                             {formatEuro((() => {
+                              // Calcola peso totale stagionalità
+                              let totalSeasonalityWeight = 0;
+                              for (let i = 0; i < totalDays; i++) {
+                                const dateCalc = new Date(periodStart);
+                                dateCalc.setDate(periodStart.getDate() + i);
+                                const dowCalc = dateCalc.getDay();
+                                totalSeasonalityWeight += avgByDayOfWeek[dowCalc] || 0;
+                              }
+                              
                               let requiredToDate = 0;
                               for (let i = 0; i < daysPassed; i++) {
                                 const currentDate = new Date(periodStart);
@@ -5843,6 +5852,15 @@ export default function Financials() {
                         <div className="flex justify-between items-center pb-2 border-b border-slate-200">
                           <span className="text-sm text-slate-600 font-bold">Δ Attuale vs Richiesto</span>
                           <span className={`text-sm font-bold ${(() => {
+                            // Calcola peso totale stagionalità
+                            let totalSeasonalityWeight = 0;
+                            for (let i = 0; i < totalDays; i++) {
+                              const dateCalc = new Date(periodStart);
+                              dateCalc.setDate(periodStart.getDate() + i);
+                              const dowCalc = dateCalc.getDay();
+                              totalSeasonalityWeight += avgByDayOfWeek[dowCalc] || 0;
+                            }
+                            
                             let requiredToDate = 0;
                             for (let i = 0; i < daysPassed; i++) {
                               const currentDate = new Date(periodStart);
@@ -5855,6 +5873,15 @@ export default function Financials() {
                             return delta >= 0 ? 'text-green-600' : 'text-red-600';
                           })()}`}>
                             {(() => {
+                              // Calcola peso totale stagionalità
+                              let totalSeasonalityWeight = 0;
+                              for (let i = 0; i < totalDays; i++) {
+                                const dateCalc = new Date(periodStart);
+                                dateCalc.setDate(periodStart.getDate() + i);
+                                const dowCalc = dateCalc.getDay();
+                                totalSeasonalityWeight += avgByDayOfWeek[dowCalc] || 0;
+                              }
+                              
                               let requiredToDate = 0;
                               for (let i = 0; i < daysPassed; i++) {
                                 const currentDate = new Date(periodStart);
