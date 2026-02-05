@@ -188,12 +188,17 @@ export default function ProfiloDipendente() {
 
     try {
       setIsDeleting(true);
-      await base44.auth.updateMe({ account_deletion_requested: true, account_deletion_date: new Date().toISOString() });
-      setSuccess('Richiesta di eliminazione inviata. Verrai contattato a breve.');
+      setError('');
+      
+      await base44.functions.invoke('requestAccountDeletion', {});
+      
+      setSuccess('Richiesta di eliminazione inviata. Gli amministratori sono stati notificati.');
       setShowDeleteModal(false);
+      setDeleteConfirmText('');
+      
       setTimeout(() => {
         base44.auth.logout();
-      }, 2000);
+      }, 3000);
     } catch (error) {
       console.error('Error requesting account deletion:', error);
       setError('Errore durante la richiesta di eliminazione');
