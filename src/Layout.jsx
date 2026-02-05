@@ -1433,9 +1433,24 @@ export default function Layout({ children, currentPageName }) {
         <div className="neumorphic-card p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-                <Pizza className="w-6 h-6 text-white" />
-              </div>
+              {(() => {
+                const isRootTab = bottomNavItems.some(item => item.url === location.pathname);
+                if (!isRootTab) {
+                  return (
+                    <button
+                      onClick={() => navigate(-1)}
+                      className="nav-button p-2 -ml-2"
+                    >
+                      <ChevronRight className="w-5 h-5 text-slate-700 rotate-180" />
+                    </button>
+                  );
+                }
+                return (
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                    <Pizza className="w-6 h-6 text-white" />
+                  </div>
+                );
+              })()}
               <div>
                     <span className="text-lg font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
                       {normalizedUserType === 'dipendente' ? getUserDisplayName() : 'Sa Pizzedda'}

@@ -45,6 +45,17 @@ body {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: var(--text-primary);
   min-height: 100vh;
+  overscroll-behavior: none;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Prevent text selection on buttons */
+button {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 /* Global Compact Spacing */
