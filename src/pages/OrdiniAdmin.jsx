@@ -1263,7 +1263,7 @@ Sa Pizzedda`,
                                 </div>
                               }
                               
-                              <div className="flex items-start justify-between mb-3">
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-3">
                                 <div className="flex-1">
                                   <h3 className="font-bold text-slate-800">{ordine.store_name}</h3>
                                   <p className="text-xs text-slate-400">
@@ -1272,59 +1272,57 @@ Sa Pizzedda`,
                                   <p className="text-xs text-slate-400">
                                     Giorni trascorsi: {giorniTrascorsi}
                                   </p>
+                                  {(() => {
+                              const totaleCalcolato = ordine.prodotti.
+                              filter((p) => p.quantita_ordinata > 0).
+                              reduce((sum, p) => {
+                                const currentProduct = products.find((prod) => prod.id === p.prodotto_id);
+                                const ivaCorrente = currentProduct?.iva_percentuale ?? p.iva_percentuale ?? 22;
+                                const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + ivaCorrente / 100);
+                                return sum + prezzoConIVA * p.quantita_ordinata;
+                              }, 0);
+                              return (
+                                <div className="mt-2">
+                                          <p className="text-sm text-slate-500 line-through">€{ordine.totale_ordine.toFixed(2)}</p>
+                                          <p className="text-xl font-bold text-blue-600">€{totaleCalcolato.toFixed(2)}</p>
+                                          <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
+                                          <p className="text-xs text-slate-500 mt-1">{ordine.prodotti.filter((p) => p.quantita_ordinata > 0).length} prodotti</p>
+                                        </div>);
+
+                              })()}
                                 </div>
-                                <div className="flex items-center gap-3">
-                                  <div className="text-right">
-                                    {(() => {
-                                  const totaleCalcolato = ordine.prodotti.
-                                  filter((p) => p.quantita_ordinata > 0).
-                                  reduce((sum, p) => {
-                                  const currentProduct = products.find((prod) => prod.id === p.prodotto_id);
-                                  const ivaCorrente = currentProduct?.iva_percentuale ?? p.iva_percentuale ?? 22;
-                                  const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + ivaCorrente / 100);
-                                  return sum + prezzoConIVA * p.quantita_ordinata;
-                                  }, 0);
-                                  return (
-                                  <>
-                                         <p className="text-sm text-slate-500 line-through">€{ordine.totale_ordine.toFixed(2)}</p>
-                                         <p className="text-xl font-bold text-blue-600">€{totaleCalcolato.toFixed(2)}</p>
-                                         <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
-                                         <p className="text-xs text-slate-500 mt-1">{ordine.prodotti.filter((p) => p.quantita_ordinata > 0).length} prodotti</p>
-                                       </>);
+                                <div className="flex flex-wrap items-center gap-2">
+                                   <button
+                              onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingInviatoOrder(ordine);
+                              }}
+                              className="px-3 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-1 shadow-md">
 
-                                  })()}
-                                  </div>
-                                  <button
-                                  onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingInviatoOrder(ordine);
-                                  }}
-                                  className="nav-button px-3 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-1">
-
-                                    <Edit className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Modifica</span>
-                                  </button>
-                                  <button
-                            onClick={(e) => {
+                                     <Edit className="w-4 h-4" />
+                                     <span className="text-sm font-medium">Modifica</span>
+                                   </button>
+                                   <button
+                              onClick={(e) => {
                               e.stopPropagation();
                               openConfirmOrder(ordine);
-                            }}
-                            className="nav-button px-3 py-2 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 transition-all flex items-center gap-1">
+                              }}
+                              className="px-3 py-2 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 transition-all flex items-center gap-1 shadow-md">
 
-                                    <CheckCircle className="w-4 h-4" />
-                                    <span className="text-sm font-medium">Conferma Arrivo</span>
-                                  </button>
-                                  <button
-                            onClick={(e) => {
+                                     <CheckCircle className="w-4 h-4" />
+                                     <span className="text-sm font-medium">Conferma</span>
+                                   </button>
+                                   <button
+                              onClick={(e) => {
                               e.stopPropagation();
                               if (confirm('Eliminare questo ordine?')) {
                                 deleteOrderMutation.mutate(ordine.id);
                               }
-                            }}
-                            className="nav-button p-2 rounded-lg hover:bg-red-50 transition-colors">
+                              }}
+                              className="p-2 rounded-lg hover:bg-red-50 transition-colors border border-red-200">
 
-                                    <Trash2 className="w-4 h-4 text-red-600" />
-                                  </button>
+                                     <Trash2 className="w-4 h-4 text-red-600" />
+                                   </button>
                                 </div>
                               </div>
                               <div className="overflow-x-auto">
