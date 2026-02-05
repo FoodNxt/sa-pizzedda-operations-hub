@@ -5115,9 +5115,11 @@ export default function Financials() {
                             </th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Effettivo</th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Previsto</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm bg-purple-50">Δ vs Previsto</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm bg-purple-50">Δ % vs Previsto</th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Richiesto</th>
-                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Delta</th>
-                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Delta %</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm bg-orange-50">Δ vs Richiesto</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm bg-orange-50">Δ % vs Richiesto</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -5190,16 +5192,20 @@ export default function Financials() {
                                 const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
                                 const requiredRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
                                 
-                                const delta = actualRevenue - predictedRevenue;
-                                const deltaPercent = predictedRevenue > 0 ? (delta / predictedRevenue) * 100 : 0;
+                                const deltaVsPredicted = actualRevenue - predictedRevenue;
+                                const deltaPercentVsPredicted = predictedRevenue > 0 ? (deltaVsPredicted / predictedRevenue) * 100 : 0;
+                                const deltaVsRequired = actualRevenue - requiredRevenue;
+                                const deltaPercentVsRequired = requiredRevenue > 0 ? (deltaVsRequired / requiredRevenue) * 100 : 0;
                                 
                                 detailRows.push({
                                   date: format(currentDate, 'dd/MM (EEE)', { locale: it }),
                                   actual: isPast ? actualRevenue : null,
                                   predicted: predictedRevenue,
+                                  deltaVsPredicted: isPast ? deltaVsPredicted : null,
+                                  deltaPercentVsPredicted: isPast ? deltaPercentVsPredicted : null,
                                   required: requiredRevenue,
-                                  delta: isPast ? delta : null,
-                                  deltaPercent: isPast ? deltaPercent : null,
+                                  deltaVsRequired: isPast ? deltaVsRequired : null,
+                                  deltaPercentVsRequired: isPast ? deltaPercentVsRequired : null,
                                   isPast
                                 });
                               }
@@ -5379,16 +5385,21 @@ export default function Financials() {
                               Object.entries(monthlyMap).forEach(([monthKey, data]) => {
                                 const monthDate = new Date(monthKey + '-01');
                                 const isPast = data.pastDays === data.daysCount;
-                                const delta = isPast ? data.actual - data.predicted : null;
-                                const deltaPercent = isPast && data.predicted > 0 ? (delta / data.predicted) * 100 : null;
+                                
+                                const deltaVsPredicted = isPast ? data.actual - data.predicted : null;
+                                const deltaPercentVsPredicted = isPast && data.predicted > 0 ? (deltaVsPredicted / data.predicted) * 100 : null;
+                                const deltaVsRequired = isPast ? data.actual - data.required : null;
+                                const deltaPercentVsRequired = isPast && data.required > 0 ? (deltaVsRequired / data.required) * 100 : null;
                                 
                                 detailRows.push({
                                   date: format(monthDate, 'MMMM yyyy', { locale: it }),
                                   actual: isPast ? data.actual : null,
                                   predicted: data.predicted,
+                                  deltaVsPredicted,
+                                  deltaPercentVsPredicted,
                                   required: data.required,
-                                  delta,
-                                  deltaPercent,
+                                  deltaVsRequired,
+                                  deltaPercentVsRequired,
                                   isPast
                                 });
                               });
@@ -5403,18 +5414,28 @@ export default function Financials() {
                                 <td className="p-3 text-right text-slate-600 text-sm">
                                   {formatEuro(row.predicted)}
                                 </td>
+                                <td className={`p-3 text-right font-bold text-sm bg-purple-50 ${
+                                  row.deltaVsPredicted !== null ? (row.deltaVsPredicted >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
+                                }`}>
+                                  {row.deltaVsPredicted !== null ? `${row.deltaVsPredicted >= 0 ? '+' : ''}${formatEuro(row.deltaVsPredicted)}` : '-'}
+                                </td>
+                                <td className={`p-3 text-right font-bold text-sm bg-purple-50 ${
+                                  row.deltaPercentVsPredicted !== null ? (row.deltaPercentVsPredicted >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
+                                }`}>
+                                  {row.deltaPercentVsPredicted !== null ? `${row.deltaPercentVsPredicted >= 0 ? '+' : ''}${row.deltaPercentVsPredicted.toFixed(1)}%` : '-'}
+                                </td>
                                 <td className="p-3 text-right text-orange-600 font-bold text-sm">
                                   {formatEuro(row.required)}
                                 </td>
-                                <td className={`p-3 text-right font-bold text-sm ${
-                                  row.delta !== null ? (row.delta >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
+                                <td className={`p-3 text-right font-bold text-sm bg-orange-50 ${
+                                  row.deltaVsRequired !== null ? (row.deltaVsRequired >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
                                 }`}>
-                                  {row.delta !== null ? `${row.delta >= 0 ? '+' : ''}${formatEuro(row.delta)}` : '-'}
+                                  {row.deltaVsRequired !== null ? `${row.deltaVsRequired >= 0 ? '+' : ''}${formatEuro(row.deltaVsRequired)}` : '-'}
                                 </td>
-                                <td className={`p-3 text-right font-bold text-sm ${
-                                  row.deltaPercent !== null ? (row.deltaPercent >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
+                                <td className={`p-3 text-right font-bold text-sm bg-orange-50 ${
+                                  row.deltaPercentVsRequired !== null ? (row.deltaPercentVsRequired >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
                                 }`}>
-                                  {row.deltaPercent !== null ? `${row.deltaPercent >= 0 ? '+' : ''}${row.deltaPercent.toFixed(1)}%` : '-'}
+                                  {row.deltaPercentVsRequired !== null ? `${row.deltaPercentVsRequired >= 0 ? '+' : ''}${row.deltaPercentVsRequired.toFixed(1)}%` : '-'}
                                 </td>
                               </tr>
                             ));
