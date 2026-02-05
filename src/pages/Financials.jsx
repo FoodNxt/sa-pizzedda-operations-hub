@@ -4455,18 +4455,11 @@ export default function Financials() {
                 return true;
               });
 
-              // Calcola la revenue totale storica e il numero di giorni
-              let totalHistoricalRevenue = 0;
-              const uniqueDatesSet = new Set();
-              const dayOfWeekRevenues = {};
-              
+              // Prima raggruppa per data per calcolare i totali giornalieri
+              const dailyTotals = {}; // date -> total revenue
               historicalData.forEach(item => {
-                const itemDate = new Date(item.order_date);
-                const dayOfWeek = itemDate.getDay();
-                uniqueDatesSet.add(item.order_date);
-                
-                if (!dayOfWeekRevenues[dayOfWeek]) {
-                  dayOfWeekRevenues[dayOfWeek] = [];
+                if (!dailyTotals[item.order_date]) {
+                  dailyTotals[item.order_date] = 0;
                 }
 
                 let itemRevenue = 0;
@@ -4503,11 +4496,22 @@ export default function Financials() {
                   itemRevenue = item.total_revenue || 0;
                 }
                 
-                totalHistoricalRevenue += itemRevenue;
-                dayOfWeekRevenues[dayOfWeek].push(itemRevenue);
+                dailyTotals[item.order_date] += itemRevenue;
               });
 
-              const actualHistoricalDays = uniqueDatesSet.size;
+              // Poi raggruppa i totali giornalieri per giorno della settimana
+              const dayOfWeekRevenues = {};
+              Object.entries(dailyTotals).forEach(([date, revenue]) => {
+                const itemDate = new Date(date);
+                const dayOfWeek = itemDate.getDay();
+                if (!dayOfWeekRevenues[dayOfWeek]) {
+                  dayOfWeekRevenues[dayOfWeek] = [];
+                }
+                dayOfWeekRevenues[dayOfWeek].push(revenue);
+              });
+
+              const actualHistoricalDays = Object.keys(dailyTotals).length;
+              const totalHistoricalRevenue = Object.values(dailyTotals).reduce((sum, r) => sum + r, 0);
               const overallAvgDaily = actualHistoricalDays > 0 ? totalHistoricalRevenue / actualHistoricalDays : 0;
 
               // Calcola media per ogni giorno della settimana
