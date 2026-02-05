@@ -970,28 +970,31 @@ export default function MatchingOrdiniSbagliati() {
                   Gruppi Dipendenti da Escludere
                 </label>
                 <div className="space-y-2">
-                  {['Volantinaggio', 'Preparazioni', 'Pulizie', 'Manutenzione'].map((gruppo) => (
-                    <label key={gruppo} className="flex items-center gap-3 neumorphic-pressed p-3 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={settingsForm.excluded_employee_groups.includes(gruppo)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSettingsForm({
-                              ...settingsForm,
-                              excluded_employee_groups: [...settingsForm.excluded_employee_groups, gruppo]
-                            });
-                          } else {
-                            setSettingsForm({
-                              ...settingsForm,
-                              excluded_employee_groups: settingsForm.excluded_employee_groups.filter(g => g !== gruppo)
-                            });
-                          }
-                        }}
-                        className="w-5 h-5" />
-                      <span className="text-sm text-[#6b6b6b]">{gruppo}</span>
-                    </label>
-                  ))}
+                  {['FT', 'PT', 'CM'].map((gruppo) => {
+                    const labels = { 'FT': 'FT - Full Time', 'PT': 'PT - Part Time', 'CM': 'CM - Chiamata' };
+                    return (
+                      <label key={gruppo} className="flex items-center gap-3 neumorphic-pressed p-3 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={settingsForm.excluded_employee_groups.includes(gruppo)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSettingsForm({
+                                ...settingsForm,
+                                excluded_employee_groups: [...settingsForm.excluded_employee_groups, gruppo]
+                              });
+                            } else {
+                              setSettingsForm({
+                                ...settingsForm,
+                                excluded_employee_groups: settingsForm.excluded_employee_groups.filter(g => g !== gruppo)
+                              });
+                            }
+                          }}
+                          className="w-5 h-5" />
+                        <span className="text-sm text-[#6b6b6b]">{labels[gruppo]}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
