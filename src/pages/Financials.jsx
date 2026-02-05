@@ -4936,34 +4936,44 @@ export default function Financials() {
                               dailyRevenueMap[item.order_date] += itemRevenue;
                             });
 
-                            // Aggiungi giorni passati
+                            // Calcola il peso totale basato sulla stagionalità
+                            let totalSeasonalityWeight = 0;
+                            for (let i = 0; i < totalDays; i++) {
+                              const currentDate = new Date(periodStart);
+                              currentDate.setDate(periodStart.getDate() + i);
+                              const dayOfWeek = currentDate.getDay();
+                              totalSeasonalityWeight += avgByDayOfWeek[dayOfWeek] || 0;
+                            }
+
+                            // Aggiungi giorni passati e futuri
                             let cumulativeRevenue = 0;
-                            for (let i = 0; i < daysPassed; i++) {
+                            let cumulativeRequired = 0;
+                            for (let i = 0; i < totalDays; i++) {
                               const currentDate = new Date(periodStart);
                               currentDate.setDate(periodStart.getDate() + i);
                               const dateStr = format(currentDate, 'yyyy-MM-dd');
+                              const isPast = currentDate < today;
+                              
+                              // Revenue effettivo
                               const dayRevenue = dailyRevenueMap[dateStr] || 0;
-                              cumulativeRevenue += dayRevenue;
+                              if (isPast) {
+                                cumulativeRevenue += dayRevenue;
+                              }
+                              
+                              // Revenue richiesto basato su stagionalità
+                              const dayOfWeek = currentDate.getDay();
+                              const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+                              const requiredDayRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                              cumulativeRequired += requiredDayRevenue;
+                              
+                              // Previsto
+                              const predictedDayRevenue = avgByDayOfWeek[dayOfWeek] || 0;
                               
                               timelineData.push({
                                 date: format(currentDate, 'dd/MM'),
-                                actual: parseFloat(cumulativeRevenue.toFixed(2)),
-                                predicted: null
-                              });
-                            }
-
-                            // Aggiungi giorni futuri (previsione)
-                            for (let i = 0; i < daysRemaining; i++) {
-                              const futureDate = new Date(today);
-                              futureDate.setDate(today.getDate() + i);
-                              const dayOfWeek = futureDate.getDay();
-                              const predictedDayRevenue = avgByDayOfWeek[dayOfWeek] || 0;
-                              cumulativeRevenue += predictedDayRevenue;
-                              
-                              timelineData.push({
-                                date: format(futureDate, 'dd/MM'),
-                                actual: null,
-                                predicted: parseFloat(cumulativeRevenue.toFixed(2))
+                                actual: isPast ? parseFloat(cumulativeRevenue.toFixed(2)) : null,
+                                predicted: !isPast ? parseFloat((cumulativeRevenue + predictedDayRevenue * (i - daysPassed + 1)).toFixed(2)) : null,
+                                required: parseFloat(cumulativeRequired.toFixed(2))
                               });
                             }
 
@@ -5039,12 +5049,23 @@ export default function Financials() {
                               dot={{ fill: '#8b5cf6', r: 2 }}
                               connectNulls={false}
                             />
+                            
+                            {/* Linea Richiesto */}
+                            <Line 
+                              type="monotone" 
+                              dataKey="required"
+                              stroke="#f97316"
+                              strokeWidth={2}
+                              strokeDasharray="3 3"
+                              name="Richiesto"
+                              dot={false}
+                            />
                           </LineChart>
                         </ResponsiveContainer>
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mt-3">
-                      📈 Il grafico mostra il revenue cumulativo nel periodo {format(periodStart, 'dd/MM')} - {format(periodEnd, 'dd/MM')}: linea verde = dati effettivi, linea viola tratteggiata = previsione basata su stagionalità
+                      📈 Il grafico mostra il revenue cumulativo nel periodo {format(periodStart, 'dd/MM')} - {format(periodEnd, 'dd/MM')}: linea verde = dati effettivi, linea viola tratteggiata = previsione, linea arancione = richiesto per target (con stagionalità)
                     </p>
                   </NeumorphicCard>
 
@@ -5089,6 +5110,7 @@ export default function Financials() {
                             </th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Effettivo</th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Previsto</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Richiesto</th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Delta</th>
                             <th className="text-right p-3 text-slate-600 font-medium text-sm">Delta %</th>
                           </tr>
@@ -5096,6 +5118,15 @@ export default function Financials() {
                         <tbody>
                           {(() => {
                             const detailRows = [];
+                            
+                            // Calcola il peso totale della stagionalità per distribuire il target
+                            let totalSeasonalityWeight = 0;
+                            for (let i = 0; i < totalDays; i++) {
+                              const currentDate = new Date(periodStart);
+                              currentDate.setDate(periodStart.getDate() + i);
+                              const dayOfWeek = currentDate.getDay();
+                              totalSeasonalityWeight += avgByDayOfWeek[dayOfWeek] || 0;
+                            }
                             
                             if (detailView === 'daily') {
                               // Vista giornaliera
@@ -5150,6 +5181,10 @@ export default function Financials() {
                                 const dayOfWeek = currentDate.getDay();
                                 const predictedRevenue = avgByDayOfWeek[dayOfWeek] || 0;
                                 
+                                // Richiesto: distribuisci il target in base alla stagionalità
+                                const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+                                const requiredRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                                
                                 const delta = actualRevenue - predictedRevenue;
                                 const deltaPercent = predictedRevenue > 0 ? (delta / predictedRevenue) * 100 : 0;
                                 
@@ -5157,6 +5192,7 @@ export default function Financials() {
                                   date: format(currentDate, 'dd/MM (EEE)', { locale: it }),
                                   actual: isPast ? actualRevenue : null,
                                   predicted: predictedRevenue,
+                                  required: requiredRevenue,
                                   delta: isPast ? delta : null,
                                   deltaPercent: isPast ? deltaPercent : null,
                                   isPast
@@ -5182,6 +5218,7 @@ export default function Financials() {
                                     weekStart: weekKey,
                                     actual: 0,
                                     predicted: 0,
+                                    required: 0,
                                     daysCount: 0,
                                     pastDays: 0
                                   };
@@ -5233,7 +5270,11 @@ export default function Financials() {
                                 }
                                 
                                 const currentDayOfWeek = currentDate.getDay();
+                                const dayWeight = avgByDayOfWeek[currentDayOfWeek] || 0;
+                                const requiredDayRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                                
                                 weeklyMap[weekKey].predicted += avgByDayOfWeek[currentDayOfWeek] || 0;
+                                weeklyMap[weekKey].required += requiredDayRevenue;
                                 weeklyMap[weekKey].daysCount++;
                               }
                               
@@ -5248,6 +5289,7 @@ export default function Financials() {
                                   date: `${format(weekStartDate, 'dd/MM')} - ${format(weekEndDate, 'dd/MM')}`,
                                   actual: isPast ? data.actual : null,
                                   predicted: data.predicted,
+                                  required: data.required,
                                   delta,
                                   deltaPercent,
                                   isPast
@@ -5269,6 +5311,7 @@ export default function Financials() {
                                   monthlyMap[monthKey] = {
                                     actual: 0,
                                     predicted: 0,
+                                    required: 0,
                                     daysCount: 0,
                                     pastDays: 0
                                   };
@@ -5320,7 +5363,11 @@ export default function Financials() {
                                 }
                                 
                                 const currentDayOfWeek = currentDate.getDay();
+                                const dayWeight = avgByDayOfWeek[currentDayOfWeek] || 0;
+                                const requiredDayRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                                
                                 monthlyMap[monthKey].predicted += avgByDayOfWeek[currentDayOfWeek] || 0;
+                                monthlyMap[monthKey].required += requiredDayRevenue;
                                 monthlyMap[monthKey].daysCount++;
                               }
                               
@@ -5334,6 +5381,7 @@ export default function Financials() {
                                   date: format(monthDate, 'MMMM yyyy', { locale: it }),
                                   actual: isPast ? data.actual : null,
                                   predicted: data.predicted,
+                                  required: data.required,
                                   delta,
                                   deltaPercent,
                                   isPast
@@ -5349,6 +5397,9 @@ export default function Financials() {
                                 </td>
                                 <td className="p-3 text-right text-slate-600 text-sm">
                                   {formatEuro(row.predicted)}
+                                </td>
+                                <td className="p-3 text-right text-orange-600 font-bold text-sm">
+                                  {formatEuro(row.required)}
                                 </td>
                                 <td className={`p-3 text-right font-bold text-sm ${
                                   row.delta !== null ? (row.delta >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
@@ -5368,7 +5419,7 @@ export default function Financials() {
                     </div>
                     
                     <p className="text-xs text-slate-500 mt-3">
-                      💡 Per i giorni passati: "Previsto" mostra la stima che il modello avrebbe fatto prima del giorno. "Delta" mostra la differenza con i dati reali.
+                      💡 "Previsto" = stima basata su stagionalità, "Richiesto" = quanto serviva per raggiungere il target (distribuito con stagionalità), "Delta" = differenza effettivo vs previsto.
                     </p>
                   </NeumorphicCard>
 
