@@ -4945,34 +4945,39 @@ export default function Financials() {
                               totalSeasonalityWeight += avgByDayOfWeek[dayOfWeek] || 0;
                             }
 
-                            // Aggiungi giorni passati e futuri
-                            let cumulativeRevenue = 0;
+                            // Aggiungi tutti i giorni del periodo
+                            let cumulativeActual = 0;
+                            let cumulativePredicted = 0;
                             let cumulativeRequired = 0;
+                            
                             for (let i = 0; i < totalDays; i++) {
                               const currentDate = new Date(periodStart);
                               currentDate.setDate(periodStart.getDate() + i);
                               const dateStr = format(currentDate, 'yyyy-MM-dd');
                               const isPast = currentDate < today;
+                              const dayOfWeek = currentDate.getDay();
                               
                               // Revenue effettivo
                               const dayRevenue = dailyRevenueMap[dateStr] || 0;
-                              if (isPast) {
-                                cumulativeRevenue += dayRevenue;
-                              }
                               
-                              // Revenue richiesto basato su stagionalità
-                              const dayOfWeek = currentDate.getDay();
+                              // Previsto per questo giorno
+                              const predictedDayRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                              
+                              // Richiesto per questo giorno (basato su stagionalità)
                               const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
                               const requiredDayRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
-                              cumulativeRequired += requiredDayRevenue;
                               
-                              // Previsto
-                              const predictedDayRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                              // Cumula i valori
+                              if (isPast) {
+                                cumulativeActual += dayRevenue;
+                              }
+                              cumulativePredicted += predictedDayRevenue;
+                              cumulativeRequired += requiredDayRevenue;
                               
                               timelineData.push({
                                 date: format(currentDate, 'dd/MM'),
-                                actual: isPast ? parseFloat(cumulativeRevenue.toFixed(2)) : null,
-                                predicted: !isPast ? parseFloat((cumulativeRevenue + predictedDayRevenue * (i - daysPassed + 1)).toFixed(2)) : null,
+                                actual: isPast ? parseFloat(cumulativeActual.toFixed(2)) : null,
+                                predicted: !isPast ? parseFloat(cumulativePredicted.toFixed(2)) : null,
                                 required: parseFloat(cumulativeRequired.toFixed(2))
                               });
                             }
@@ -5419,7 +5424,7 @@ export default function Financials() {
                     </div>
                     
                     <p className="text-xs text-slate-500 mt-3">
-                      💡 "Previsto" = stima basata su stagionalità, "Richiesto" = quanto serviva per raggiungere il target (distribuito con stagionalità), "Delta" = differenza effettivo vs previsto.
+                      💡 "Previsto" = stima basata su stagionalità storica, "Richiesto" = quanto serviva per raggiungere il target (distribuito con stagionalità). <strong>"Delta"</strong> = differenza tra Effettivo e Previsto (in € assoluti e %).
                     </p>
                   </NeumorphicCard>
 
