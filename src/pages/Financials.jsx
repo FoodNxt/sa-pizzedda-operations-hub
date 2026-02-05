@@ -4971,8 +4971,17 @@ export default function Financials() {
                               // Cumula i valori
                               if (isPast) {
                                 cumulativeActual += dayRevenue;
+                                // Per i giorni passati, predicted segue actual
+                                cumulativePredicted = cumulativeActual;
+                              } else {
+                                // Per i giorni futuri, predicted parte dall'ultimo actual e continua
+                                if (i === daysPassed) {
+                                  // Primo giorno futuro: parti dall'ultimo actual
+                                  cumulativePredicted = cumulativeActual;
+                                }
+                                cumulativePredicted += predictedDayRevenue;
                               }
-                              cumulativePredicted += predictedDayRevenue;
+                              
                               cumulativeRequired += requiredDayRevenue;
                               
                               timelineData.push({
@@ -4981,11 +4990,6 @@ export default function Financials() {
                                 predicted: !isPast ? parseFloat(cumulativePredicted.toFixed(2)) : null,
                                 required: parseFloat(cumulativeRequired.toFixed(2))
                               });
-                            }
-
-                            // Connetti actual e predicted
-                            if (timelineData.length > 0 && daysPassed > 0 && daysRemaining > 0) {
-                              timelineData[daysPassed - 1].predicted = timelineData[daysPassed - 1].actual;
                             }
 
                             return timelineData;
@@ -5415,13 +5419,36 @@ export default function Financials() {
 
                                   <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-200">
                                     <div>
-                                      <p className="text-xs text-slate-500 mb-1">Δ vs Previsto</p>
-                                      <p className={`text-sm font-bold ${itemCurrentRevenue >= itemTotalProjected ? 'text-green-600' : 'text-red-600'}`}>
-                                        {itemCurrentRevenue >= itemTotalProjected ? '+' : ''}{formatEuro(itemCurrentRevenue - (itemTotalProjected - itemPredictedRevenue))}
+                                      <p className="text-xs text-slate-500 mb-1">Δ Attuale vs Richiesto (oggi)</p>
+                                      <p className={`text-sm font-bold ${(() => {
+                                        // Calcola quanto richiesto alla data di oggi per questo item
+                                        let itemRequiredToDate = 0;
+                                        for (let i = 0; i < daysPassed; i++) {
+                                          const currentDate = new Date(periodStart);
+                                          currentDate.setDate(periodStart.getDate() + i);
+                                          const dayOfWeek = currentDate.getDay();
+                                          const dayWeight = itemAvgByDayOfWeek[dayOfWeek] || 0;
+                                          itemRequiredToDate += itemTotalSeasonalityWeight > 0 ? (itemTargetRevenue * (dayWeight / itemTotalSeasonalityWeight)) : (itemTargetRevenue / totalDays);
+                                        }
+                                        const delta = itemCurrentRevenue - itemRequiredToDate;
+                                        return delta >= 0 ? 'text-green-600' : 'text-red-600';
+                                      })()}`}>
+                                        {(() => {
+                                          let itemRequiredToDate = 0;
+                                          for (let i = 0; i < daysPassed; i++) {
+                                            const currentDate = new Date(periodStart);
+                                            currentDate.setDate(periodStart.getDate() + i);
+                                            const dayOfWeek = currentDate.getDay();
+                                            const dayWeight = itemAvgByDayOfWeek[dayOfWeek] || 0;
+                                            itemRequiredToDate += itemTotalSeasonalityWeight > 0 ? (itemTargetRevenue * (dayWeight / itemTotalSeasonalityWeight)) : (itemTargetRevenue / totalDays);
+                                          }
+                                          const delta = itemCurrentRevenue - itemRequiredToDate;
+                                          return `${delta >= 0 ? '+' : ''}${formatEuro(delta)}`;
+                                        })()}
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-xs text-slate-500 mb-1">Δ vs Richiesto</p>
+                                      <p className="text-xs text-slate-500 mb-1">Δ Previsto vs Target</p>
                                       <p className={`text-sm font-bold ${itemTotalProjected >= itemTargetRevenue ? 'text-green-600' : 'text-red-600'}`}>
                                         {itemTotalProjected >= itemTargetRevenue ? '+' : ''}{formatEuro(itemTotalProjected - itemTargetRevenue)}
                                       </p>
