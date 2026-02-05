@@ -57,7 +57,8 @@ export default function Financials() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [conversationMessages, setConversationMessages] = useState([]);
   const [userQuestion, setUserQuestion] = useState('');
-  const [detailView, setDetailView] = useState('daily'); // 'daily', 'weekly', 'monthly'
+  const [detailView, setDetailView] = useState('daily'); // 'daily', 'weekly', 'monthly', 'split'
+  const [splitBy, setSplitBy] = useState('store'); // 'store', 'app', 'channel'
 
   // Confronto Mensile State
   const [periodo1Store, setPeriodo1Store] = useState('all');
@@ -5114,36 +5115,49 @@ export default function Financials() {
                      </div>
                    </div>
 
+                    {detailView === 'split' && (
+                      <div className="mb-4 flex gap-2">
+                        <button
+                          onClick={() => setSplitBy('store')}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            splitBy === 'store' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          Per Locale
+                        </button>
+                        <button
+                          onClick={() => setSplitBy('app')}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            splitBy === 'app' ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          Per App
+                        </button>
+                        <button
+                          onClick={() => setSplitBy('channel')}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            splitBy === 'channel' ? 'bg-purple-500 text-white' : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          Per Canale
+                        </button>
+                      </div>
+                    )}
+
                     <div className="overflow-x-auto">
                       {detailView === 'split' ? (
                         <>
                           {/* Vista Split per Store/App/Canale */}
                           {(() => {
-                            // Determina cosa splittare
-                            const shouldSplitByStore = targetStore === 'all' && stores.length > 1;
-                            const shouldSplitByApp = !targetApp && allApps.length > 1;
-                            const shouldSplitByChannel = !targetChannel && !targetApp && allChannels.length > 1;
-                            
-                            if (!shouldSplitByStore && !shouldSplitByApp && !shouldSplitByChannel) {
-                              return (
-                                <div className="text-center py-8 text-slate-500">
-                                  Split non disponibile: il target è già specifico per un singolo store/app/canale.
-                                </div>
-                              );
-                            }
-
                             let splitByItems = [];
-                            let splitType = '';
+                            let splitType = splitBy;
                             
-                            if (shouldSplitByStore) {
+                            if (splitType === 'store') {
                               splitByItems = stores.map(s => ({ id: s.id, name: s.name, type: 'store' }));
-                              splitType = 'store';
-                            } else if (shouldSplitByApp) {
+                            } else if (splitType === 'app') {
                               splitByItems = allApps.map(a => ({ id: a, name: a.charAt(0).toUpperCase() + a.slice(1), type: 'app' }));
-                              splitType = 'app';
-                            } else if (shouldSplitByChannel) {
+                            } else if (splitType === 'channel') {
                               splitByItems = allChannels.map(c => ({ id: c, name: c.charAt(0).toUpperCase() + c.slice(1), type: 'channel' }));
-                              splitType = 'channel';
                             }
 
                             return splitByItems.map((item, itemIdx) => {
