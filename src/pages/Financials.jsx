@@ -4535,6 +4535,39 @@ export default function Financials() {
 
               return (
                 <>
+                  {/* Target Info Header */}
+                  {selectedTarget && (
+                    <NeumorphicCard className="p-6 mb-6 bg-gradient-to-br from-blue-50 to-blue-100">
+                      <h2 className="text-2xl font-bold text-slate-800 mb-4">{selectedTarget.name}</h2>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <p className="text-slate-500 mb-1">Target Revenue</p>
+                          <p className="font-bold text-blue-600 text-lg">{formatEuro(selectedTarget.target_revenue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 mb-1">Locale</p>
+                          <p className="font-bold text-slate-800">
+                            {selectedTarget.store_id && selectedTarget.store_id !== 'all' 
+                              ? stores.find(s => s.id === selectedTarget.store_id)?.name || 'N/A'
+                              : 'Tutti i Locali'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 mb-1">Periodo</p>
+                          <p className="font-bold text-slate-800">
+                            {selectedTarget.date_mode === 'rolling' ? 'Rolling 30gg' : `${selectedTarget.start_date || 'N/A'} - ${selectedTarget.end_date || 'N/A'}`}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 mb-1">Filtri</p>
+                          <p className="font-bold text-slate-800">
+                            {selectedTarget.channel || selectedTarget.app || 'Nessuno'}
+                          </p>
+                        </div>
+                      </div>
+                    </NeumorphicCard>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <NeumorphicCard className="p-6">
                       <div className="flex items-start justify-between mb-3">
