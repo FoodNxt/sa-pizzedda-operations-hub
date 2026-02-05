@@ -2514,11 +2514,11 @@ Sa Pizzedda`,
                   </div>
                   <div className="mt-3 p-3 bg-blue-50 rounded-lg space-y-1">
                     <p className="text-xs text-slate-600">
-                      Totale Netto IVA: €{emailTemplate.prodotti.reduce((sum, p) => sum + p.prezzo_unitario * p.quantita_ordinata, 0).toFixed(2)}
+                      Totale Netto IVA: €{emailTemplate.prodotti.reduce((sum, p) => sum + (p.prezzo_unitario || 0) * p.quantita_ordinata, 0).toFixed(2)}
                     </p>
                     <p className="text-sm font-bold text-blue-700">
                       Totale con IVA: €{emailTemplate.prodotti.reduce((sum, p) => {
-                      const prezzoConIVA = p.prezzo_unitario * (1 + (p.iva_percentuale ?? 22) / 100);
+                      const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + (p.iva_percentuale ?? 22) / 100);
                       return sum + prezzoConIVA * p.quantita_ordinata;
                     }, 0).toFixed(2)}
                     </p>
@@ -3183,10 +3183,10 @@ Sa Pizzedda`,
 
                 <div className="neumorphic-flat p-4 rounded-xl space-y-1">
                   <p className="text-sm text-slate-600">
-                    <strong>Totale Netto IVA:</strong> €{editingInviatoOrder.totale_ordine.toFixed(2)}
+                    <strong>Totale Netto IVA:</strong> €{(editingInviatoOrder.totale_ordine || 0).toFixed(2)}
                   </p>
                   <p className="text-lg font-bold text-blue-700">
-                    <strong>Totale con IVA:</strong> €{editingInviatoOrder.totale_ordine_con_iva.toFixed(2)}
+                    <strong>Totale con IVA:</strong> €{(editingInviatoOrder.totale_ordine_con_iva || 0).toFixed(2)}
                   </p>
                 </div>
 
