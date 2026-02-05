@@ -540,7 +540,7 @@ export default function Ricette() {
       <div className="mb-4 lg:mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-1">
+            <h1 className="text-2xl lg:text-3xl font-bold mb-1" style={{ color: '#000000' }}>
               Ricette
             </h1>
             <p className="text-sm text-slate-500">Gestisci ricette, ingredienti e calcola il food cost</p>

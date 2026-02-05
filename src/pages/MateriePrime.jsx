@@ -427,10 +427,9 @@ export default function MateriePrime() {
         <div className="mb-4 lg:mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Materie Prime
-
+              <h1 className="mb-1 text-2xl font-bold lg:text-3xl" style={{ color: '#000000' }}>Materie Prime
               </h1>
-              <p className="text-slate-50 text-sm">Gestisci le materie prime e le scorte minime</p>
+              <p className="text-sm" style={{ color: '#000000' }}>Gestisci le materie prime e le scorte minime</p>
             </div>
             <NeumorphicButton
               onClick={() => setShowForm(true)}
