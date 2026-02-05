@@ -118,6 +118,19 @@ export default function Assenze() {
         data_approvazione: new Date().toISOString()
       });
     },
+    onMutate: async ({ richiestaId }) => {
+      await queryClient.cancelQueries({ queryKey: ['richieste-turni-liberi'] });
+      const previous = queryClient.getQueryData(['richieste-turni-liberi']);
+      
+      queryClient.setQueryData(['richieste-turni-liberi'], old => 
+        old?.map(r => r.id === richiestaId ? { ...r, stato: 'approvata' } : r)
+      );
+      
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['richieste-turni-liberi'], context.previous);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['richieste-turni-liberi'] });
       queryClient.invalidateQueries({ queryKey: ['turni-planday-assenze'] });
@@ -130,6 +143,19 @@ export default function Assenze() {
         stato: 'rifiutata',
         data_approvazione: new Date().toISOString()
       });
+    },
+    onMutate: async ({ richiestaId }) => {
+      await queryClient.cancelQueries({ queryKey: ['richieste-turni-liberi'] });
+      const previous = queryClient.getQueryData(['richieste-turni-liberi']);
+      
+      queryClient.setQueryData(['richieste-turni-liberi'], old => 
+        old?.map(r => r.id === richiestaId ? { ...r, stato: 'rifiutata' } : r)
+      );
+      
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['richieste-turni-liberi'], context.previous);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['richieste-turni-liberi'] });
@@ -198,6 +224,19 @@ export default function Assenze() {
 
   const updateMalattiaMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.RichiestaMalattia.update(id, data),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['richieste-malattia'] });
+      const previous = queryClient.getQueryData(['richieste-malattia']);
+      
+      queryClient.setQueryData(['richieste-malattia'], old => 
+        old?.map(r => r.id === id ? { ...r, ...data } : r)
+      );
+      
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['richieste-malattia'], context.previous);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['richieste-malattia'] });
       setSelectedRequest(null);

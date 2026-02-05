@@ -27,6 +27,25 @@ export default function DisponibilitaCalendar({ dipendente, disponibilita = [] }
         creato_da_admin: creatoAdmin
       });
     },
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ['disponibilita'] });
+      const previous = queryClient.getQueryData(['disponibilita']);
+      
+      const optimisticDisp = {
+        ...newData,
+        id: `temp-${Date.now()}`,
+        created_date: new Date().toISOString()
+      };
+      
+      queryClient.setQueryData(['disponibilita'], old => 
+        old ? [...old, optimisticDisp] : [optimisticDisp]
+      );
+      
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['disponibilita'], context.previous);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disponibilita'] });
       setShowSlotForm(false);
@@ -36,6 +55,19 @@ export default function DisponibilitaCalendar({ dipendente, disponibilita = [] }
 
   const deleteDisponibilitaMutation = useMutation({
     mutationFn: (id) => base44.entities.Disponibilita.delete(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['disponibilita'] });
+      const previous = queryClient.getQueryData(['disponibilita']);
+      
+      queryClient.setQueryData(['disponibilita'], old => 
+        old?.filter(d => d.id !== id)
+      );
+      
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['disponibilita'], context.previous);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disponibilita'] });
     },
