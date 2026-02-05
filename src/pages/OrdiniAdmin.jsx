@@ -66,6 +66,7 @@ export default function OrdiniAdmin() {
   const [ddtPhotos, setDdtPhotos] = useState([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [playingAudio, setPlayingAudio] = useState(null);
+  const [editingInviatoOrder, setEditingInviatoOrder] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -162,6 +163,8 @@ export default function OrdiniAdmin() {
     mutationFn: ({ id, data }) => base44.entities.OrdineFornitore.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ordini-completati'] });
+      queryClient.invalidateQueries({ queryKey: ['ordini-inviati'] });
+      setEditingInviatoOrder(null);
     }
   });
 
@@ -1273,24 +1276,34 @@ Sa Pizzedda`,
                                 <div className="flex items-center gap-3">
                                   <div className="text-right">
                                     {(() => {
-                              const totaleCalcolato = ordine.prodotti.
-                              filter((p) => p.quantita_ordinata > 0).
-                              reduce((sum, p) => {
-                                const currentProduct = products.find((prod) => prod.id === p.prodotto_id);
-                                const ivaCorrente = currentProduct?.iva_percentuale ?? p.iva_percentuale ?? 22;
-                                const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + ivaCorrente / 100);
-                                return sum + prezzoConIVA * p.quantita_ordinata;
-                              }, 0);
-                              return (
-                                <>
-                                          <p className="text-sm text-slate-500 line-through">€{ordine.totale_ordine.toFixed(2)}</p>
-                                          <p className="text-xl font-bold text-blue-600">€{totaleCalcolato.toFixed(2)}</p>
-                                          <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
-                                          <p className="text-xs text-slate-500 mt-1">{ordine.prodotti.filter((p) => p.quantita_ordinata > 0).length} prodotti</p>
-                                        </>);
+                                  const totaleCalcolato = ordine.prodotti.
+                                  filter((p) => p.quantita_ordinata > 0).
+                                  reduce((sum, p) => {
+                                  const currentProduct = products.find((prod) => prod.id === p.prodotto_id);
+                                  const ivaCorrente = currentProduct?.iva_percentuale ?? p.iva_percentuale ?? 22;
+                                  const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + ivaCorrente / 100);
+                                  return sum + prezzoConIVA * p.quantita_ordinata;
+                                  }, 0);
+                                  return (
+                                  <>
+                                         <p className="text-sm text-slate-500 line-through">€{ordine.totale_ordine.toFixed(2)}</p>
+                                         <p className="text-xl font-bold text-blue-600">€{totaleCalcolato.toFixed(2)}</p>
+                                         <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
+                                         <p className="text-xs text-slate-500 mt-1">{ordine.prodotti.filter((p) => p.quantita_ordinata > 0).length} prodotti</p>
+                                       </>);
 
-                            })()}
+                                  })()}
                                   </div>
+                                  <button
+                                  onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingInviatoOrder(ordine);
+                                  }}
+                                  className="nav-button px-3 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-1">
+
+                                    <Edit className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Modifica</span>
+                                  </button>
                                   <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -2643,24 +2656,33 @@ Sa Pizzedda`,
                       isExtra: true
                     };
 
-                    const newProdotti = [...editingOrder.prodotti, newProduct];
+                    const newProdotti = [...(editingOrder?.prodotti || editingInviatoOrder?.prodotti || []), newProduct];
                     const newTotaleNetto = newProdotti.reduce((sum, p) => sum + p.prezzo_unitario * p.quantita_ordinata, 0);
                     const newTotaleConIVA = newProdotti.reduce((sum, p) => {
-                      const pIVA = p.prezzo_unitario * (1 + (p.iva_percentuale ?? 22) / 100);
-                      return sum + pIVA * p.quantita_ordinata;
+                     const pIVA = p.prezzo_unitario * (1 + (p.iva_percentuale ?? 22) / 100);
+                     return sum + pIVA * p.quantita_ordinata;
                     }, 0);
 
-                    setEditingOrder({
-                      ...editingOrder,
-                      prodotti: newProdotti,
-                      totale_ordine: newTotaleNetto,
-                      totale_ordine_con_iva: newTotaleConIVA
-                    });
+                    if (editingOrder) {
+                     setEditingOrder({
+                       ...editingOrder,
+                       prodotti: newProdotti,
+                       totale_ordine: newTotaleNetto,
+                       totale_ordine_con_iva: newTotaleConIVA
+                     });
+                    } else if (editingInviatoOrder) {
+                     setEditingInviatoOrder({
+                       ...editingInviatoOrder,
+                       prodotti: newProdotti,
+                       totale_ordine: newTotaleNetto,
+                       totale_ordine_con_iva: newTotaleConIVA
+                     });
+                    }
 
                     setAddProductModal({ open: false, availableProducts: [] });
                     setSelectedProductToAdd('');
                     setProductQuantity(0);
-                  }}
+                    }}
                   variant="primary"
                   className="flex-1">
 
@@ -3029,6 +3051,178 @@ Sa Pizzedda`,
 
                     <Plus className="w-4 h-4 mr-2" />
                     Aggiungi
+                  </NeumorphicButton>
+                </div>
+              </div>
+            </NeumorphicCard>
+          </div>
+        }
+
+        {/* Modal Modifica Ordine Inviato */}
+        {editingInviatoOrder &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Modifica Ordine Inviato</h2>
+                <button onClick={() => setEditingInviatoOrder(null)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="neumorphic-flat p-4 rounded-xl space-y-1">
+                  <p className="text-sm text-slate-600"><strong>Locale:</strong> {editingInviatoOrder.store_name}</p>
+                  <p className="text-sm text-slate-600"><strong>Fornitore:</strong> {editingInviatoOrder.fornitore}</p>
+                  <p className="text-xs text-slate-400">
+                    Inviato: {format(parseISO(editingInviatoOrder.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                  </p>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-slate-800">Prodotti</h3>
+                    <NeumorphicButton
+                      onClick={() => {
+                        const prodottiDisponibili = products.filter((p) =>
+                          p.fornitore === editingInviatoOrder.fornitore &&
+                          !editingInviatoOrder.prodotti.some((ep) => ep.prodotto_id === p.id)
+                        );
+
+                        if (prodottiDisponibili.length === 0) {
+                          alert('Nessun altro prodotto disponibile per questo fornitore');
+                          return;
+                        }
+
+                        setAddProductModal({
+                          open: true,
+                          availableProducts: prodottiDisponibili
+                        });
+                      }}
+                      className="flex items-center gap-2 text-sm">
+                      <Plus className="w-4 h-4" />
+                      Aggiungi Prodotto
+                    </NeumorphicButton>
+                  </div>
+
+                  <div className="space-y-2">
+                    {editingInviatoOrder.prodotti.map((prod, idx) => {
+                      const prezzoConIVA = prod.prezzo_unitario * (1 + (prod.iva_percentuale ?? 22) / 100);
+                      const totaleNetto = prod.prezzo_unitario * prod.quantita_ordinata;
+                      const totaleConIVA = prezzoConIVA * prod.quantita_ordinata;
+
+                      return (
+                        <div key={idx} className="neumorphic-pressed p-3 rounded-xl">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                            <div>
+                              <p className="text-sm font-medium text-slate-800">{prod.nome_prodotto}</p>
+                              <p className="text-xs text-slate-500">IVA {prod.iva_percentuale ?? 22}%</p>
+                            </div>
+                            <div>
+                              <label className="text-xs text-slate-500">Quantità</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                value={prod.quantita_ordinata}
+                                onChange={(e) => {
+                                  const newProdotti = [...editingInviatoOrder.prodotti];
+                                  newProdotti[idx].quantita_ordinata = parseFloat(e.target.value) || 0;
+                                  const newTotaleNetto = newProdotti.reduce((sum, p) => sum + p.prezzo_unitario * p.quantita_ordinata, 0);
+                                  const newTotaleConIVA = newProdotti.reduce((sum, p) => {
+                                    const pIVA = p.prezzo_unitario * (1 + (p.iva_percentuale ?? 22) / 100);
+                                    return sum + pIVA * p.quantita_ordinata;
+                                  }, 0);
+                                  setEditingInviatoOrder({ 
+                                    ...editingInviatoOrder, 
+                                    prodotti: newProdotti,
+                                    totale_ordine: newTotaleNetto,
+                                    totale_ordine_con_iva: newTotaleConIVA
+                                  });
+                                }}
+                                className="w-full neumorphic-pressed px-2 py-1 rounded-lg text-sm text-slate-700 outline-none" />
+                              <p className="text-xs text-slate-500">{prod.unita_misura}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-500">Prezzo Unitario</p>
+                              <p className="text-sm font-medium text-slate-700">€{prod.prezzo_unitario.toFixed(2)}</p>
+                              <p className="text-xs text-slate-400">(netto IVA)</p>
+                            </div>
+                            <div className="flex items-end justify-between">
+                              <div className="text-right flex-1">
+                                <p className="text-xs text-slate-500">Totale Netto</p>
+                                <p className="text-sm font-bold text-slate-700">€{totaleNetto.toFixed(2)}</p>
+                                <p className="text-xs text-slate-500 mt-1">Totale +IVA</p>
+                                <p className="text-base font-bold text-blue-600">€{totaleConIVA.toFixed(2)}</p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Rimuovere ${prod.nome_prodotto} dall'ordine?`)) {
+                                    const newProdotti = editingInviatoOrder.prodotti.filter((_, i) => i !== idx);
+                                    const newTotaleNetto = newProdotti.reduce((sum, p) => sum + p.prezzo_unitario * p.quantita_ordinata, 0);
+                                    const newTotaleConIVA = newProdotti.reduce((sum, p) => {
+                                      const pIVA = p.prezzo_unitario * (1 + (p.iva_percentuale ?? 22) / 100);
+                                      return sum + pIVA * p.quantita_ordinata;
+                                    }, 0);
+                                    setEditingInviatoOrder({ 
+                                      ...editingInviatoOrder, 
+                                      prodotti: newProdotti,
+                                      totale_ordine: newTotaleNetto,
+                                      totale_ordine_con_iva: newTotaleConIVA
+                                    });
+                                  }
+                                }}
+                                className="nav-button p-2 rounded-lg hover:bg-red-50 ml-2">
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="neumorphic-flat p-4 rounded-xl space-y-1">
+                  <p className="text-sm text-slate-600">
+                    <strong>Totale Netto IVA:</strong> €{editingInviatoOrder.totale_ordine.toFixed(2)}
+                  </p>
+                  <p className="text-lg font-bold text-blue-700">
+                    <strong>Totale con IVA:</strong> €{editingInviatoOrder.totale_ordine_con_iva.toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton onClick={() => setEditingInviatoOrder(null)} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton
+                    onClick={() => {
+                      const prodottiFiltrati = editingInviatoOrder.prodotti.filter((p) => p.quantita_ordinata > 0);
+
+                      if (prodottiFiltrati.length === 0) {
+                        alert('Devi avere almeno un prodotto con quantità > 0');
+                        return;
+                      }
+
+                      const totaleNettoFiltrato = prodottiFiltrati.reduce((sum, p) => sum + p.prezzo_unitario * p.quantita_ordinata, 0);
+                      const totaleConIVAFiltrato = prodottiFiltrati.reduce((sum, p) => {
+                        const pIVA = p.prezzo_unitario * (1 + (p.iva_percentuale ?? 22) / 100);
+                        return sum + pIVA * p.quantita_ordinata;
+                      }, 0);
+
+                      updateOrderMutation.mutate({
+                        id: editingInviatoOrder.id,
+                        data: {
+                          prodotti: prodottiFiltrati,
+                          totale_ordine: totaleNettoFiltrato,
+                          totale_ordine_con_iva: totaleConIVAFiltrato
+                        }
+                      });
+                    }}
+                    variant="primary"
+                    className="flex-1 flex items-center justify-center gap-2">
+                    <Save className="w-5 h-5" />
+                    Salva Modifiche
                   </NeumorphicButton>
                 </div>
               </div>
