@@ -6,6 +6,7 @@ import moment from "moment";
 import { motion } from "framer-motion";
 import PullToRefresh from "react-simple-pull-to-refresh";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTabStackManager } from "./components/navigation/TabStackManager";
 import {
   LayoutDashboard,
   MapPin,
@@ -1331,6 +1332,8 @@ export default function Layout({ children, currentPageName }) {
     return mainSections;
   }, [normalizedUserType, dipendenteNav, filteredNavigation]);
 
+  const { handleTabClick } = useTabStackManager(bottomNavItems);
+
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
       {showProfileModal && currentUser && (
@@ -1765,6 +1768,8 @@ export default function Layout({ children, currentPageName }) {
                               if (isActive) {
                                 e.preventDefault();
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                              } else {
+                                handleTabClick(item.url, e);
                               }
                             }}
                             className={`bottom-nav-item compact ${isActive ? 'active' : ''}`}
@@ -1807,6 +1812,8 @@ export default function Layout({ children, currentPageName }) {
                               if (isActive) {
                                 e.preventDefault();
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                              } else {
+                                handleTabClick(item.url, e);
                               }
                             }}
                             className={`bottom-nav-item ${isActive ? 'active' : ''}`}
@@ -1844,6 +1851,8 @@ export default function Layout({ children, currentPageName }) {
                                 if (isActive) {
                                   e.preventDefault();
                                   window.scrollTo({ top: 0, behavior: 'smooth' });
+                                } else {
+                                  handleTabClick(item.url, e);
                                 }
                               }}
                               className={`bottom-nav-item ${isActive ? 'active' : ''}`}
