@@ -3104,8 +3104,9 @@ Sa Pizzedda`,
 
                   <div className="space-y-2">
                     {editingInviatoOrder.prodotti.map((prod, idx) => {
-                      const prezzoConIVA = prod.prezzo_unitario * (1 + (prod.iva_percentuale ?? 22) / 100);
-                      const totaleNetto = prod.prezzo_unitario * prod.quantita_ordinata;
+                      const prezzoUnitario = prod.prezzo_unitario || 0;
+                      const prezzoConIVA = prezzoUnitario * (1 + (prod.iva_percentuale ?? 22) / 100);
+                      const totaleNetto = prezzoUnitario * prod.quantita_ordinata;
                       const totaleConIVA = prezzoConIVA * prod.quantita_ordinata;
 
                       return (
@@ -3142,7 +3143,7 @@ Sa Pizzedda`,
                             </div>
                             <div>
                               <p className="text-xs text-slate-500">Prezzo Unitario</p>
-                              <p className="text-sm font-medium text-slate-700">€{prod.prezzo_unitario.toFixed(2)}</p>
+                              <p className="text-sm font-medium text-slate-700">€{(prod.prezzo_unitario || 0).toFixed(2)}</p>
                               <p className="text-xs text-slate-400">(netto IVA)</p>
                             </div>
                             <div className="flex items-end justify-between">
