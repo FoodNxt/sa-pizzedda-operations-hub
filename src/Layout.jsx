@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import moment from "moment";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   LayoutDashboard,
   MapPin,
@@ -15,6 +16,7 @@ import {
   Star,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   Clock,
   UserCheck,
   BarChart3,
@@ -1416,13 +1418,28 @@ export default function Layout({ children, currentPageName }) {
       `}</style>
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-[60] mx-2 mt-2">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-[60] mx-2 mt-2 safe-area-top">
         <div className="neumorphic-card p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
-                <Pizza className="w-6 h-6 text-white" />
-              </div>
+              {(() => {
+                const rootPages = ['Dashboard', 'TurniDipendente', 'ProfiloDipendente', 'FormsDipendente'];
+                const currentPage = location.pathname.split('/').filter(Boolean).pop();
+                const isRootPage = rootPages.includes(currentPage);
+                
+                return !isRootPage ? (
+                  <button
+                    onClick={() => navigate(-1)}
+                    className="nav-button p-2 rounded-lg"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-slate-700" />
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                    <Pizza className="w-6 h-6 text-white" />
+                  </div>
+                );
+              })()}
               <div>
                     <span className="text-lg font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
                       {normalizedUserType === 'dipendente' ? getUserDisplayName() : 'Sa Pizzedda'}
@@ -1670,14 +1687,24 @@ export default function Layout({ children, currentPageName }) {
           ${normalizedUserType === 'dipendente' ? 'pt-24 pb-44 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
           px-3 py-3 lg:px-6 lg:py-4
         `}>
-          {children}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 
       {/* Mobile Bottom Navigation (Dipendente only) */}
       {normalizedUserType === 'dipendente' && bottomNavItems && bottomNavItems.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] safe-area-bottom bg-gradient-to-br from-slate-50 to-slate-100">
-          <div className="px-2 pb-2 pt-1">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-gradient-to-br from-slate-50 to-slate-100 safe-area-bottom">
+          <div className="px-2 pb-2 pt-1" style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}>
             <button
               onClick={() => setCompactMenu(!compactMenu)}
               className="w-full flex justify-center py-1 mb-1"
