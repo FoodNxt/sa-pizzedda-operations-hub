@@ -5816,6 +5816,105 @@ export default function Financials() {
                     </NeumorphicCard>
 
                     <NeumorphicCard className="p-6">
+                      <h3 className="text-lg font-bold text-slate-800 mb-4">Delta alla Data Odierna</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600">Revenue Attuale</span>
+                          <span className="text-sm font-bold text-green-600">
+                            {formatEuro(currentRevenue)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600">Richiesto ad Oggi (cumulativo)</span>
+                          <span className="text-sm font-bold text-orange-600">
+                            {formatEuro((() => {
+                              let requiredToDate = 0;
+                              for (let i = 0; i < daysPassed; i++) {
+                                const currentDate = new Date(periodStart);
+                                currentDate.setDate(periodStart.getDate() + i);
+                                const dayOfWeek = currentDate.getDay();
+                                const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+                                requiredToDate += totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                              }
+                              return requiredToDate;
+                            })())}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600 font-bold">Δ Attuale vs Richiesto</span>
+                          <span className={`text-sm font-bold ${(() => {
+                            let requiredToDate = 0;
+                            for (let i = 0; i < daysPassed; i++) {
+                              const currentDate = new Date(periodStart);
+                              currentDate.setDate(periodStart.getDate() + i);
+                              const dayOfWeek = currentDate.getDay();
+                              const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+                              requiredToDate += totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                            }
+                            const delta = currentRevenue - requiredToDate;
+                            return delta >= 0 ? 'text-green-600' : 'text-red-600';
+                          })()}`}>
+                            {(() => {
+                              let requiredToDate = 0;
+                              for (let i = 0; i < daysPassed; i++) {
+                                const currentDate = new Date(periodStart);
+                                currentDate.setDate(periodStart.getDate() + i);
+                                const dayOfWeek = currentDate.getDay();
+                                const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+                                requiredToDate += totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                              }
+                              const delta = currentRevenue - requiredToDate;
+                              const deltaPercent = requiredToDate > 0 ? (delta / requiredToDate) * 100 : 0;
+                              return `${delta >= 0 ? '+' : ''}${formatEuro(delta)} (${delta >= 0 ? '+' : ''}${deltaPercent.toFixed(1)}%)`;
+                            })()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600">Previsto ad Oggi (cumulativo)</span>
+                          <span className="text-sm font-bold text-purple-600">
+                            {formatEuro((() => {
+                              let predictedToDate = 0;
+                              for (let i = 0; i < daysPassed; i++) {
+                                const currentDate = new Date(periodStart);
+                                currentDate.setDate(periodStart.getDate() + i);
+                                const dayOfWeek = currentDate.getDay();
+                                predictedToDate += avgByDayOfWeek[dayOfWeek] || 0;
+                              }
+                              return predictedToDate;
+                            })())}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600 font-bold">Δ Attuale vs Previsto</span>
+                          <span className={`text-sm font-bold ${(() => {
+                            let predictedToDate = 0;
+                            for (let i = 0; i < daysPassed; i++) {
+                              const currentDate = new Date(periodStart);
+                              currentDate.setDate(periodStart.getDate() + i);
+                              const dayOfWeek = currentDate.getDay();
+                              predictedToDate += avgByDayOfWeek[dayOfWeek] || 0;
+                            }
+                            const delta = currentRevenue - predictedToDate;
+                            return delta >= 0 ? 'text-green-600' : 'text-red-600';
+                          })()}`}>
+                            {(() => {
+                              let predictedToDate = 0;
+                              for (let i = 0; i < daysPassed; i++) {
+                                const currentDate = new Date(periodStart);
+                                currentDate.setDate(periodStart.getDate() + i);
+                                const dayOfWeek = currentDate.getDay();
+                                predictedToDate += avgByDayOfWeek[dayOfWeek] || 0;
+                              }
+                              const delta = currentRevenue - predictedToDate;
+                              const deltaPercent = predictedToDate > 0 ? (delta / predictedToDate) * 100 : 0;
+                              return `${delta >= 0 ? '+' : ''}${formatEuro(delta)} (${delta >= 0 ? '+' : ''}${deltaPercent.toFixed(1)}%)`;
+                            })()}
+                          </span>
+                        </div>
+                      </div>
+                    </NeumorphicCard>
+
+                    <NeumorphicCard className="p-6">
                       <h3 className="text-lg font-bold text-slate-800 mb-4">Stagionalità per Giorno</h3>
                       <div className="space-y-2">
                         {['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'].map((dayName, idx) => {
