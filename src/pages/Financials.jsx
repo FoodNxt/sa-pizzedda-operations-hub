@@ -12,6 +12,14 @@ import ReactMarkdown from 'react-markdown';
 
 export default function Financials() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [targetRevenue, setTargetRevenue] = useState('');
+  const [targetStore, setTargetStore] = useState('all');
+  const [targetApp, setTargetApp] = useState('');
+  const [targetChannel, setTargetChannel] = useState('');
+  const [targetDateMode, setTargetDateMode] = useState('range'); // 'range' o 'rolling'
+  const [targetStartDate, setTargetStartDate] = useState('');
+  const [targetEndDate, setTargetEndDate] = useState('');
+  const [historicalDaysTarget, setHistoricalDaysTarget] = useState(30);
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('30');
   const [selectedMonth, setSelectedMonth] = useState('');
