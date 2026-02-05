@@ -4479,10 +4479,14 @@ export default function Financials() {
                           <span className="text-sm font-bold text-blue-600">{daysRemaining}</span>
                         </div>
                         <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                          <span className="text-sm text-slate-600">Revenue Media Giornaliera (storico)</span>
+                          <span className="text-sm text-slate-600">Revenue Media Giornaliera (reale)</span>
                           <span className="text-sm font-bold text-slate-800">
-                            {formatEuro(Object.values(avgByDayOfWeek).reduce((sum, v) => sum + v, 0) / Math.max(Object.keys(avgByDayOfWeek).length, 1))}
+                            {formatEuro(overallAvgDaily)}
                           </span>
+                        </div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600">Giorni con Dati (periodo storico)</span>
+                          <span className="text-sm font-bold text-slate-800">{actualHistoricalDays}</span>
                         </div>
                         <div className="flex justify-between items-center pb-2 border-b border-slate-200">
                           <span className="text-sm text-slate-600">Revenue Prevista (giorni rimanenti)</span>
