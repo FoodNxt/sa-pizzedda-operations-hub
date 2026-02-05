@@ -1335,7 +1335,7 @@ export default function Layout({ children, currentPageName }) {
   const { handleTabClick } = useTabStackManager(bottomNavItems);
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--bg-gradient)' }}>
       {showProfileModal && currentUser && (
         <CompleteProfileModal
           user={currentUser}

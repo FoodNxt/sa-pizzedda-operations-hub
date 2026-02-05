@@ -17,6 +17,7 @@ css
   --bg-primary: #f8fafc;
   --bg-secondary: #f1f5f9;
   --bg-tertiary: #e2e8f0;
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); /* ADDED */
   
   --card-bg: #ffffff;
   --card-border: rgba(148, 163, 184, 0.2);
@@ -47,6 +48,7 @@ css
     --bg-primary: #0f172a;
     --bg-secondary: #1e293b;
     --bg-tertiary: #334155;
+    --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); /* ADDED */
     
     --card-bg: #1e293b;
     --card-border: rgba(148, 163, 184, 0.1);
@@ -64,7 +66,7 @@ css
 
 /* Background Base */
 body {
-  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  background: var(--bg-gradient); /* MODIFIED */
   color: var(--text-primary);
   min-height: 100vh;
   overscroll-behavior: none;
@@ -146,9 +148,8 @@ p.text-gray-600 {
   font-size: 1.5rem !important;
   margin-bottom: 0.5rem !important;
   line-height: 1.2 !important;
-  color: #ffffff !important;
+  color: var(--text-primary) !important; /* MODIFIED */
   font-weight: 800 !important;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
   letter-spacing: -0.02em;
 }
 
@@ -157,9 +158,8 @@ p.text-gray-600 {
 .compact-layout [class*="text-"] h2 {
   font-size: 1.25rem !important;
   margin-bottom: 0.5rem !important;
-  color: #ffffff !important;
+  color: var(--text-primary) !important; /* MODIFIED */
   font-weight: 700 !important;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
 }
 
 .compact-layout h3,
@@ -167,15 +167,29 @@ p.text-gray-600 {
 .compact-layout [class*="text-"] h3 {
   font-size: 1.1rem !important;
   margin-bottom: 0.25rem !important;
-  color: #ffffff !important;
+  color: var(--text-primary) !important; /* MODIFIED */
   font-weight: 600 !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
 }
 
 .compact-layout p {
   margin-bottom: 0.5rem !important;
   line-height: 1.4 !important;
-  color: #ffffff !important;
+  color: var(--text-primary) !important; /* MODIFIED */
+}
+
+/* Dark mode specific text shadows */ /* ADDED */
+@media (prefers-color-scheme: dark) {
+  .compact-layout h1 {
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+  }
+  
+  .compact-layout h2 {
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+  }
+  
+  .compact-layout h3 {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+  }
 }
 
 /* Dark SaaS Cards */
@@ -424,56 +438,7 @@ svg defs {
   font-weight: 500 !important;
 }
 
-/* ========================================
-   FORCE NUCLEARE: BIANCHI TUTTI I TITOLI
-   ======================================== */
-
-/* KILL GRADIENT con attribute selectors - massima priorità */
-[class*="bg-gradient"][class*="bg-clip"],
-[class*="bg-gradient"][class*="text-transparent"],
-.bg-gradient-to-r.bg-clip-text,
-.bg-gradient-to-l.bg-clip-text,
-.bg-gradient-to-br.bg-clip-text,
-.text-transparent {
-  background: none !important;
-  background-image: none !important;
-  -webkit-background-clip: unset !important;
-  background-clip: unset !important;
-  -webkit-text-fill-color: #ffffff !important;
-  color: #ffffff !important;
-}
-
-/* OVERRIDE TOTALE heading e paragrafi */
-.compact-layout h1,
-.compact-layout h1 *,
-.compact-layout h2,
-.compact-layout h2 *,
-.compact-layout h3,
-.compact-layout h3 *,
-.compact-layout h4,
-.compact-layout h4 *,
-.compact-layout h5,
-.compact-layout h5 *,
-.compact-layout h6,
-.compact-layout h6 *,
-.compact-layout p,
-.compact-layout p *,
-h1, h1 *, h2, h2 *, h3, h3 *, h4, h4 *, h5, h5 *, h6, h6 * {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-}
-
-/* KILL colori slate/gray su titoli */
-.compact-layout h1[class*="slate"],
-.compact-layout h2[class*="slate"],
-.compact-layout h3[class*="slate"],
-.compact-layout p[class*="slate"],
-h1[class*="slate"],
-h2[class*="slate"],
-h3[class*="slate"],
-p[class*="slate"] {
-  color: #ffffff !important;
-}
+/* Removed hardcoded force overrides - now theme-aware via CSS variables */ /* MODIFIED - ENTIRE BLOCK REPLACED */
 
 /* Dark SaaS Page Headers */
 .compact-layout .mb-6:first-child {
@@ -486,7 +451,7 @@ p[class*="slate"] {
 .compact-layout h4,
 .compact-layout h5,
 .compact-layout h6 {
-  color: #ffffff !important;
+  color: var(--text-primary) !important; /* MODIFIED */
   font-weight: 700 !important;
 }
 
