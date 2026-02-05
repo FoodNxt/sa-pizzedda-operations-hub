@@ -4128,6 +4128,242 @@ export default function Financials() {
         {/* Target Tab */}
         {activeTab === 'target' && (
           <>
+            {selectedTargetView === 'list' && (
+              <>
+                <NeumorphicCard className="p-6 mb-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-slate-800">I Tuoi Target</h2>
+                    <button
+                      onClick={() => {
+                        setSelectedTargetView('create');
+                        setTargetName('');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
+                    >
+                      + Nuovo Target
+                    </button>
+                  </div>
+                </NeumorphicCard>
+
+                {targets.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {targets.map((target) => (
+                      <NeumorphicCard
+                        key={target.id}
+                        className="p-6 cursor-pointer hover:shadow-lg transition-all"
+                        onClick={() => {
+                          setSelectedTargetId(target.id);
+                          setSelectedTargetView('details');
+                          setTargetRevenue(target.target_revenue.toString());
+                          setTargetStore(target.store_id || 'all');
+                          setTargetChannel(target.channel || '');
+                          setTargetApp(target.app || '');
+                          setTargetDateMode(target.date_mode || 'range');
+                          setTargetStartDate(target.start_date || '');
+                          setTargetEndDate(target.end_date || '');
+                          setHistoricalDaysTarget(target.historical_days || 30);
+                        }}
+                      >
+                        <h3 className="text-lg font-bold text-slate-800 mb-2">{target.name}</h3>
+                        <p className="text-2xl font-bold text-blue-600 mb-3">{formatEuro(target.target_revenue)}</p>
+                        <p className="text-xs text-slate-500">
+                          {target.store_id && target.store_id !== 'all' ? stores.find(s => s.id === target.store_id)?.name || 'Locale' : 'Tutti i Locali'}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Clicca per vedere la previsione
+                        </p>
+                      </NeumorphicCard>
+                    ))}
+                  </div>
+                ) : (
+                  <NeumorphicCard className="p-6 text-center">
+                    <TrendingUp className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500 mb-4">Nessun target impostato</p>
+                    <button
+                      onClick={() => {
+                        setSelectedTargetView('create');
+                        setTargetName('');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
+                    >
+                      Crea il tuo primo target
+                    </button>
+                  </NeumorphicCard>
+                )}
+              </>
+            )}
+
+            {selectedTargetView === 'create' && (
+              <>
+                <NeumorphicCard className="p-6 mb-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <button
+                      onClick={() => setSelectedTargetView('list')}
+                      className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                    >
+                      <ChevronUp className="w-5 h-5 text-slate-600 rotate-90" />
+                    </button>
+                    <h2 className="text-lg font-bold text-slate-800">Crea Nuovo Target</h2>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Nome Target</label>
+                      <input
+                        type="text"
+                        value={targetName}
+                        onChange={(e) => setTargetName(e.target.value)}
+                        placeholder="es. Target Febbraio"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Target Revenue (€)</label>
+                      <input
+                        type="number"
+                        value={targetRevenue}
+                        onChange={(e) => setTargetRevenue(e.target.value)}
+                        placeholder="es. 50000"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Locale</label>
+                      <select
+                        value={targetStore}
+                        onChange={(e) => setTargetStore(e.target.value)}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      >
+                        <option value="all">Tutti i Locali</option>
+                        {stores.map(store => (
+                          <option key={store.id} value={store.id}>{store.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Canale (opzionale)</label>
+                      <select
+                        value={targetChannel}
+                        onChange={(e) => setTargetChannel(e.target.value)}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      >
+                        <option value="">Tutti i Canali</option>
+                        {allChannels.map(channel => (
+                          <option key={channel} value={channel}>{channel.charAt(0).toUpperCase() + channel.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">App (opzionale)</label>
+                      <select
+                        value={targetApp}
+                        onChange={(e) => setTargetApp(e.target.value)}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      >
+                        <option value="">Tutte le App</option>
+                        {allApps.map(app => (
+                          <option key={app} value={app}>{app.charAt(0).toUpperCase() + app.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Modalità Periodo</label>
+                      <select
+                        value={targetDateMode}
+                        onChange={(e) => setTargetDateMode(e.target.value)}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      >
+                        <option value="range">Range Specifico</option>
+                        <option value="rolling">Rolling (ultimi 30 gg)</option>
+                      </select>
+                    </div>
+
+                    {targetDateMode === 'range' && (
+                      <>
+                        <div>
+                          <label className="text-sm text-slate-600 mb-2 block font-medium">Data Inizio</label>
+                          <input
+                            type="date"
+                            value={targetStartDate}
+                            onChange={(e) => setTargetStartDate(e.target.value)}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-slate-600 mb-2 block font-medium">Data Target</label>
+                          <input
+                            type="date"
+                            value={targetEndDate}
+                            onChange={(e) => setTargetEndDate(e.target.value)}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Giorni Storici per Stagionalità</label>
+                      <select
+                        value={historicalDaysTarget}
+                        onChange={(e) => setHistoricalDaysTarget(parseInt(e.target.value))}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      >
+                        <option value="30">30 giorni</option>
+                        <option value="60">60 giorni</option>
+                        <option value="90">90 giorni</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      onClick={() => setSelectedTargetView('list')}
+                      className="flex-1 px-4 py-3 rounded-xl bg-slate-200 text-slate-700 font-medium text-sm hover:bg-slate-300 transition-colors"
+                    >
+                      Annulla
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (targetName && targetRevenue) {
+                          saveTargetMutation.mutate({
+                            name: targetName,
+                            target_revenue: parseFloat(targetRevenue),
+                            store_id: targetStore,
+                            channel: targetChannel,
+                            app: targetApp,
+                            date_mode: targetDateMode,
+                            start_date: targetStartDate,
+                            end_date: targetEndDate,
+                            historical_days: historicalDaysTarget
+                          });
+                        }
+                      }}
+                      className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
+                    >
+                      Salva Target
+                    </button>
+                  </div>
+                </NeumorphicCard>
+              </>
+            )}
+
+            {selectedTargetView === 'details' && (
+              <button
+                onClick={() => setSelectedTargetView('list')}
+                className="mb-4 p-2 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-2"
+              >
+                <ChevronUp className="w-5 h-5 text-slate-600 rotate-90" />
+                <span className="text-slate-600">Torna alla lista</span>
+              </button>
+            )}
+
+            {selectedTargetView === 'details' && (
             <NeumorphicCard className="p-6">
               <h2 className="text-lg font-bold text-slate-800 mb-4">Configurazione Target</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
