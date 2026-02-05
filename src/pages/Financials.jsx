@@ -5076,38 +5076,350 @@ export default function Financials() {
 
                   {/* Tabella Dettaglio Previsionale */}
                   <NeumorphicCard className="p-6 mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-bold text-slate-800">Dettaglio Previsionale</h3>
-                      <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-                        <button
-                          onClick={() => setDetailView('daily')}
-                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                            detailView === 'daily' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
-                          }`}
-                        >
-                          Giornaliero
-                        </button>
-                        <button
-                          onClick={() => setDetailView('weekly')}
-                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                            detailView === 'weekly' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
-                          }`}
-                        >
-                          Settimanale
-                        </button>
-                        <button
-                          onClick={() => setDetailView('monthly')}
-                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                            detailView === 'monthly' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
-                          }`}
-                        >
-                          Mensile
-                        </button>
-                      </div>
-                    </div>
+                   <div className="flex items-center justify-between mb-4">
+                     <h3 className="text-lg font-bold text-slate-800">Dettaglio Previsionale</h3>
+                     <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                       <button
+                         onClick={() => setDetailView('daily')}
+                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                           detailView === 'daily' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
+                         }`}
+                       >
+                         Giornaliero
+                       </button>
+                       <button
+                         onClick={() => setDetailView('weekly')}
+                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                           detailView === 'weekly' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
+                         }`}
+                       >
+                         Settimanale
+                       </button>
+                       <button
+                         onClick={() => setDetailView('monthly')}
+                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                           detailView === 'monthly' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
+                         }`}
+                       >
+                         Mensile
+                       </button>
+                       <button
+                         onClick={() => setDetailView('split')}
+                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                           detailView === 'split' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
+                         }`}
+                       >
+                         Split
+                       </button>
+                     </div>
+                   </div>
 
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[600px]">
+                      {detailView === 'split' ? (
+                        <>
+                          {/* Vista Split per Store/App/Canale */}
+                          {(() => {
+                            // Determina cosa splittare
+                            const shouldSplitByStore = targetStore === 'all' && stores.length > 1;
+                            const shouldSplitByApp = !targetApp && allApps.length > 1;
+                            const shouldSplitByChannel = !targetChannel && !targetApp && allChannels.length > 1;
+                            
+                            if (!shouldSplitByStore && !shouldSplitByApp && !shouldSplitByChannel) {
+                              return (
+                                <div className="text-center py-8 text-slate-500">
+                                  Split non disponibile: il target è già specifico per un singolo store/app/canale.
+                                </div>
+                              );
+                            }
+
+                            let splitByItems = [];
+                            let splitType = '';
+                            
+                            if (shouldSplitByStore) {
+                              splitByItems = stores.map(s => ({ id: s.id, name: s.name, type: 'store' }));
+                              splitType = 'store';
+                            } else if (shouldSplitByApp) {
+                              splitByItems = allApps.map(a => ({ id: a, name: a.charAt(0).toUpperCase() + a.slice(1), type: 'app' }));
+                              splitType = 'app';
+                            } else if (shouldSplitByChannel) {
+                              splitByItems = allChannels.map(c => ({ id: c, name: c.charAt(0).toUpperCase() + c.slice(1), type: 'channel' }));
+                              splitType = 'channel';
+                            }
+
+                            return splitByItems.map((item, itemIdx) => {
+                              // Calcola dati per questo item specifico
+                              const itemCurrentData = iPraticoData.filter(dataItem => {
+                                if (!dataItem.order_date) return false;
+                                const dataItemDate = new Date(dataItem.order_date);
+                                dataItemDate.setHours(0, 0, 0, 0);
+                                if (dataItemDate < periodStart || dataItemDate >= today) return false;
+                                
+                                if (splitType === 'store') {
+                                  return dataItem.store_id === item.id;
+                                }
+                                return true;
+                              });
+
+                              let itemCurrentRevenue = 0;
+                              itemCurrentData.forEach(dataItem => {
+                                let dataItemRevenue = 0;
+                                
+                                if (splitType === 'app') {
+                                  const apps = [
+                                    { key: 'glovo', revenue: dataItem.sourceApp_glovo || 0 },
+                                    { key: 'deliveroo', revenue: dataItem.sourceApp_deliveroo || 0 },
+                                    { key: 'justeat', revenue: dataItem.sourceApp_justeat || 0 },
+                                    { key: 'onlineordering', revenue: dataItem.sourceApp_onlineordering || 0 },
+                                    { key: 'ordertable', revenue: dataItem.sourceApp_ordertable || 0 },
+                                    { key: 'tabesto', revenue: dataItem.sourceApp_tabesto || 0 },
+                                    { key: 'store', revenue: dataItem.sourceApp_store || 0 }
+                                  ];
+                                  apps.forEach(app => {
+                                    const mappedKey = appMapping[app.key] || app.key;
+                                    if (mappedKey === item.id) dataItemRevenue += app.revenue;
+                                  });
+                                } else if (splitType === 'channel') {
+                                  const channels = [
+                                    { key: 'delivery', revenue: dataItem.sourceType_delivery || 0 },
+                                    { key: 'takeaway', revenue: dataItem.sourceType_takeaway || 0 },
+                                    { key: 'takeawayOnSite', revenue: dataItem.sourceType_takeawayOnSite || 0 },
+                                    { key: 'store', revenue: dataItem.sourceType_store || 0 }
+                                  ];
+                                  channels.forEach(ch => {
+                                    const mappedKey = channelMapping[ch.key] || ch.key;
+                                    if (mappedKey === item.id) dataItemRevenue += ch.revenue;
+                                  });
+                                } else {
+                                  dataItemRevenue = dataItem.total_revenue || 0;
+                                }
+                                
+                                itemCurrentRevenue += dataItemRevenue;
+                              });
+
+                              // Calcola storico per questo item
+                              const itemHistoricalData = iPraticoData.filter(dataItem => {
+                                if (!dataItem.order_date) return false;
+                                const dataItemDate = new Date(dataItem.order_date);
+                                dataItemDate.setHours(0, 0, 0, 0);
+                                if (dataItemDate < historicalCutoff || dataItemDate >= today) return false;
+                                
+                                if (splitType === 'store') {
+                                  return dataItem.store_id === item.id;
+                                }
+                                return true;
+                              });
+
+                              const itemDailyTotals = {};
+                              itemHistoricalData.forEach(dataItem => {
+                                if (!itemDailyTotals[dataItem.order_date]) itemDailyTotals[dataItem.order_date] = 0;
+                                
+                                let dataItemRevenue = 0;
+                                if (splitType === 'app') {
+                                  const apps = [
+                                    { key: 'glovo', revenue: dataItem.sourceApp_glovo || 0 },
+                                    { key: 'deliveroo', revenue: dataItem.sourceApp_deliveroo || 0 },
+                                    { key: 'justeat', revenue: dataItem.sourceApp_justeat || 0 },
+                                    { key: 'onlineordering', revenue: dataItem.sourceApp_onlineordering || 0 },
+                                    { key: 'ordertable', revenue: dataItem.sourceApp_ordertable || 0 },
+                                    { key: 'tabesto', revenue: dataItem.sourceApp_tabesto || 0 },
+                                    { key: 'store', revenue: dataItem.sourceApp_store || 0 }
+                                  ];
+                                  apps.forEach(app => {
+                                    const mappedKey = appMapping[app.key] || app.key;
+                                    if (mappedKey === item.id) dataItemRevenue += app.revenue;
+                                  });
+                                } else if (splitType === 'channel') {
+                                  const channels = [
+                                    { key: 'delivery', revenue: dataItem.sourceType_delivery || 0 },
+                                    { key: 'takeaway', revenue: dataItem.sourceType_takeaway || 0 },
+                                    { key: 'takeawayOnSite', revenue: dataItem.sourceType_takeawayOnSite || 0 },
+                                    { key: 'store', revenue: dataItem.sourceType_store || 0 }
+                                  ];
+                                  channels.forEach(ch => {
+                                    const mappedKey = channelMapping[ch.key] || ch.key;
+                                    if (mappedKey === item.id) dataItemRevenue += ch.revenue;
+                                  });
+                                } else {
+                                  dataItemRevenue = dataItem.total_revenue || 0;
+                                }
+                                
+                                itemDailyTotals[dataItem.order_date] += dataItemRevenue;
+                              });
+
+                              const itemDayOfWeekRevenues = {};
+                              Object.entries(itemDailyTotals).forEach(([date, revenue]) => {
+                                const dataItemDate = new Date(date);
+                                const dayOfWeek = dataItemDate.getDay();
+                                if (!itemDayOfWeekRevenues[dayOfWeek]) itemDayOfWeekRevenues[dayOfWeek] = [];
+                                itemDayOfWeekRevenues[dayOfWeek].push(revenue);
+                              });
+
+                              const itemAvgByDayOfWeek = {};
+                              Object.keys(itemDayOfWeekRevenues).forEach(dayOfWeek => {
+                                const revenues = itemDayOfWeekRevenues[dayOfWeek];
+                                itemAvgByDayOfWeek[dayOfWeek] = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                              });
+
+                              let itemPredictedRevenue = 0;
+                              for (let i = 0; i < daysRemaining; i++) {
+                                const futureDate = new Date(today);
+                                futureDate.setDate(today.getDate() + i);
+                                const dayOfWeek = futureDate.getDay();
+                                itemPredictedRevenue += itemAvgByDayOfWeek[dayOfWeek] || 0;
+                              }
+
+                              const itemTotalProjected = itemCurrentRevenue + itemPredictedRevenue;
+                              
+                              // Calcola il peso di questo item rispetto al totale (per distribuire il target proporzionalmente)
+                              let itemTotalSeasonalityWeight = 0;
+                              for (let i = 0; i < totalDays; i++) {
+                                const currentDate = new Date(periodStart);
+                                currentDate.setDate(periodStart.getDate() + i);
+                                const dayOfWeek = currentDate.getDay();
+                                itemTotalSeasonalityWeight += itemAvgByDayOfWeek[dayOfWeek] || 0;
+                              }
+                              
+                              // Calcola il peso totale di TUTTI gli items per proporzionare il target
+                              let globalTotalSeasonalityWeight = 0;
+                              splitByItems.forEach(otherItem => {
+                                const otherHistoricalData = iPraticoData.filter(dataItem => {
+                                  if (!dataItem.order_date) return false;
+                                  const dataItemDate = new Date(dataItem.order_date);
+                                  dataItemDate.setHours(0, 0, 0, 0);
+                                  if (dataItemDate < historicalCutoff || dataItemDate >= today) return false;
+                                  
+                                  if (splitType === 'store') {
+                                    return dataItem.store_id === otherItem.id;
+                                  }
+                                  return true;
+                                });
+
+                                const otherDailyTotals = {};
+                                otherHistoricalData.forEach(dataItem => {
+                                  if (!otherDailyTotals[dataItem.order_date]) otherDailyTotals[dataItem.order_date] = 0;
+                                  
+                                  let dataItemRevenue = 0;
+                                  if (splitType === 'app') {
+                                    const apps = [
+                                      { key: 'glovo', revenue: dataItem.sourceApp_glovo || 0 },
+                                      { key: 'deliveroo', revenue: dataItem.sourceApp_deliveroo || 0 },
+                                      { key: 'justeat', revenue: dataItem.sourceApp_justeat || 0 },
+                                      { key: 'onlineordering', revenue: dataItem.sourceApp_onlineordering || 0 },
+                                      { key: 'ordertable', revenue: dataItem.sourceApp_ordertable || 0 },
+                                      { key: 'tabesto', revenue: dataItem.sourceApp_tabesto || 0 },
+                                      { key: 'store', revenue: dataItem.sourceApp_store || 0 }
+                                    ];
+                                    apps.forEach(app => {
+                                      const mappedKey = appMapping[app.key] || app.key;
+                                      if (mappedKey === otherItem.id) dataItemRevenue += app.revenue;
+                                    });
+                                  } else if (splitType === 'channel') {
+                                    const channels = [
+                                      { key: 'delivery', revenue: dataItem.sourceType_delivery || 0 },
+                                      { key: 'takeaway', revenue: dataItem.sourceType_takeaway || 0 },
+                                      { key: 'takeawayOnSite', revenue: dataItem.sourceType_takeawayOnSite || 0 },
+                                      { key: 'store', revenue: dataItem.sourceType_store || 0 }
+                                    ];
+                                    channels.forEach(ch => {
+                                      const mappedKey = channelMapping[ch.key] || ch.key;
+                                      if (mappedKey === otherItem.id) dataItemRevenue += ch.revenue;
+                                    });
+                                  } else {
+                                    dataItemRevenue = dataItem.total_revenue || 0;
+                                  }
+                                  
+                                  otherDailyTotals[dataItem.order_date] += dataItemRevenue;
+                                });
+
+                                const otherDayOfWeekRevenues = {};
+                                Object.entries(otherDailyTotals).forEach(([date, revenue]) => {
+                                  const dataItemDate = new Date(date);
+                                  const dayOfWeek = dataItemDate.getDay();
+                                  if (!otherDayOfWeekRevenues[dayOfWeek]) otherDayOfWeekRevenues[dayOfWeek] = [];
+                                  otherDayOfWeekRevenues[dayOfWeek].push(revenue);
+                                });
+
+                                const otherAvgByDayOfWeek = {};
+                                Object.keys(otherDayOfWeekRevenues).forEach(dayOfWeek => {
+                                  const revenues = otherDayOfWeekRevenues[dayOfWeek];
+                                  otherAvgByDayOfWeek[dayOfWeek] = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                                });
+
+                                for (let i = 0; i < totalDays; i++) {
+                                  const currentDate = new Date(periodStart);
+                                  currentDate.setDate(periodStart.getDate() + i);
+                                  const dayOfWeek = currentDate.getDay();
+                                  globalTotalSeasonalityWeight += otherAvgByDayOfWeek[dayOfWeek] || 0;
+                                }
+                              });
+                              
+                              const itemTargetRevenue = globalTotalSeasonalityWeight > 0 ? (target * (itemTotalSeasonalityWeight / globalTotalSeasonalityWeight)) : (target / splitByItems.length);
+                              const itemGap = itemTargetRevenue - itemTotalProjected;
+                              const itemProgressPercent = itemTargetRevenue > 0 ? (itemTotalProjected / itemTargetRevenue) * 100 : 0;
+
+                              return (
+                                <NeumorphicCard key={item.id} className="p-6 mb-4">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <h4 className="text-lg font-bold text-slate-800">{item.name}</h4>
+                                    <div className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                                      itemGap <= 0 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                    }`}>
+                                      {itemGap <= 0 ? '✓ Sopra' : '⚠ Sotto'}
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                                    <div className="text-center">
+                                      <p className="text-xs text-slate-500 mb-1">Target</p>
+                                      <p className="text-lg font-bold text-blue-600">{formatEuro(itemTargetRevenue)}</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs text-slate-500 mb-1">Attuale</p>
+                                      <p className="text-lg font-bold text-green-600">{formatEuro(itemCurrentRevenue)}</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs text-slate-500 mb-1">Previsto</p>
+                                      <p className="text-lg font-bold text-purple-600">{formatEuro(itemTotalProjected)}</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs text-slate-500 mb-1">Gap</p>
+                                      <p className={`text-lg font-bold ${itemGap > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                        {formatEuro(Math.abs(itemGap))}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                                      <div 
+                                        className={`h-full transition-all ${itemGap <= 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'}`}
+                                        style={{ width: `${Math.min(itemProgressPercent, 100)}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-600">{itemProgressPercent.toFixed(0)}%</span>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-200">
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Δ vs Previsto</p>
+                                      <p className={`text-sm font-bold ${itemCurrentRevenue >= itemTotalProjected ? 'text-green-600' : 'text-red-600'}`}>
+                                        {itemCurrentRevenue >= itemTotalProjected ? '+' : ''}{formatEuro(itemCurrentRevenue - (itemTotalProjected - itemPredictedRevenue))}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Δ vs Richiesto</p>
+                                      <p className={`text-sm font-bold ${itemTotalProjected >= itemTargetRevenue ? 'text-green-600' : 'text-red-600'}`}>
+                                        {itemTotalProjected >= itemTargetRevenue ? '+' : ''}{formatEuro(itemTotalProjected - itemTargetRevenue)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </NeumorphicCard>
+                              );
+                            });
+                          })()}
+                        </>
+                      ) : (
+                        <table className="w-full min-w-[600px]">
                         <thead>
                           <tr className="border-b-2 border-blue-600">
                             <th className="text-left p-3 text-slate-600 font-medium text-sm">
@@ -5442,6 +5754,7 @@ export default function Financials() {
                           })()}
                         </tbody>
                       </table>
+                      )}
                     </div>
                     
                     <p className="text-xs text-slate-500 mt-3">
