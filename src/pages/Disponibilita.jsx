@@ -250,8 +250,8 @@ export default function Disponibilita() {
     <ProtectedPage pageName="Disponibilita">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-slate-50 mb-2 text-3xl font-bold">📊 Disponibilità Dipendenti</h1>
-          <p className="text-slate-50">Ore straordinario fatte vs potenziali per ogni dipendente</p>
+          <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>📊 Disponibilità Dipendenti</h1>
+          <p style={{ color: '#000000' }}>Ore straordinario fatte vs potenziali per ogni dipendente</p>
         </div>
 
         {/* Tabs */}

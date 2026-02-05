@@ -622,10 +622,9 @@ export default function PianoQuarter() {
     <ProtectedPage pageName="PianoQuarter">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="text-slate-50 mb-6">
-          <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Piano Quarter
-
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Piano Quarter
           </h1>
-          <p className="text-slate-50 mt-1">Gestione piani trimestrali di Ads, Promo e Conto Economico</p>
+          <p className="mt-1" style={{ color: '#000000' }}>Gestione piani trimestrali di Ads, Promo e Conto Economico</p>
         </div>
 
         {/* Tabs */}

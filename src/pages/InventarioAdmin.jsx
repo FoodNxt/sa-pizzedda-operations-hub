@@ -35,9 +35,9 @@ export default function InventarioAdmin() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <Settings className="w-10 h-10 text-[#8b7355]" />
-            <h1 className="text-slate-50 text-3xl font-bold">Inventory Admin</h1>
+            <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Inventory Admin</h1>
           </div>
-          <p className="text-slate-50">Configurazione avanzata dell'inventario</p>
+          <p style={{ color: '#000000' }}>Configurazione avanzata dell'inventario</p>
         </div>
 
         {/* Forms Grid */}

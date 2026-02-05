@@ -119,8 +119,8 @@ export default function Attrezzature() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-slate-50 mb-1 text-3xl font-bold">Attrezzature</h1>
-            <p className="text-slate-50">Gestisci le attrezzature dei locali</p>
+            <h1 className="mb-1 text-3xl font-bold" style={{ color: '#000000' }}>Attrezzature</h1>
+            <p style={{ color: '#000000' }}>Gestisci le attrezzature dei locali</p>
           </div>
           <NeumorphicButton
             onClick={() => setShowForm(true)}

@@ -1088,10 +1088,9 @@ IMPORTANTE: Mantieni tutte le informazioni originali, migliorando solo la chiare
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Gestione Assistente AI
-
+            <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Gestione Assistente AI
             </h1>
-            <p className="text-slate-50 mt-1">Configura la knowledge base e monitora le conversazioni</p>
+            <p className="mt-1" style={{ color: '#000000' }}>Configura la knowledge base e monitora le conversazioni</p>
           </div>
         </div>
 
