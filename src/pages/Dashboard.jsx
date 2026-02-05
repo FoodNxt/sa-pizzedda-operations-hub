@@ -1129,11 +1129,11 @@ export default function Dashboard() {
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-green-600">🏆 {foodCostStats.best?.name || 'N/A'}</span>
-                <span className="font-medium">{foodCostStats.best?.percentage.toFixed(1)}%</span>
+                <span className="font-medium">{foodCostStats.best?.percentage ? foodCostStats.best.percentage.toFixed(1) : '0.0'}%</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-red-600">📉 {foodCostStats.worst?.name || 'N/A'}</span>
-                <span className="font-medium">{foodCostStats.worst?.percentage.toFixed(1)}%</span>
+                <span className="font-medium">{foodCostStats.worst?.percentage ? foodCostStats.worst.percentage.toFixed(1) : '0.0'}%</span>
               </div>
             </div>
           </NeumorphicCard>
@@ -1231,11 +1231,11 @@ export default function Dashboard() {
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-green-600">🏆 {googleMapsStats.bestEmployeeScore?.name || 'N/A'}</span>
-                <span className="font-medium">{googleMapsStats.bestEmployeeScore?.rating.toFixed(1)} ⭐</span>
+                <span className="font-medium">{googleMapsStats.bestEmployeeScore?.rating ? googleMapsStats.bestEmployeeScore.rating.toFixed(1) : '0.0'} ⭐</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-red-600">📉 {googleMapsStats.worstEmployeeScore?.name || 'N/A'}</span>
-                <span className="font-medium">{googleMapsStats.worstEmployeeScore?.rating.toFixed(1) || 0} ⭐</span>
+                <span className="font-medium">{googleMapsStats.worstEmployeeScore?.rating ? googleMapsStats.worstEmployeeScore.rating.toFixed(1) : '0.0'} ⭐</span>
               </div>
             </div>
           </NeumorphicCard>
