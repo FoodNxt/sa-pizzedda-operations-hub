@@ -403,10 +403,9 @@ Genera SOLO la risposta, senza introduzioni o spiegazioni.`;
         <div className="mb-4 lg:mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Store Reviews
-
+              <h1 className="mb-1 text-2xl font-bold lg:text-3xl" style={{ color: '#000000' }}>Store Reviews
               </h1>
-              <p className="text-slate-50 text-sm">Panoramica geografica del feedback dei clienti</p>
+              <p className="text-sm" style={{ color: '#000000' }}>Panoramica geografica del feedback dei clienti</p>
             </div>
             
             {/* Filters */}

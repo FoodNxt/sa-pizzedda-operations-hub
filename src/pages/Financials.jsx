@@ -1819,8 +1819,8 @@ export default function Financials() {
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
         <div className="mb-4 lg:mb-6 flex items-start justify-between">
           <div>
-            <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Analisi Finanziaria</h1>
-            <p className="text-slate-50 text-sm">Dati iPratico</p>
+            <h1 className="mb-1 text-2xl font-bold lg:text-3xl" style={{ color: '#000000' }}>Analisi Finanziaria</h1>
+            <p className="text-sm" style={{ color: '#000000' }}>Dati iPratico</p>
           </div>
           <button
             onClick={handleAIAnalysis}

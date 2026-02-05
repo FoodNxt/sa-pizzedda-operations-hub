@@ -620,10 +620,9 @@ export default function Inventory() {
         <div className="mb-4 lg:mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Analisi Inventario
-
+              <h1 className="mb-1 text-2xl font-bold lg:text-3xl" style={{ color: '#000000' }}>Analisi Inventario
               </h1>
-              <p className="text-slate-50 text-sm">Monitora lo stato delle scorte in tempo reale</p>
+              <p className="text-sm" style={{ color: '#000000' }}>Monitora lo stato delle scorte in tempo reale</p>
             </div>
           </div>
         </div>
