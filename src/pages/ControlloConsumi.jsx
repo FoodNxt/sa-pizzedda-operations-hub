@@ -987,10 +987,9 @@ export default function ControlloConsumi() {
     <ProtectedPage pageName="ControlloConsumi">
       <div className="max-w-7xl mx-auto space-y-4">
         <div className="mb-6">
-          <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Controllo Consumi
-
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Controllo Consumi
           </h1>
-          <p className="text-slate-50 mt-1">Confronto tra consumi teorici ed effettivi</p>
+          <p className="mt-1" style={{ color: '#000000' }}>Confronto tra consumi teorici ed effettivi</p>
         </div>
 
         {/* Tabs */}

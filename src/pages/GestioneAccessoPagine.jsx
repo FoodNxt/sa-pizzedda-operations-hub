@@ -509,9 +509,9 @@ export default function GestioneAccessoPagine() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <CheckSquare className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-slate-50 text-3xl font-bold">Gestione Accesso Pagine</h1>
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Gestione Accesso Pagine</h1>
         </div>
-        <p className="text-slate-50">Configura quali pagine sono visibili per ogni tipo di utente</p>
+        <p style={{ color: '#000000' }}>Configura quali pagine sono visibili per ogni tipo di utente</p>
       </div>
 
       {/* Info Card */}

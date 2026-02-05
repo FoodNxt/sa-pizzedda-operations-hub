@@ -132,7 +132,7 @@ export default function NotificheMail() {
     <ProtectedPage pageName="NotificheMail">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>
             Notifiche Email
           </h1>
           <p className="text-slate-500 mt-1">Gestisci i template e visualizza il log delle email inviate</p>

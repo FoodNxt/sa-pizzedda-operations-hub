@@ -88,11 +88,9 @@ export default function MarketingSettings() {
     <ProtectedPage pageName="MarketingSettings" requiredUserTypes={['admin']}>
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-slate-50 mb-2 text-3xl font-bold flex items-center gap-3">Configurazione Marketing
-
-
+          <h1 className="mb-2 text-3xl font-bold flex items-center gap-3" style={{ color: '#000000' }}>Configurazione Marketing
           </h1>
-          <p className="text-slate-50">Inserisci le credenziali per Google Ads e Meta Ads</p>
+          <p style={{ color: '#000000' }}>Inserisci le credenziali per Google Ads e Meta Ads</p>
         </div>
 
         {/* Google Ads Configuration */}
