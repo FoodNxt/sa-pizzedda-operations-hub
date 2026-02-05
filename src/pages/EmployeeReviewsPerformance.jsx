@@ -192,8 +192,8 @@ export default function EmployeeReviewsPerformance() {
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-slate-50 mb-2 text-3xl font-bold">Performance Recensioni Dipendenti</h1>
-        <p className="text-slate-50">Analisi delle recensioni assegnate ai dipendenti</p>
+        <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Performance Recensioni Dipendenti</h1>
+        <p style={{ color: '#000000' }}>Analisi delle recensioni assegnate ai dipendenti</p>
       </div>
 
       {/* Info about deduplication */}

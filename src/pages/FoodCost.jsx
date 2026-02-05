@@ -328,8 +328,8 @@ export default function FoodCost() {
     <ProtectedPage pageName="FoodCost">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="text-slate-50 mb-6">
-          <h1 className="text-3xl font-bold text-slate-50">Food Cost</h1>
-          <p className="text-slate-50 mt-1">Analisi dettagliata del food cost per locale e periodo</p>
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Food Cost</h1>
+          <p className="mt-1" style={{ color: '#000000' }}>Analisi dettagliata del food cost per locale e periodo</p>
         </div>
 
         {/* Filtri */}

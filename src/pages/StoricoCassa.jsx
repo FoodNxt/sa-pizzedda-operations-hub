@@ -572,10 +572,9 @@ export default function StoricoCassa() {
     <ProtectedPage pageName="StoricoCassa">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
         <div className="mb-4 lg:mb-6">
-          <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Storico Conteggi Cassa
-
+          <h1 className="mb-1 text-2xl font-bold lg:text-3xl" style={{ color: '#000000' }}>Storico Conteggi Cassa
           </h1>
-          <p className="text-slate-50 text-sm">Analisi storica dei conteggi cassa</p>
+          <p className="text-sm" style={{ color: '#000000' }}>Analisi storica dei conteggi cassa</p>
         </div>
 
         {/* Tabs */}
