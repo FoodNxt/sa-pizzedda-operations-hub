@@ -881,13 +881,32 @@ export default function OrdiniSbagliati() {
       });
     }
 
-    return {
-      byStore: Object.entries(byStore).map(([name, data]) => ({ name, ...data })),
-      byDate: Object.values(byDate).sort((a, b) => {
+    // Sort byDate based on view mode
+    let sortedByDate = Object.values(byDate);
+    
+    if (trendView === 'daily') {
+      sortedByDate.sort((a, b) => {
         const [dayA, monthA] = a.date.split('/').map(Number);
         const [dayB, monthB] = b.date.split('/').map(Number);
         return monthA !== monthB ? monthA - monthB : dayA - dayB;
-      })
+      });
+    } else if (trendView === 'weekly') {
+      sortedByDate.sort((a, b) => {
+        const [dayA, monthA] = a.date.split('/').map(Number);
+        const [dayB, monthB] = b.date.split('/').map(Number);
+        return monthA !== monthB ? monthA - monthB : dayA - dayB;
+      });
+    } else if (trendView === 'monthly') {
+      sortedByDate.sort((a, b) => {
+        const [monthA, yearA] = a.date.split('/').map(Number);
+        const [monthB, yearB] = b.date.split('/').map(Number);
+        return yearA !== yearB ? yearA - yearB : monthA - monthB;
+      });
+    }
+
+    return {
+      byStore: Object.entries(byStore).map(([name, data]) => ({ name, ...data })),
+      byDate: sortedByDate
     };
   }, [filteredOrders, stores, dateRange, trendView]);
 
