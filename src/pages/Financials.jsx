@@ -4148,12 +4148,10 @@ export default function Financials() {
                 {targets.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {targets.map((target) => (
-                      <NeumorphicCard
+                      <button
                         key={target.id}
-                        className="p-6 cursor-pointer hover:shadow-lg transition-all"
                         onClick={() => {
                           setSelectedTargetId(target.id);
-                          setSelectedTargetView('details');
                           setTargetRevenue(target.target_revenue.toString());
                           setTargetStore(target.store_id || 'all');
                           setTargetChannel(target.channel || '');
@@ -4162,8 +4160,11 @@ export default function Financials() {
                           setTargetStartDate(target.start_date || '');
                           setTargetEndDate(target.end_date || '');
                           setHistoricalDaysTarget(target.historical_days || 30);
+                          setSelectedTargetView('details');
                         }}
+                        className="w-full"
                       >
+                        <NeumorphicCard className="p-6 hover:shadow-lg transition-all text-left">
                         <h3 className="text-lg font-bold text-slate-800 mb-2">{target.name}</h3>
                         <p className="text-2xl font-bold text-blue-600 mb-3">{formatEuro(target.target_revenue)}</p>
                         <p className="text-xs text-slate-500">
