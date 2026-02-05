@@ -102,6 +102,25 @@ export default function Financials() {
     }
   });
 
+  const updateTargetMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Target.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['targets'] });
+      setSelectedTargetView('list');
+      setTargetName('');
+      setSelectedTargetId(null);
+    }
+  });
+
+  const deleteTargetMutation = useMutation({
+    mutationFn: (id) => base44.entities.Target.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['targets'] });
+      setSelectedTargetView('list');
+      setSelectedTargetId(null);
+    }
+  });
+
   const saveConfigMutation = useMutation({
     mutationFn: async (configData) => {
       const existing = await base44.entities.FinanceConfig.list();
@@ -4147,33 +4166,227 @@ export default function Financials() {
 
                 {targets.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {targets.map((target) => (
-                      <NeumorphicCard
-                        key={target.id}
-                        className="p-6 hover:shadow-lg transition-all cursor-pointer"
-                        onClick={() => {
-                          setSelectedTargetId(target.id);
-                          setTargetRevenue(target.target_revenue.toString());
-                          setTargetStore(target.store_id || 'all');
-                          setTargetChannel(target.channel || '');
-                          setTargetApp(target.app || '');
-                          setTargetDateMode(target.date_mode || 'range');
-                          setTargetStartDate(target.start_date || '');
-                          setTargetEndDate(target.end_date || '');
-                          setHistoricalDaysTarget(target.historical_days || 30);
-                          setSelectedTargetView('details');
-                        }}
-                      >
-                        <h3 className="text-lg font-bold text-slate-800 mb-2">{target.name}</h3>
-                        <p className="text-2xl font-bold text-blue-600 mb-3">{formatEuro(target.target_revenue)}</p>
-                        <p className="text-xs text-slate-500">
-                          {target.store_id && target.store_id !== 'all' ? stores.find(s => s.id === target.store_id)?.name || 'Locale' : 'Tutti i Locali'}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Clicca per vedere la previsione
-                        </p>
-                      </NeumorphicCard>
-                    ))}
+                    {targets.map((target) => {
+                      // Calcola preview della previsione
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      
+                      let periodStart, periodEnd;
+                      if (target.date_mode === 'rolling') {
+                        periodEnd = new Date(today);
+                        periodEnd.setDate(today.getDate() + 29);
+                        periodStart = today;
+                      } else {
+                        periodStart = target.start_date ? new Date(target.start_date) : today;
+                        periodEnd = target.end_date ? new Date(target.end_date) : today;
+                      }
+
+                      const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+                      const daysPassed = Math.max(0, Math.ceil((today - periodStart) / (1000 * 60 * 60 * 24)));
+                      const daysRemaining = Math.max(0, totalDays - daysPassed);
+
+                      // Calcola current revenue
+                      let currentRevenue = 0;
+                      const currentData = iPraticoData.filter(item => {
+                        if (!item.order_date) return false;
+                        const itemDate = new Date(item.order_date);
+                        itemDate.setHours(0, 0, 0, 0);
+                        if (itemDate < periodStart || itemDate >= today) return false;
+                        if (target.store_id !== 'all' && item.store_id !== target.store_id) return false;
+                        return true;
+                      });
+
+                      currentData.forEach(item => {
+                        let itemRevenue = item.total_revenue || 0;
+                        if (target.app) {
+                          itemRevenue = 0;
+                          const apps = [
+                            { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                            { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                            { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                            { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                            { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                            { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                            { key: 'store', revenue: item.sourceApp_store || 0 }
+                          ];
+                          apps.forEach(app => {
+                            const mappedKey = appMapping[app.key] || app.key;
+                            if (mappedKey === target.app) itemRevenue += app.revenue;
+                          });
+                        } else if (target.channel) {
+                          itemRevenue = 0;
+                          const channels = [
+                            { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                            { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                            { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                            { key: 'store', revenue: item.sourceType_store || 0 }
+                          ];
+                          channels.forEach(ch => {
+                            const mappedKey = channelMapping[ch.key] || ch.key;
+                            if (mappedKey === target.channel) itemRevenue += ch.revenue;
+                          });
+                        }
+                        currentRevenue += itemRevenue;
+                      });
+
+                      // Calcola previsione veloce
+                      const historicalCutoff = subDays(today, target.historical_days || 30);
+                      const historicalData = iPraticoData.filter(item => {
+                        if (!item.order_date) return false;
+                        const itemDate = new Date(item.order_date);
+                        itemDate.setHours(0, 0, 0, 0);
+                        if (itemDate < historicalCutoff || itemDate >= today) return false;
+                        if (target.store_id !== 'all' && item.store_id !== target.store_id) return false;
+                        return true;
+                      });
+
+                      const dailyTotals = {};
+                      historicalData.forEach(item => {
+                        if (!dailyTotals[item.order_date]) dailyTotals[item.order_date] = 0;
+                        let itemRevenue = item.total_revenue || 0;
+                        if (target.app) {
+                          itemRevenue = 0;
+                          const apps = [
+                            { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                            { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                            { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                            { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                            { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                            { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                            { key: 'store', revenue: item.sourceApp_store || 0 }
+                          ];
+                          apps.forEach(app => {
+                            const mappedKey = appMapping[app.key] || app.key;
+                            if (mappedKey === target.app) itemRevenue += app.revenue;
+                          });
+                        } else if (target.channel) {
+                          itemRevenue = 0;
+                          const channels = [
+                            { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                            { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                            { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                            { key: 'store', revenue: item.sourceType_store || 0 }
+                          ];
+                          channels.forEach(ch => {
+                            const mappedKey = channelMapping[ch.key] || ch.key;
+                            if (mappedKey === target.channel) itemRevenue += ch.revenue;
+                          });
+                        }
+                        dailyTotals[item.order_date] += itemRevenue;
+                      });
+
+                      const dayOfWeekRevenues = {};
+                      Object.entries(dailyTotals).forEach(([date, revenue]) => {
+                        const itemDate = new Date(date);
+                        const dayOfWeek = itemDate.getDay();
+                        if (!dayOfWeekRevenues[dayOfWeek]) dayOfWeekRevenues[dayOfWeek] = [];
+                        dayOfWeekRevenues[dayOfWeek].push(revenue);
+                      });
+
+                      const avgByDayOfWeek = {};
+                      Object.keys(dayOfWeekRevenues).forEach(dayOfWeek => {
+                        const revenues = dayOfWeekRevenues[dayOfWeek];
+                        const avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                        avgByDayOfWeek[dayOfWeek] = avg;
+                      });
+
+                      let predictedRevenue = 0;
+                      for (let i = 0; i < daysRemaining; i++) {
+                        const futureDate = new Date(today);
+                        futureDate.setDate(today.getDate() + i);
+                        const dayOfWeek = futureDate.getDay();
+                        predictedRevenue += avgByDayOfWeek[dayOfWeek] || 0;
+                      }
+
+                      const totalProjected = currentRevenue + predictedRevenue;
+                      const gap = target.target_revenue - totalProjected;
+                      const progressPercent = target.target_revenue > 0 ? (totalProjected / target.target_revenue) * 100 : 0;
+
+                      return (
+                        <NeumorphicCard
+                          key={target.id}
+                          className="p-6 hover:shadow-lg transition-all cursor-pointer relative group"
+                          onClick={() => {
+                            setSelectedTargetId(target.id);
+                            setTargetRevenue(target.target_revenue.toString());
+                            setTargetStore(target.store_id || 'all');
+                            setTargetChannel(target.channel || '');
+                            setTargetApp(target.app || '');
+                            setTargetDateMode(target.date_mode || 'range');
+                            setTargetStartDate(target.start_date || '');
+                            setTargetEndDate(target.end_date || '');
+                            setHistoricalDaysTarget(target.historical_days || 30);
+                            setSelectedTargetView('details');
+                          }}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <h3 className="text-lg font-bold text-slate-800">{target.name}</h3>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTargetId(target.id);
+                                  setTargetRevenue(target.target_revenue.toString());
+                                  setTargetStore(target.store_id || 'all');
+                                  setTargetChannel(target.channel || '');
+                                  setTargetApp(target.app || '');
+                                  setTargetDateMode(target.date_mode || 'range');
+                                  setTargetStartDate(target.start_date || '');
+                                  setTargetEndDate(target.end_date || '');
+                                  setHistoricalDaysTarget(target.historical_days || 30);
+                                  setTargetName(target.name);
+                                  setSelectedTargetView('edit');
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                              >
+                                <Settings className="w-4 h-4 text-slate-600" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm('Eliminare questo target?')) {
+                                    deleteTargetMutation.mutate(target.id);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-red-100 transition-colors"
+                              >
+                                <X className="w-4 h-4 text-red-600" />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <p className="text-2xl font-bold text-blue-600 mb-3">{formatEuro(target.target_revenue)}</p>
+                          
+                          <div className="space-y-2 mb-3">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-500">Previsione:</span>
+                              <span className={`font-bold ${gap <= 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                                {formatEuro(totalProjected)}
+                              </span>
+                            </div>
+                            <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                              <div 
+                                className={`h-full transition-all ${gap <= 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'}`}
+                                style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className={`font-bold ${gap <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {gap <= 0 ? '✓ Sopra target' : '⚠ Sotto target'}
+                              </span>
+                              <span className="text-slate-600">{progressPercent.toFixed(0)}%</span>
+                            </div>
+                          </div>
+                          
+                          <p className="text-xs text-slate-500">
+                            {target.store_id && target.store_id !== 'all' ? stores.find(s => s.id === target.store_id)?.name || 'Locale' : 'Tutti i Locali'}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Clicca per vedere il dettaglio completo
+                          </p>
+                        </NeumorphicCard>
+                      );
+                    })}
                   </div>
                 ) : (
                   <NeumorphicCard className="p-6 text-center">
@@ -4193,17 +4406,23 @@ export default function Financials() {
               </>
             )}
 
-            {selectedTargetView === 'create' && (
+            {(selectedTargetView === 'create' || selectedTargetView === 'edit') && (
               <>
                 <NeumorphicCard className="p-6 mb-6">
                   <div className="flex items-center gap-3 mb-6">
                     <button
-                      onClick={() => setSelectedTargetView('list')}
+                      onClick={() => {
+                        setSelectedTargetView('list');
+                        setSelectedTargetId(null);
+                        setTargetName('');
+                      }}
                       className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
                     >
                       <ChevronUp className="w-5 h-5 text-slate-600 rotate-90" />
                     </button>
-                    <h2 className="text-lg font-bold text-slate-800">Crea Nuovo Target</h2>
+                    <h2 className="text-lg font-bold text-slate-800">
+                      {selectedTargetView === 'edit' ? 'Modifica Target' : 'Crea Nuovo Target'}
+                    </h2>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -4323,7 +4542,11 @@ export default function Financials() {
 
                   <div className="flex gap-3 mt-6">
                     <button
-                      onClick={() => setSelectedTargetView('list')}
+                      onClick={() => {
+                        setSelectedTargetView('list');
+                        setSelectedTargetId(null);
+                        setTargetName('');
+                      }}
                       className="flex-1 px-4 py-3 rounded-xl bg-slate-200 text-slate-700 font-medium text-sm hover:bg-slate-300 transition-colors"
                     >
                       Annulla
@@ -4331,22 +4554,39 @@ export default function Financials() {
                     <button
                       onClick={() => {
                         if (targetName && targetRevenue) {
-                          saveTargetMutation.mutate({
-                            name: targetName,
-                            target_revenue: parseFloat(targetRevenue),
-                            store_id: targetStore,
-                            channel: targetChannel,
-                            app: targetApp,
-                            date_mode: targetDateMode,
-                            start_date: targetStartDate,
-                            end_date: targetEndDate,
-                            historical_days: historicalDaysTarget
-                          });
+                          if (selectedTargetView === 'edit' && selectedTargetId) {
+                            updateTargetMutation.mutate({
+                              id: selectedTargetId,
+                              data: {
+                                name: targetName,
+                                target_revenue: parseFloat(targetRevenue),
+                                store_id: targetStore,
+                                channel: targetChannel,
+                                app: targetApp,
+                                date_mode: targetDateMode,
+                                start_date: targetStartDate,
+                                end_date: targetEndDate,
+                                historical_days: historicalDaysTarget
+                              }
+                            });
+                          } else {
+                            saveTargetMutation.mutate({
+                              name: targetName,
+                              target_revenue: parseFloat(targetRevenue),
+                              store_id: targetStore,
+                              channel: targetChannel,
+                              app: targetApp,
+                              date_mode: targetDateMode,
+                              start_date: targetStartDate,
+                              end_date: targetEndDate,
+                              historical_days: historicalDaysTarget
+                            });
+                          }
                         }
                       }}
                       className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
                     >
-                      Salva Target
+                      {selectedTargetView === 'edit' ? 'Aggiorna Target' : 'Salva Target'}
                     </button>
                   </div>
                 </NeumorphicCard>
@@ -4832,7 +5072,7 @@ export default function Financials() {
                         <div className="flex justify-between items-center pt-2">
                           <span className="text-sm text-slate-600 font-bold">Revenue Giornaliera Necessaria</span>
                           <span className="text-sm font-bold text-orange-600">
-                            {daysRemaining > 0 ? formatEuro(gap / daysRemaining) : '-'}
+                            {daysRemaining > 0 ? formatEuro((target - currentRevenue) / daysRemaining) : '-'}
                           </span>
                         </div>
                       </div>
@@ -4890,7 +5130,7 @@ export default function Financials() {
                             <div className="bg-white rounded-lg p-3">
                               <p className="text-xs text-slate-500 mb-1">Media Necessaria</p>
                               <p className="text-xl font-bold text-orange-600">
-                                {formatEuro(gap / daysRemaining)}
+                                {formatEuro(daysRemaining > 0 ? (target - currentRevenue) / daysRemaining : 0)}
                               </p>
                             </div>
                           </div>
