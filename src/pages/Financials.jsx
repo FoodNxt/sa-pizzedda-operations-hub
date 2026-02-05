@@ -4108,6 +4108,468 @@ export default function Financials() {
           </>
         }
 
+        {/* Target Tab */}
+        {activeTab === 'target' && (
+          <>
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Configurazione Target</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Target Revenue (€)</label>
+                  <input
+                    type="number"
+                    value={targetRevenue}
+                    onChange={(e) => setTargetRevenue(e.target.value)}
+                    placeholder="es. 50000"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Locale</label>
+                  <select
+                    value={targetStore}
+                    onChange={(e) => setTargetStore(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="all">Tutti i Locali</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Canale (opzionale)</label>
+                  <select
+                    value={targetChannel}
+                    onChange={(e) => setTargetChannel(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="">Tutti i Canali</option>
+                    {allChannels.map(channel => (
+                      <option key={channel} value={channel}>{channel.charAt(0).toUpperCase() + channel.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">App (opzionale)</label>
+                  <select
+                    value={targetApp}
+                    onChange={(e) => setTargetApp(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="">Tutte le App</option>
+                    {allApps.map(app => (
+                      <option key={app} value={app}>{app.charAt(0).toUpperCase() + app.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Modalità Periodo</label>
+                  <select
+                    value={targetDateMode}
+                    onChange={(e) => setTargetDateMode(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="range">Range Specifico</option>
+                    <option value="rolling">Rolling (ultimi 30 gg)</option>
+                  </select>
+                </div>
+
+                {targetDateMode === 'range' && (
+                  <>
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Data Inizio</label>
+                      <input
+                        type="date"
+                        value={targetStartDate}
+                        onChange={(e) => setTargetStartDate(e.target.value)}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Data Target</label>
+                      <input
+                        type="date"
+                        value={targetEndDate}
+                        onChange={(e) => setTargetEndDate(e.target.value)}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Giorni Storici per Stagionalità</label>
+                  <select
+                    value={historicalDaysTarget}
+                    onChange={(e) => setHistoricalDaysTarget(parseInt(e.target.value))}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="30">30 giorni</option>
+                    <option value="60">60 giorni</option>
+                    <option value="90">90 giorni</option>
+                  </select>
+                </div>
+              </div>
+            </NeumorphicCard>
+
+            {(() => {
+              // Calcola la previsione
+              if (!targetRevenue || (targetDateMode === 'range' && (!targetStartDate || !targetEndDate))) {
+                return (
+                  <NeumorphicCard className="p-6 text-center">
+                    <TrendingUp className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500">Configura il target per vedere la previsione</p>
+                  </NeumorphicCard>
+                );
+              }
+
+              const target = parseFloat(targetRevenue);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+
+              let periodStart, periodEnd;
+              if (targetDateMode === 'rolling') {
+                periodEnd = new Date(today);
+                periodEnd.setDate(today.getDate() + 29);
+                periodStart = today;
+              } else {
+                periodStart = new Date(targetStartDate);
+                periodEnd = new Date(targetEndDate);
+              }
+
+              // Calcola giorni totali e giorni passati
+              const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+              const daysPassed = Math.max(0, Math.ceil((today - periodStart) / (1000 * 60 * 60 * 24)));
+              const daysRemaining = Math.max(0, totalDays - daysPassed);
+
+              // Calcola revenue attuale nel periodo
+              let currentRevenue = 0;
+              const currentData = iPraticoData.filter(item => {
+                if (!item.order_date) return false;
+                const itemDate = new Date(item.order_date);
+                itemDate.setHours(0, 0, 0, 0);
+                if (itemDate < periodStart || itemDate >= today) return false;
+                if (targetStore !== 'all' && item.store_id !== targetStore) return false;
+                return true;
+              });
+
+              currentData.forEach(item => {
+                let itemRevenue = 0;
+                if (targetApp) {
+                  const apps = [
+                    { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                    { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                    { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                    { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                    { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                    { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                    { key: 'store', revenue: item.sourceApp_store || 0 }
+                  ];
+                  apps.forEach(app => {
+                    const mappedKey = appMapping[app.key] || app.key;
+                    if (mappedKey === targetApp) {
+                      itemRevenue += app.revenue;
+                    }
+                  });
+                } else if (targetChannel) {
+                  const channels = [
+                    { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                    { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                    { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                    { key: 'store', revenue: item.sourceType_store || 0 }
+                  ];
+                  channels.forEach(ch => {
+                    const mappedKey = channelMapping[ch.key] || ch.key;
+                    if (mappedKey === targetChannel) {
+                      itemRevenue += ch.revenue;
+                    }
+                  });
+                } else {
+                  itemRevenue = item.total_revenue || 0;
+                }
+                currentRevenue += itemRevenue;
+              });
+
+              // Calcola media storica per giorno della settimana
+              const historicalCutoff = subDays(today, historicalDaysTarget);
+              const historicalData = iPraticoData.filter(item => {
+                if (!item.order_date) return false;
+                const itemDate = new Date(item.order_date);
+                itemDate.setHours(0, 0, 0, 0);
+                if (itemDate < historicalCutoff || itemDate >= today) return false;
+                if (targetStore !== 'all' && item.store_id !== targetStore) return false;
+                return true;
+              });
+
+              const dayOfWeekRevenues = {};
+              historicalData.forEach(item => {
+                const itemDate = new Date(item.order_date);
+                const dayOfWeek = itemDate.getDay();
+                
+                if (!dayOfWeekRevenues[dayOfWeek]) {
+                  dayOfWeekRevenues[dayOfWeek] = [];
+                }
+
+                let itemRevenue = 0;
+                if (targetApp) {
+                  const apps = [
+                    { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                    { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                    { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                    { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                    { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                    { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                    { key: 'store', revenue: item.sourceApp_store || 0 }
+                  ];
+                  apps.forEach(app => {
+                    const mappedKey = appMapping[app.key] || app.key;
+                    if (mappedKey === targetApp) {
+                      itemRevenue += app.revenue;
+                    }
+                  });
+                } else if (targetChannel) {
+                  const channels = [
+                    { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                    { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                    { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                    { key: 'store', revenue: item.sourceType_store || 0 }
+                  ];
+                  channels.forEach(ch => {
+                    const mappedKey = channelMapping[ch.key] || ch.key;
+                    if (mappedKey === targetChannel) {
+                      itemRevenue += ch.revenue;
+                    }
+                  });
+                } else {
+                  itemRevenue = item.total_revenue || 0;
+                }
+                dayOfWeekRevenues[dayOfWeek].push(itemRevenue);
+              });
+
+              // Calcola media per ogni giorno della settimana
+              const avgByDayOfWeek = {};
+              Object.keys(dayOfWeekRevenues).forEach(dayOfWeek => {
+                const revenues = dayOfWeekRevenues[dayOfWeek];
+                const avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                avgByDayOfWeek[dayOfWeek] = avg;
+              });
+
+              // Prevedi revenue per i giorni rimanenti
+              let predictedRevenue = 0;
+              for (let i = 0; i < daysRemaining; i++) {
+                const futureDate = new Date(today);
+                futureDate.setDate(today.getDate() + i);
+                const dayOfWeek = futureDate.getDay();
+                predictedRevenue += avgByDayOfWeek[dayOfWeek] || 0;
+              }
+
+              const totalProjected = currentRevenue + predictedRevenue;
+              const gap = target - totalProjected;
+              const gapPercent = target > 0 ? (gap / target) * 100 : 0;
+              const progressPercent = target > 0 ? (totalProjected / target) * 100 : 0;
+              const currentProgress = target > 0 ? (currentRevenue / target) * 100 : 0;
+
+              return (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <NeumorphicCard className="p-6">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="text-sm text-slate-500 mb-1">Target</p>
+                          <p className="text-3xl font-bold text-blue-600">{formatEuro(target)}</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                          <TrendingUp className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500">Obiettivo revenue</p>
+                    </NeumorphicCard>
+
+                    <NeumorphicCard className="p-6">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="text-sm text-slate-500 mb-1">Attuale</p>
+                          <p className="text-3xl font-bold text-green-600">{formatEuro(currentRevenue)}</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                          <DollarSign className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                          <div 
+                            className="bg-gradient-to-r from-green-500 to-green-600 h-full transition-all"
+                            style={{ width: `${Math.min(currentProgress, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-green-600">{currentProgress.toFixed(0)}%</span>
+                      </div>
+                    </NeumorphicCard>
+
+                    <NeumorphicCard className="p-6">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="text-sm text-slate-500 mb-1">Previsione Finale</p>
+                          <p className="text-3xl font-bold text-purple-600">{formatEuro(totalProjected)}</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                          <BarChart3 className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                          <div 
+                            className="bg-gradient-to-r from-purple-500 to-purple-600 h-full transition-all"
+                            style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-purple-600">{progressPercent.toFixed(0)}%</span>
+                      </div>
+                    </NeumorphicCard>
+
+                    <NeumorphicCard className="p-6">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="text-sm text-slate-500 mb-1">Gap vs Target</p>
+                          <p className={`text-3xl font-bold ${gap > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {formatEuro(Math.abs(gap))}
+                          </p>
+                        </div>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          gap > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : 'bg-gradient-to-br from-green-500 to-green-600'
+                        }`}>
+                          {gap > 0 ? <AlertTriangle className="w-6 h-6 text-white" /> : <CheckCircle className="w-6 h-6 text-white" />}
+                        </div>
+                      </div>
+                      <p className={`text-xs font-bold ${gap > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {gap > 0 ? 'Sotto target' : 'Sopra target'} di {Math.abs(gapPercent).toFixed(1)}%
+                      </p>
+                    </NeumorphicCard>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <NeumorphicCard className="p-6">
+                      <h3 className="text-lg font-bold text-slate-800 mb-4">Dettaglio Periodo</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600">Giorni Totali</span>
+                          <span className="text-sm font-bold text-slate-800">{totalDays}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600">Giorni Passati</span>
+                          <span className="text-sm font-bold text-slate-800">{daysPassed}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600">Giorni Rimanenti</span>
+                          <span className="text-sm font-bold text-blue-600">{daysRemaining}</span>
+                        </div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600">Revenue Media Giornaliera (storico)</span>
+                          <span className="text-sm font-bold text-slate-800">
+                            {formatEuro(Object.values(avgByDayOfWeek).reduce((sum, v) => sum + v, 0) / Math.max(Object.keys(avgByDayOfWeek).length, 1))}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                          <span className="text-sm text-slate-600">Revenue Prevista (giorni rimanenti)</span>
+                          <span className="text-sm font-bold text-purple-600">{formatEuro(predictedRevenue)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2">
+                          <span className="text-sm text-slate-600 font-bold">Revenue Giornaliera Necessaria</span>
+                          <span className="text-sm font-bold text-orange-600">
+                            {daysRemaining > 0 ? formatEuro(gap / daysRemaining) : '-'}
+                          </span>
+                        </div>
+                      </div>
+                    </NeumorphicCard>
+
+                    <NeumorphicCard className="p-6">
+                      <h3 className="text-lg font-bold text-slate-800 mb-4">Stagionalità per Giorno</h3>
+                      <div className="space-y-2">
+                        {['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'].map((dayName, idx) => {
+                          const dayOfWeek = idx === 6 ? 0 : idx + 1;
+                          const avgRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                          const maxAvg = Math.max(...Object.values(avgByDayOfWeek));
+                          const widthPercent = maxAvg > 0 ? (avgRevenue / maxAvg) * 100 : 0;
+
+                          return (
+                            <div key={dayName} className="flex items-center gap-3">
+                              <span className="text-xs text-slate-600 w-20">{dayName}</span>
+                              <div className="flex-1 bg-slate-200 rounded-full h-6 overflow-hidden relative">
+                                <div 
+                                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-full transition-all flex items-center justify-end pr-2"
+                                  style={{ width: `${widthPercent}%` }}
+                                >
+                                  <span className="text-xs font-bold text-white">{formatEuro(avgRevenue)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-4">
+                        📊 Media calcolata sugli ultimi {historicalDaysTarget} giorni
+                      </p>
+                    </NeumorphicCard>
+                  </div>
+
+                  {gap > 0 && daysRemaining > 0 && (
+                    <NeumorphicCard className="p-6 bg-orange-50 border-2 border-orange-200">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0">
+                          <AlertTriangle className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-orange-800 mb-2">Azione Richiesta</h3>
+                          <p className="text-sm text-slate-700 mb-3">
+                            Per raggiungere il target di <strong>{formatEuro(target)}</strong> entro il {format(periodEnd, 'dd/MM/yyyy')}, 
+                            è necessario aumentare la revenue giornaliera media.
+                          </p>
+                          <div className="grid grid-cols-2 gap-4 mt-4">
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Media Attuale (storico)</p>
+                              <p className="text-xl font-bold text-slate-800">
+                                {formatEuro(daysPassed > 0 ? currentRevenue / daysPassed : 0)}
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Media Necessaria</p>
+                              <p className="text-xl font-bold text-orange-600">
+                                {formatEuro(gap / daysRemaining)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </NeumorphicCard>
+                  )}
+
+                  {gap <= 0 && (
+                    <NeumorphicCard className="p-6 bg-green-50 border-2 border-green-200">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-green-800 mb-2">Target Raggiunto!</h3>
+                          <p className="text-sm text-slate-700">
+                            La previsione indica che raggiungerai <strong>{formatEuro(totalProjected)}</strong>, 
+                            superando il target di <strong>{formatEuro(Math.abs(gap))}</strong> ({Math.abs(gapPercent).toFixed(1)}%).
+                          </p>
+                        </div>
+                      </div>
+                    </NeumorphicCard>
+                  )}
+                </>
+              );
+            })()}
+          </>
+        )}
+
         {/* Confronto Mensile Tab - REMOVED */}
         {activeTab === 'confronto_mensile_removed' &&
         <>
