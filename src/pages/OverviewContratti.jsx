@@ -497,8 +497,8 @@ export default function OverviewContratti() {
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-10 h-10 text-blue-600" />
               <div>
-                <h1 className="text-slate-50 text-3xl font-bold">Overview Contratti</h1>
-                <p className="text-slate-50">Panoramica completa dei contratti attivi</p>
+                <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Overview Contratti</h1>
+                <p style={{ color: '#000000' }}>Panoramica completa dei contratti attivi</p>
               </div>
             </div>
             <div className="flex gap-2">
