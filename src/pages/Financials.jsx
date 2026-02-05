@@ -4306,10 +4306,15 @@ export default function Financials() {
                 return true;
               });
 
+              // Calcola la revenue totale storica e il numero di giorni
+              let totalHistoricalRevenue = 0;
+              const uniqueDatesSet = new Set();
               const dayOfWeekRevenues = {};
+              
               historicalData.forEach(item => {
                 const itemDate = new Date(item.order_date);
                 const dayOfWeek = itemDate.getDay();
+                uniqueDatesSet.add(item.order_date);
                 
                 if (!dayOfWeekRevenues[dayOfWeek]) {
                   dayOfWeekRevenues[dayOfWeek] = [];
@@ -4348,8 +4353,13 @@ export default function Financials() {
                 } else {
                   itemRevenue = item.total_revenue || 0;
                 }
+                
+                totalHistoricalRevenue += itemRevenue;
                 dayOfWeekRevenues[dayOfWeek].push(itemRevenue);
               });
+
+              const actualHistoricalDays = uniqueDatesSet.size;
+              const overallAvgDaily = actualHistoricalDays > 0 ? totalHistoricalRevenue / actualHistoricalDays : 0;
 
               // Calcola media per ogni giorno della settimana
               const avgByDayOfWeek = {};
