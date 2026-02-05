@@ -87,6 +87,11 @@ export default function MatchingOrdiniSbagliati() {
     queryFn: () => base44.entities.MatchingConfig.list()
   });
 
+  const { data: tipoTurnoConfigs = [] } = useQuery({
+    queryKey: ['tipo-turno-configs'],
+    queryFn: () => base44.entities.TipoTurnoConfig.list()
+  });
+
   const activeConfig = useMemo(() => {
     const active = matchingConfigs.find(c => c.is_active);
     return active || {
@@ -94,6 +99,12 @@ export default function MatchingOrdiniSbagliati() {
       excluded_employee_groups: ['Volantinaggio', 'Preparazioni']
     };
   }, [matchingConfigs]);
+
+  const availableShiftTypes = useMemo(() => {
+    const DEFAULT_TIPI_TURNO = ["Normale", "Straordinario", "Formazione", "Affiancamento", "Apertura", "Chiusura", "Ferie", "Malattia (Certificata)", "Malattia (Non Certificata)", "Permesso"];
+    const tipiFromConfigs = tipoTurnoConfigs.map((c) => c.tipo_turno);
+    return [...new Set([...DEFAULT_TIPI_TURNO, ...tipiFromConfigs])];
+  }, [tipoTurnoConfigs]);
 
   const createMatchMutation = useMutation({
     mutationFn: (data) => base44.entities.WrongOrderMatch.create(data),
@@ -927,8 +938,8 @@ export default function MatchingOrdiniSbagliati() {
                 <label className="text-sm font-medium text-[#6b6b6b] mb-3 block">
                   Tipi Turno da Escludere
                 </label>
-                <div className="space-y-2">
-                  {['Malattia (Certificato)', 'Assenza non retribuita', 'Ferie', 'Permesso', 'ROL', 'Congedo'].map((tipo) => (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {availableShiftTypes.map((tipo) => (
                     <label key={tipo} className="flex items-center gap-3 neumorphic-pressed p-3 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
                       <input
                         type="checkbox"
