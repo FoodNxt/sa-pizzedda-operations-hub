@@ -449,9 +449,9 @@ export default function UsersManagement() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <Users className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-slate-50 text-3xl font-bold">Gestione Utenti</h1>
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Gestione Utenti</h1>
         </div>
-        <p className="text-slate-50">Visualizza e modifica gli utenti del sistema</p>
+        <p style={{ color: '#000000' }}>Visualizza e modifica gli utenti del sistema</p>
       </div>
 
       {/* Stats */}

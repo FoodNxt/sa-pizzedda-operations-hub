@@ -426,8 +426,8 @@ export default function MatchingOrdiniSbagliati() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-slate-50 mb-2 text-3xl font-bold">🔗 Matching Ordini Sbagliati</h1>
-            <p className="text-slate-50">Abbina ordini sbagliati ai dipendenti in turno</p>
+            <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>🔗 Matching Ordini Sbagliati</h1>
+            <p style={{ color: '#000000' }}>Abbina ordini sbagliati ai dipendenti in turno</p>
           </div>
           <div className="flex items-center gap-3">
             <NeumorphicButton

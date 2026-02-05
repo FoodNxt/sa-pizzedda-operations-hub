@@ -175,9 +175,9 @@ export default function FormPulizia() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <Camera className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-slate-50 text-3xl font-bold">Form Pulizia</h1>
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Form Pulizia</h1>
         </div>
-        <p className="text-slate-50">Seleziona il form di controllo pulizia da compilare</p>
+        <p style={{ color: '#000000' }}>Seleziona il form di controllo pulizia da compilare</p>
       </div>
 
       {/* Section Tabs */}
