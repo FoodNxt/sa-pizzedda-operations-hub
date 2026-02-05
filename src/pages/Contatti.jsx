@@ -181,8 +181,8 @@ export default function Contatti() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-slate-50 mb-2 text-3xl font-bold">Contatti Marketing</h1>
-            <p className="text-slate-50">Gestisci i tuoi contatti per influencer, PR e advertising</p>
+            <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Contatti Marketing</h1>
+            <p style={{ color: '#000000' }}>Gestisci i tuoi contatti per influencer, PR e advertising</p>
           </div>
           <NeumorphicButton
             onClick={() => {

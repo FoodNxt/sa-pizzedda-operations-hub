@@ -139,8 +139,8 @@ export default function Meta() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-slate-50 mb-2 text-3xl font-bold">📘 Meta Ads</h1>
-            <p className="text-slate-50">Metriche e performance campagne Facebook/Instagram</p>
+            <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>📘 Meta Ads</h1>
+            <p style={{ color: '#000000' }}>Metriche e performance campagne Facebook/Instagram</p>
           </div>
           <NeumorphicButton
             onClick={handleSync}

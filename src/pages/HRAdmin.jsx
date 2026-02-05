@@ -204,9 +204,9 @@ export default function HRAdmin() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-3">
           <MapPin className="w-10 h-10 text-[#8b7355]" />
-          <h1 className="text-slate-50 text-3xl font-bold">Assegnazione Locali</h1>
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Assegnazione Locali</h1>
         </div>
-        <p className="text-slate-50">Gestisci l'assegnazione dei dipendenti ai locali</p>
+        <p style={{ color: '#000000' }}>Gestisci l'assegnazione dei dipendenti ai locali</p>
       </div>
 
       {/* Posizione GPS Locali */}

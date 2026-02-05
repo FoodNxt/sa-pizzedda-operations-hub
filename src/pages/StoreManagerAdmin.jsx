@@ -375,9 +375,9 @@ export default function StoreManagerAdmin() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <Crown className="w-10 h-10 text-purple-600" />
-            <h1 className="text-slate-50 text-3xl font-bold">Store Manager</h1>
+            <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Store Manager</h1>
           </div>
-          <p className="text-slate-50">Gestisci i target per gli Store Manager</p>
+          <p style={{ color: '#000000' }}>Gestisci i target per gli Store Manager</p>
         </div>
         <div className="flex gap-3">
           <select
