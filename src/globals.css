@@ -118,18 +118,60 @@ p.text-gray-600 {
   background-clip: unset !important;
 }
 
-/* Page Headings - High Contrast */
+/* HEADINGS - DEFINITIVO - Visibilità garantita */
 h1, h2, h3, h4, h5, h6 {
   color: #0f172a !important;
-  background: none !important;
+  background: transparent !important;
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
   text-shadow: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  text-decoration: none !important;
+  letter-spacing: normal !important;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  h1, h2, h3, h4, h5, h6 {
+    color: #f1f5f9 !important;
+  }
+}
+
+/* Remove any problematic classes */
+h1.bg-clip-text,
+h2.bg-clip-text,
+h3.bg-clip-text,
+h4.bg-clip-text,
+h1[class*="from-"],
+h2[class*="from-"],
+h3[class*="from-"],
+h4[class*="from-"],
+h1[class*="to-"],
+h2[class*="to-"],
+h3[class*="to-"],
+h4[class*="to-"] {
+  color: #0f172a !important;
+  background: transparent !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
 }
 
 @media (prefers-color-scheme: dark) {
-  h1, h2, h3, h4, h5, h6 {
+  h1.bg-clip-text,
+  h2.bg-clip-text,
+  h3.bg-clip-text,
+  h4.bg-clip-text,
+  h1[class*="from-"],
+  h2[class*="from-"],
+  h3[class*="from-"],
+  h4[class*="from-"],
+  h1[class*="to-"],
+  h2[class*="to-"],
+  h3[class*="to-"],
+  h4[class*="to-"] {
     color: #f1f5f9 !important;
   }
 }
