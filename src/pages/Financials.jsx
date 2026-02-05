@@ -4648,6 +4648,157 @@ export default function Financials() {
                     </NeumorphicCard>
                   </div>
 
+                  {/* Timeline Chart */}
+                  <NeumorphicCard className="p-6 mb-6">
+                    <h3 className="text-lg font-bold text-slate-800 mb-4">Andamento Temporale</h3>
+                    <div className="w-full overflow-x-auto">
+                      <div style={{ minWidth: '500px' }}>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={(() => {
+                            const timelineData = [];
+                            const dailyRevenueMap = {};
+                            
+                            // Calcola revenue effettivo per i giorni passati
+                            currentData.forEach(item => {
+                              if (!dailyRevenueMap[item.order_date]) {
+                                dailyRevenueMap[item.order_date] = 0;
+                              }
+                              let itemRevenue = 0;
+                              if (targetApp) {
+                                const apps = [
+                                  { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                                  { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                                  { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                                  { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                                  { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                                  { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                                  { key: 'store', revenue: item.sourceApp_store || 0 }
+                                ];
+                                apps.forEach(app => {
+                                  const mappedKey = appMapping[app.key] || app.key;
+                                  if (mappedKey === targetApp) itemRevenue += app.revenue;
+                                });
+                              } else if (targetChannel) {
+                                const channels = [
+                                  { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                                  { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                                  { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                                  { key: 'store', revenue: item.sourceType_store || 0 }
+                                ];
+                                channels.forEach(ch => {
+                                  const mappedKey = channelMapping[ch.key] || ch.key;
+                                  if (mappedKey === targetChannel) itemRevenue += ch.revenue;
+                                });
+                              } else {
+                                itemRevenue = item.total_revenue || 0;
+                              }
+                              dailyRevenueMap[item.order_date] += itemRevenue;
+                            });
+
+                            // Aggiungi giorni passati
+                            let cumulativeRevenue = 0;
+                            for (let i = 0; i < daysPassed; i++) {
+                              const currentDate = new Date(periodStart);
+                              currentDate.setDate(periodStart.getDate() + i);
+                              const dateStr = format(currentDate, 'yyyy-MM-dd');
+                              const dayRevenue = dailyRevenueMap[dateStr] || 0;
+                              cumulativeRevenue += dayRevenue;
+                              
+                              timelineData.push({
+                                date: format(currentDate, 'dd/MM'),
+                                actual: parseFloat(cumulativeRevenue.toFixed(2)),
+                                predicted: null
+                              });
+                            }
+
+                            // Aggiungi giorni futuri (previsione)
+                            for (let i = 0; i < daysRemaining; i++) {
+                              const futureDate = new Date(today);
+                              futureDate.setDate(today.getDate() + i);
+                              const dayOfWeek = futureDate.getDay();
+                              const predictedDayRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                              cumulativeRevenue += predictedDayRevenue;
+                              
+                              timelineData.push({
+                                date: format(futureDate, 'dd/MM'),
+                                actual: null,
+                                predicted: parseFloat(cumulativeRevenue.toFixed(2))
+                              });
+                            }
+
+                            // Connetti actual e predicted
+                            if (timelineData.length > 0 && daysPassed > 0 && daysRemaining > 0) {
+                              timelineData[daysPassed - 1].predicted = timelineData[daysPassed - 1].actual;
+                            }
+
+                            return timelineData;
+                          })()}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                            <XAxis 
+                              dataKey="date" 
+                              stroke="#64748b" 
+                              tick={{ fontSize: 10 }}
+                              interval={Math.floor(totalDays / 10)}
+                            />
+                            <YAxis 
+                              stroke="#64748b" 
+                              tick={{ fontSize: 11 }}
+                              width={70}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                background: 'rgba(248, 250, 252, 0.95)',
+                                border: 'none',
+                                borderRadius: '12px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                fontSize: '11px'
+                              }}
+                              formatter={(value) => value ? `€${formatCurrency(value)}` : '-'}
+                            />
+                            <Legend wrapperStyle={{ fontSize: '11px' }} />
+                            
+                            {/* Linea Target */}
+                            <Line 
+                              type="monotone" 
+                              dataKey={() => target}
+                              stroke="#ef4444"
+                              strokeWidth={2}
+                              strokeDasharray="3 3"
+                              name="Target"
+                              dot={false}
+                            />
+                            
+                            {/* Linea Effettiva */}
+                            <Line 
+                              type="monotone" 
+                              dataKey="actual"
+                              stroke="#10b981"
+                              strokeWidth={3}
+                              name="Effettivo"
+                              dot={{ fill: '#10b981', r: 2 }}
+                              connectNulls={false}
+                            />
+                            
+                            {/* Linea Prevista */}
+                            <Line 
+                              type="monotone" 
+                              dataKey="predicted"
+                              stroke="#8b5cf6"
+                              strokeWidth={3}
+                              strokeDasharray="5 5"
+                              name="Previsto"
+                              dot={{ fill: '#8b5cf6', r: 2 }}
+                              connectNulls={false}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-3">
+                      📈 Il grafico mostra il revenue cumulativo: linea verde = dati effettivi, linea viola tratteggiata = previsione basata su stagionalità
+                    </p>
+                  </NeumorphicCard>
+
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <NeumorphicCard className="p-6">
                       <h3 className="text-lg font-bold text-slate-800 mb-4">Dettaglio Periodo</h3>
