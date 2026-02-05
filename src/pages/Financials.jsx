@@ -4364,6 +4364,9 @@ export default function Financials() {
             )}
 
             {selectedTargetView === 'details' && (() => {
+              // Get selected target details
+              const selectedTarget = targets.find(t => t.id === selectedTargetId);
+              
               // Calcola la previsione
               if (!targetRevenue || (targetDateMode === 'range' && (!targetStartDate || !targetEndDate))) {
                 return (
