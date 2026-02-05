@@ -30,6 +30,7 @@ import { format, subDays, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ProtectedPage from "../components/ProtectedPage";
+import ResponsiveTable from "../components/ui/ResponsiveTable";
 
 export default function Inventory() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -931,40 +932,58 @@ export default function Inventory() {
                   </div>
 
                   {/* History table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[600px]">
-                      <thead>
-                        <tr className="border-b-2 border-blue-600">
-                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Data</th>
-                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
-                          <th className="text-right p-3 text-slate-600 font-medium text-sm">Quantità</th>
-                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Rilevato da</th>
-                          <th className="text-left p-3 text-slate-600 font-medium text-sm">Note</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {getFullProductHistory(historyProduct).slice(0, 50).map((item, idx) =>
-                    <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
-                            <td className="p-3 text-sm text-slate-700">
-                              {format(parseISO(item.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}
-                            </td>
-                            <td className="p-3 text-sm text-slate-700">
-                              {stores.find((s) => s.id === item.store_id)?.name || item.store_name || 'N/D'}
-                            </td>
-                            <td className="p-3 text-sm text-right font-bold text-blue-600">
-                              {item.quantita_rilevata} {item.unita_misura}
-                            </td>
-                            <td className="p-3 text-sm text-slate-700">
-                              {item.rilevato_da || 'N/D'}
-                            </td>
-                            <td className="p-3 text-sm text-slate-500">
-                              {item.note || '-'}
-                            </td>
-                          </tr>
+                  <ResponsiveTable
+                    headers={[
+                      { label: 'Data', align: 'left' },
+                      { label: 'Locale', align: 'left' },
+                      { label: 'Quantità', align: 'right' },
+                      { label: 'Rilevato da', align: 'left' },
+                      { label: 'Note', align: 'left' }
+                    ]}
+                    data={getFullProductHistory(historyProduct).slice(0, 50)}
+                    renderRow={(item, idx) => (
+                      <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                        <td className="p-3 text-sm text-slate-700">
+                          {format(parseISO(item.data_rilevazione), 'dd/MM/yyyy HH:mm', { locale: it })}
+                        </td>
+                        <td className="p-3 text-sm text-slate-700">
+                          {stores.find((s) => s.id === item.store_id)?.name || item.store_name || 'N/D'}
+                        </td>
+                        <td className="p-3 text-sm text-right font-bold text-blue-600">
+                          {item.quantita_rilevata} {item.unita_misura}
+                        </td>
+                        <td className="p-3 text-sm text-slate-700">
+                          {item.rilevato_da || 'N/D'}
+                        </td>
+                        <td className="p-3 text-sm text-slate-500">
+                          {item.note || '-'}
+                        </td>
+                      </tr>
                     )}
-                      </tbody>
-                    </table>
-                  </div>
+                    renderMobileCard={(item, idx) => (
+                      <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                        <div className="flex justify-between items-start mb-2">
+                          <p className="font-bold text-slate-800 text-sm">
+                            {stores.find((s) => s.id === item.store_id)?.name || item.store_name || 'N/D'}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {format(parseISO(item.data_rilevazione), 'dd/MM HH:mm', { locale: it })}
+                          </p>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <p className="text-sm text-slate-600">{item.rilevato_da || 'N/D'}</p>
+                          <p className="text-lg font-bold text-blue-600">
+                            {item.quantita_rilevata} {item.unita_misura}
+                          </p>
+                        </div>
+                        {item.note && (
+                          <p className="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-200">
+                            {item.note}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  />
                 </div>
             }
 
@@ -1143,48 +1162,76 @@ export default function Inventory() {
                   <p className="text-sm">Nessun prodotto richiede aumento stock</p>
                 </div>
               :
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b-2 border-red-600">
-                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Prodotto</th>
-                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
-                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Media Qtà</th>
-                        <th className="text-right p-3 text-slate-600 font-medium text-sm">A Zero</th>
-                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Sotto Critica</th>
-                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Qtà Ordine</th>
-                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Suggerimento</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {optimizationData.increaseStock
-                        .filter((item) => selectedStore === 'all' || item.store_id === selectedStore)
-                        .map((item, idx) => (
-                        <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
-                          <td className="p-3 text-sm text-slate-700 font-medium">{item.nome_prodotto}</td>
-                          <td className="p-3 text-sm text-slate-700">{item.store_name}</td>
-                          <td className="p-3 text-sm text-right text-slate-700">
-                            {item.avgQuantity.toFixed(1)} {item.unita_misura}
-                          </td>
-                          <td className="p-3 text-sm text-right">
-                            <span className="px-2 py-1 rounded-full bg-red-100 text-red-700 font-bold">
-                              {item.zeroCount}/10
-                            </span>
-                          </td>
-                          <td className="p-3 text-sm text-right">
-                            <span className="px-2 py-1 rounded-full bg-orange-100 text-orange-700 font-bold">
-                              {item.belowCriticalCount}/10
-                            </span>
-                          </td>
-                          <td className="p-3 text-sm text-right font-bold text-blue-600">
+                <ResponsiveTable
+                  headers={[
+                    { label: 'Prodotto', align: 'left' },
+                    { label: 'Locale', align: 'left' },
+                    { label: 'Media Qtà', align: 'right' },
+                    { label: 'A Zero', align: 'right' },
+                    { label: 'Sotto Critica', align: 'right' },
+                    { label: 'Qtà Ordine', align: 'right' },
+                    { label: 'Suggerimento', align: 'left' }
+                  ]}
+                  data={optimizationData.increaseStock.filter((item) => selectedStore === 'all' || item.store_id === selectedStore)}
+                  renderRow={(item, idx) => (
+                    <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                      <td className="p-3 text-sm text-slate-700 font-medium">{item.nome_prodotto}</td>
+                      <td className="p-3 text-sm text-slate-700">{item.store_name}</td>
+                      <td className="p-3 text-sm text-right text-slate-700">
+                        {item.avgQuantity.toFixed(1)} {item.unita_misura}
+                      </td>
+                      <td className="p-3 text-sm text-right">
+                        <span className="px-2 py-1 rounded-full bg-red-100 text-red-700 font-bold">
+                          {item.zeroCount}/10
+                        </span>
+                      </td>
+                      <td className="p-3 text-sm text-right">
+                        <span className="px-2 py-1 rounded-full bg-orange-100 text-orange-700 font-bold">
+                          {item.belowCriticalCount}/10
+                        </span>
+                      </td>
+                      <td className="p-3 text-sm text-right font-bold text-blue-600">
+                        {item.quantitaOrdine} {item.unita_misura}
+                      </td>
+                      <td className="p-3 text-sm text-slate-600">{item.suggerimento}</td>
+                    </tr>
+                  )}
+                  renderMobileCard={(item, idx) => (
+                    <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-bold text-slate-800 text-sm">{item.nome_prodotto}</p>
+                          <p className="text-xs text-slate-500">{item.store_name}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-blue-600">
                             {item.quantitaOrdine} {item.unita_misura}
-                          </td>
-                          <td className="p-3 text-sm text-slate-600">{item.suggerimento}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          </p>
+                          <p className="text-xs text-slate-500">da ordinare</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 mb-2">
+                        <div className="bg-slate-50 p-2 rounded-lg text-center">
+                          <p className="text-xs text-slate-500">Media</p>
+                          <p className="text-sm font-bold text-slate-700">
+                            {item.avgQuantity.toFixed(1)}
+                          </p>
+                        </div>
+                        <div className="bg-red-50 p-2 rounded-lg text-center">
+                          <p className="text-xs text-red-600">A Zero</p>
+                          <p className="text-sm font-bold text-red-700">{item.zeroCount}/10</p>
+                        </div>
+                        <div className="bg-orange-50 p-2 rounded-lg text-center">
+                          <p className="text-xs text-orange-600">Critica</p>
+                          <p className="text-sm font-bold text-orange-700">{item.belowCriticalCount}/10</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-2 pt-2 border-t border-slate-200">
+                        {item.suggerimento}
+                      </p>
+                    </div>
+                  )}
+                />
               }
             </NeumorphicCard>
 
@@ -1206,42 +1253,65 @@ export default function Inventory() {
                   <p className="text-sm">Nessun prodotto richiede riduzione stock</p>
                 </div>
               :
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b-2 border-green-600">
-                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Prodotto</th>
-                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Locale</th>
-                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Media Qtà</th>
-                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Qtà Critica</th>
-                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Sopra Critica</th>
-                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Suggerimento</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {optimizationData.decreaseStock
-                        .filter((item) => selectedStore === 'all' || item.store_id === selectedStore)
-                        .map((item, idx) => (
-                        <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
-                          <td className="p-3 text-sm text-slate-700 font-medium">{item.nome_prodotto}</td>
-                          <td className="p-3 text-sm text-slate-700">{item.store_name}</td>
-                          <td className="p-3 text-sm text-right font-bold text-green-600">
+                <ResponsiveTable
+                  headers={[
+                    { label: 'Prodotto', align: 'left' },
+                    { label: 'Locale', align: 'left' },
+                    { label: 'Media Qtà', align: 'right' },
+                    { label: 'Qtà Critica', align: 'right' },
+                    { label: 'Sopra Critica', align: 'right' },
+                    { label: 'Suggerimento', align: 'left' }
+                  ]}
+                  data={optimizationData.decreaseStock.filter((item) => selectedStore === 'all' || item.store_id === selectedStore)}
+                  renderRow={(item, idx) => (
+                    <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                      <td className="p-3 text-sm text-slate-700 font-medium">{item.nome_prodotto}</td>
+                      <td className="p-3 text-sm text-slate-700">{item.store_name}</td>
+                      <td className="p-3 text-sm text-right font-bold text-green-600">
+                        {item.avgQuantity.toFixed(1)} {item.unita_misura}
+                      </td>
+                      <td className="p-3 text-sm text-right text-slate-700">
+                        {item.quantitaCritica} {item.unita_misura}
+                      </td>
+                      <td className="p-3 text-sm text-right">
+                        <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 font-bold">
+                          {item.aboveCriticalCount}/10
+                        </span>
+                      </td>
+                      <td className="p-3 text-sm text-slate-600">{item.suggerimento}</td>
+                    </tr>
+                  )}
+                  renderMobileCard={(item, idx) => (
+                    <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-bold text-slate-800 text-sm">{item.nome_prodotto}</p>
+                          <p className="text-xs text-slate-500">{item.store_name}</p>
+                        </div>
+                        <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 font-bold text-xs">
+                          {item.aboveCriticalCount}/10
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <div className="bg-green-50 p-2 rounded-lg">
+                          <p className="text-xs text-green-600">Media</p>
+                          <p className="text-sm font-bold text-green-700">
                             {item.avgQuantity.toFixed(1)} {item.unita_misura}
-                          </td>
-                          <td className="p-3 text-sm text-right text-slate-700">
+                          </p>
+                        </div>
+                        <div className="bg-slate-50 p-2 rounded-lg">
+                          <p className="text-xs text-slate-500">Critica</p>
+                          <p className="text-sm font-bold text-slate-700">
                             {item.quantitaCritica} {item.unita_misura}
-                          </td>
-                          <td className="p-3 text-sm text-right">
-                            <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 font-bold">
-                              {item.aboveCriticalCount}/10
-                            </span>
-                          </td>
-                          <td className="p-3 text-sm text-slate-600">{item.suggerimento}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-2 pt-2 border-t border-slate-200">
+                        {item.suggerimento}
+                      </p>
+                    </div>
+                  )}
+                />
               }
             </NeumorphicCard>
           </div>

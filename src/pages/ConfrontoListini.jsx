@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingDown, TrendingUp, Package, DollarSign, Building2, AlertTriangle, Store, Download, X } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import ResponsiveTable from "../components/ui/ResponsiveTable";
 
 export default function ConfrontoListini() {
   const [selectedNomeInterno, setSelectedNomeInterno] = useState('all');
@@ -410,105 +411,162 @@ export default function ConfrontoListini() {
                   }
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-slate-300">
-                          <th className="text-left p-3 text-[#9b9b9b] font-medium text-sm">Fornitore</th>
-                          <th className="text-left p-3 text-[#9b9b9b] font-medium text-sm">Prodotto</th>
-                          <th className="text-left p-3 text-[#9b9b9b] font-medium text-sm">Marca</th>
-                          <th className="text-right p-3 text-[#9b9b9b] font-medium text-sm">Prezzo/Unità</th>
-                          <th className="text-center p-3 text-[#9b9b9b] font-medium text-sm">Convenienza</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedByPrice.map((product, index) => {
-                        const normalizedPrice = getNormalizedPrice(product);
-                        const normalizedBest = getBestPrice(products);
-                        const priceDiff = normalizedPrice && normalizedBest ? normalizedPrice - normalizedBest : 0;
-                        const isBest = normalizedPrice === normalizedBest && products.length > 1;
-                        const weight = normalizeToBaseUnit(product);
+                  <ResponsiveTable
+                    headers={[
+                      { label: 'Fornitore', align: 'left' },
+                      { label: 'Prodotto', align: 'left' },
+                      { label: 'Marca', align: 'left' },
+                      { label: 'Prezzo/Unità', align: 'right' },
+                      { label: 'Convenienza', align: 'center' }
+                    ]}
+                    data={sortedByPrice}
+                    renderRow={(product, index) => {
+                      const normalizedPrice = getNormalizedPrice(product);
+                      const normalizedBest = getBestPrice(products);
+                      const priceDiff = normalizedPrice && normalizedBest ? normalizedPrice - normalizedBest : 0;
+                      const isBest = normalizedPrice === normalizedBest && products.length > 1;
+                      const weight = normalizeToBaseUnit(product);
 
-                        return (
-                          <tr
-                            key={product.id}
-                            className={`border-b border-slate-200 ${isBest ? 'bg-green-50' : ''}`}>
-
-                              <td className="p-3">
-                                <span className="font-medium text-[#6b6b6b]">
-                                  {product.fornitore || 'N/D'}
+                      return (
+                        <tr
+                          key={product.id}
+                          className={`border-b border-slate-200 ${isBest ? 'bg-green-50' : ''}`}>
+                            <td className="p-3">
+                              <span className="font-medium text-[#6b6b6b]">
+                                {product.fornitore || 'N/D'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <div>
+                                <span className="text-sm text-[#6b6b6b]">
+                                  {product.nome_prodotto}
                                 </span>
-                              </td>
-                              <td className="p-3">
-                                <div>
-                                  <span className="text-sm text-[#6b6b6b]">
-                                    {product.nome_prodotto}
-                                  </span>
-                                  {weight &&
-                                <div className="text-xs text-[#9b9b9b] mt-1">
-                                      {weight >= 1 ? `${weight.toFixed(2)} kg/L` : `${(weight * 1000).toFixed(0)} g/ml`} per unità
-                                    </div>
-                                }
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <span className="text-sm text-[#9b9b9b]">
-                                  {product.marca || '-'}
-                                </span>
-                              </td>
-                              <td className="p-3 text-right">
-                                <div>
-                                  <span className={`font-bold ${isBest ? 'text-green-600 text-lg' : 'text-[#6b6b6b]'}`}>
-                                    €{product.prezzo_unitario?.toFixed(2)}
-                                  </span>
-                                  <span className="text-xs text-[#9b9b9b] ml-1">
-                                    / {product.unita_misura}
-                                  </span>
-                                </div>
-                                {normalizedPrice && product.unita_misura_peso &&
-                              <div className="text-xs font-bold text-blue-600 mt-1">
-                                    €{normalizedPrice.toFixed(2)}/{getDisplayUnit(product.unita_misura_peso)}
+                                {weight &&
+                              <div className="text-xs text-[#9b9b9b] mt-1">
+                                    {weight >= 1 ? `${weight.toFixed(2)} kg/L` : `${(weight * 1000).toFixed(0)} g/ml`} per unità
                                   </div>
                               }
-                              </td>
-                              <td className="p-3 text-center">
-                                <div className="flex flex-col items-center gap-1">
-                                  {products.length === 1 ?
-                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
-                                      Unico Fornitore
-                                    </span> :
-                                isBest ?
-                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
-                                      <TrendingDown className="w-3 h-3" />
-                                      Miglior Prezzo
-                                    </span> :
-
-                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
-                                      <TrendingUp className="w-3 h-3" />
-                                      +€{priceDiff.toFixed(2)}/{product.unita_misura_peso ? getDisplayUnit(product.unita_misura_peso) : 'kg'}
-                                    </span>
-                                }
-                                  {/* Show if product is in use for any store */}
-                                  {product.in_uso_per_store && Object.entries(product.in_uso_per_store).some(([storeId, inUso]) => {
-                                  if (!inUso) return false;
-                                  if (selectedStore !== 'all' && storeId !== selectedStore) return false;
-                                  return true;
-                                }) &&
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
-                                isBest ? 'bg-green-50 text-green-600' : 'bg-orange-100 text-orange-700'}`
-                                }>
-                                      ✓ In uso
-                                      {!isBest && <AlertTriangle className="w-3 h-3" />}
-                                    </span>
-                                }
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className="text-sm text-[#9b9b9b]">
+                                {product.marca || '-'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right">
+                              <div>
+                                <span className={`font-bold ${isBest ? 'text-green-600 text-lg' : 'text-[#6b6b6b]'}`}>
+                                  €{product.prezzo_unitario?.toFixed(2)}
+                                </span>
+                                <span className="text-xs text-[#9b9b9b] ml-1">
+                                  / {product.unita_misura}
+                                </span>
+                              </div>
+                              {normalizedPrice && product.unita_misura_peso &&
+                            <div className="text-xs font-bold text-blue-600 mt-1">
+                                  €{normalizedPrice.toFixed(2)}/{getDisplayUnit(product.unita_misura_peso)}
                                 </div>
-                              </td>
-                            </tr>);
+                            }
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="flex flex-col items-center gap-1">
+                                {products.length === 1 ?
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold">
+                                    Unico Fornitore
+                                  </span> :
+                              isBest ?
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                                    <TrendingDown className="w-3 h-3" />
+                                    Miglior Prezzo
+                                  </span> :
 
-                      })}
-                      </tbody>
-                    </table>
-                  </div>
+                              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                                    <TrendingUp className="w-3 h-3" />
+                                    +€{priceDiff.toFixed(2)}/{product.unita_misura_peso ? getDisplayUnit(product.unita_misura_peso) : 'kg'}
+                                  </span>
+                              }
+                                {product.in_uso_per_store && Object.entries(product.in_uso_per_store).some(([storeId, inUso]) => {
+                                if (!inUso) return false;
+                                if (selectedStore !== 'all' && storeId !== selectedStore) return false;
+                                return true;
+                              }) &&
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                              isBest ? 'bg-green-50 text-green-600' : 'bg-orange-100 text-orange-700'}`
+                              }>
+                                    ✓ In uso
+                                    {!isBest && <AlertTriangle className="w-3 h-3" />}
+                                  </span>
+                              }
+                              </div>
+                            </td>
+                          </tr>
+                      );
+                    }}
+                    renderMobileCard={(product, index) => {
+                      const normalizedPrice = getNormalizedPrice(product);
+                      const normalizedBest = getBestPrice(products);
+                      const priceDiff = normalizedPrice && normalizedBest ? normalizedPrice - normalizedBest : 0;
+                      const isBest = normalizedPrice === normalizedBest && products.length > 1;
+                      const weight = normalizeToBaseUnit(product);
+                      const inUso = product.in_uso_per_store && Object.entries(product.in_uso_per_store).some(([storeId, inUso]) => {
+                        if (!inUso) return false;
+                        if (selectedStore !== 'all' && storeId !== selectedStore) return false;
+                        return true;
+                      });
+
+                      return (
+                        <div key={product.id} className={`neumorphic-pressed p-4 rounded-xl ${isBest ? 'border-2 border-green-300' : ''}`}>
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <p className="font-bold text-slate-800 text-sm">{product.nome_prodotto}</p>
+                              <p className="text-xs text-slate-500">{product.fornitore || 'N/D'}</p>
+                              {product.marca && <p className="text-xs text-slate-400">{product.marca}</p>}
+                            </div>
+                            {isBest ? (
+                              <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold flex items-center gap-1">
+                                <TrendingDown className="w-3 h-3" />
+                                Migliore
+                              </span>
+                            ) : priceDiff > 0 && (
+                              <span className="px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                                +€{priceDiff.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="bg-slate-50 p-3 rounded-lg mb-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-slate-500">Prezzo</span>
+                              <div className="text-right">
+                                <p className={`font-bold ${isBest ? 'text-green-600 text-lg' : 'text-slate-700'}`}>
+                                  €{product.prezzo_unitario?.toFixed(2)}
+                                </p>
+                                <p className="text-xs text-slate-500">/ {product.unita_misura}</p>
+                              </div>
+                            </div>
+                            {normalizedPrice && product.unita_misura_peso && (
+                              <div className="mt-2 pt-2 border-t border-slate-200">
+                                <p className="text-xs font-bold text-blue-600 text-right">
+                                  €{normalizedPrice.toFixed(2)}/{getDisplayUnit(product.unita_misura_peso)}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          {weight && (
+                            <p className="text-xs text-slate-500">
+                              {weight >= 1 ? `${weight.toFixed(2)} kg/L` : `${(weight * 1000).toFixed(0)} g/ml`} per unità
+                            </p>
+                          )}
+                          {inUso && (
+                            <div className={`mt-2 px-2 py-1 rounded-lg text-xs font-bold text-center ${
+                              isBest ? 'bg-green-50 text-green-600' : 'bg-orange-100 text-orange-700'
+                            }`}>
+                              ✓ In uso {!isBest && '⚠️'}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
                 </div>);
 
           })}
