@@ -680,8 +680,8 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-slate-50 mb-2 text-3xl font-bold">Marketing Activation</h1>
-            <p className="text-slate-50">Gestisci le activation di marketing</p>
+            <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Marketing Activation</h1>
+            <p style={{ color: '#000000' }}>Gestisci le activation di marketing</p>
           </div>
           <div className="flex gap-2">
             <NeumorphicButton

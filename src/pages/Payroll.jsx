@@ -1489,8 +1489,8 @@ export default function Payroll() {
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-slate-50 mb-2 text-3xl font-bold">Payroll</h1>
-        <p className="text-slate-50">Dettaglio ore lavorate per dipendente per tipo di turno</p>
+        <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Payroll</h1>
+        <p style={{ color: '#000000' }}>Dettaglio ore lavorate per dipendente per tipo di turno</p>
       </div>
 
       {/* Filters */}

@@ -260,10 +260,9 @@ export default function Costi() {
     <ProtectedPage pageName="Costi">
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
-          <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Gestione Costi
-
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Gestione Costi
           </h1>
-          <p className="text-slate-50 mt-1">Gestisci tutti i costi aziendali</p>
+          <p className="mt-1" style={{ color: '#000000' }}>Gestisci tutti i costi aziendali</p>
         </div>
 
         {/* Budget Tab */}

@@ -436,8 +436,8 @@ export default function ValutazionePulizie() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-slate-50 mb-2 text-3xl font-bold">Valutazione Pulizie</h1>
-          <p className="text-slate-50">Visualizza e valuta tutti i form pulizia completati</p>
+          <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Valutazione Pulizie</h1>
+          <p style={{ color: '#000000' }}>Visualizza e valuta tutti i form pulizia completati</p>
         </div>
         <div className="flex gap-2">
           {inspections.some((i) => !i.overall_score) &&
