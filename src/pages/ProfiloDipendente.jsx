@@ -15,7 +15,8 @@ import {
   Upload,
   FileText,
   X,
-  CreditCard } from
+  CreditCard,
+  Trash2 } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -41,6 +42,9 @@ export default function ProfiloDipendente() {
     permesso_soggiorno: null
   });
   const [uploadingDocs, setUploadingDocs] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -173,6 +177,28 @@ export default function ProfiloDipendente() {
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError('Errore durante l\'eliminazione');
+    }
+  };
+
+  const handleAccountDeletion = async () => {
+    if (deleteConfirmText !== 'ELIMINA IL MIO ACCOUNT') {
+      setError('Testo di conferma non corretto');
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await base44.auth.updateMe({ account_deletion_requested: true, account_deletion_date: new Date().toISOString() });
+      setSuccess('Richiesta di eliminazione inviata. Verrai contattato a breve.');
+      setShowDeleteModal(false);
+      setTimeout(() => {
+        base44.auth.logout();
+      }, 2000);
+    } catch (error) {
+      console.error('Error requesting account deletion:', error);
+      setError('Errore durante la richiesta di eliminazione');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -784,6 +810,88 @@ export default function ProfiloDipendente() {
           </div>
         </div>
       </NeumorphicCard>
+
+      {/* Account Deletion */}
+      <NeumorphicCard className="p-4 lg:p-6 bg-red-50 border-2 border-red-200">
+        <h3 className="text-base lg:text-lg font-bold text-red-800 mb-2 flex items-center gap-2">
+          <Trash2 className="w-5 h-5 text-red-600" />
+          Zona Pericolosa
+        </h3>
+        <p className="text-sm text-red-700 mb-4">
+          L'eliminazione dell'account è permanente e non può essere annullata.
+        </p>
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="px-4 py-2 bg-red-600 text-white rounded-xl font-medium text-sm hover:bg-red-700 transition-colors"
+        >
+          Richiedi Eliminazione Account
+        </button>
+      </NeumorphicCard>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Elimina Account</h2>
+                <p className="text-sm text-slate-600 mt-1">Questa azione è irreversibile</p>
+              </div>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-red-800 font-medium mb-2">⚠️ Attenzione:</p>
+              <ul className="text-xs text-red-700 space-y-1 list-disc list-inside">
+                <li>Tutti i tuoi dati verranno eliminati</li>
+                <li>Non potrai più accedere all'account</li>
+                <li>Questa azione è permanente</li>
+              </ul>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Scrivi <span className="font-bold text-red-600">ELIMINA IL MIO ACCOUNT</span> per confermare:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="ELIMINA IL MIO ACCOUNT"
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              />
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                  setError('');
+                }}
+                className="flex-1 px-4 py-3 rounded-xl bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition-colors"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleAccountDeletion}
+                disabled={isDeleting || deleteConfirmText !== 'ELIMINA IL MIO ACCOUNT'}
+                className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? 'Elaborazione...' : 'Conferma Eliminazione'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>);
 
 }
