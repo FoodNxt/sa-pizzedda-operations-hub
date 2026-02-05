@@ -243,10 +243,8 @@ export default function ProfiloDipendente() {
 
       {/* Header */}
       <div className="mb-4">
-        <h1 className="bg-clip-text text-slate-50 mb-1 text-2xl font-bold lg:text-3xl from-slate-700 to-slate-900">Il Mio Profilo
-
-        </h1>
-        <p className="text-slate-50 text-sm">Gestisci le tue informazioni</p>
+        <h1 className="text-2xl lg:text-3xl font-bold mb-1">Il Mio Profilo</h1>
+        <p className="text-slate-500 text-sm">Gestisci le tue informazioni</p>
       </div>
 
       {/* Success Message */}

@@ -142,13 +142,30 @@ p.text-gray-600 {
   background-clip: unset !important;
 }
 
+/* Page Headings - High Contrast */
+h1, h2, h3, h4, h5, h6,
+.compact-layout h1,
+.compact-layout h2,
+.compact-layout h3,
+.compact-layout h4,
+.compact-layout h5,
+.compact-layout h6 {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: unset !important;
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  text-shadow: none !important;
+}
+
 .compact-layout h1,
 .compact-layout h1 *,
 .compact-layout [class*="text-"] h1 {
   font-size: 1.5rem !important;
   margin-bottom: 0.5rem !important;
   line-height: 1.2 !important;
-  color: var(--text-primary) !important; /* MODIFIED */
+  color: var(--text-primary) !important;
   font-weight: 800 !important;
   letter-spacing: -0.02em;
 }
@@ -158,7 +175,7 @@ p.text-gray-600 {
 .compact-layout [class*="text-"] h2 {
   font-size: 1.25rem !important;
   margin-bottom: 0.5rem !important;
-  color: var(--text-primary) !important; /* MODIFIED */
+  color: var(--text-primary) !important;
   font-weight: 700 !important;
 }
 
@@ -167,7 +184,7 @@ p.text-gray-600 {
 .compact-layout [class*="text-"] h3 {
   font-size: 1.1rem !important;
   margin-bottom: 0.25rem !important;
-  color: var(--text-primary) !important; /* MODIFIED */
+  color: var(--text-primary) !important;
   font-weight: 600 !important;
 }
 
