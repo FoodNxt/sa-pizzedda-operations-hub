@@ -4173,7 +4173,8 @@ export default function Financials() {
                         <p className="text-xs text-slate-400 mt-1">
                           Clicca per vedere la previsione
                         </p>
-                      </NeumorphicCard>
+                        </NeumorphicCard>
+                      </button>
                     ))}
                   </div>
                 ) : (
