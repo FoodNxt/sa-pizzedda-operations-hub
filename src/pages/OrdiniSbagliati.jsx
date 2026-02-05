@@ -847,18 +847,17 @@ export default function OrdiniSbagliati() {
         }
       });
     } else if (trendView === 'weekly') {
-      // Weekly view - group by week with year for proper sorting
+      // Weekly view - group by week
       filteredOrders.forEach((order) => {
         const orderDate = parseISO(order.order_date);
         const weekStart = startOfWeek(orderDate, { locale: it });
-        const weekKey = format(weekStart, 'dd/MM/yy', { locale: it });
+        const weekKey = `${format(weekStart, 'dd/MM/yy', { locale: it })}`;
         
         if (!byDate[weekKey]) {
           byDate[weekKey] = {
             date: weekKey,
             count: 0,
-            refunds: 0,
-            sortKey: weekStart.getTime() // Use timestamp for accurate sorting
+            refunds: 0
           };
         }
         byDate[weekKey].count++;
@@ -892,8 +891,13 @@ export default function OrdiniSbagliati() {
         return monthA !== monthB ? monthA - monthB : dayA - dayB;
       });
     } else if (trendView === 'weekly') {
-      // Use sortKey (timestamp) for accurate chronological sorting
-      sortedByDate.sort((a, b) => (a.sortKey || 0) - (b.sortKey || 0));
+      sortedByDate.sort((a, b) => {
+        const [dayA, monthA, yearA] = a.date.split('/').map(Number);
+        const [dayB, monthB, yearB] = b.date.split('/').map(Number);
+        if (yearA !== yearB) return yearA - yearB;
+        if (monthA !== monthB) return monthA - monthB;
+        return dayA - dayB;
+      });
     } else if (trendView === 'monthly') {
       sortedByDate.sort((a, b) => {
         const [monthA, yearA] = a.date.split('/').map(Number);

@@ -13,7 +13,7 @@ css
   --header-height: 2.5rem;
   --chart-height: 180px;
   
-  /* Dark Theme Colors - Default */
+  /* Dark Theme Colors */
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-tertiary: #334155;
@@ -40,57 +40,11 @@ css
   --glow-purple: rgba(139, 92, 246, 0.3);
 }
 
-/* Dark Theme for devices with dark mode preference */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    
-    --card-bg: #1e293b;
-    --card-border: rgba(148, 163, 184, 0.1);
-    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-    
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-muted: #94a3b8;
-  }
-}
-
 /* Dark Background Base */
 body {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: var(--text-primary);
   min-height: 100vh;
-  overscroll-behavior: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Safe Area Insets for Mobile */
-.safe-area-top {
-  padding-top: env(safe-area-inset-top);
-}
-
-.safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.safe-area-both {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* Mobile Optimizations */
-button, a, [role="button"], input[type="button"], input[type="submit"] {
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
-}
-
-button:active, a:active, [role="button"]:active {
-  transform: scale(0.95);
-  transition: transform 0.1s ease;
 }
 
 /* Global Compact Spacing */
@@ -390,12 +344,6 @@ svg defs {
 .compact-layout button:hover:not(:disabled) {
   border-color: rgba(59, 130, 246, 0.5) !important;
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.2) !important;
-}
-
-.compact-layout button:active:not(:disabled),
-.compact-layout a:active,
-.compact-layout [role="button"]:active {
-  transform: scale(0.95) !important;
 }
 
 .compact-layout button.text-xs {

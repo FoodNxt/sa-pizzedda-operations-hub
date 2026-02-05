@@ -15,8 +15,7 @@ import {
   Upload,
   FileText,
   X,
-  CreditCard,
-  Trash2 } from
+  CreditCard } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -45,7 +44,6 @@ export default function ProfiloDipendente() {
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -786,67 +784,6 @@ export default function ProfiloDipendente() {
           </div>
         </div>
       </NeumorphicCard>
-
-      {/* Delete Account Section */}
-      <NeumorphicCard className="p-4 lg:p-6 border-2 border-red-200">
-        <h3 className="text-base lg:text-lg font-bold text-red-700 mb-3 flex items-center gap-2">
-          <Trash2 className="w-5 h-5" />
-          Zona Pericolosa
-        </h3>
-        <p className="text-sm text-slate-600 mb-4">
-          L'eliminazione del tuo account è permanente e irreversibile. Tutti i tuoi dati, documenti e storico verranno eliminati definitivamente.
-        </p>
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          className="w-full bg-gradient-to-r from-red-500 to-red-600 px-6 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 shadow-lg text-sm hover:from-red-600 hover:to-red-700 transition-all active:scale-95">
-          <Trash2 className="w-5 h-5" />
-          Elimina Account
-        </button>
-      </NeumorphicCard>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] p-4">
-          <NeumorphicCard className="max-w-md w-full p-6">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-3">Conferma Eliminazione Account</h3>
-              <p className="text-sm text-slate-600 mb-6">
-                Questa azione è <strong className="text-red-600">permanente e irreversibile</strong>. 
-                Tutti i tuoi dati personali, documenti, turni e storico verranno eliminati definitivamente dal sistema.
-              </p>
-              <p className="text-sm text-slate-600 mb-6 font-bold">
-                Sei assolutamente sicuro di voler procedere?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 nav-button px-6 py-3 rounded-xl text-slate-700 hover:text-slate-900 transition-colors font-medium text-sm active:scale-95">
-                  Annulla
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      // Here you would call a backend function to delete the account
-                      // For now, we'll just show a placeholder
-                      alert('Funzionalità di eliminazione account non ancora implementata. Contatta un amministratore.');
-                      setShowDeleteConfirm(false);
-                    } catch (error) {
-                      setError('Errore durante l\'eliminazione dell\'account');
-                      setShowDeleteConfirm(false);
-                    }
-                  }}
-                  className="flex-1 bg-gradient-to-r from-red-500 to-red-600 px-6 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 shadow-lg text-sm active:scale-95">
-                  <Trash2 className="w-5 h-5" />
-                  Elimina Definitivamente
-                </button>
-              </div>
-            </div>
-          </NeumorphicCard>
-        </div>
-      )}
     </div>);
 
 }
