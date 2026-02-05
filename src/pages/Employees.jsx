@@ -37,9 +37,17 @@ export default function Employees() {
   const [sortBy, setSortBy] = useState('performance');
   const [sortOrder, setSortOrder] = useState('desc');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [dateRangePreset, setDateRangePreset] = useState('all');
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    return firstDay.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return lastDay.toISOString().split('T')[0];
+  });
+  const [dateRangePreset, setDateRangePreset] = useState('current_month');
   const [expandedView, setExpandedView] = useState(null);
   const [showWeightsModal, setShowWeightsModal] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
@@ -297,22 +305,23 @@ export default function Employees() {
       const employeeWrongOrders = wrongOrderMatches.filter((m) => {
         if (m.matched_employee_name !== employeeName) return false;
 
-        if (startDate || endDate) {
-          if (!m.order_date) return false;
-          const orderDate = safeParseDate(m.order_date);
-          if (!orderDate) return false;
+        // ALWAYS apply date filter if dates are set
+        if (!m.order_date) return !startDate && !endDate;
+        
+        const orderDate = safeParseDate(m.order_date);
+        if (!orderDate) return !startDate && !endDate;
 
-          const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
-          const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+        const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+        const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
 
-          if (start && end) {
-            return isWithinInterval(orderDate, { start, end });
-          } else if (start) {
-            return orderDate >= start;
-          } else if (end) {
-            return orderDate <= end;
-          }
+        if (start && end) {
+          return isWithinInterval(orderDate, { start, end });
+        } else if (start) {
+          return orderDate >= start;
+        } else if (end) {
+          return orderDate <= end;
         }
+        
         return true;
       });
 
