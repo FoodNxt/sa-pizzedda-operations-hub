@@ -60,6 +60,7 @@ export default function FoodCost() {
   const foodCostData = useMemo(() => {
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
+    endDate.setHours(23, 59, 59, 999); // Include full day
 
     // Filtra iPratico data nel range
     const revenueData = iPraticoData.filter(d => {
@@ -78,6 +79,7 @@ export default function FoodCost() {
       if (!o.data_completamento) return false;
       
       const dataArrivo = new Date(o.data_completamento);
+      dataArrivo.setHours(0, 0, 0, 0); // Compare dates only
       return dataArrivo >= startDate && dataArrivo <= endDate &&
         (selectedStore === 'all' || o.store_id === selectedStore);
     });
@@ -186,6 +188,7 @@ export default function FoodCost() {
   const trendGiornaliero = useMemo(() => {
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
+    endDate.setHours(23, 59, 59, 999);
     const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
     if (daysDiff > 90) {
