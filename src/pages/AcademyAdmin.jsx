@@ -420,9 +420,9 @@ export default function AcademyAdmin() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <GraduationCap className="w-10 h-10 text-[#8b7355]" />
-            <h1 className="text-slate-50 text-3xl font-bold">Academy Admin</h1>
+            <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Academy Admin</h1>
           </div>
-          <p className="text-slate-50">Gestisci corsi di formazione e monitora i progressi dei dipendenti</p>
+          <p style={{ color: '#000000' }}>Gestisci corsi di formazione e monitora i progressi dei dipendenti</p>
         </div>
         <div className="flex gap-2">
           <NeumorphicButton

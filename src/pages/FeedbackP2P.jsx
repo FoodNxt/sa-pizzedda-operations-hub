@@ -217,10 +217,9 @@ export default function FeedbackP2P() {
     <ProtectedPage pageName="FeedbackP2P">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="bg-clip-text text-slate-50 mb-1 text-3xl font-bold from-slate-700 to-slate-900">Feedback P2P
-
+          <h1 className="mb-1 text-3xl font-bold" style={{ color: '#000000' }}>Feedback P2P
           </h1>
-          <p className="text-slate-50 text-sm">Valutazione tra colleghi</p>
+          <p className="text-sm" style={{ color: '#000000' }}>Valutazione tra colleghi</p>
         </div>
 
         {isAdmin &&

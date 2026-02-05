@@ -260,9 +260,9 @@ export default function Compliance() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <Shield className="w-10 h-10 text-blue-600" />
-            <h1 className="text-slate-50 text-3xl font-bold">Compliance</h1>
+            <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Compliance</h1>
           </div>
-          <p className="text-slate-50">Gestione requisiti e certificazioni dipendenti</p>
+          <p style={{ color: '#000000' }}>Gestione requisiti e certificazioni dipendenti</p>
         </div>
         <NeumorphicButton
           onClick={() => setShowRequisitoForm(true)}

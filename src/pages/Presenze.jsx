@@ -194,11 +194,9 @@ export default function Presenze() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-slate-50 text-3xl font-bold flex items-center gap-3">Presenze in Tempo Reale
-
-
+            <h1 className="text-3xl font-bold flex items-center gap-3" style={{ color: '#000000' }}>Presenze in Tempo Reale
             </h1>
-            <p className="text-slate-50 mt-1">Monitora chi è in turno in questo momento</p>
+            <p className="mt-1" style={{ color: '#000000' }}>Monitora chi è in turno in questo momento</p>
           </div>
           <div className="flex items-center gap-4">
             <button

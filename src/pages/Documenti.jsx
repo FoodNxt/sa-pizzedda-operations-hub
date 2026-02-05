@@ -107,9 +107,9 @@ export default function Documenti() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-10 h-10 text-[#8b7355]" />
-              <h1 className="text-slate-50 text-3xl font-bold">Gestione Documenti</h1>
+              <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Gestione Documenti</h1>
             </div>
-            <p className="text-slate-50">Contratti, lettere di richiamo e regolamento dipendenti</p>
+            <p style={{ color: '#000000' }}>Contratti, lettere di richiamo e regolamento dipendenti</p>
           </div>
         </div>
 
