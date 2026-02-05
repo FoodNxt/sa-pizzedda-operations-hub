@@ -57,6 +57,7 @@ export default function Financials() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [conversationMessages, setConversationMessages] = useState([]);
   const [userQuestion, setUserQuestion] = useState('');
+  const [detailView, setDetailView] = useState('daily'); // 'daily', 'weekly', 'monthly'
 
   // Confronto Mensile State
   const [periodo1Store, setPeriodo1Store] = useState('all');
@@ -4997,6 +4998,14 @@ export default function Financials() {
                             />
                             <Legend wrapperStyle={{ fontSize: '11px' }} />
                             
+                            {/* Area di sfondo per il periodo del target */}
+                            <defs>
+                              <linearGradient id="targetPeriodGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.1} />
+                                <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
+                              </linearGradient>
+                            </defs>
+                            
                             {/* Linea Target */}
                             <Line 
                               type="monotone" 
@@ -5035,7 +5044,331 @@ export default function Financials() {
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mt-3">
-                      📈 Il grafico mostra il revenue cumulativo: linea verde = dati effettivi, linea viola tratteggiata = previsione basata su stagionalità
+                      📈 Il grafico mostra il revenue cumulativo nel periodo {format(periodStart, 'dd/MM')} - {format(periodEnd, 'dd/MM')}: linea verde = dati effettivi, linea viola tratteggiata = previsione basata su stagionalità
+                    </p>
+                  </NeumorphicCard>
+
+                  {/* Tabella Dettaglio Previsionale */}
+                  <NeumorphicCard className="p-6 mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-slate-800">Dettaglio Previsionale</h3>
+                      <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                        <button
+                          onClick={() => setDetailView('daily')}
+                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                            detailView === 'daily' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
+                          }`}
+                        >
+                          Giornaliero
+                        </button>
+                        <button
+                          onClick={() => setDetailView('weekly')}
+                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                            detailView === 'weekly' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
+                          }`}
+                        >
+                          Settimanale
+                        </button>
+                        <button
+                          onClick={() => setDetailView('monthly')}
+                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                            detailView === 'monthly' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'
+                          }`}
+                        >
+                          Mensile
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[600px]">
+                        <thead>
+                          <tr className="border-b-2 border-blue-600">
+                            <th className="text-left p-3 text-slate-600 font-medium text-sm">
+                              {detailView === 'daily' ? 'Giorno' : detailView === 'weekly' ? 'Settimana' : 'Mese'}
+                            </th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Effettivo</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Previsto</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Delta</th>
+                            <th className="text-right p-3 text-slate-600 font-medium text-sm">Delta %</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const detailRows = [];
+                            
+                            if (detailView === 'daily') {
+                              // Vista giornaliera
+                              for (let i = 0; i < totalDays; i++) {
+                                const currentDate = new Date(periodStart);
+                                currentDate.setDate(periodStart.getDate() + i);
+                                const dateStr = format(currentDate, 'yyyy-MM-dd');
+                                const isPast = currentDate < today;
+                                
+                                // Revenue effettivo per questa data
+                                const actualData = iPraticoData.filter(item => {
+                                  if (item.order_date !== dateStr) return false;
+                                  if (targetStore !== 'all' && item.store_id !== targetStore) return false;
+                                  return true;
+                                });
+                                
+                                let actualRevenue = 0;
+                                actualData.forEach(item => {
+                                  let itemRevenue = 0;
+                                  if (targetApp) {
+                                    const apps = [
+                                      { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                                      { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                                      { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                                      { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                                      { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                                      { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                                      { key: 'store', revenue: item.sourceApp_store || 0 }
+                                    ];
+                                    apps.forEach(app => {
+                                      const mappedKey = appMapping[app.key] || app.key;
+                                      if (mappedKey === targetApp) itemRevenue += app.revenue;
+                                    });
+                                  } else if (targetChannel) {
+                                    const channels = [
+                                      { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                                      { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                                      { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                                      { key: 'store', revenue: item.sourceType_store || 0 }
+                                    ];
+                                    channels.forEach(ch => {
+                                      const mappedKey = channelMapping[ch.key] || ch.key;
+                                      if (mappedKey === targetChannel) itemRevenue += ch.revenue;
+                                    });
+                                  } else {
+                                    itemRevenue = item.total_revenue || 0;
+                                  }
+                                  actualRevenue += itemRevenue;
+                                });
+                                
+                                // Previsione: usa la media del giorno della settimana
+                                const dayOfWeek = currentDate.getDay();
+                                const predictedRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                                
+                                const delta = actualRevenue - predictedRevenue;
+                                const deltaPercent = predictedRevenue > 0 ? (delta / predictedRevenue) * 100 : 0;
+                                
+                                detailRows.push({
+                                  date: format(currentDate, 'dd/MM (EEE)', { locale: it }),
+                                  actual: isPast ? actualRevenue : null,
+                                  predicted: predictedRevenue,
+                                  delta: isPast ? delta : null,
+                                  deltaPercent: isPast ? deltaPercent : null,
+                                  isPast
+                                });
+                              }
+                            } else if (detailView === 'weekly') {
+                              // Vista settimanale
+                              const weeklyMap = {};
+                              
+                              for (let i = 0; i < totalDays; i++) {
+                                const currentDate = new Date(periodStart);
+                                currentDate.setDate(periodStart.getDate() + i);
+                                
+                                const weekStart = new Date(currentDate);
+                                const dayOfWeek = weekStart.getDay();
+                                const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                                weekStart.setDate(weekStart.getDate() + diff);
+                                weekStart.setHours(0, 0, 0, 0);
+                                const weekKey = format(weekStart, 'yyyy-MM-dd');
+                                
+                                if (!weeklyMap[weekKey]) {
+                                  weeklyMap[weekKey] = {
+                                    weekStart: weekKey,
+                                    actual: 0,
+                                    predicted: 0,
+                                    daysCount: 0,
+                                    pastDays: 0
+                                  };
+                                }
+                                
+                                const dateStr = format(currentDate, 'yyyy-MM-dd');
+                                const isPast = currentDate < today;
+                                
+                                if (isPast) {
+                                  const actualData = iPraticoData.filter(item => {
+                                    if (item.order_date !== dateStr) return false;
+                                    if (targetStore !== 'all' && item.store_id !== targetStore) return false;
+                                    return true;
+                                  });
+                                  
+                                  actualData.forEach(item => {
+                                    let itemRevenue = 0;
+                                    if (targetApp) {
+                                      const apps = [
+                                        { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                                        { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                                        { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                                        { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                                        { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                                        { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                                        { key: 'store', revenue: item.sourceApp_store || 0 }
+                                      ];
+                                      apps.forEach(app => {
+                                        const mappedKey = appMapping[app.key] || app.key;
+                                        if (mappedKey === targetApp) itemRevenue += app.revenue;
+                                      });
+                                    } else if (targetChannel) {
+                                      const channels = [
+                                        { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                                        { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                                        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                                        { key: 'store', revenue: item.sourceType_store || 0 }
+                                      ];
+                                      channels.forEach(ch => {
+                                        const mappedKey = channelMapping[ch.key] || ch.key;
+                                        if (mappedKey === targetChannel) itemRevenue += ch.revenue;
+                                      });
+                                    } else {
+                                      itemRevenue = item.total_revenue || 0;
+                                    }
+                                    weeklyMap[weekKey].actual += itemRevenue;
+                                  });
+                                  weeklyMap[weekKey].pastDays++;
+                                }
+                                
+                                const currentDayOfWeek = currentDate.getDay();
+                                weeklyMap[weekKey].predicted += avgByDayOfWeek[currentDayOfWeek] || 0;
+                                weeklyMap[weekKey].daysCount++;
+                              }
+                              
+                              Object.entries(weeklyMap).forEach(([weekKey, data]) => {
+                                const weekStartDate = new Date(weekKey);
+                                const weekEndDate = addDays(weekStartDate, 6);
+                                const isPast = data.pastDays === data.daysCount;
+                                const delta = isPast ? data.actual - data.predicted : null;
+                                const deltaPercent = isPast && data.predicted > 0 ? (delta / data.predicted) * 100 : null;
+                                
+                                detailRows.push({
+                                  date: `${format(weekStartDate, 'dd/MM')} - ${format(weekEndDate, 'dd/MM')}`,
+                                  actual: isPast ? data.actual : null,
+                                  predicted: data.predicted,
+                                  delta,
+                                  deltaPercent,
+                                  isPast
+                                });
+                              });
+                              
+                              detailRows.sort((a, b) => a.date.localeCompare(b.date));
+                            } else if (detailView === 'monthly') {
+                              // Vista mensile
+                              const monthlyMap = {};
+                              
+                              for (let i = 0; i < totalDays; i++) {
+                                const currentDate = new Date(periodStart);
+                                currentDate.setDate(periodStart.getDate() + i);
+                                
+                                const monthKey = format(currentDate, 'yyyy-MM');
+                                
+                                if (!monthlyMap[monthKey]) {
+                                  monthlyMap[monthKey] = {
+                                    actual: 0,
+                                    predicted: 0,
+                                    daysCount: 0,
+                                    pastDays: 0
+                                  };
+                                }
+                                
+                                const dateStr = format(currentDate, 'yyyy-MM-dd');
+                                const isPast = currentDate < today;
+                                
+                                if (isPast) {
+                                  const actualData = iPraticoData.filter(item => {
+                                    if (item.order_date !== dateStr) return false;
+                                    if (targetStore !== 'all' && item.store_id !== targetStore) return false;
+                                    return true;
+                                  });
+                                  
+                                  actualData.forEach(item => {
+                                    let itemRevenue = 0;
+                                    if (targetApp) {
+                                      const apps = [
+                                        { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                                        { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                                        { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                                        { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                                        { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                                        { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                                        { key: 'store', revenue: item.sourceApp_store || 0 }
+                                      ];
+                                      apps.forEach(app => {
+                                        const mappedKey = appMapping[app.key] || app.key;
+                                        if (mappedKey === targetApp) itemRevenue += app.revenue;
+                                      });
+                                    } else if (targetChannel) {
+                                      const channels = [
+                                        { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                                        { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                                        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                                        { key: 'store', revenue: item.sourceType_store || 0 }
+                                      ];
+                                      channels.forEach(ch => {
+                                        const mappedKey = channelMapping[ch.key] || ch.key;
+                                        if (mappedKey === targetChannel) itemRevenue += ch.revenue;
+                                      });
+                                    } else {
+                                      itemRevenue = item.total_revenue || 0;
+                                    }
+                                    monthlyMap[monthKey].actual += itemRevenue;
+                                  });
+                                  monthlyMap[monthKey].pastDays++;
+                                }
+                                
+                                const currentDayOfWeek = currentDate.getDay();
+                                monthlyMap[monthKey].predicted += avgByDayOfWeek[currentDayOfWeek] || 0;
+                                monthlyMap[monthKey].daysCount++;
+                              }
+                              
+                              Object.entries(monthlyMap).forEach(([monthKey, data]) => {
+                                const monthDate = new Date(monthKey + '-01');
+                                const isPast = data.pastDays === data.daysCount;
+                                const delta = isPast ? data.actual - data.predicted : null;
+                                const deltaPercent = isPast && data.predicted > 0 ? (delta / data.predicted) * 100 : null;
+                                
+                                detailRows.push({
+                                  date: format(monthDate, 'MMMM yyyy', { locale: it }),
+                                  actual: isPast ? data.actual : null,
+                                  predicted: data.predicted,
+                                  delta,
+                                  deltaPercent,
+                                  isPast
+                                });
+                              });
+                            }
+                            
+                            return detailRows.map((row, idx) => (
+                              <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                                <td className="p-3 text-slate-700 font-medium text-sm">{row.date}</td>
+                                <td className="p-3 text-right text-slate-700 font-bold text-sm">
+                                  {row.actual !== null ? formatEuro(row.actual) : '-'}
+                                </td>
+                                <td className="p-3 text-right text-slate-600 text-sm">
+                                  {formatEuro(row.predicted)}
+                                </td>
+                                <td className={`p-3 text-right font-bold text-sm ${
+                                  row.delta !== null ? (row.delta >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
+                                }`}>
+                                  {row.delta !== null ? `${row.delta >= 0 ? '+' : ''}${formatEuro(row.delta)}` : '-'}
+                                </td>
+                                <td className={`p-3 text-right font-bold text-sm ${
+                                  row.deltaPercent !== null ? (row.deltaPercent >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
+                                }`}>
+                                  {row.deltaPercent !== null ? `${row.deltaPercent >= 0 ? '+' : ''}${row.deltaPercent.toFixed(1)}%` : '-'}
+                                </td>
+                              </tr>
+                            ));
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <p className="text-xs text-slate-500 mt-3">
+                      💡 Per i giorni passati: "Previsto" mostra la stima che il modello avrebbe fatto prima del giorno. "Delta" mostra la differenza con i dati reali.
                     </p>
                   </NeumorphicCard>
 
