@@ -364,9 +364,9 @@ export default function Alerts() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-3">
           <AlertTriangle className="w-10 h-10 text-orange-600" />
-          <h1 className="text-slate-50 text-3xl font-bold">Alerts HR</h1>
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Alerts HR</h1>
         </div>
-        <p className="text-slate-50">Monitoraggio scadenze e periodi di prova</p>
+        <p style={{ color: '#000000' }}>Monitoraggio scadenze e periodi di prova</p>
       </div>
 
       <div className="flex gap-2 mb-6">

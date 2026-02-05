@@ -129,11 +129,9 @@ export default function Pause() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-slate-50 text-3xl font-bold flex items-center gap-3">Gestione Pause
-
-
+            <h1 className="text-3xl font-bold flex items-center gap-3" style={{ color: '#000000' }}>Gestione Pause
             </h1>
-            <p className="text-slate-50 mt-1">Configura e monitora le pause dei dipendenti</p>
+            <p className="mt-1" style={{ color: '#000000' }}>Configura e monitora le pause dei dipendenti</p>
           </div>
           <NeumorphicButton
             onClick={() => setShowConfigForm(!showConfigForm)}

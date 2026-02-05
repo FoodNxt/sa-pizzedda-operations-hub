@@ -300,10 +300,9 @@ export default function ATS() {
       <div className="max-w-full mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">ATS - Candidati
-
+            <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>ATS - Candidati
             </h1>
-            <p className="text-slate-50 mt-1">Gestione candidati per turni di prova</p>
+            <p className="mt-1" style={{ color: '#000000' }}>Gestione candidati per turni di prova</p>
           </div>
           <NeumorphicButton
             onClick={() => setShowForm(true)}

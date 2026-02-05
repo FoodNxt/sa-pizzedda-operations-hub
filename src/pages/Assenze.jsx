@@ -402,10 +402,9 @@ export default function Assenze() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
         <div>
-          <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Richieste
-
+          <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Richieste
         </h1>
-          <p className="text-slate-50 mt-1">Ferie, malattie e scambi turno</p>
+          <p className="mt-1" style={{ color: '#000000' }}>Ferie, malattie e scambi turno</p>
         </div>
 
         {/* Stats */}

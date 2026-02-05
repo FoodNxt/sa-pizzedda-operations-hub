@@ -106,9 +106,9 @@ export default function SpostamentiAdmin() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <Truck className="w-8 h-8 text-blue-600" />
-            <h1 className="text-slate-50 text-3xl font-bold">Storico Spostamenti</h1>
+            <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Storico Spostamenti</h1>
           </div>
-          <p className="text-slate-50 text-sm">Analizza gli spostamenti di prodotti tra negozi</p>
+          <p className="text-sm" style={{ color: '#000000' }}>Analizza gli spostamenti di prodotti tra negozi</p>
         </div>
 
         {/* Filtri */}

@@ -438,7 +438,7 @@ export default function AnalisiSprechi() {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <Trash2 className="w-10 h-10 text-orange-600" />
-            <h1 className="text-slate-50 text-3xl font-bold">Analisi Sprechi</h1>
+            <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Analisi Sprechi</h1>
           </div>
           {activeTab === 'sprechi' &&
           <div className="flex gap-2">
@@ -459,7 +459,7 @@ export default function AnalisiSprechi() {
             </div>
           }
         </div>
-        <p className="text-slate-50">Analizza l'andamento delle teglie buttate e degli sprechi</p>
+        <p style={{ color: '#000000' }}>Analizza l'andamento delle teglie buttate e degli sprechi</p>
       </div>
 
       {/* Tabs */}

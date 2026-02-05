@@ -583,10 +583,9 @@ export default function StrutturaTurno() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="bg-clip-text text-slate-50 mb-1 text-3xl font-bold from-slate-700 to-slate-900">Struttura Turno
-
+            <h1 className="mb-1 text-3xl font-bold" style={{ color: '#000000' }}>Struttura Turno
             </h1>
-            <p className="text-slate-50 text-sm">Gestisci gli schemi dei turni per giorno e ruolo</p>
+            <p className="text-sm" style={{ color: '#000000' }}>Gestisci gli schemi dei turni per giorno e ruolo</p>
           </div>
           <div className="flex gap-2">
             <NeumorphicButton

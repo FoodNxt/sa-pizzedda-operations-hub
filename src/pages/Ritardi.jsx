@@ -265,10 +265,9 @@ export default function Ritardi() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Analisi Ritardi
-
+            <h1 className="text-3xl font-bold" style={{ color: '#000000' }}>Analisi Ritardi
             </h1>
-            <p className="text-slate-50 mt-1">Monitoraggio ritardi per locale e dipendente</p>
+            <p className="mt-1" style={{ color: '#000000' }}>Monitoraggio ritardi per locale e dipendente</p>
           </div>
           <button
             onClick={handleRecalculateDelays}

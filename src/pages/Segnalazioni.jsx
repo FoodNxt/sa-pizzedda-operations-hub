@@ -296,8 +296,8 @@ export default function Segnalazioni() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-slate-50 mb-2 text-3xl font-bold">Segnalazioni</h1>
-          <p className="text-slate-50">{isAdmin ? 'Gestisci le segnalazioni dei dipendenti' : 'Segnala problemi e anomalie negli store'}</p>
+          <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Segnalazioni</h1>
+          <p style={{ color: '#000000' }}>{isAdmin ? 'Gestisci le segnalazioni dei dipendenti' : 'Segnala problemi e anomalie negli store'}</p>
         </div>
         <NeumorphicButton
             onClick={() => setShowForm(true)}

@@ -231,10 +231,9 @@ export default function Straordinari() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="bg-clip-text text-slate-50 mb-1 text-3xl font-bold from-slate-700 to-slate-900">Costi Straordinari Dipendenti
-
+          <h1 className="mb-1 text-3xl font-bold" style={{ color: '#000000' }}>Costi Straordinari Dipendenti
         </h1>
-          <p className="text-slate-50 text-sm">Gestisci il costo orario dello straordinario per ogni dipendente</p>
+          <p className="text-sm" style={{ color: '#000000' }}>Gestisci il costo orario dello straordinario per ogni dipendente</p>
         </div>
 
         <NeumorphicCard className="p-6 bg-blue-50 border border-blue-200">
