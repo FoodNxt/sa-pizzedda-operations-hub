@@ -764,14 +764,22 @@ export default function Layout({ children, currentPageName }) {
 
         const normalizedUserType = getNormalizedUserType(user.user_type);
 
-        // Check if employee has an exit record
+        // Check if employee has an exit record and if the exit date has passed
         if (normalizedUserType === 'dipendente') {
           const uscite = await base44.entities.Uscita.filter({ dipendente_id: user.id });
           if (uscite.length > 0) {
-            // Employee has exit recorded, redirect to login
-            base44.auth.redirectToLogin();
-            setIsLoadingUser(false);
-            return;
+            const uscita = uscite[0];
+            const dataUscita = new Date(uscita.data_uscita);
+            const oggi = new Date();
+            oggi.setHours(0, 0, 0, 0);
+            dataUscita.setHours(0, 0, 0, 0);
+            
+            // Only redirect if exit date has passed
+            if (oggi > dataUscita) {
+              base44.auth.redirectToLogin();
+              setIsLoadingUser(false);
+              return;
+            }
           }
         }
 
