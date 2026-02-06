@@ -4776,7 +4776,11 @@ export default function Financials() {
               });
 
               // Calcola media storica per giorno della settimana
-              const historicalCutoff = subDays(today, activeHistoricalDays);
+              // IMPORTANTE: usa il MASSIMO tra activeHistoricalDays e effectiveGrowthPeriodDays
+              // per garantire che dailyTotals contenga TUTTI i dati necessari per il calcolo del tasso di crescita
+              const maxHistoricalDays = Math.max(activeHistoricalDays, effectiveGrowthPeriodDays || 0);
+              const historicalCutoff = subDays(today, maxHistoricalDays);
+              
               const historicalData = iPraticoData.filter(item => {
                 if (!item.order_date) return false;
                 const itemDate = new Date(item.order_date);
@@ -4831,14 +4835,19 @@ export default function Financials() {
               });
 
               // Poi raggruppa i totali giornalieri per giorno della settimana
+              // FILTRA solo gli ultimi activeHistoricalDays per la stagionalità
+              const seasonalityCutoff = subDays(today, activeHistoricalDays);
               const dayOfWeekRevenues = {};
               Object.entries(dailyTotals).forEach(([date, revenue]) => {
                 const itemDate = new Date(date);
-                const dayOfWeek = itemDate.getDay();
-                if (!dayOfWeekRevenues[dayOfWeek]) {
-                  dayOfWeekRevenues[dayOfWeek] = [];
+                // Solo i dati del periodo di stagionalità (activeHistoricalDays)
+                if (itemDate >= seasonalityCutoff) {
+                  const dayOfWeek = itemDate.getDay();
+                  if (!dayOfWeekRevenues[dayOfWeek]) {
+                    dayOfWeekRevenues[dayOfWeek] = [];
+                  }
+                  dayOfWeekRevenues[dayOfWeek].push(revenue);
                 }
-                dayOfWeekRevenues[dayOfWeek].push(revenue);
               });
 
               const actualHistoricalDays = Object.keys(dailyTotals).length;
