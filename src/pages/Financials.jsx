@@ -4698,6 +4698,9 @@ export default function Financials() {
               const activeUseEMA = selectedTarget?.use_ema !== undefined ? selectedTarget.use_ema : useEMA;
               const activeGrowthRatePeriodDays = selectedTarget?.growth_rate_period_days !== undefined ? selectedTarget.growth_rate_period_days : growthRatePeriodDays;
               
+              // IMPORTANTE: Dichiarare effectiveGrowthPeriodDays SUBITO per evitare errori di inizializzazione
+              const effectiveGrowthPeriodDays = activeGrowthRatePeriodDays || 0;
+              
               // Calcola la previsione - use active values from selectedTarget
               if (!activeTargetRevenue || (activeTargetDateMode === 'range' && (!activeTargetStartDate || !activeTargetEndDate))) {
                 return (
@@ -4878,7 +4881,6 @@ export default function Financials() {
               // Calcola il tasso di crescita con regressione lineare se configurato (per applicarlo alle previsioni)
               // IMPORTANTE: Usa sempre activeGrowthRatePeriodDays (valore corrente del target selezionato)
               let dailyGrowthRate = 0;
-              const effectiveGrowthPeriodDays = activeGrowthRatePeriodDays || 0;
               
               if (effectiveGrowthPeriodDays > 0) {
                const growthCutoff = subDays(today, effectiveGrowthPeriodDays);
