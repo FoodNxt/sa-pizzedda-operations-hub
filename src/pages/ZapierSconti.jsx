@@ -121,26 +121,36 @@ export default function ZapierSconti() {
                     <p className="text-sm font-bold text-slate-700 mb-2">Data (mappatura campi):</p>
                     <div className="bg-white p-3 rounded-lg border border-slate-200 text-xs font-mono space-y-1">
                       <p>secret: <span className="text-orange-600">[Il tuo ZAPIER_SCONTI_WEBHOOK_SECRET]</span></p>
-                      <p>order_date: <span className="text-blue-600">[Mappa la colonna order_date]</span></p>
-                      <p>channel: <span className="text-blue-600">[Mappa la colonna channel - nome dello store]</span></p>
-                      <p>sourceApp_glovo: <span className="text-blue-600">[Mappa la colonna sourceApp_glovo]</span></p>
-                      <p>sourceApp_deliveroo: <span className="text-blue-600">[Mappa la colonna sourceApp_deliveroo]</span></p>
-                      <p>sourceApp_justeat: <span className="text-blue-600">[Mappa la colonna sourceApp_justeat]</span></p>
-                      <p>sourceApp_onlineordering: <span className="text-blue-600">[Mappa la colonna sourceApp_onlineordering]</span></p>
-                      <p>sourceApp_ordertable: <span className="text-blue-600">[Mappa la colonna sourceApp_ordertable]</span></p>
-                      <p>sourceApp_tabesto: <span className="text-blue-600">[Mappa la colonna sourceApp_tabesto]</span></p>
-                      <p>sourceApp_deliverect: <span className="text-blue-600">[Mappa la colonna sourceApp_deliverect]</span></p>
-                      <p>sourceApp_store: <span className="text-blue-600">[Mappa la colonna sourceApp_store]</span></p>
-                      <p>sourceType_delivery: <span className="text-blue-600">[Mappa la colonna sourceType_delivery]</span></p>
-                      <p>sourceType_takeaway: <span className="text-blue-600">[Mappa la colonna sourceType_takeaway]</span></p>
-                      <p>sourceType_takeawayOnSite: <span className="text-blue-600">[Mappa la colonna sourceType_takeawayOnSite]</span></p>
-                      <p>sourceType_store: <span className="text-blue-600">[Mappa la colonna sourceType_store]</span></p>
-                      <p>moneyType_bancomat: <span className="text-blue-600">[Mappa la colonna moneyType_bancomat]</span></p>
-                      <p>moneyType_cash: <span className="text-blue-600">[Mappa la colonna moneyType_cash]</span></p>
-                      <p>moneyType_online: <span className="text-blue-600">[Mappa la colonna moneyType_online]</span></p>
-                      <p>moneyType_satispay: <span className="text-blue-600">[Mappa la colonna moneyType_satispay]</span></p>
-                      <p>moneyType_credit_card: <span className="text-blue-600">[Mappa la colonna moneyType_credit_card]</span></p>
-                      <p>moneyType_fidelity_card_points: <span className="text-blue-600">[Mappa la colonna moneyType_fidelity_card_points]</span></p>
+                      <p>order_date: <span className="text-blue-600">[Colonna DATA in formato YYYY-MM-DD]</span></p>
+                      <p className="text-red-600 font-bold">⚠️ channel: <span className="text-red-600">[Colonna NOME STORE come testo - es. "Ticinese", "Lanino"]</span></p>
+                      <p>sourceApp_glovo: <span className="text-blue-600">[Colonna numerica Glovo]</span></p>
+                      <p>sourceApp_deliveroo: <span className="text-blue-600">[Colonna numerica Deliveroo]</span></p>
+                      <p>sourceApp_justeat: <span className="text-blue-600">[Colonna numerica JustEat]</span></p>
+                      <p>sourceApp_onlineordering: <span className="text-blue-600">[Colonna numerica OnlineOrdering]</span></p>
+                      <p>sourceApp_ordertable: <span className="text-blue-600">[Colonna numerica OrderTable]</span></p>
+                      <p>sourceApp_tabesto: <span className="text-blue-600">[Colonna numerica Tabesto]</span></p>
+                      <p>sourceApp_deliverect: <span className="text-blue-600">[Colonna numerica Deliverect]</span></p>
+                      <p>sourceApp_store: <span className="text-blue-600">[Colonna numerica Store]</span></p>
+                      <p>sourceType_delivery: <span className="text-blue-600">[Colonna numerica Delivery]</span></p>
+                      <p>sourceType_takeaway: <span className="text-blue-600">[Colonna numerica Takeaway]</span></p>
+                      <p>sourceType_takeawayOnSite: <span className="text-blue-600">[Colonna numerica TakeawayOnSite]</span></p>
+                      <p>sourceType_store: <span className="text-blue-600">[Colonna numerica Store (tipo)]</span></p>
+                      <p>moneyType_bancomat: <span className="text-blue-600">[Colonna numerica Bancomat]</span></p>
+                      <p>moneyType_cash: <span className="text-blue-600">[Colonna numerica Contanti]</span></p>
+                      <p>moneyType_online: <span className="text-blue-600">[Colonna numerica Online]</span></p>
+                      <p>moneyType_satispay: <span className="text-blue-600">[Colonna numerica Satispay]</span></p>
+                      <p>moneyType_credit_card: <span className="text-blue-600">[Colonna numerica Carta]</span></p>
+                      <p>moneyType_fidelity_card_points: <span className="text-blue-600">[Colonna numerica Punti Fidelity]</span></p>
+                    </div>
+                    <div className="mt-3 bg-red-50 p-3 rounded-lg border-l-4 border-red-500">
+                      <p className="text-sm text-red-800 font-bold mb-2">
+                        ⚠️ ERRORE COMUNE DA EVITARE:
+                      </p>
+                      <ul className="text-sm text-red-800 list-disc ml-5 space-y-1">
+                        <li>Verifica che il campo <code className="bg-red-100 px-1 rounded">channel</code> sia mappato a una colonna TESTUALE con il nome dello store (es. "Ticinese")</li>
+                        <li>Se ricevi numeri nel campo "Store" nella tabella finale, significa che hai mappato channel a una colonna numerica per errore</li>
+                        <li>Controlla l'ordine delle colonne nel foglio Google Sheets e assicurati che ogni campo Zapier punti alla colonna corretta</li>
+                      </ul>
                     </div>
                     <p className="text-xs text-slate-600 mt-2 bg-yellow-50 p-2 rounded">
                       ⚠️ <strong>Nota:</strong> Il campo <code>total_discount_price</code> non è più richiesto e viene calcolato automaticamente come somma di tutti i campi source*, money*, e type*.
@@ -213,8 +223,9 @@ export default function ZapierSconti() {
                   </p>
                   <ul className="text-sm text-yellow-800 list-disc ml-5 mt-2 space-y-1">
                     <li>Il campo <code>order_date</code> deve essere in formato YYYY-MM-DD (es. 2026-01-15)</li>
-                    <li>Il campo <code>channel</code> indica il nome dello store (es. "Roma Centro", "Milano Duomo")</li>
-                    <li><code>sourceApp_*</code>: sconti in euro per app (es. sourceApp_glovo=60€, sourceApp_deliveroo=40€)</li>
+                    <li><strong className="text-red-700">CRITICO:</strong> Il campo <code>channel</code> deve contenere il NOME TESTUALE dello store (es. "Ticinese", "Lanino"), NON un valore numerico!</li>
+                    <li>Nel foglio Google Sheets, assicurati che la colonna con il nome dello store sia testuale e contenga valori come "Ticinese", "Lanino", etc.</li>
+                    <li><code>sourceApp_*</code>: sconti in euro per app (es. sourceApp_glovo=13.87, sourceApp_deliveroo=21)</li>
                     <li><code>sourceType_*</code> e <code>moneyType_*</code>: sono aggregazioni alternative dello STESSO totale, per tipo e metodo pagamento</li>
                     <li><strong>IMPORTANTE:</strong> Il <code>total_discount_price</code> viene calcolato automaticamente come somma dei soli sourceApp_* (non sommare anche sourceType e moneyType perché sono lo stesso importo aggregato in modo diverso)</li>
                   </ul>
@@ -231,10 +242,14 @@ export default function ZapierSconti() {
               <div className="ml-9">
                 <div className="neumorphic-pressed p-4 rounded-xl bg-slate-50 overflow-x-auto">
                   <pre className="text-xs font-mono text-slate-700">
-{`order_date | channel     | sourceApp_glovo | sourceApp_deliveroo | sourceType_delivery | moneyType_online
-2026-01-15 | Roma Centro | 60.00           | 40.00               | 100.00              | 100.00
-2026-01-15 | Milano      | 30.00           | 20.00               | 50.00               | 50.00`}
+{`order_date | channel    | sourceApp_glovo | sourceApp_deliveroo | sourceType_delivery | moneyType_online
+2026-01-23 | Ticinese   | 13.87           | 21.00               | 34.87               | 34.87
+2026-01-23 | Lanino     | 10.50           | 15.30               | 25.80               | 25.80`}
                   </pre>
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800 font-bold">⚠️ Verifica nel tuo Google Sheets:</p>
+                    <p className="text-xs text-red-700 mt-1">La colonna "channel" DEVE contenere testo (Ticinese, Lanino) e NON numeri (39.45, 21). Se vedi numeri nella colonna Store della tabella finale, hai mappato la colonna sbagliata in Zapier!</p>
+                  </div>
                 </div>
                 <p className="text-sm text-slate-600 mt-3">
                   <strong>Logica dei campi:</strong> I campi sourceApp_*, sourceType_* e moneyType_* rappresentano TUTTI lo stesso totale sconto, ma aggregato in modi diversi. 
