@@ -151,7 +151,7 @@ export default function StoreReviews() {
         trend,
         color: avgRating >= 4.5 ? '#22c55e' : avgRating >= 3.5 ? '#eab308' : '#ef4444'
       };
-    }).filter((s) => s.latitude && s.longitude);
+    });
   }, [stores, filteredReviewsByDate]);
 
   // Calculate overall metrics (when no store is selected)
@@ -201,10 +201,11 @@ export default function StoreReviews() {
 
   // Calculate map center and bounds for better zoom
   const mapCenter = useMemo(() => {
-    if (storeMetrics.length === 0) return [41.9028, 12.4964];
+    const storesWithCoords = storeMetrics.filter(s => s.latitude && s.longitude);
+    if (storesWithCoords.length === 0) return [41.9028, 12.4964];
 
-    const latitudes = storeMetrics.map((s) => s.latitude);
-    const longitudes = storeMetrics.map((s) => s.longitude);
+    const latitudes = storesWithCoords.map((s) => s.latitude);
+    const longitudes = storesWithCoords.map((s) => s.longitude);
 
     const centerLat = latitudes.reduce((sum, lat) => sum + lat, 0) / latitudes.length;
     const centerLng = longitudes.reduce((sum, lng) => sum + lng, 0) / longitudes.length;
@@ -213,10 +214,11 @@ export default function StoreReviews() {
   }, [storeMetrics]);
 
   const mapBounds = useMemo(() => {
-    if (storeMetrics.length === 0) return null;
+    const storesWithCoords = storeMetrics.filter(s => s.latitude && s.longitude);
+    if (storesWithCoords.length === 0) return null;
 
-    const latitudes = storeMetrics.map((s) => s.latitude);
-    const longitudes = storeMetrics.map((s) => s.longitude);
+    const latitudes = storesWithCoords.map((s) => s.latitude);
+    const longitudes = storesWithCoords.map((s) => s.longitude);
 
     return [
     [Math.min(...latitudes), Math.min(...longitudes)],
@@ -503,7 +505,7 @@ Genera SOLO la risposta, senza introduzioni o spiegazioni.`;
         {/* Map */}
         <NeumorphicCard className="p-4 lg:p-6 overflow-hidden">
           <div className="h-[400px] lg:h-[500px] rounded-xl overflow-hidden">
-            {storeMetrics.length > 0 ?
+            {storeMetrics.filter(s => s.latitude && s.longitude).length > 0 ?
             <MapContainer
               center={mapCenter}
               zoom={mapBounds ? undefined : 10}
@@ -514,7 +516,7 @@ Genera SOLO la risposta, senza introduzioni o spiegazioni.`;
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
 
-                {filteredStores.map((store) =>
+                {filteredStores.filter(s => s.latitude && s.longitude).map((store) =>
               <Marker
                 key={store.id}
                 position={[store.latitude, store.longitude]}
