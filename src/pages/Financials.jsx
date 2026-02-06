@@ -4881,6 +4881,10 @@ export default function Financials() {
                 currentRevenue += itemRevenue;
               });
 
+              // Calcola il peso totale della stagionalità PRIMA di tutto (necessario per split view)
+              // Questo sarà usato in più punti del codice
+              let totalSeasonalityWeight = 0;
+              
               // Calcola media storica per giorno della settimana
               // IMPORTANTE: usa il MASSIMO tra activeHistoricalDays e effectiveGrowthPeriodDays
               // per garantire che dailyTotals contenga TUTTI i dati necessari per il calcolo del tasso di crescita
@@ -4962,6 +4966,9 @@ export default function Financials() {
 
               // Calcola media per ogni giorno della settimana
               const avgByDayOfWeek = {};
+              
+              // Calcola SUBITO totalSeasonalityWeight dopo aver definito avgByDayOfWeek
+              // (sarà ricalcolato dopo che avgByDayOfWeek è popolato)
               Object.keys(dayOfWeekRevenues).forEach(dayOfWeek => {
                 const revenues = dayOfWeekRevenues[dayOfWeek];
                 let avg = 0;
@@ -4980,6 +4987,15 @@ export default function Financials() {
                 
                 avgByDayOfWeek[dayOfWeek] = avg;
               });
+
+              // ORA calcola totalSeasonalityWeight con avgByDayOfWeek popolato
+              totalSeasonalityWeight = 0;
+              for (let i = 0; i < totalDays; i++) {
+                const currentDate = new Date(periodStart);
+                currentDate.setDate(periodStart.getDate() + i);
+                const dayOfWeek = currentDate.getDay();
+                totalSeasonalityWeight += avgByDayOfWeek[dayOfWeek] || 0;
+              }
 
               // Calcola il tasso di crescita con regressione lineare se configurato (per applicarlo alle previsioni)
               // IMPORTANTE: Usa sempre activeGrowthRatePeriodDays (valore corrente del target selezionato)
