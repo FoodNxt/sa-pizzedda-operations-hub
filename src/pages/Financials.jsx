@@ -4289,16 +4289,56 @@ export default function Financials() {
                       const avgByDayOfWeek = {};
                       Object.keys(dayOfWeekRevenues).forEach(dayOfWeek => {
                         const revenues = dayOfWeekRevenues[dayOfWeek];
-                        const avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                        let avg = 0;
+                        
+                        if (target.use_ema && revenues.length > 0) {
+                          const alpha = 0.2;
+                          avg = revenues[0];
+                          for (let i = 1; i < revenues.length; i++) {
+                            avg = alpha * revenues[i] + (1 - alpha) * avg;
+                          }
+                        } else {
+                          avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                        }
+                        
                         avgByDayOfWeek[dayOfWeek] = avg;
                       });
+
+                      // Calcola tasso di crescita
+                      let cardDailyGrowthRate = 0;
+                      if (target.growth_rate_period_days > 0) {
+                        const growthCutoff = subDays(today, target.growth_rate_period_days);
+                        const growthData = Object.entries(dailyTotals)
+                          .filter(([date]) => {
+                            const d = new Date(date);
+                            return d >= growthCutoff && d < today;
+                          })
+                          .sort(([a], [b]) => a.localeCompare(b));
+                        
+                        if (growthData.length >= 2) {
+                          const n = growthData.length;
+                          let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                          
+                          growthData.forEach(([date, revenue], index) => {
+                            sumX += index;
+                            sumY += revenue;
+                            sumXY += index * revenue;
+                            sumX2 += index * index;
+                          });
+                          
+                          const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                          cardDailyGrowthRate = slope;
+                        }
+                      }
 
                       let predictedRevenue = 0;
                       for (let i = 0; i < daysRemaining; i++) {
                         const futureDate = new Date(today);
                         futureDate.setDate(today.getDate() + i);
                         const dayOfWeek = futureDate.getDay();
-                        predictedRevenue += avgByDayOfWeek[dayOfWeek] || 0;
+                        const baseRev = avgByDayOfWeek[dayOfWeek] || 0;
+                        const growthAdj = cardDailyGrowthRate * (daysPassed + i);
+                        predictedRevenue += baseRev + growthAdj;
                       }
 
                       const totalProjected = currentRevenue + predictedRevenue;
@@ -6056,15 +6096,15 @@ export default function Financials() {
                               <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
                                 <td className="p-3 text-slate-700 font-medium text-sm">{row.date}</td>
                                 <td className="p-3 text-right text-slate-700 font-bold text-sm">
-                                  {row.actual !== null ? formatEuro(row.actual) : '-'}
+                                  {row.actual !== null ? `€${formatCurrency(Math.round(row.actual), 0)}` : '-'}
                                 </td>
                                 <td className="p-3 text-right text-slate-600 text-sm">
-                                  {formatEuro(row.predicted)}
+                                  €{formatCurrency(Math.round(row.predicted), 0)}
                                 </td>
                                 <td className={`p-3 text-right font-bold text-sm bg-purple-50 ${
                                   row.deltaVsPredicted !== null ? (row.deltaVsPredicted >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
                                 }`}>
-                                  {row.deltaVsPredicted !== null ? `${row.deltaVsPredicted >= 0 ? '+' : ''}${formatEuro(row.deltaVsPredicted)}` : '-'}
+                                  {row.deltaVsPredicted !== null ? `${row.deltaVsPredicted >= 0 ? '+' : ''}€${formatCurrency(Math.round(row.deltaVsPredicted), 0)}` : '-'}
                                 </td>
                                 <td className={`p-3 text-right font-bold text-sm bg-purple-50 ${
                                   row.deltaPercentVsPredicted !== null ? (row.deltaPercentVsPredicted >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
@@ -6072,12 +6112,12 @@ export default function Financials() {
                                   {row.deltaPercentVsPredicted !== null ? `${row.deltaPercentVsPredicted >= 0 ? '+' : ''}${row.deltaPercentVsPredicted.toFixed(1)}%` : '-'}
                                 </td>
                                 <td className="p-3 text-right text-orange-600 font-bold text-sm">
-                                  {formatEuro(row.required)}
+                                  €{formatCurrency(Math.round(row.required), 0)}
                                 </td>
                                 <td className={`p-3 text-right font-bold text-sm bg-orange-50 ${
                                   row.deltaVsRequired !== null ? (row.deltaVsRequired >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
                                 }`}>
-                                  {row.deltaVsRequired !== null ? `${row.deltaVsRequired >= 0 ? '+' : ''}${formatEuro(row.deltaVsRequired)}` : '-'}
+                                  {row.deltaVsRequired !== null ? `${row.deltaVsRequired >= 0 ? '+' : ''}€${formatCurrency(Math.round(row.deltaVsRequired), 0)}` : '-'}
                                 </td>
                                 <td className={`p-3 text-right font-bold text-sm bg-orange-50 ${
                                   row.deltaPercentVsRequired !== null ? (row.deltaPercentVsRequired >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
