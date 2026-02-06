@@ -20,6 +20,8 @@ export default function Financials() {
   const [targetStartDate, setTargetStartDate] = useState('');
   const [targetEndDate, setTargetEndDate] = useState('');
   const [historicalDaysTarget, setHistoricalDaysTarget] = useState(30);
+  const [useEMA, setUseEMA] = useState(false);
+  const [growthRatePeriodDays, setGrowthRatePeriodDays] = useState(0);
   const [selectedTargetView, setSelectedTargetView] = useState('list'); // 'list' o 'create'
   const [selectedTargetId, setSelectedTargetId] = useState(null);
   const [targetName, setTargetName] = useState('');
@@ -4318,6 +4320,8 @@ export default function Financials() {
                             setTargetStartDate(target.start_date || '');
                             setTargetEndDate(target.end_date || '');
                             setHistoricalDaysTarget(target.historical_days || 30);
+                            setUseEMA(target.use_ema || false);
+                            setGrowthRatePeriodDays(target.growth_rate_period_days || 0);
                             setSelectedTargetView('details');
                           }}
                         >
@@ -4336,6 +4340,8 @@ export default function Financials() {
                                   setTargetStartDate(target.start_date || '');
                                   setTargetEndDate(target.end_date || '');
                                   setHistoricalDaysTarget(target.historical_days || 30);
+                                  setUseEMA(target.use_ema || false);
+                                  setGrowthRatePeriodDays(target.growth_rate_period_days || 0);
                                   setTargetName(target.name);
                                   setSelectedTargetView('edit');
                                 }}
@@ -4540,6 +4546,34 @@ export default function Financials() {
                         <option value="90">90 giorni</option>
                       </select>
                     </div>
+
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Metodo Calcolo Stagionalità</label>
+                      <select
+                        value={useEMA}
+                        onChange={(e) => setUseEMA(e.target.value === 'true')}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      >
+                        <option value="false">Media Semplice</option>
+                        <option value="true">Media Mobile Esponenziale (α=0.2)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Tasso Crescita (Regressione Lineare)</label>
+                      <select
+                        value={growthRatePeriodDays}
+                        onChange={(e) => setGrowthRatePeriodDays(parseInt(e.target.value))}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      >
+                        <option value="0">Nessuno</option>
+                        <option value="30">30 giorni</option>
+                        <option value="60">60 giorni</option>
+                        <option value="90">90 giorni</option>
+                        <option value="180">180 giorni</option>
+                        <option value="365">365 giorni</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div className="flex gap-3 mt-6">
@@ -4568,7 +4602,9 @@ export default function Financials() {
                                 date_mode: targetDateMode,
                                 start_date: targetStartDate,
                                 end_date: targetEndDate,
-                                historical_days: historicalDaysTarget
+                                historical_days: historicalDaysTarget,
+                                use_ema: useEMA,
+                                growth_rate_period_days: growthRatePeriodDays
                               }
                             });
                           } else {
@@ -4581,7 +4617,9 @@ export default function Financials() {
                               date_mode: targetDateMode,
                               start_date: targetStartDate,
                               end_date: targetEndDate,
-                              historical_days: historicalDaysTarget
+                              historical_days: historicalDaysTarget,
+                              use_ema: useEMA,
+                              growth_rate_period_days: growthRatePeriodDays
                             });
                           }
                         }
@@ -4760,17 +4798,62 @@ export default function Financials() {
               const avgByDayOfWeek = {};
               Object.keys(dayOfWeekRevenues).forEach(dayOfWeek => {
                 const revenues = dayOfWeekRevenues[dayOfWeek];
-                const avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                let avg = 0;
+                
+                if (useEMA && revenues.length > 0) {
+                  // Media Mobile Esponenziale con α = 0.2
+                  const alpha = 0.2;
+                  avg = revenues[0]; // Inizializza con il primo valore
+                  for (let i = 1; i < revenues.length; i++) {
+                    avg = alpha * revenues[i] + (1 - alpha) * avg;
+                  }
+                } else {
+                  // Media semplice
+                  avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                }
+                
                 avgByDayOfWeek[dayOfWeek] = avg;
               });
 
-              // Prevedi revenue per i giorni rimanenti
+              // Calcola il tasso di crescita con regressione lineare se configurato
+              let dailyGrowthRate = 0;
+              if (growthRatePeriodDays > 0) {
+                const growthCutoff = subDays(today, growthRatePeriodDays);
+                const growthData = Object.entries(dailyTotals)
+                  .filter(([date]) => {
+                    const d = new Date(date);
+                    return d >= growthCutoff && d < today;
+                  })
+                  .sort(([a], [b]) => a.localeCompare(b));
+                
+                if (growthData.length >= 2) {
+                  // Regressione lineare: y = mx + b
+                  const n = growthData.length;
+                  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                  
+                  growthData.forEach(([date, revenue], index) => {
+                    sumX += index;
+                    sumY += revenue;
+                    sumXY += index * revenue;
+                    sumX2 += index * index;
+                  });
+                  
+                  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                  dailyGrowthRate = slope; // Crescita giornaliera in euro
+                }
+              }
+
+              // Prevedi revenue per i giorni rimanenti applicando stagionalità + tasso di crescita
               let predictedRevenue = 0;
               for (let i = 0; i < daysRemaining; i++) {
                 const futureDate = new Date(today);
                 futureDate.setDate(today.getDate() + i);
                 const dayOfWeek = futureDate.getDay();
-                predictedRevenue += avgByDayOfWeek[dayOfWeek] || 0;
+                const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                
+                // Applica il tasso di crescita: ogni giorno futuro ha un incremento
+                const growthAdjustment = dailyGrowthRate * (daysPassed + i);
+                predictedRevenue += baseRevenue + growthAdjustment;
               }
 
               const totalProjected = currentRevenue + predictedRevenue;
@@ -5992,7 +6075,10 @@ export default function Financials() {
                         })}
                       </div>
                       <p className="text-xs text-slate-500 mt-4">
-                        📊 Media calcolata sugli ultimi {historicalDaysTarget} giorni
+                        📊 Media calcolata sugli ultimi {historicalDaysTarget} giorni{useEMA ? ' con Media Mobile Esponenziale (α=0.2)' : ''}
+                        {growthRatePeriodDays > 0 && dailyGrowthRate !== 0 && (
+                          <><br />📈 Tasso di crescita: {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate)}/giorno (regressione lineare su {growthRatePeriodDays}gg)</>
+                        )}
                       </p>
                     </NeumorphicCard>
                   </div>
