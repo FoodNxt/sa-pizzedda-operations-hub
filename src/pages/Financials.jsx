@@ -5996,7 +5996,7 @@ export default function Financials() {
                               }
 
                               const itemTotalProjected = itemCurrentRevenue + itemPredictedRevenue;
-                              
+
                               // Calcola il peso di questo item rispetto al totale (per distribuire il target proporzionalmente)
                               let itemTotalSeasonalityWeight = 0;
                               for (let i = 0; i < totalDays; i++) {
@@ -6005,112 +6005,10 @@ export default function Financials() {
                                 const dayOfWeek = currentDate.getDay();
                                 itemTotalSeasonalityWeight += itemAvgByDayOfWeek[dayOfWeek] || 0;
                               }
-                              
-                              // Calcola il peso totale di TUTTI gli items per proporzionare il target
-                              let globalTotalSeasonalityWeight = 0;
-                              splitByItems.forEach(otherItem => {
-                                const otherHistoricalData = iPraticoData.filter(dataItem => {
-                                  if (!dataItem.order_date) return false;
-                                  const dataItemDate = new Date(dataItem.order_date);
-                                  dataItemDate.setHours(0, 0, 0, 0);
-                                  if (dataItemDate < historicalCutoff || dataItemDate >= today) return false;
-                                  
-                                  if (splitType === 'store') {
-                                    return dataItem.store_id === otherItem.id;
-                                  }
-                                  return true;
-                                });
 
-                                const otherDailyTotals = {};
-                                otherHistoricalData.forEach(dataItem => {
-                                  if (!otherDailyTotals[dataItem.order_date]) otherDailyTotals[dataItem.order_date] = 0;
-                                  
-                                  let dataItemRevenue = 0;
-
-                                  // PRIMA applica i filtri del target (app/canale se presenti)
-                                  if (activeTargetApp) {
-                                    const apps = [
-                                      { key: 'glovo', revenue: dataItem.sourceApp_glovo || 0 },
-                                      { key: 'deliveroo', revenue: dataItem.sourceApp_deliveroo || 0 },
-                                      { key: 'justeat', revenue: dataItem.sourceApp_justeat || 0 },
-                                      { key: 'onlineordering', revenue: dataItem.sourceApp_onlineordering || 0 },
-                                      { key: 'ordertable', revenue: dataItem.sourceApp_ordertable || 0 },
-                                      { key: 'tabesto', revenue: dataItem.sourceApp_tabesto || 0 },
-                                      { key: 'store', revenue: dataItem.sourceApp_store || 0 }
-                                    ];
-                                    apps.forEach(app => {
-                                      const mappedKey = appMapping[app.key] || app.key;
-                                      if (mappedKey === activeTargetApp) dataItemRevenue += app.revenue;
-                                    });
-                                  } else if (activeTargetChannel) {
-                                    const channels = [
-                                      { key: 'delivery', revenue: dataItem.sourceType_delivery || 0 },
-                                      { key: 'takeaway', revenue: dataItem.sourceType_takeaway || 0 },
-                                      { key: 'takeawayOnSite', revenue: dataItem.sourceType_takeawayOnSite || 0 },
-                                      { key: 'store', revenue: dataItem.sourceType_store || 0 }
-                                    ];
-                                    channels.forEach(ch => {
-                                      const mappedKey = channelMapping[ch.key] || ch.key;
-                                      if (mappedKey === activeTargetChannel) dataItemRevenue += ch.revenue;
-                                    });
-                                  } else {
-                                    // POI applica lo split per tipo
-                                    if (splitType === 'app') {
-                                      const apps = [
-                                        { key: 'glovo', revenue: dataItem.sourceApp_glovo || 0 },
-                                        { key: 'deliveroo', revenue: dataItem.sourceApp_deliveroo || 0 },
-                                        { key: 'justeat', revenue: dataItem.sourceApp_justeat || 0 },
-                                        { key: 'onlineordering', revenue: dataItem.sourceApp_onlineordering || 0 },
-                                        { key: 'ordertable', revenue: dataItem.sourceApp_ordertable || 0 },
-                                        { key: 'tabesto', revenue: dataItem.sourceApp_tabesto || 0 },
-                                        { key: 'store', revenue: dataItem.sourceApp_store || 0 }
-                                      ];
-                                      apps.forEach(app => {
-                                        const mappedKey = appMapping[app.key] || app.key;
-                                        if (mappedKey === otherItem.id) dataItemRevenue += app.revenue;
-                                      });
-                                    } else if (splitType === 'channel') {
-                                      const channels = [
-                                        { key: 'delivery', revenue: dataItem.sourceType_delivery || 0 },
-                                        { key: 'takeaway', revenue: dataItem.sourceType_takeaway || 0 },
-                                        { key: 'takeawayOnSite', revenue: dataItem.sourceType_takeawayOnSite || 0 },
-                                        { key: 'store', revenue: dataItem.sourceType_store || 0 }
-                                      ];
-                                      channels.forEach(ch => {
-                                        const mappedKey = channelMapping[ch.key] || ch.key;
-                                        if (mappedKey === otherItem.id) dataItemRevenue += ch.revenue;
-                                      });
-                                    } else {
-                                      dataItemRevenue = dataItem.total_revenue || 0;
-                                    }
-                                  }
-
-                                  otherDailyTotals[dataItem.order_date] += dataItemRevenue;
-                                });
-
-                                const otherDayOfWeekRevenues = {};
-                                Object.entries(otherDailyTotals).forEach(([date, revenue]) => {
-                                  const dataItemDate = new Date(date);
-                                  const dayOfWeek = dataItemDate.getDay();
-                                  if (!otherDayOfWeekRevenues[dayOfWeek]) otherDayOfWeekRevenues[dayOfWeek] = [];
-                                  otherDayOfWeekRevenues[dayOfWeek].push(revenue);
-                                });
-
-                                const otherAvgByDayOfWeek = {};
-                                Object.keys(otherDayOfWeekRevenues).forEach(dayOfWeek => {
-                                  const revenues = otherDayOfWeekRevenues[dayOfWeek];
-                                  otherAvgByDayOfWeek[dayOfWeek] = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
-                                });
-
-                                for (let i = 0; i < totalDays; i++) {
-                                  const currentDate = new Date(periodStart);
-                                  currentDate.setDate(periodStart.getDate() + i);
-                                  const dayOfWeek = currentDate.getDay();
-                                  globalTotalSeasonalityWeight += otherAvgByDayOfWeek[dayOfWeek] || 0;
-                                }
-                              });
-                              
-                              const itemTargetRevenue = globalTotalSeasonalityWeight > 0 ? (target * (itemTotalSeasonalityWeight / globalTotalSeasonalityWeight)) : (target / splitByItems.length);
+                              // CORREZIONE: Usa totalSeasonalityWeight (già corretto con filtri del target) 
+                              // invece di ricalcolare globalTotalSeasonalityWeight che include items non rilevanti
+                              const itemTargetRevenue = totalSeasonalityWeight > 0 ? (target * (itemTotalSeasonalityWeight / totalSeasonalityWeight)) : (target / splitByItems.length);
                               const itemGap = itemTargetRevenue - itemTotalProjected;
                               const itemProgressPercent = itemTargetRevenue > 0 ? (itemTotalProjected / itemTargetRevenue) * 100 : 0;
 
