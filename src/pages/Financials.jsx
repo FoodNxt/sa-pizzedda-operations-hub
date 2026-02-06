@@ -4996,7 +4996,7 @@ export default function Financials() {
                           <p className="text-sm text-slate-700 mb-3">
                             Calcolato con <strong>regressione lineare</strong> sugli ultimi <strong>{selectedTarget.growth_rate_period_days} giorni</strong>
                           </p>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <div className="bg-white rounded-lg p-3">
                               <p className="text-xs text-slate-500 mb-1">Tasso Giornaliero</p>
                               <p className={`text-xl font-bold ${dailyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -5017,6 +5017,111 @@ export default function Financials() {
                               <p className="text-xs text-slate-500 mb-1">Impatto su Periodo</p>
                               <p className={`text-xl font-bold ${dailyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate * daysRemaining)}
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Crescita vs Periodo Prec.</p>
+                              <p className={`text-xl font-bold ${(() => {
+                                // Calcola revenue periodo precedente (stesso numero di giorni prima)
+                                const previousPeriodStart = subDays(periodStart, totalDays);
+                                const previousPeriodEnd = subDays(periodStart, 1);
+                                
+                                const previousData = iPraticoData.filter(item => {
+                                  if (!item.order_date) return false;
+                                  const itemDate = new Date(item.order_date);
+                                  itemDate.setHours(0, 0, 0, 0);
+                                  if (itemDate < previousPeriodStart || itemDate > previousPeriodEnd) return false;
+                                  if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
+                                  return true;
+                                });
+                                
+                                let previousRevenue = 0;
+                                previousData.forEach(item => {
+                                  let itemRevenue = 0;
+                                  if (activeTargetApp) {
+                                    const apps = [
+                                      { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                                      { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                                      { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                                      { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                                      { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                                      { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                                      { key: 'store', revenue: item.sourceApp_store || 0 }
+                                    ];
+                                    apps.forEach(app => {
+                                      const mappedKey = appMapping[app.key] || app.key;
+                                      if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+                                    });
+                                  } else if (activeTargetChannel) {
+                                    const channels = [
+                                      { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                                      { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                                      { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                                      { key: 'store', revenue: item.sourceType_store || 0 }
+                                    ];
+                                    channels.forEach(ch => {
+                                      const mappedKey = channelMapping[ch.key] || ch.key;
+                                      if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+                                    });
+                                  } else {
+                                    itemRevenue = item.total_revenue || 0;
+                                  }
+                                  previousRevenue += itemRevenue;
+                                });
+                                
+                                const growthVsPrevious = previousRevenue > 0 ? ((totalProjected - previousRevenue) / previousRevenue) * 100 : 0;
+                                return growthVsPrevious >= 0 ? 'text-green-600' : 'text-red-600';
+                              })()}`}>
+                                {(() => {
+                                  const previousPeriodStart = subDays(periodStart, totalDays);
+                                  const previousPeriodEnd = subDays(periodStart, 1);
+                                  
+                                  const previousData = iPraticoData.filter(item => {
+                                    if (!item.order_date) return false;
+                                    const itemDate = new Date(item.order_date);
+                                    itemDate.setHours(0, 0, 0, 0);
+                                    if (itemDate < previousPeriodStart || itemDate > previousPeriodEnd) return false;
+                                    if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
+                                    return true;
+                                  });
+                                  
+                                  let previousRevenue = 0;
+                                  previousData.forEach(item => {
+                                    let itemRevenue = 0;
+                                    if (activeTargetApp) {
+                                      const apps = [
+                                        { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                                        { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                                        { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                                        { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                                        { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                                        { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                                        { key: 'store', revenue: item.sourceApp_store || 0 }
+                                      ];
+                                      apps.forEach(app => {
+                                        const mappedKey = appMapping[app.key] || app.key;
+                                        if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+                                      });
+                                    } else if (activeTargetChannel) {
+                                      const channels = [
+                                        { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                                        { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                                        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                                        { key: 'store', revenue: item.sourceType_store || 0 }
+                                      ];
+                                      channels.forEach(ch => {
+                                        const mappedKey = channelMapping[ch.key] || ch.key;
+                                        if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+                                      });
+                                    } else {
+                                      itemRevenue = item.total_revenue || 0;
+                                    }
+                                    previousRevenue += itemRevenue;
+                                  });
+                                  
+                                  const growthVsPrevious = previousRevenue > 0 ? ((totalProjected - previousRevenue) / previousRevenue) * 100 : 0;
+                                  return `${growthVsPrevious >= 0 ? '+' : ''}${growthVsPrevious.toFixed(1)}%`;
+                                })()}
                               </p>
                             </div>
                             <div className="bg-white rounded-lg p-3">
