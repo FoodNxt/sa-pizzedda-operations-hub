@@ -5044,8 +5044,10 @@ export default function Financials() {
                               // Revenue effettivo
                               const dayRevenue = dailyRevenueMap[dateStr] || 0;
                               
-                              // Previsto per questo giorno
-                              const predictedDayRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                              // Previsto per questo giorno (con tasso di crescita se configurato)
+                              const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                              const growthAdjustment = dailyGrowthRate * i;
+                              const predictedDayRevenue = baseRevenue + growthAdjustment;
                               
                               // Richiesto per questo giorno (basato su stagionalità)
                               const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
@@ -6074,12 +6076,21 @@ export default function Financials() {
                           );
                         })}
                       </div>
-                      <p className="text-xs text-slate-500 mt-4">
-                        📊 Media calcolata sugli ultimi {historicalDaysTarget} giorni{useEMA ? ' con Media Mobile Esponenziale (α=0.2)' : ''}
-                        {growthRatePeriodDays > 0 && dailyGrowthRate !== 0 && (
-                          <><br />📈 Tasso di crescita: {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate)}/giorno (regressione lineare su {growthRatePeriodDays}gg)</>
-                        )}
-                      </p>
+                      {(() => {
+                        // Mostra info sul metodo di calcolo
+                        const selectedTargetData = targets.find(t => t.id === selectedTargetId);
+                        const targetUseEMA = selectedTargetData?.use_ema || false;
+                        const targetGrowthDays = selectedTargetData?.growth_rate_period_days || 0;
+                        
+                        return (
+                          <p className="text-xs text-slate-500 mt-4">
+                            📊 Media calcolata sugli ultimi {historicalDaysTarget} giorni{targetUseEMA ? ' con Media Mobile Esponenziale (α=0.2)' : ''}
+                            {targetGrowthDays > 0 && dailyGrowthRate !== 0 && (
+                              <><br />📈 Tasso di crescita: {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate)}/giorno (regressione lineare su {targetGrowthDays}gg)</>
+                            )}
+                          </p>
+                        );
+                      })()}
                     </NeumorphicCard>
                   </div>
 
