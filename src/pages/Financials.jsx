@@ -2516,7 +2516,7 @@ export default function Financials() {
         <div className="grid grid-cols-1 gap-4 lg:gap-6">
           <NeumorphicCard className="p-4 lg:p-6">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-3">
-              <h2 className="text-base lg:text-lg font-bold text-slate-800">Trend Giornaliero</h2>
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">Trend</h2>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
                   <button
@@ -2669,7 +2669,84 @@ export default function Financials() {
               <div className="w-full overflow-x-auto">
                 <div style={{ minWidth: '300px' }}>
                   <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={processedData.dailyRevenue}>
+                    <LineChart data={(() => {
+                      // Merge current period data with comparison period data
+                      if (compareMode === 'none' || !processedData.comparisonData) {
+                        return processedData.dailyRevenue;
+                      }
+
+                      // Calculate comparison period daily data
+                      let compareStart, compareEnd;
+                      if (compareMode === 'previous') {
+                        const cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : (dateRange === 'currentweek' ? (() => {
+                          const now = new Date();
+                          const dayOfWeek = now.getDay();
+                          const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                          const monday = new Date(now);
+                          monday.setDate(now.getDate() + diffToMonday);
+                          monday.setHours(0, 0, 0, 0);
+                          return monday;
+                        })() : subDays(new Date(), parseInt(dateRange, 10)));
+                        const endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
+                        const daysDiff = Math.ceil((endFilterDate - cutoffDate) / (1000 * 60 * 60 * 24));
+                        compareEnd = subDays(cutoffDate, 1);
+                        compareStart = subDays(compareEnd, daysDiff);
+                      } else if (compareMode === 'lastyear') {
+                        const cutoffDate = startDate ? safeParseDate(startDate + 'T00:00:00') : subDays(new Date(), parseInt(dateRange, 10));
+                        const endFilterDate = endDate ? safeParseDate(endDate + 'T23:59:59') : new Date();
+                        compareStart = subYears(cutoffDate, 1);
+                        compareEnd = subYears(endFilterDate, 1);
+                      } else if (compareMode === 'custom' && compareStartDate && compareEndDate) {
+                        compareStart = safeParseDate(compareStartDate + 'T00:00:00');
+                        compareEnd = safeParseDate(compareEndDate + 'T23:59:59');
+                      }
+
+                      if (!compareStart || !compareEnd) return processedData.dailyRevenue;
+
+                      // Build comparison daily revenue
+                      const compareFiltered = iPraticoData.filter((item) => {
+                        if (!item.order_date) return false;
+                        const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
+                        const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
+                        if (!itemDateStart || !itemDateEnd) return false;
+                        if (isBefore(itemDateEnd, compareStart)) return false;
+                        if (isAfter(itemDateStart, compareEnd)) return false;
+                        if (selectedStore !== 'all' && item.store_id !== selectedStore) return false;
+                        return true;
+                      });
+
+                      const compareRevenueByDate = {};
+                      compareFiltered.forEach((item) => {
+                        if (!item.order_date) return;
+                        const date = item.order_date;
+                        if (!compareRevenueByDate[date]) {
+                          compareRevenueByDate[date] = { revenue: 0, orders: 0 };
+                        }
+                        compareRevenueByDate[date].revenue += item.total_revenue || 0;
+                        compareRevenueByDate[date].orders += item.total_orders || 0;
+                      });
+
+                      const compareDailyData = Object.values(compareRevenueByDate)
+                        .map((d) => ({
+                          parsedDate: safeParseDate(d.date || ''),
+                          revenue: d.revenue,
+                          orders: d.orders
+                        }))
+                        .filter((d) => d.parsedDate !== null)
+                        .sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
+
+                      // Align dates for comparison (same index = same relative day)
+                      const merged = processedData.dailyRevenue.map((curr, idx) => {
+                        const comp = compareDailyData[idx];
+                        return {
+                          ...curr,
+                          compareRevenue: comp ? parseFloat(comp.revenue.toFixed(2)) : null,
+                          compareAvgValue: comp && comp.orders > 0 ? parseFloat((comp.revenue / comp.orders).toFixed(2)) : null
+                        };
+                      });
+
+                      return merged;
+                    })()}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
                       <XAxis
                         dataKey="date"
@@ -2716,6 +2793,19 @@ export default function Financials() {
                         dot={{ fill: '#3b82f6', r: 3 }} />
 
                       }
+                      {showRevenue && compareMode !== 'none' && processedData.comparisonData &&
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="compareRevenue"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        name="Revenue Confronto"
+                        dot={{ fill: '#f59e0b', r: 2 }}
+                        connectNulls />
+
+                      }
                       {showTrendline && showRevenue &&
                       <Line
                         yAxisId="left"
@@ -2737,6 +2827,19 @@ export default function Financials() {
                         strokeWidth={2}
                         name="AOV"
                         dot={{ fill: '#22c55e', r: 2 }} />
+
+                      }
+                      {showAvgValue && compareMode !== 'none' && processedData.comparisonData &&
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="compareAvgValue"
+                        stroke="#f97316"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        name="AOV Confronto"
+                        dot={{ fill: '#f97316', r: 2 }}
+                        connectNulls />
 
                       }
                     </LineChart>
@@ -4194,15 +4297,14 @@ export default function Financials() {
                         if (!item.order_date) return false;
                         const itemDate = new Date(item.order_date);
                         itemDate.setHours(0, 0, 0, 0);
-                        if (itemDate < periodStart || itemDate >= today) return false;
+                        if (itemDate < periodStart || itemDate > today) return false;
                         if (target.store_id !== 'all' && item.store_id !== target.store_id) return false;
                         return true;
                       });
 
                       currentData.forEach(item => {
-                        let itemRevenue = item.total_revenue || 0;
+                        let itemRevenue = 0;
                         if (target.app) {
-                          itemRevenue = 0;
                           const apps = [
                             { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
                             { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
@@ -4217,7 +4319,6 @@ export default function Financials() {
                             if (mappedKey === target.app) itemRevenue += app.revenue;
                           });
                         } else if (target.channel) {
-                          itemRevenue = 0;
                           const channels = [
                             { key: 'delivery', revenue: item.sourceType_delivery || 0 },
                             { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
@@ -4228,6 +4329,8 @@ export default function Financials() {
                             const mappedKey = channelMapping[ch.key] || ch.key;
                             if (mappedKey === target.channel) itemRevenue += ch.revenue;
                           });
+                        } else {
+                          itemRevenue = item.total_revenue || 0;
                         }
                         currentRevenue += itemRevenue;
                       });
@@ -4736,7 +4839,7 @@ export default function Financials() {
                 if (!item.order_date) return false;
                 const itemDate = new Date(item.order_date);
                 itemDate.setHours(0, 0, 0, 0);
-                if (itemDate < periodStart || itemDate >= today) return false;
+                if (itemDate < periodStart || itemDate > today) return false;
                 if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
                 return true;
               });
