@@ -5149,10 +5149,10 @@ export default function Financials() {
               }
 
               const totalProjected = currentRevenue + predictedRevenue;
-              const gap = target - totalProjected;
-              const gapPercent = target > 0 ? (gap / target) * 100 : 0;
-              const progressPercent = target > 0 ? (totalProjected / target) * 100 : 0;
-              const currentProgress = target > 0 ? (currentRevenue / target) * 100 : 0;
+              const gap = activeTargetRevenue - totalProjected;
+              const gapPercent = activeTargetRevenue > 0 ? (gap / activeTargetRevenue) * 100 : 0;
+              const progressPercent = activeTargetRevenue > 0 ? (totalProjected / activeTargetRevenue) * 100 : 0;
+              const currentProgress = activeTargetRevenue > 0 ? (currentRevenue / activeTargetRevenue) * 100 : 0;
 
               return (
                 <>
@@ -5163,7 +5163,7 @@ export default function Financials() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
                           <p className="text-slate-500 mb-1">Target Revenue</p>
-                          <p className="font-bold text-blue-600 text-lg">{formatEuro(selectedTarget.target_revenue)}</p>
+                          <p className="font-bold text-blue-600 text-lg">{formatEuro(activeTargetRevenue)}</p>
                         </div>
                         <div>
                           <p className="text-slate-500 mb-1">Locale</p>
@@ -5194,7 +5194,7 @@ export default function Financials() {
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <p className="text-sm text-slate-500 mb-1">Target</p>
-                          <p className="text-3xl font-bold text-blue-600">{formatEuro(target)}</p>
+                          <p className="text-3xl font-bold text-blue-600">{formatEuro(activeTargetRevenue)}</p>
                         </div>
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                           <TrendingUp className="w-6 h-6 text-white" />
@@ -5695,7 +5695,7 @@ export default function Financials() {
                               
                               // Richiesto per questo giorno (basato su stagionalità)
                               const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
-                              const requiredDayRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                              const requiredDayRevenue = totalSeasonalityWeight > 0 ? (activeTargetRevenue * (dayWeight / totalSeasonalityWeight)) : (activeTargetRevenue / totalDays);
                               
                               // Cumula i valori
                               if (isPast) {
@@ -5757,7 +5757,7 @@ export default function Financials() {
                             {/* Linea Target */}
                             <Line 
                               type="monotone" 
-                              dataKey={() => target}
+                              dataKey={() => activeTargetRevenue}
                               stroke="#ef4444"
                               strokeWidth={2}
                               strokeDasharray="3 3"
@@ -6656,7 +6656,7 @@ export default function Financials() {
                               currentDate.setDate(periodStart.getDate() + i);
                               const dayOfWeek = currentDate.getDay();
                               const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
-                              requiredToDate += totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                              requiredToDate += totalSeasonalityWeight > 0 ? (activeTargetRevenue * (dayWeight / totalSeasonalityWeight)) : (activeTargetRevenue / totalDays);
                             }
                             const delta = currentRevenue - requiredToDate;
                             return delta >= 0 ? 'text-green-600' : 'text-red-600';
@@ -6772,7 +6772,7 @@ export default function Financials() {
                         <div className="flex-1">
                           <h3 className="text-lg font-bold text-orange-800 mb-2">Azione Richiesta</h3>
                           <p className="text-sm text-slate-700 mb-3">
-                            Per raggiungere il target di <strong>{formatEuro(target)}</strong> entro il {format(periodEnd, 'dd/MM/yyyy')}, 
+                            Per raggiungere il target di <strong>{formatEuro(activeTargetRevenue)}</strong> entro il {format(periodEnd, 'dd/MM/yyyy')}, 
                             è necessario aumentare la revenue giornaliera media.
                           </p>
                           <div className="grid grid-cols-2 gap-4 mt-4">
@@ -6785,7 +6785,7 @@ export default function Financials() {
                             <div className="bg-white rounded-lg p-3">
                               <p className="text-xs text-slate-500 mb-1">Media Necessaria</p>
                               <p className="text-xl font-bold text-orange-600">
-                                {formatEuro(daysRemaining > 0 ? (target - currentRevenue) / daysRemaining : 0)}
+                                {formatEuro(daysRemaining > 0 ? (activeTargetRevenue - currentRevenue) / daysRemaining : 0)}
                               </p>
                             </div>
                           </div>
