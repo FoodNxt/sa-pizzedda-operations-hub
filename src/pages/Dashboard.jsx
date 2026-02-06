@@ -239,26 +239,39 @@ export default function Dashboard() {
       revenueByStore[storeId] += item.total_revenue || 0;
     });
 
-    // Food Cost by store
+    // Food Cost by store - filter ordini by period
     const foodCostByStore = {};
     stores.forEach((store) => {
       const storeRevenue = revenueByStore[store.id] || 0;
       const storeCOGS = ordini.
-      filter((o) => o.store_id === store.id).
+      filter((o) => {
+        if (o.store_id !== store.id) return false;
+        if (!o.data_completamento) return false;
+        const orderDate = safeParseDate(o.data_completamento);
+        if (!orderDate) return false;
+        if (cutoffDate && isBefore(orderDate, cutoffDate)) return false;
+        if (endFilterDate && isAfter(orderDate, endFilterDate)) return false;
+        return true;
+      }).
       reduce((sum, o) => sum + (o.totale_ordine || 0), 0);
       const foodCostPerc = storeRevenue > 0 ? storeCOGS / storeRevenue * 100 : 0;
       foodCostByStore[store.id] = { cogs: storeCOGS, revenue: storeRevenue, percentage: foodCostPerc };
     });
 
-    // Produttività by store (€/h lavorata)
+    // Produttività by store (€/h lavorata) - filter turni by period
     const produttivitaByStore = {};
     stores.forEach((store) => {
       const storeRevenue = revenueByStore[store.id] || 0;
-      const storeTurni = turni.filter((t) =>
-      t.store_id === store.id &&
-      t.timbratura_entrata &&
-      t.timbratura_uscita
-      );
+      const storeTurni = turni.filter((t) => {
+        if (t.store_id !== store.id) return false;
+        if (!t.timbratura_entrata || !t.timbratura_uscita) return false;
+        if (!t.data) return false;
+        const shiftDate = safeParseDate(t.data);
+        if (!shiftDate) return false;
+        if (cutoffDate && isBefore(shiftDate, cutoffDate)) return false;
+        if (endFilterDate && isAfter(shiftDate, endFilterDate)) return false;
+        return true;
+      });
       const totaleOre = storeTurni.reduce((sum, t) => {
         const entrata = new Date(t.timbratura_entrata);
         const uscita = new Date(t.timbratura_uscita);
