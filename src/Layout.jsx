@@ -473,51 +473,61 @@ const navigationStructure = [
     items: [
       {
         title: "Zapier Reviews",
+        page: "ZapierSetup",
         url: createPageUrl("ZapierSetup"),
         icon: Zap,
       },
       {
         title: "Zapier Orders",
+        page: "OrderItemsSetup",
         url: createPageUrl("OrderItemsSetup"),
         icon: Zap,
       },
       {
         title: "Zapier iPratico",
+        page: "IPraticoSetup",
         url: createPageUrl("IPraticoSetup"),
         icon: Zap,
       },
       {
         title: "Bulk Import iPratico",
+        page: "IPraticoBulkImport",
         url: createPageUrl("IPraticoBulkImport"),
         icon: Upload,
       },
       {
         title: "Zapier Prodotti Venduti",
+        page: "ZapierProdottiVenduti",
         url: createPageUrl("ZapierProdottiVenduti"),
         icon: ShoppingCart,
       },
       {
         title: "Bulk Import Prodotti Venduti",
+        page: "BulkImportProdottiVenduti",
         url: createPageUrl("BulkImportProdottiVenduti"),
         icon: Upload,
       },
       {
         title: "Zapier Produttività",
+        page: "ZapierProduttivita",
         url: createPageUrl("ZapierProduttivita"),
         icon: Zap,
       },
       {
         title: "Bulk Import Produttività",
+        page: "BulkImportProduttivita",
         url: createPageUrl("BulkImportProduttivita"),
         icon: Upload,
       },
       {
         title: "Zapier Sconti",
+        page: "ZapierSconti",
         url: createPageUrl("ZapierSconti"),
         icon: Zap,
       },
       {
         title: "Bulk Import Sconti",
+        page: "BulkImportSconti",
         url: createPageUrl("BulkImportSconti"),
         icon: Upload,
       }
