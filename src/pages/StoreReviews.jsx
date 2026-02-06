@@ -167,14 +167,18 @@ export default function StoreReviews() {
     const previousAvg = previous.length > 0 ? previous.reduce((sum, r) => sum + r.rating, 0) / previous.length : 0;
     const trend = recentAvg > previousAvg ? 'up' : recentAvg < previousAvg ? 'down' : 'stable';
 
+    // Separate unassigned reviews
+    const unassignedReviews = allReviews.filter(r => !r.store_id || !stores.find(s => s.id === r.store_id));
+
     return {
       avgRating,
       reviewCount: allReviews.length,
       allReviews,
       recentReviews: allReviews.slice(0, 5),
+      unassignedReviews,
       trend
     };
-  }, [filteredReviewsByDate]);
+  }, [filteredReviewsByDate, stores]);
 
   // Filter stores
   const filteredStores = storeMetrics.filter((store) => {
@@ -602,6 +606,43 @@ Genera SOLO la risposta, senza introduzioni o spiegazioni.`;
 
           <div className="col-span-full text-center py-8">
               <p className="text-slate-500">Nessun locale</p>
+            </div>
+          }
+          
+          {/* Unassigned Reviews Card */}
+          {overallMetrics.unassignedReviews && overallMetrics.unassignedReviews.length > 0 &&
+            <div
+              onClick={() => setSelectedStore({ 
+                id: 'unassigned',
+                name: 'Recensioni Non Assegnate',
+                address: 'Recensioni senza locale',
+                avgRating: overallMetrics.unassignedReviews.reduce((sum, r) => sum + r.rating, 0) / overallMetrics.unassignedReviews.length,
+                reviewCount: overallMetrics.unassignedReviews.length,
+                allReviews: overallMetrics.unassignedReviews,
+                recentReviews: overallMetrics.unassignedReviews.slice(0, 3),
+                trend: 'stable',
+                color: '#94a3b8'
+              })}
+              className={`cursor-pointer transition-all hover:shadow-xl p-4 lg:p-5 rounded-xl border-2 border-dashed border-slate-300 ${
+              selectedStore?.id === 'unassigned' ? 'neumorphic-pressed' : 'neumorphic-flat'}`
+              }>
+
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-800 text-sm lg:text-base truncate">Non Assegnate</h3>
+                  <p className="text-xs lg:text-sm text-slate-500 truncate">Recensioni senza locale</p>
+                </div>
+                <div className="w-3 h-3 rounded-full flex-shrink-0 bg-slate-400" />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                  <span className="font-bold text-slate-800">
+                    {(overallMetrics.unassignedReviews.reduce((sum, r) => sum + r.rating, 0) / overallMetrics.unassignedReviews.length).toFixed(1)}
+                  </span>
+                  <span className="text-xs text-slate-500">({overallMetrics.unassignedReviews.length})</span>
+                </div>
+              </div>
             </div>
           }
         </div>
