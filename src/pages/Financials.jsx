@@ -4901,51 +4901,105 @@ export default function Financials() {
               const previousPeriodEnd = subDays(periodStart, 1);
 
               const previousData = iPraticoData.filter(item => {
-               if (!item.order_date) return false;
-               const itemDate = new Date(item.order_date);
-               itemDate.setHours(0, 0, 0, 0);
-               if (itemDate < previousPeriodStart || itemDate > previousPeriodEnd) return false;
-               if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
-               return true;
+                if (!item.order_date) return false;
+                const itemDate = new Date(item.order_date);
+                itemDate.setHours(0, 0, 0, 0);
+                if (itemDate < previousPeriodStart || itemDate > previousPeriodEnd) return false;
+                if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
+                return true;
               });
 
               let previousRevenue = 0;
               previousData.forEach(item => {
-               let itemRevenue = 0;
-               if (activeTargetApp) {
-                 const apps = [
-                   { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
-                   { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
-                   { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
-                   { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
-                   { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
-                   { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
-                   { key: 'store', revenue: item.sourceApp_store || 0 }
-                 ];
-                 apps.forEach(app => {
-                   const mappedKey = appMapping[app.key] || app.key;
-                   if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
-                 });
-               } else if (activeTargetChannel) {
-                 const channels = [
-                   { key: 'delivery', revenue: item.sourceType_delivery || 0 },
-                   { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
-                   { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
-                   { key: 'store', revenue: item.sourceType_store || 0 }
-                 ];
-                 channels.forEach(ch => {
-                   const mappedKey = channelMapping[ch.key] || ch.key;
-                   if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
-                 });
-               } else {
-                 itemRevenue = item.total_revenue || 0;
-               }
-               previousRevenue += itemRevenue;
+                let itemRevenue = 0;
+                if (activeTargetApp) {
+                  const apps = [
+                    { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                    { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                    { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                    { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                    { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                    { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                    { key: 'store', revenue: item.sourceApp_store || 0 }
+                  ];
+                  apps.forEach(app => {
+                    const mappedKey = appMapping[app.key] || app.key;
+                    if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+                  });
+                } else if (activeTargetChannel) {
+                  const channels = [
+                    { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                    { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                    { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                    { key: 'store', revenue: item.sourceType_store || 0 }
+                  ];
+                  channels.forEach(ch => {
+                    const mappedKey = channelMapping[ch.key] || ch.key;
+                    if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+                  });
+                } else {
+                  itemRevenue = item.total_revenue || 0;
+                }
+                previousRevenue += itemRevenue;
               });
 
               if (previousRevenue > 0) {
-               realGrowthAbsolute = currentRevenue - previousRevenue;
-               realGrowthRatePercent = (realGrowthAbsolute / previousRevenue) * 100;
+                realGrowthAbsolute = currentRevenue - previousRevenue;
+                realGrowthRatePercent = (realGrowthAbsolute / previousRevenue) * 100;
+              }
+
+              // Calcola crescita YoY (stesso periodo anno scorso)
+              let yoyGrowthRatePercent = 0;
+              let yoyGrowthAbsolute = 0;
+              const yoyPeriodStart = subYears(periodStart, 1);
+              const yoyPeriodEnd = subYears(subDays(today, 1), 1);
+
+              const yoyData = iPraticoData.filter(item => {
+                if (!item.order_date) return false;
+                const itemDate = new Date(item.order_date);
+                itemDate.setHours(0, 0, 0, 0);
+                if (itemDate < yoyPeriodStart || itemDate > yoyPeriodEnd) return false;
+                if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
+                return true;
+              });
+
+              let yoyRevenue = 0;
+              yoyData.forEach(item => {
+                let itemRevenue = 0;
+                if (activeTargetApp) {
+                  const apps = [
+                    { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                    { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                    { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                    { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                    { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                    { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                    { key: 'store', revenue: item.sourceApp_store || 0 }
+                  ];
+                  apps.forEach(app => {
+                    const mappedKey = appMapping[app.key] || app.key;
+                    if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+                  });
+                } else if (activeTargetChannel) {
+                  const channels = [
+                    { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                    { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                    { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                    { key: 'store', revenue: item.sourceType_store || 0 }
+                  ];
+                  channels.forEach(ch => {
+                    const mappedKey = channelMapping[ch.key] || ch.key;
+                    if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+                  });
+                } else {
+                  itemRevenue = item.total_revenue || 0;
+                }
+                yoyRevenue += itemRevenue;
+              });
+
+              if (yoyRevenue > 0) {
+                yoyGrowthAbsolute = currentRevenue - yoyRevenue;
+                yoyGrowthRatePercent = (yoyGrowthAbsolute / yoyRevenue) * 100;
               }
 
               // Prevedi revenue per i giorni rimanenti applicando stagionalità + tasso di crescita
@@ -5103,6 +5157,27 @@ export default function Financials() {
                               <p className="text-xs text-slate-500 mb-1">Valore Assoluto</p>
                               <p className={`text-xl font-bold ${realGrowthAbsolute >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {realGrowthAbsolute >= 0 ? '+' : ''}{formatEuro(realGrowthAbsolute)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* YoY Growth - SEMPRE VISIBILE */}
+                        <div className="mb-4 pb-4 border-b border-cyan-200">
+                          <p className="text-sm font-bold text-cyan-900 mb-2">
+                            Crescita YoY (stesso periodo anno scorso)
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Crescita %</p>
+                              <p className={`text-xl font-bold ${yoyGrowthRatePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {yoyGrowthRatePercent >= 0 ? '+' : ''}{yoyGrowthRatePercent.toFixed(1)}%
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Valore Assoluto</p>
+                              <p className={`text-xl font-bold ${yoyGrowthAbsolute >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {yoyGrowthAbsolute >= 0 ? '+' : ''}{formatEuro(yoyGrowthAbsolute)}
                               </p>
                             </div>
                           </div>
