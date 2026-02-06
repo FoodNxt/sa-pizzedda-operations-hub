@@ -5406,7 +5406,19 @@ export default function Financials() {
                               const itemAvgByDayOfWeek = {};
                               Object.keys(itemDayOfWeekRevenues).forEach(dayOfWeek => {
                                 const revenues = itemDayOfWeekRevenues[dayOfWeek];
-                                itemAvgByDayOfWeek[dayOfWeek] = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                                let avg = 0;
+                                
+                                if (selectedTarget?.use_ema && revenues.length > 0) {
+                                  const alpha = 0.2;
+                                  avg = revenues[0];
+                                  for (let i = 1; i < revenues.length; i++) {
+                                    avg = alpha * revenues[i] + (1 - alpha) * avg;
+                                  }
+                                } else {
+                                  avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                                }
+                                
+                                itemAvgByDayOfWeek[dayOfWeek] = avg;
                               });
 
                               // Calcola tasso di crescita per questo item specifico
