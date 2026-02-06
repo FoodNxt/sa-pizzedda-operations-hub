@@ -108,11 +108,10 @@ export default function Financials() {
 
   const updateTargetMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Target.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['targets'] });
-      setSelectedTargetView('list');
-      setTargetName('');
-      setSelectedTargetId(null);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['targets'] });
+      // Force refetch to get updated target data
+      await queryClient.refetchQueries({ queryKey: ['targets'] });
     }
   });
 
@@ -4644,11 +4643,23 @@ export default function Financials() {
             )}
 
             {selectedTargetView === 'details' && (() => {
-              // Get selected target details
+              // Get selected target details - always use latest from targets array
               const selectedTarget = targets.find(t => t.id === selectedTargetId);
               
-              // Calcola la previsione
-              if (!targetRevenue || (targetDateMode === 'range' && (!targetStartDate || !targetEndDate))) {
+              // Use selectedTarget values if available, otherwise fall back to state
+              const activeTargetRevenue = selectedTarget?.target_revenue || parseFloat(targetRevenue);
+              const activeTargetStore = selectedTarget?.store_id || targetStore;
+              const activeTargetChannel = selectedTarget?.channel || targetChannel;
+              const activeTargetApp = selectedTarget?.app || targetApp;
+              const activeTargetDateMode = selectedTarget?.date_mode || targetDateMode;
+              const activeTargetStartDate = selectedTarget?.start_date || targetStartDate;
+              const activeTargetEndDate = selectedTarget?.end_date || targetEndDate;
+              const activeHistoricalDays = selectedTarget?.historical_days || historicalDaysTarget;
+              const activeUseEMA = selectedTarget?.use_ema !== undefined ? selectedTarget.use_ema : useEMA;
+              const activeGrowthRatePeriodDays = selectedTarget?.growth_rate_period_days !== undefined ? selectedTarget.growth_rate_period_days : growthRatePeriodDays;
+              
+              // Calcola la previsione - use active values from selectedTarget
+              if (!activeTargetRevenue || (activeTargetDateMode === 'range' && (!activeTargetStartDate || !activeTargetEndDate))) {
                 return (
                   <NeumorphicCard className="p-6 text-center">
                     <TrendingUp className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -4657,18 +4668,18 @@ export default function Financials() {
                 );
               }
 
-              const target = parseFloat(targetRevenue);
+              const target = activeTargetRevenue;
               const today = new Date();
               today.setHours(0, 0, 0, 0);
 
               let periodStart, periodEnd;
-              if (targetDateMode === 'rolling') {
+              if (activeTargetDateMode === 'rolling') {
                 periodEnd = new Date(today);
                 periodEnd.setDate(today.getDate() + 29);
                 periodStart = today;
               } else {
-                periodStart = new Date(targetStartDate);
-                periodEnd = new Date(targetEndDate);
+                periodStart = new Date(activeTargetStartDate);
+                periodEnd = new Date(activeTargetEndDate);
               }
 
               // Calcola giorni totali e giorni passati
@@ -4683,13 +4694,13 @@ export default function Financials() {
                 const itemDate = new Date(item.order_date);
                 itemDate.setHours(0, 0, 0, 0);
                 if (itemDate < periodStart || itemDate >= today) return false;
-                if (targetStore !== 'all' && item.store_id !== targetStore) return false;
+                if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
                 return true;
               });
 
               currentData.forEach(item => {
                 let itemRevenue = 0;
-                if (targetApp) {
+                if (activeTargetApp) {
                   const apps = [
                     { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
                     { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
@@ -4714,7 +4725,7 @@ export default function Financials() {
                   ];
                   channels.forEach(ch => {
                     const mappedKey = channelMapping[ch.key] || ch.key;
-                    if (mappedKey === targetChannel) {
+                    if (mappedKey === activeTargetChannel) {
                       itemRevenue += ch.revenue;
                     }
                   });
@@ -4725,13 +4736,13 @@ export default function Financials() {
               });
 
               // Calcola media storica per giorno della settimana
-              const historicalCutoff = subDays(today, historicalDaysTarget);
+              const historicalCutoff = subDays(today, activeHistoricalDays);
               const historicalData = iPraticoData.filter(item => {
                 if (!item.order_date) return false;
                 const itemDate = new Date(item.order_date);
                 itemDate.setHours(0, 0, 0, 0);
                 if (itemDate < historicalCutoff || itemDate >= today) return false;
-                if (targetStore !== 'all' && item.store_id !== targetStore) return false;
+                if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
                 return true;
               });
 
@@ -4743,7 +4754,7 @@ export default function Financials() {
                 }
 
                 let itemRevenue = 0;
-                if (targetApp) {
+                if (activeTargetApp) {
                   const apps = [
                     { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
                     { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
@@ -4755,11 +4766,11 @@ export default function Financials() {
                   ];
                   apps.forEach(app => {
                     const mappedKey = appMapping[app.key] || app.key;
-                    if (mappedKey === targetApp) {
+                    if (mappedKey === activeTargetApp) {
                       itemRevenue += app.revenue;
                     }
                   });
-                } else if (targetChannel) {
+                } else if (activeTargetChannel) {
                   const channels = [
                     { key: 'delivery', revenue: item.sourceType_delivery || 0 },
                     { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
@@ -4768,7 +4779,7 @@ export default function Financials() {
                   ];
                   channels.forEach(ch => {
                     const mappedKey = channelMapping[ch.key] || ch.key;
-                    if (mappedKey === targetChannel) {
+                    if (mappedKey === activeTargetChannel) {
                       itemRevenue += ch.revenue;
                     }
                   });
@@ -4800,7 +4811,7 @@ export default function Financials() {
                 const revenues = dayOfWeekRevenues[dayOfWeek];
                 let avg = 0;
                 
-                if (useEMA && revenues.length > 0) {
+                if (activeUseEMA && revenues.length > 0) {
                   // Media Mobile Esponenziale con α = 0.2
                   const alpha = 0.2;
                   avg = revenues[0]; // Inizializza con il primo valore
@@ -4817,8 +4828,8 @@ export default function Financials() {
 
               // Calcola il tasso di crescita con regressione lineare se configurato
               let dailyGrowthRate = 0;
-              if (growthRatePeriodDays > 0) {
-                const growthCutoff = subDays(today, growthRatePeriodDays);
+              if (activeGrowthRatePeriodDays > 0) {
+                const growthCutoff = subDays(today, activeGrowthRatePeriodDays);
                 const growthData = Object.entries(dailyTotals)
                   .filter(([date]) => {
                     const d = new Date(date);
@@ -5036,7 +5047,7 @@ export default function Financials() {
                                 dailyRevenueMap[item.order_date] = 0;
                               }
                               let itemRevenue = 0;
-                              if (targetApp) {
+                              if (activeTargetApp) {
                                 const apps = [
                                   { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
                                   { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
@@ -5048,9 +5059,9 @@ export default function Financials() {
                                 ];
                                 apps.forEach(app => {
                                   const mappedKey = appMapping[app.key] || app.key;
-                                  if (mappedKey === targetApp) itemRevenue += app.revenue;
+                                  if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
                                 });
-                              } else if (targetChannel) {
+                                } else if (activeTargetChannel) {
                                 const channels = [
                                   { key: 'delivery', revenue: item.sourceType_delivery || 0 },
                                   { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
@@ -5059,7 +5070,7 @@ export default function Financials() {
                                 ];
                                 channels.forEach(ch => {
                                   const mappedKey = channelMapping[ch.key] || ch.key;
-                                  if (mappedKey === targetChannel) itemRevenue += ch.revenue;
+                                  if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
                                 });
                               } else {
                                 itemRevenue = item.total_revenue || 0;
@@ -5671,14 +5682,14 @@ export default function Financials() {
                                 // Revenue effettivo per questa data
                                 const actualData = iPraticoData.filter(item => {
                                   if (item.order_date !== dateStr) return false;
-                                  if (targetStore !== 'all' && item.store_id !== targetStore) return false;
+                                  if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
                                   return true;
                                 });
-                                
+
                                 let actualRevenue = 0;
                                 actualData.forEach(item => {
                                   let itemRevenue = 0;
-                                  if (targetApp) {
+                                  if (activeTargetApp) {
                                     const apps = [
                                       { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
                                       { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
@@ -5690,9 +5701,9 @@ export default function Financials() {
                                     ];
                                     apps.forEach(app => {
                                       const mappedKey = appMapping[app.key] || app.key;
-                                      if (mappedKey === targetApp) itemRevenue += app.revenue;
+                                      if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
                                     });
-                                  } else if (targetChannel) {
+                                    } else if (activeTargetChannel) {
                                     const channels = [
                                       { key: 'delivery', revenue: item.sourceType_delivery || 0 },
                                       { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
@@ -5701,13 +5712,13 @@ export default function Financials() {
                                     ];
                                     channels.forEach(ch => {
                                       const mappedKey = channelMapping[ch.key] || ch.key;
-                                      if (mappedKey === targetChannel) itemRevenue += ch.revenue;
+                                      if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
                                     });
-                                  } else {
+                                    } else {
                                     itemRevenue = item.total_revenue || 0;
-                                  }
-                                  actualRevenue += itemRevenue;
-                                });
+                                    }
+                                    actualRevenue += itemRevenue;
+                                    });
                                 
                                 // Previsione: usa la media del giorno della settimana + tasso di crescita
                                 const dayOfWeek = currentDate.getDay();
@@ -5892,14 +5903,14 @@ export default function Financials() {
                                       ];
                                       channels.forEach(ch => {
                                         const mappedKey = channelMapping[ch.key] || ch.key;
-                                        if (mappedKey === targetChannel) itemRevenue += ch.revenue;
+                                        if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
                                       });
-                                    } else {
+                                      } else {
                                       itemRevenue = item.total_revenue || 0;
-                                    }
-                                    monthlyMap[monthKey].actual += itemRevenue;
-                                  });
-                                  monthlyMap[monthKey].pastDays++;
+                                      }
+                                      monthlyMap[monthKey].actual += itemRevenue;
+                                      });
+                                      monthlyMap[monthKey].pastDays++;
                                 }
                                 
                                 const currentDayOfWeek = currentDate.getDay();
@@ -6149,42 +6160,33 @@ export default function Financials() {
                     <NeumorphicCard className="p-6">
                       <h3 className="text-lg font-bold text-slate-800 mb-4">Stagionalità per Giorno</h3>
                       <div className="space-y-2">
-                        {['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'].map((dayName, idx) => {
-                          const dayOfWeek = idx === 6 ? 0 : idx + 1;
-                          const avgRevenue = avgByDayOfWeek[dayOfWeek] || 0;
-                          const maxAvg = Math.max(...Object.values(avgByDayOfWeek));
-                          const widthPercent = maxAvg > 0 ? (avgRevenue / maxAvg) * 100 : 0;
+                      {['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'].map((dayName, idx) => {
+                      const dayOfWeek = idx === 6 ? 0 : idx + 1;
+                      const avgRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                      const maxAvg = Math.max(...Object.values(avgByDayOfWeek));
+                      const widthPercent = maxAvg > 0 ? (avgRevenue / maxAvg) * 100 : 0;
 
-                          return (
-                            <div key={dayName} className="flex items-center gap-3">
-                              <span className="text-xs text-slate-600 w-20">{dayName}</span>
-                              <div className="flex-1 bg-slate-200 rounded-full h-6 overflow-hidden relative">
-                                <div 
-                                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-full transition-all flex items-center justify-end pr-2"
-                                  style={{ width: `${widthPercent}%` }}
-                                >
-                                  <span className="text-xs font-bold text-white">{formatEuro(avgRevenue)}</span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                      return (
+                      <div key={dayName} className="flex items-center gap-3">
+                      <span className="text-xs text-slate-600 w-20">{dayName}</span>
+                      <div className="flex-1 bg-slate-200 rounded-full h-6 overflow-hidden relative">
+                      <div 
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-full transition-all flex items-center justify-end pr-2"
+                      style={{ width: `${widthPercent}%` }}
+                      >
+                      <span className="text-xs font-bold text-white">{formatEuro(avgRevenue)}</span>
                       </div>
-                      {(() => {
-                        // Mostra info sul metodo di calcolo
-                        const selectedTargetData = targets.find(t => t.id === selectedTargetId);
-                        const targetUseEMA = selectedTargetData?.use_ema || false;
-                        const targetGrowthDays = selectedTargetData?.growth_rate_period_days || 0;
-                        
-                        return (
-                          <p className="text-xs text-slate-500 mt-4">
-                            📊 Media calcolata sugli ultimi {historicalDaysTarget} giorni{targetUseEMA ? ' con Media Mobile Esponenziale (α=0.2)' : ''}
-                            {targetGrowthDays > 0 && dailyGrowthRate !== 0 && (
-                              <><br />📈 Tasso di crescita: {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate)}/giorno (regressione lineare su {targetGrowthDays}gg)</>
-                            )}
-                          </p>
-                        );
-                      })()}
+                      </div>
+                      </div>
+                      );
+                      })}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-4">
+                      📊 Media calcolata sugli ultimi {activeHistoricalDays} giorni{activeUseEMA ? ' con Media Mobile Esponenziale (α=0.2)' : ''}
+                      {activeGrowthRatePeriodDays > 0 && dailyGrowthRate !== 0 && (
+                      <><br />📈 Tasso di crescita: {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate)}/giorno (regressione lineare su {activeGrowthRatePeriodDays}gg)</>
+                      )}
+                      </p>
                     </NeumorphicCard>
                   </div>
 
