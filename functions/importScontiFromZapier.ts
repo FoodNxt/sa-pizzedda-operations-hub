@@ -5,6 +5,10 @@ Deno.serve(async (req) => {
     // Parse the request body
     const body = await req.json();
     
+    // Log body for debugging FIRST (before any validation)
+    console.log('Received body:', JSON.stringify(body, null, 2));
+    console.log('Body keys:', Object.keys(body));
+    
     // Validate webhook secret
     const secret = body.secret || new URL(req.url).searchParams.get('secret');
     const expectedSecret = Deno.env.get('ZAPIER_SCONTI_WEBHOOK_SECRET');
@@ -20,26 +24,32 @@ Deno.serve(async (req) => {
     // Initialize Base44 client with service role (webhook, no user auth)
     const base44 = createClientFromRequest(req);
     
-    // Log body for debugging FIRST
-    console.log('Received body:', JSON.stringify(body, null, 2));
-    console.log('Body keys:', Object.keys(body));
-    
     // VALIDATE: channel must be a text store name, not a number
-    if (!body.channel || body.channel.trim() === '') {
+    if (!body.channel) {
       return Response.json({ 
-        error: 'Campo channel mancante o vuoto',
+        error: 'Campo channel mancante',
+        received_body: body,
+        help: 'Il campo channel deve contenere il nome dello store (es. "Ticinese")'
+      }, { status: 400 });
+    }
+    
+    const channelStr = String(body.channel).trim();
+    
+    if (channelStr === '') {
+      return Response.json({ 
+        error: 'Campo channel vuoto',
         received_body: body,
         help: 'Il campo channel deve contenere il nome dello store (es. "Ticinese")'
       }, { status: 400 });
     }
     
     // Check if channel is a number (common error)
-    const channelAsNumber = parseFloat(body.channel);
-    if (!isNaN(channelAsNumber) && body.channel.match(/^\d+\.?\d*$/)) {
+    const channelAsNumber = parseFloat(channelStr);
+    if (!isNaN(channelAsNumber) && channelStr.match(/^\d+\.?\d*$/)) {
       return Response.json({ 
-        error: 'ERRORE MAPPATURA: Il campo channel contiene un numero invece del nome dello store',
-        received_channel: body.channel,
-        help: 'Verifica in Zapier che il campo "channel" sia mappato alla colonna con il NOME dello store (es. "Ticinese"), non a una colonna numerica',
+        error: 'ERRORE MAPPATURA ZAPIER: Il campo channel contiene un numero invece del nome dello store',
+        received_channel: channelStr,
+        help: 'In Zapier, il campo "channel" deve essere mappato alla colonna che contiene il NOME dello store (es. "Ticinese", "Lanino"), non a una colonna numerica. Controlla che in Zapier il campo "channel" punti alla colonna corretta del tuo Google Sheet.',
         received_body: body
       }, { status: 400 });
     }
