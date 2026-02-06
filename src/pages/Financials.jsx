@@ -4866,32 +4866,86 @@ export default function Financials() {
                 avgByDayOfWeek[dayOfWeek] = avg;
               });
 
-              // Calcola il tasso di crescita con regressione lineare se configurato
+              // Calcola il tasso di crescita con regressione lineare se configurato (per applicarlo alle previsioni)
               let dailyGrowthRate = 0;
               if (activeGrowthRatePeriodDays > 0) {
-                const growthCutoff = subDays(today, activeGrowthRatePeriodDays);
-                const growthData = Object.entries(dailyTotals)
-                  .filter(([date]) => {
-                    const d = new Date(date);
-                    return d >= growthCutoff && d < today;
-                  })
-                  .sort(([a], [b]) => a.localeCompare(b));
-                
-                if (growthData.length >= 2) {
-                  // Regressione lineare: y = mx + b
-                  const n = growthData.length;
-                  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-                  
-                  growthData.forEach(([date, revenue], index) => {
-                    sumX += index;
-                    sumY += revenue;
-                    sumXY += index * revenue;
-                    sumX2 += index * index;
-                  });
-                  
-                  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-                  dailyGrowthRate = slope; // Crescita giornaliera in euro
-                }
+               const growthCutoff = subDays(today, activeGrowthRatePeriodDays);
+               const growthData = Object.entries(dailyTotals)
+                 .filter(([date]) => {
+                   const d = new Date(date);
+                   return d >= growthCutoff && d < today;
+                 })
+                 .sort(([a], [b]) => a.localeCompare(b));
+
+               if (growthData.length >= 2) {
+                 // Regressione lineare: y = mx + b
+                 const n = growthData.length;
+                 let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+
+                 growthData.forEach(([date, revenue], index) => {
+                   sumX += index;
+                   sumY += revenue;
+                   sumXY += index * revenue;
+                   sumX2 += index * index;
+                 });
+
+                 const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                 dailyGrowthRate = slope; // Crescita giornaliera in euro
+               }
+              }
+
+              // Calcola SEMPRE il tasso di crescita reale vs periodo precedente
+              let realGrowthRatePercent = 0;
+              let realGrowthAbsolute = 0;
+              const previousPeriodStart = subDays(periodStart, daysPassed);
+              const previousPeriodEnd = subDays(periodStart, 1);
+
+              const previousData = iPraticoData.filter(item => {
+               if (!item.order_date) return false;
+               const itemDate = new Date(item.order_date);
+               itemDate.setHours(0, 0, 0, 0);
+               if (itemDate < previousPeriodStart || itemDate > previousPeriodEnd) return false;
+               if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
+               return true;
+              });
+
+              let previousRevenue = 0;
+              previousData.forEach(item => {
+               let itemRevenue = 0;
+               if (activeTargetApp) {
+                 const apps = [
+                   { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                   { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                   { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                   { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                   { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                   { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                   { key: 'store', revenue: item.sourceApp_store || 0 }
+                 ];
+                 apps.forEach(app => {
+                   const mappedKey = appMapping[app.key] || app.key;
+                   if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+                 });
+               } else if (activeTargetChannel) {
+                 const channels = [
+                   { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                   { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                   { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                   { key: 'store', revenue: item.sourceType_store || 0 }
+                 ];
+                 channels.forEach(ch => {
+                   const mappedKey = channelMapping[ch.key] || ch.key;
+                   if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+                 });
+               } else {
+                 itemRevenue = item.total_revenue || 0;
+               }
+               previousRevenue += itemRevenue;
+              });
+
+              if (previousRevenue > 0) {
+               realGrowthAbsolute = currentRevenue - previousRevenue;
+               realGrowthRatePercent = (realGrowthAbsolute / previousRevenue) * 100;
               }
 
               // Prevedi revenue per i giorni rimanenti applicando stagionalità + tasso di crescita
@@ -5024,19 +5078,46 @@ export default function Financials() {
                     </NeumorphicCard>
                   </div>
 
-                  {/* Growth Rate Info Card */}
-                  {selectedTarget?.growth_rate_period_days > 0 && dailyGrowthRate !== 0 && (
-                    <NeumorphicCard className="p-6 mb-6 bg-gradient-to-br from-cyan-50 to-cyan-100">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
-                          <TrendingUp className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-slate-800 mb-2">Tasso di Crescita Applicato</h3>
-                          <p className="text-sm text-slate-700 mb-3">
-                            Calcolato con <strong>regressione lineare</strong> sugli ultimi <strong>{selectedTarget.growth_rate_period_days} giorni</strong>
+                  {/* Growth Rate Analysis Card - SEMPRE VISIBILE */}
+                  <NeumorphicCard className="p-6 mb-6 bg-gradient-to-br from-cyan-50 to-cyan-100">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
+                        <TrendingUp className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-slate-800 mb-2">Analisi Crescita</h3>
+                        
+                        {/* Real Growth vs Previous Period - SEMPRE VISIBILE */}
+                        <div className="mb-4 pb-4 border-b border-cyan-200">
+                          <p className="text-sm font-bold text-cyan-900 mb-2">
+                            Crescita Reale vs Periodo Precedente
                           </p>
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Crescita %</p>
+                              <p className={`text-xl font-bold ${realGrowthRatePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {realGrowthRatePercent >= 0 ? '+' : ''}{realGrowthRatePercent.toFixed(1)}%
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Valore Assoluto</p>
+                              <p className={`text-xl font-bold ${realGrowthAbsolute >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {realGrowthAbsolute >= 0 ? '+' : ''}{formatEuro(realGrowthAbsolute)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Applied Growth Rate - solo se configurato */}
+                        {selectedTarget?.growth_rate_period_days > 0 && (
+                          <>
+                            <p className="text-sm font-bold text-cyan-900 mb-2">
+                              Tasso Applicato alle Previsioni
+                            </p>
+                            <p className="text-xs text-slate-700 mb-3">
+                              Calcolato con <strong>regressione lineare</strong> sugli ultimi <strong>{selectedTarget.growth_rate_period_days} giorni</strong>
+                            </p>
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <div className="bg-white rounded-lg p-3">
                               <p className="text-xs text-slate-500 mb-1">Tasso Giornaliero</p>
                               <p className={`text-xl font-bold ${dailyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -5164,17 +5245,25 @@ export default function Financials() {
                                 })()}
                               </p>
                             </div>
-                            <div className="bg-white rounded-lg p-3">
-                              <p className="text-xs text-slate-500 mb-1">Tipo Trend</p>
-                              <p className="text-sm font-bold text-slate-800">
-                                {dailyGrowthRate > 0 ? '📈 Crescita' : dailyGrowthRate < 0 ? '📉 Decrescita' : '➡️ Stabile'}
-                              </p>
+                              <div className="bg-white rounded-lg p-3">
+                                <p className="text-xs text-slate-500 mb-1">Tipo Trend</p>
+                                <p className="text-sm font-bold text-slate-800">
+                                  {dailyGrowthRate > 0 ? '📈 Crescita' : dailyGrowthRate < 0 ? '📉 Decrescita' : '➡️ Stabile'}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </div>
+                          </>
+                        )}
+                        
+                        {/* Se non applicato, mostra messaggio */}
+                        {!selectedTarget?.growth_rate_period_days && (
+                          <p className="text-xs text-slate-600 mt-2">
+                            ℹ️ Nessun tasso di crescita applicato alle previsioni
+                          </p>
+                        )}
                       </div>
-                    </NeumorphicCard>
-                  )}
+                    </div>
+                  </NeumorphicCard>
 
                   {/* Timeline Chart */}
                   <NeumorphicCard className="p-6 mb-6">
