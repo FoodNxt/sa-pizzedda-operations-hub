@@ -5158,7 +5158,23 @@ export default function Financials() {
                           <p className="text-sm font-bold text-cyan-900 mb-2">
                             Crescita Reale vs Periodo Precedente
                           </p>
-                          <div className="grid grid-cols-2 gap-3">
+                          <p className="text-xs text-slate-500 mb-2">
+                            📅 Periodo corrente: {format(periodStart, 'dd/MM')} - {format(subDays(today, 1), 'dd/MM/yyyy')} ({daysPassed} giorni)<br/>
+                            📅 Periodo precedente: {format(previousPeriodStart, 'dd/MM')} - {format(previousPeriodEnd, 'dd/MM/yyyy')} ({daysPassed} giorni)
+                          </p>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Revenue Corrente</p>
+                              <p className="text-lg font-bold text-blue-600">
+                                {formatEuro(currentRevenue)}
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Revenue Precedente</p>
+                              <p className="text-lg font-bold text-slate-600">
+                                {formatEuro(previousRevenue)}
+                              </p>
+                            </div>
                             <div className="bg-white rounded-lg p-3">
                               <p className="text-xs text-slate-500 mb-1">Crescita %</p>
                               <p className={`text-xl font-bold ${realGrowthRatePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -5166,7 +5182,7 @@ export default function Financials() {
                               </p>
                             </div>
                             <div className="bg-white rounded-lg p-3">
-                              <p className="text-xs text-slate-500 mb-1">Valore Assoluto</p>
+                              <p className="text-xs text-slate-500 mb-1">Differenza Assoluta</p>
                               <p className={`text-xl font-bold ${realGrowthAbsolute >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {realGrowthAbsolute >= 0 ? '+' : ''}{formatEuro(realGrowthAbsolute)}
                               </p>
@@ -5179,7 +5195,23 @@ export default function Financials() {
                           <p className="text-sm font-bold text-cyan-900 mb-2">
                             Crescita YoY (stesso periodo anno scorso)
                           </p>
-                          <div className="grid grid-cols-2 gap-3">
+                          <p className="text-xs text-slate-500 mb-2">
+                            📅 Periodo corrente: {format(periodStart, 'dd/MM')} - {format(subDays(today, 1), 'dd/MM/yyyy')} ({daysPassed} giorni)<br/>
+                            📅 Periodo YoY: {format(yoyPeriodStart, 'dd/MM')} - {format(yoyPeriodEnd, 'dd/MM/yyyy')} ({daysPassed} giorni)
+                          </p>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Revenue Corrente</p>
+                              <p className="text-lg font-bold text-blue-600">
+                                {formatEuro(currentRevenue)}
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Revenue Anno Scorso</p>
+                              <p className="text-lg font-bold text-slate-600">
+                                {formatEuro(yoyRevenue)}
+                              </p>
+                            </div>
                             <div className="bg-white rounded-lg p-3">
                               <p className="text-xs text-slate-500 mb-1">Crescita %</p>
                               <p className={`text-xl font-bold ${yoyGrowthRatePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -5187,7 +5219,7 @@ export default function Financials() {
                               </p>
                             </div>
                             <div className="bg-white rounded-lg p-3">
-                              <p className="text-xs text-slate-500 mb-1">Valore Assoluto</p>
+                              <p className="text-xs text-slate-500 mb-1">Differenza Assoluta</p>
                               <p className={`text-xl font-bold ${yoyGrowthAbsolute >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {yoyGrowthAbsolute >= 0 ? '+' : ''}{formatEuro(yoyGrowthAbsolute)}
                               </p>
