@@ -4973,6 +4973,43 @@ export default function Financials() {
                     </NeumorphicCard>
                   </div>
 
+                  {/* Growth Rate Info Card */}
+                  {selectedTarget?.growth_rate_period_days > 0 && dailyGrowthRate !== 0 && (
+                    <NeumorphicCard className="p-6 mb-6 bg-gradient-to-br from-cyan-50 to-cyan-100">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
+                          <TrendingUp className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-slate-800 mb-2">Tasso di Crescita Applicato</h3>
+                          <p className="text-sm text-slate-700 mb-3">
+                            Calcolato con <strong>regressione lineare</strong> sugli ultimi <strong>{selectedTarget.growth_rate_period_days} giorni</strong>
+                          </p>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Tasso Giornaliero</p>
+                              <p className={`text-xl font-bold ${dailyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate)}/gg
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Impatto su Periodo</p>
+                              <p className={`text-xl font-bold ${dailyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate * daysRemaining)}
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Tipo Trend</p>
+                              <p className="text-sm font-bold text-slate-800">
+                                {dailyGrowthRate > 0 ? '📈 Crescita' : dailyGrowthRate < 0 ? '📉 Decrescita' : '➡️ Stabile'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </NeumorphicCard>
+                  )}
+
                   {/* Timeline Chart */}
                   <NeumorphicCard className="p-6 mb-6">
                     <h3 className="text-lg font-bold text-slate-800 mb-4">Andamento Temporale</h3>
@@ -5159,7 +5196,7 @@ export default function Financials() {
                       </div>
                     </div>
                     <p className="text-xs text-slate-500 mt-3">
-                      📈 Il grafico mostra il revenue cumulativo nel periodo {format(periodStart, 'dd/MM')} - {format(periodEnd, 'dd/MM')}: linea verde = dati effettivi, linea viola tratteggiata = previsione, linea arancione = richiesto per target (con stagionalità)
+                      📈 Il grafico mostra il revenue cumulativo nel periodo {format(periodStart, 'dd/MM')} - {format(periodEnd, 'dd/MM')}: linea verde = dati effettivi, linea viola tratteggiata = previsione{selectedTarget?.use_ema ? ' (EMA α=0.2)' : ''}{selectedTarget?.growth_rate_period_days > 0 ? ` + tasso crescita (${selectedTarget.growth_rate_period_days}gg)` : ''}, linea arancione = richiesto per target (con stagionalità)
                     </p>
                   </NeumorphicCard>
 
@@ -5362,12 +5399,41 @@ export default function Financials() {
                                 itemAvgByDayOfWeek[dayOfWeek] = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
                               });
 
+                              // Calcola tasso di crescita per questo item specifico
+                              let itemDailyGrowthRate = 0;
+                              if (selectedTarget?.growth_rate_period_days > 0) {
+                                const growthCutoff = subDays(today, selectedTarget.growth_rate_period_days);
+                                const growthData = Object.entries(itemDailyTotals)
+                                  .filter(([date]) => {
+                                    const d = new Date(date);
+                                    return d >= growthCutoff && d < today;
+                                  })
+                                  .sort(([a], [b]) => a.localeCompare(b));
+                                
+                                if (growthData.length >= 2) {
+                                  const n = growthData.length;
+                                  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                                  
+                                  growthData.forEach(([date, revenue], index) => {
+                                    sumX += index;
+                                    sumY += revenue;
+                                    sumXY += index * revenue;
+                                    sumX2 += index * index;
+                                  });
+                                  
+                                  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                                  itemDailyGrowthRate = slope;
+                                }
+                              }
+
                               let itemPredictedRevenue = 0;
                               for (let i = 0; i < daysRemaining; i++) {
                                 const futureDate = new Date(today);
                                 futureDate.setDate(today.getDate() + i);
                                 const dayOfWeek = futureDate.getDay();
-                                itemPredictedRevenue += itemAvgByDayOfWeek[dayOfWeek] || 0;
+                                const baseRev = itemAvgByDayOfWeek[dayOfWeek] || 0;
+                                const growthAdj = itemDailyGrowthRate * (daysPassed + i);
+                                itemPredictedRevenue += baseRev + growthAdj;
                               }
 
                               const itemTotalProjected = itemCurrentRevenue + itemPredictedRevenue;
@@ -5621,9 +5687,11 @@ export default function Financials() {
                                   actualRevenue += itemRevenue;
                                 });
                                 
-                                // Previsione: usa la media del giorno della settimana
+                                // Previsione: usa la media del giorno della settimana + tasso di crescita
                                 const dayOfWeek = currentDate.getDay();
-                                const predictedRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                                const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                                const growthAdjustment = dailyGrowthRate * i;
+                                const predictedRevenue = baseRevenue + growthAdjustment;
                                 
                                 // Richiesto: distribuisci il target in base alla stagionalità
                                 const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
@@ -5721,7 +5789,9 @@ export default function Financials() {
                                 const dayWeight = avgByDayOfWeek[currentDayOfWeek] || 0;
                                 const requiredDayRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
                                 
-                                weeklyMap[weekKey].predicted += avgByDayOfWeek[currentDayOfWeek] || 0;
+                                const baseDayRevenue = avgByDayOfWeek[currentDayOfWeek] || 0;
+                                const dayGrowthAdjustment = dailyGrowthRate * i;
+                                weeklyMap[weekKey].predicted += baseDayRevenue + dayGrowthAdjustment;
                                 weeklyMap[weekKey].required += requiredDayRevenue;
                                 weeklyMap[weekKey].daysCount++;
                               }
@@ -5814,7 +5884,9 @@ export default function Financials() {
                                 const dayWeight = avgByDayOfWeek[currentDayOfWeek] || 0;
                                 const requiredDayRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
                                 
-                                monthlyMap[monthKey].predicted += avgByDayOfWeek[currentDayOfWeek] || 0;
+                                const baseDayRevenue = avgByDayOfWeek[currentDayOfWeek] || 0;
+                                const dayGrowthAdjustment = dailyGrowthRate * i;
+                                monthlyMap[monthKey].predicted += baseDayRevenue + dayGrowthAdjustment;
                                 monthlyMap[monthKey].required += requiredDayRevenue;
                                 monthlyMap[monthKey].daysCount++;
                               }
