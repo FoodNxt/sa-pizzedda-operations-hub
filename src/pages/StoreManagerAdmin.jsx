@@ -120,6 +120,12 @@ export default function StoreManagerAdmin() {
     queryFn: () => base44.entities.PulizieConfig.list()
   });
 
+  // Helper to normalize dates with single-digit hours
+  const normalizeDateString = (dateString) => {
+    if (!dateString) return null;
+    return dateString.replace(/T(\d):/, 'T0$1:');
+  };
+
   // Calculate actual results per store for selected month
   const getActualResults = (storeId) => {
     const monthStart = moment(selectedMonth, 'YYYY-MM').startOf('month');
@@ -135,12 +141,11 @@ export default function StoreManagerAdmin() {
     const fatturato = storeIPratico.reduce((acc, i) => acc + (i.total_revenue || 0), 0);
 
     // Recensioni
-    const storeReviews = reviews.filter((r) =>
-    r.store_id === storeId &&
-    r.review_date &&
-    moment(r.review_date).isValid() &&
-    moment(r.review_date).isBetween(monthStart, monthEnd, 'day', '[]')
-    );
+    const storeReviews = reviews.filter((r) => {
+      if (!r.store_id || r.store_id !== storeId || !r.review_date) return false;
+      const normalized = normalizeDateString(r.review_date);
+      return moment(normalized).isValid() && moment(normalized).isBetween(monthStart, monthEnd, 'day', '[]');
+    });
     const mediaRecensioni = storeReviews.length > 0 ?
     storeReviews.reduce((acc, r) => acc + r.rating, 0) / storeReviews.length :
     null;
