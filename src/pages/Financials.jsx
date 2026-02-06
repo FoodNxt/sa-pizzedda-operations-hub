@@ -5870,7 +5870,9 @@ export default function Financials() {
                                 if (!itemDailyTotals[dataItem.order_date]) itemDailyTotals[dataItem.order_date] = 0;
                                 
                                 let dataItemRevenue = 0;
-                                if (splitType === 'app') {
+                                
+                                // PRIMA applica i filtri del target (app/canale se presenti)
+                                if (activeTargetApp) {
                                   const apps = [
                                     { key: 'glovo', revenue: dataItem.sourceApp_glovo || 0 },
                                     { key: 'deliveroo', revenue: dataItem.sourceApp_deliveroo || 0 },
@@ -5882,9 +5884,9 @@ export default function Financials() {
                                   ];
                                   apps.forEach(app => {
                                     const mappedKey = appMapping[app.key] || app.key;
-                                    if (mappedKey === item.id) dataItemRevenue += app.revenue;
+                                    if (mappedKey === activeTargetApp) dataItemRevenue += app.revenue;
                                   });
-                                } else if (splitType === 'channel') {
+                                } else if (activeTargetChannel) {
                                   const channels = [
                                     { key: 'delivery', revenue: dataItem.sourceType_delivery || 0 },
                                     { key: 'takeaway', revenue: dataItem.sourceType_takeaway || 0 },
@@ -5893,10 +5895,38 @@ export default function Financials() {
                                   ];
                                   channels.forEach(ch => {
                                     const mappedKey = channelMapping[ch.key] || ch.key;
-                                    if (mappedKey === item.id) dataItemRevenue += ch.revenue;
+                                    if (mappedKey === activeTargetChannel) dataItemRevenue += ch.revenue;
                                   });
                                 } else {
-                                  dataItemRevenue = dataItem.total_revenue || 0;
+                                  // POI applica lo split per tipo
+                                  if (splitType === 'app') {
+                                    const apps = [
+                                      { key: 'glovo', revenue: dataItem.sourceApp_glovo || 0 },
+                                      { key: 'deliveroo', revenue: dataItem.sourceApp_deliveroo || 0 },
+                                      { key: 'justeat', revenue: dataItem.sourceApp_justeat || 0 },
+                                      { key: 'onlineordering', revenue: dataItem.sourceApp_onlineordering || 0 },
+                                      { key: 'ordertable', revenue: dataItem.sourceApp_ordertable || 0 },
+                                      { key: 'tabesto', revenue: dataItem.sourceApp_tabesto || 0 },
+                                      { key: 'store', revenue: dataItem.sourceApp_store || 0 }
+                                    ];
+                                    apps.forEach(app => {
+                                      const mappedKey = appMapping[app.key] || app.key;
+                                      if (mappedKey === item.id) dataItemRevenue += app.revenue;
+                                    });
+                                  } else if (splitType === 'channel') {
+                                    const channels = [
+                                      { key: 'delivery', revenue: dataItem.sourceType_delivery || 0 },
+                                      { key: 'takeaway', revenue: dataItem.sourceType_takeaway || 0 },
+                                      { key: 'takeawayOnSite', revenue: dataItem.sourceType_takeawayOnSite || 0 },
+                                      { key: 'store', revenue: dataItem.sourceType_store || 0 }
+                                    ];
+                                    channels.forEach(ch => {
+                                      const mappedKey = channelMapping[ch.key] || ch.key;
+                                      if (mappedKey === item.id) dataItemRevenue += ch.revenue;
+                                    });
+                                  } else {
+                                    dataItemRevenue = dataItem.total_revenue || 0;
+                                  }
                                 }
                                 
                                 itemDailyTotals[dataItem.order_date] += dataItemRevenue;
