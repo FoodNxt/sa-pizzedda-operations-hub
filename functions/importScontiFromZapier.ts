@@ -20,6 +20,30 @@ Deno.serve(async (req) => {
     // Initialize Base44 client with service role (webhook, no user auth)
     const base44 = createClientFromRequest(req);
     
+    // Log body for debugging FIRST
+    console.log('Received body:', JSON.stringify(body, null, 2));
+    console.log('Body keys:', Object.keys(body));
+    
+    // VALIDATE: channel must be a text store name, not a number
+    if (!body.channel || body.channel.trim() === '') {
+      return Response.json({ 
+        error: 'Campo channel mancante o vuoto',
+        received_body: body,
+        help: 'Il campo channel deve contenere il nome dello store (es. "Ticinese")'
+      }, { status: 400 });
+    }
+    
+    // Check if channel is a number (common error)
+    const channelAsNumber = parseFloat(body.channel);
+    if (!isNaN(channelAsNumber) && body.channel.match(/^\d+\.?\d*$/)) {
+      return Response.json({ 
+        error: 'ERRORE MAPPATURA: Il campo channel contiene un numero invece del nome dello store',
+        received_channel: body.channel,
+        help: 'Verifica in Zapier che il campo "channel" sia mappato alla colonna con il NOME dello store (es. "Ticinese"), non a una colonna numerica',
+        received_body: body
+      }, { status: 400 });
+    }
+    
     // Match channel to store
     let store_id = null;
     let store_name = null;
@@ -33,11 +57,11 @@ Deno.serve(async (req) => {
       if (matchedStore) {
         store_id = matchedStore.id;
         store_name = matchedStore.name;
+      } else {
+        console.log('WARNING: Store not found for channel:', body.channel);
+        console.log('Available stores:', stores.map(s => s.name));
       }
     }
-    
-    // Log body for debugging
-    console.log('Received body:', JSON.stringify(body, null, 2));
     
     // Extract all discount values
     const sourceApp_glovo = parseFloat(body.sourceApp_glovo || body.Glovo) || 0;
