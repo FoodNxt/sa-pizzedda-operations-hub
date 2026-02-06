@@ -4985,11 +4985,21 @@ export default function Financials() {
                           <p className="text-sm text-slate-700 mb-3">
                             Calcolato con <strong>regressione lineare</strong> sugli ultimi <strong>{selectedTarget.growth_rate_period_days} giorni</strong>
                           </p>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="bg-white rounded-lg p-3">
                               <p className="text-xs text-slate-500 mb-1">Tasso Giornaliero</p>
                               <p className={`text-xl font-bold ${dailyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate)}/gg
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-lg p-3">
+                              <p className="text-xs text-slate-500 mb-1">Tasso %</p>
+                              <p className={`text-xl font-bold ${dailyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {(() => {
+                                  const avgDailyRevenue = actualHistoricalDays > 0 ? totalHistoricalRevenue / actualHistoricalDays : 0;
+                                  const growthPercent = avgDailyRevenue > 0 ? (dailyGrowthRate / avgDailyRevenue) * 100 : 0;
+                                  return `${growthPercent >= 0 ? '+' : ''}${growthPercent.toFixed(2)}%`;
+                                })()}
                               </p>
                             </div>
                             <div className="bg-white rounded-lg p-3">
