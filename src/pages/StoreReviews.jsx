@@ -78,12 +78,22 @@ export default function StoreReviews() {
     }
   });
 
+  // Helper function to safely parse and normalize date strings
+  const normalizeDateString = (dateString) => {
+    if (!dateString) return null;
+    
+    // Fix formato orario senza zero iniziale (es: 2026-02-04T3:31:05 -> 2026-02-04T03:31:05)
+    const normalized = dateString.replace(/T(\d):/, 'T0$1:');
+    return normalized;
+  };
+
   // Helper function to safely format dates
   const safeFormatDate = (dateString, formatStr = 'dd/MM/yyyy HH:mm') => {
     if (!dateString) return 'N/A';
 
     try {
-      const date = parseISO(dateString);
+      const normalized = normalizeDateString(dateString);
+      const date = parseISO(normalized);
       if (!isValid(date)) return 'N/A';
       return format(date, formatStr, { locale: it });
     } catch (e) {
@@ -119,7 +129,8 @@ export default function StoreReviews() {
     return reviews.filter((review) => {
       if (!review.review_date) return false;
       try {
-        const reviewDate = parseISO(review.review_date);
+        const normalized = normalizeDateString(review.review_date);
+        const reviewDate = parseISO(normalized);
         if (!isValid(reviewDate)) return false;
         return isAfter(reviewDate, dateRangeStart);
       } catch (e) {
@@ -256,7 +267,8 @@ export default function StoreReviews() {
       if (!review.review_date) return;
 
       try {
-        const reviewDate = parseISO(review.review_date);
+        const normalized = normalizeDateString(review.review_date);
+        const reviewDate = parseISO(normalized);
         if (!isValid(reviewDate)) return;
 
         const date = format(reviewDate, 'yyyy-MM-dd');
