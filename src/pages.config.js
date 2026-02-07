@@ -161,7 +161,6 @@ import StoricoImpasti from './pages/StoricoImpasti';
 import Straordinari from './pages/Straordinari';
 import strutturamen from './pages/StrutturaMenù';
 import StrutturaTurno from './pages/StrutturaTurno';
-import SummaryAI from './pages/SummaryAI';
 import TeglieButtate from './pages/TeglieButtate';
 import TurniDipendente from './pages/TurniDipendente';
 import UploadFattureXML from './pages/UploadFattureXML';
@@ -292,7 +291,6 @@ export const PAGES = {
     "Straordinari": Straordinari,
     "StrutturaMenù": strutturamen,
     "StrutturaTurno": StrutturaTurno,
-    "SummaryAI": SummaryAI,
     "TeglieButtate": TeglieButtate,
     "TurniDipendente": TurniDipendente,
     "UploadFattureXML": UploadFattureXML,

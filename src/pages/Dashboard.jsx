@@ -1403,7 +1403,10 @@ export default function Dashboard() {
 
         {/* Top & Bottom Prodotti */}
         <NeumorphicCard className="p-4 lg:p-6">
-          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Prodotti più e meno venduti</h2>
+          <Link to={createPageUrl('ProdottiVenduti')} className="text-base lg:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 hover:text-blue-600 transition-colors">
+            Prodotti più e meno venduti
+            <ExternalLink className="w-4 h-4" />
+          </Link>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Top 3 */}
