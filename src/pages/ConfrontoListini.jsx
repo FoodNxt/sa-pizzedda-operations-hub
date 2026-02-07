@@ -179,8 +179,18 @@ export default function ConfrontoListini() {
 
   const notOptimalProducts = getProductsNotOptimal();
 
-  // Get all unique categories from active products
-  const allCategories = [...new Set(materiePrime.filter(p => p.attivo).map(p => p.categoria).filter(Boolean))].sort();
+  // Get all unique categories from MateriePrime enum
+  const allCategories = [
+    "Angolo di Sardegna",
+    "Bevande", 
+    "Consumabili",
+    "Dolci",
+    "Ingredienti base",
+    "Ingredienti pronti",
+    "Ortofrutta",
+    "Packaging",
+    "Pulizia"
+  ];
 
   const handleDownloadListino = () => {
     const prodottiDaEsportare = materiePrime.filter(p => {
@@ -270,14 +280,9 @@ export default function ConfrontoListini() {
             className="bg-transparent text-[#6b6b6b] outline-none">
 
             <option value="all">Tutte le Categorie</option>
-            <option value="ingredienti">Ingredienti</option>
-            <option value="condimenti">Condimenti</option>
-            <option value="verdure">Verdure</option>
-            <option value="latticini">Latticini</option>
-            <option value="dolci">Dolci</option>
-            <option value="bevande">Bevande</option>
-            <option value="pulizia">Pulizia</option>
-            <option value="altro">Altro</option>
+            {allCategories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
         </NeumorphicCard>
 
