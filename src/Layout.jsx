@@ -69,12 +69,6 @@ const navigationStructure = [
         page: "Presenze",
         url: createPageUrl("Presenze"),
         icon: Users,
-      },
-      {
-        title: "Form Tracker",
-        page: "FormTracker",
-        url: createPageUrl("FormTracker"),
-        icon: ClipboardCheck,
       }
       ]
       },
@@ -595,6 +589,26 @@ const navigationStructure = [
         requiredUserType: ["admin"]
       }
     ]
+  },
+  {
+    title: "Altro",
+    icon: Settings,
+    type: "section",
+    requiredUserType: ["admin", "manager"],
+    items: [
+      {
+        title: "Meteo",
+        page: "Meteo",
+        url: createPageUrl("Meteo"),
+        icon: Cloud,
+      },
+      {
+        title: "Form Tracker",
+        page: "FormTracker",
+        url: createPageUrl("FormTracker"),
+        icon: ClipboardCheck,
+      }
+    ]
   }
 ];
 
@@ -624,6 +638,7 @@ export default function Layout({ children, currentPageName }) {
     "View Dipendente": false,
     "Zapier Guide": false,
     "Sistema": false,
+    "Altro": false,
     "Il Mio Profilo": true,
     "Area Dipendente": true
   });
