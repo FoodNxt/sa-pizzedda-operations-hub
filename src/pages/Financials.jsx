@@ -339,6 +339,7 @@ export default function Financials() {
         sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime()).
         map((d) => ({
           date: safeFormatDate(d.parsedDate, 'dd/MM'),
+          parsedDate: d.parsedDate,
           revenue: parseFloat(d.revenue.toFixed(2)),
           orders: d.orders,
           avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0
@@ -390,10 +391,10 @@ export default function Financials() {
       aggregatedData = Object.entries(monthlyMap).
         map(([monthKey, data]) => ({
           date: monthKey,
+          parsedDate: data.parsedDate,
           revenue: parseFloat(data.revenue.toFixed(2)),
           orders: data.orders,
-          avgValue: data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0,
-          parsedDate: data.parsedDate
+          avgValue: data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0
         })).
         sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
     }
