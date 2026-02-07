@@ -2780,9 +2780,83 @@ export default function Financials() {
                           border: 'none',
                           borderRadius: '12px',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          fontSize: '11px'
+                          fontSize: '11px',
+                          padding: '12px'
                         }}
-                        formatter={(value) => `€${formatCurrency(value)}`} />
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload || !payload.length) return null;
+                          
+                          const data = payload[0].payload;
+                          const hasComparison = compareMode !== 'none' && data.compareRevenue !== null && data.compareRevenue !== undefined;
+                          
+                          return (
+                            <div className="bg-white p-3 rounded-xl shadow-lg border border-slate-200">
+                              {/* Periodo Corrente */}
+                              <p className="text-xs font-bold text-slate-800 mb-2 border-b border-slate-200 pb-1">
+                                Periodo Corrente
+                              </p>
+                              <p className="text-xs text-slate-600 mb-1">Data: {label}</p>
+                              {payload.map((entry, idx) => {
+                                if (entry.dataKey === 'revenue' || entry.dataKey === 'avgValue' || entry.dataKey === 'trend') {
+                                  return (
+                                    <p key={idx} className="text-xs text-slate-700 mb-1">
+                                      <span style={{ color: entry.color }}>{entry.name}: </span>
+                                      <span className="font-bold">
+                                        €{formatCurrency(entry.value)}
+                                        {entry.dataKey === 'revenue' && data.orders > 0 && ` (${data.orders} ordini)`}
+                                      </span>
+                                    </p>
+                                  );
+                                }
+                                return null;
+                              })}
+                              
+                              {/* Periodo di Confronto */}
+                              {hasComparison && (
+                                <>
+                                  <p className="text-xs font-bold text-slate-800 mt-3 mb-2 border-b border-slate-200 pb-1">
+                                    Periodo di Confronto
+                                  </p>
+                                  <p className="text-xs text-slate-600 mb-1">Data: {data.compareDate || label}</p>
+                                  {data.compareRevenue !== null && (
+                                    <p className="text-xs text-slate-700 mb-1">
+                                      <span style={{ color: '#f59e0b' }}>Revenue: </span>
+                                      <span className="font-bold">
+                                        €{formatCurrency(data.compareRevenue)}
+                                        {data.compareOrders > 0 && ` (${data.compareOrders} ordini)`}
+                                      </span>
+                                    </p>
+                                  )}
+                                  {data.compareAvgValue !== null && (
+                                    <p className="text-xs text-slate-700 mb-1">
+                                      <span style={{ color: '#f97316' }}>AOV: </span>
+                                      <span className="font-bold">€{formatCurrency(data.compareAvgValue)}</span>
+                                    </p>
+                                  )}
+                                  
+                                  {/* Delta */}
+                                  {data.revenue !== undefined && data.compareRevenue !== null && (
+                                    <>
+                                      <p className="text-xs font-bold text-slate-800 mt-3 mb-1 border-b border-slate-200 pb-1">
+                                        Differenza
+                                      </p>
+                                      <p className={`text-xs font-bold ${data.revenue - data.compareRevenue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        Revenue: {data.revenue - data.compareRevenue >= 0 ? '+' : ''}€{formatCurrency(data.revenue - data.compareRevenue)}
+                                        {data.compareRevenue > 0 && ` (${((data.revenue - data.compareRevenue) / data.compareRevenue * 100).toFixed(1)}%)`}
+                                      </p>
+                                      {data.avgValue !== undefined && data.compareAvgValue !== null && (
+                                        <p className={`text-xs font-bold ${data.avgValue - data.compareAvgValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          AOV: {data.avgValue - data.compareAvgValue >= 0 ? '+' : ''}€{formatCurrency(data.avgValue - data.compareAvgValue)}
+                                          {data.compareAvgValue > 0 && ` (${((data.avgValue - data.compareAvgValue) / data.compareAvgValue * 100).toFixed(1)}%)`}
+                                        </p>
+                                      )}
+                                    </>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          );
+                        }} />
 
                       <Legend wrapperStyle={{ fontSize: '11px' }} />
                       {showRevenue &&
