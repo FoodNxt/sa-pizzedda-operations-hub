@@ -943,6 +943,75 @@ export default function Dashboard() {
     ).sort((a, b) => a.data.localeCompare(b.data));
   }, [turni]);
 
+  const dipendentiInUscita = useMemo(() => {
+    if (!uscite || !allUsers) return [];
+    const oggi = moment();
+
+    return uscite
+      .filter((u) => {
+        const dataUscita = moment(u.data_uscita);
+        return dataUscita.isAfter(oggi);
+      })
+      .map((u) => {
+        const user = allUsers.find((usr) => usr.id === u.dipendente_id);
+        return {
+          dipendente: user?.nome_cognome || user?.full_name || 'N/A',
+          dataUscita: u.data_uscita,
+          giorniRimanenti: moment(u.data_uscita).diff(oggi, 'days'),
+          motivazione: u.motivazione
+        };
+      })
+      .sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
+  }, [uscite, allUsers]);
+
+  const dipendentiInEntrata = useMemo(() => {
+    if (!allUsers && !contratti) return [];
+    const oggi = moment();
+    const dipendentiMap = new Map();
+
+    // Contratti firmati con data inizio futura
+    contratti.forEach((c) => {
+      if (c.status === 'firmato' && c.data_inizio_contratto) {
+        const dataInizio = moment(c.data_inizio_contratto);
+        if (dataInizio.isAfter(oggi)) {
+          const user = allUsers.find((u) => u.id === c.user_id);
+          const nome = c.user_nome_cognome || user?.nome_cognome || user?.full_name || 'N/A';
+          const key = `${c.user_id}_${c.data_inizio_contratto}`;
+          
+          if (!dipendentiMap.has(key)) {
+            dipendentiMap.set(key, {
+              dipendente: nome,
+              dataInizio: c.data_inizio_contratto,
+              giorniRimanenti: dataInizio.diff(oggi, 'days'),
+              ruoli: c.ruoli_dipendente?.join(', ') || 'N/A'
+            });
+          }
+        }
+      }
+    });
+
+    // Users con data inizio futura
+    allUsers.forEach((user) => {
+      if ((user.user_type === 'dipendente' || user.user_type === 'user') && user.data_inizio_contratto) {
+        const dataInizio = moment(user.data_inizio_contratto);
+        if (dataInizio.isAfter(oggi)) {
+          const key = `${user.id}_${user.data_inizio_contratto}`;
+          
+          if (!dipendentiMap.has(key)) {
+            dipendentiMap.set(key, {
+              dipendente: user.nome_cognome || user.full_name || 'N/A',
+              dataInizio: user.data_inizio_contratto,
+              giorniRimanenti: dataInizio.diff(oggi, 'days'),
+              ruoli: user.ruoli_dipendente?.join(', ') || 'N/A'
+            });
+          }
+        }
+      }
+    });
+
+    return Array.from(dipendentiMap.values()).sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
+  }, [allUsers, contratti]);
+
   const topBottomProducts = useMemo(() => {
     if (!prodottiVenduti || prodottiVenduti.length === 0) {
       return { top3: [], bottom3: [] };
@@ -1589,7 +1658,7 @@ export default function Dashboard() {
             </div>
 
             {/* Turni Liberi */}
-            <div className="neumorphic-pressed p-4 rounded-xl lg:col-span-2">
+            <div className="neumorphic-pressed p-4 rounded-xl">
               <Link to={createPageUrl('Planday')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
                 <UserX className="w-4 h-4 text-red-600" />
                 Turni Liberi (Prossimi 14 giorni)
@@ -1612,6 +1681,56 @@ export default function Dashboard() {
 
                 }) :
                 <p className="text-xs text-slate-400 text-center py-4">Tutti i turni sono assegnati</p>
+                }
+              </div>
+            </div>
+
+            {/* Dipendenti in Uscita */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <Link to={createPageUrl('Uscite')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
+                <UserX className="w-4 h-4 text-orange-600" />
+                Dipendenti in Uscita
+                {dipendentiInUscita.length > 0 &&
+                <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">{dipendentiInUscita.length}</span>
+                }
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {dipendentiInUscita.length > 0 ? dipendentiInUscita.map((d, idx) =>
+                <div key={idx} className="p-2 rounded-lg bg-orange-50 border border-orange-200">
+                    <p className="text-xs font-medium text-slate-700">{d.dipendente}</p>
+                    <p className="text-[10px] text-orange-600">
+                      Uscita: {d.dataUscita && moment(d.dataUscita).isValid() ? moment(d.dataUscita).format('DD/MM/YYYY') : 'N/A'} ({d.giorniRimanenti} giorni)
+                    </p>
+                    {d.motivazione && <p className="text-[10px] text-slate-500 mt-1">{d.motivazione}</p>}
+                  </div>
+                ) :
+                <p className="text-xs text-slate-400 text-center py-4">Nessuna uscita programmata</p>
+                }
+              </div>
+            </div>
+
+            {/* Dipendenti in Entrata */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <Link to={createPageUrl('OverviewContratti')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
+                <Users className="w-4 h-4 text-green-600" />
+                Dipendenti in Entrata
+                {dipendentiInEntrata.length > 0 &&
+                <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">{dipendentiInEntrata.length}</span>
+                }
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {dipendentiInEntrata.length > 0 ? dipendentiInEntrata.map((d, idx) =>
+                <div key={idx} className="p-2 rounded-lg bg-green-50 border border-green-200">
+                    <p className="text-xs font-medium text-slate-700">{d.dipendente}</p>
+                    <p className="text-[10px] text-green-600">
+                      Inizio: {d.dataInizio && moment(d.dataInizio).isValid() ? moment(d.dataInizio).format('DD/MM/YYYY') : 'N/A'} ({d.giorniRimanenti} giorni)
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-1">{d.ruoli}</p>
+                  </div>
+                ) :
+                <p className="text-xs text-slate-400 text-center py-4">Nessun ingresso programmato</p>
                 }
               </div>
             </div>
