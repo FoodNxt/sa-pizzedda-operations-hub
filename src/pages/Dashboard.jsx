@@ -883,8 +883,8 @@ export default function Dashboard() {
       const hasFutureContract = contratti.some((c) => 
         c.user_id === user.id && 
         c.status === 'firmato' && 
-        c.data_inizio && 
-        moment(c.data_inizio).isAfter(dataFine)
+        c.data_inizio_contratto && 
+        moment(c.data_inizio_contratto).isAfter(dataFine)
       );
 
       // Escludi se ha già firmato un nuovo contratto
