@@ -2790,7 +2790,7 @@ export default function Financials() {
                                 {(() => {
                                   const currentDateObj = data.parsedDate;
                                   if (currentDateObj && isValid(currentDateObj)) {
-                                    return `Data: ${format(currentDateObj, 'EEE dd/MM', { locale: it })}`;
+                                    return `Data: ${format(currentDateObj, 'EEEE dd/MM', { locale: it })}`;
                                   }
                                   return `Data: ${label}`;
                                 })()}
@@ -2821,7 +2821,7 @@ export default function Financials() {
                                       if (data.compareDate) {
                                         const compareDateObj = safeParseDate(data.compareDate + 'T00:00:00');
                                         if (compareDateObj && isValid(compareDateObj)) {
-                                          return `Data: ${format(compareDateObj, 'EEE dd/MM', { locale: it })}`;
+                                          return `Data: ${format(compareDateObj, 'EEEE dd/MM', { locale: it })}`;
                                         }
                                       }
                                       return `Data: ${data.compareDate || label}`;
