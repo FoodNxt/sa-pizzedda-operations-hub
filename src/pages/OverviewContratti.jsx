@@ -626,43 +626,43 @@ export default function OverviewContratti() {
             </div> :
 
           <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b-2 border-slate-200">
-                    <th className="text-left py-3 px-2 font-semibold text-slate-700">
+                    <th className="text-left py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
                       <SortButton field="nome_cognome">Nome</SortButton>
                     </th>
-                    <th className="text-left py-3 px-2 font-semibold text-slate-700">
+                    <th className="text-left py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
                       <SortButton field="tipo_contratto_label">Tipo</SortButton>
                     </th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
+                    <th className="text-center py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
                       <SortButton field="durata_contratto">Durata</SortButton>
                     </th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
-                      <SortButton field="ore_settimanali">Ore/sett</SortButton>
+                    <th className="text-center py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
+                      <SortButton field="ore_settimanali">Ore</SortButton>
                     </th>
-                    <th className="text-left py-3 px-2 font-semibold text-slate-700">
+                    <th className="text-left py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
                       Ruolo
                     </th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
-                      Data Inizio
+                    <th className="text-center py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
+                      Inizio
                     </th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
-                      Data Fine
+                    <th className="text-center py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
+                      Fine
                     </th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
-                      <SortButton field="giorni_rimanenti">Giorni a Fine</SortButton>
+                    <th className="text-center py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
+                      <SortButton field="giorni_rimanenti">Gg Fine</SortButton>
                     </th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
+                    <th className="text-center py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
                       <SortButton field="tenure_mesi">Tenure</SortButton>
                     </th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
+                    <th className="text-center py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
                       Storico
                     </th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
+                    <th className="text-center py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
                       Azioni
                     </th>
-                    <th className="text-center py-3 px-2 font-semibold text-slate-700">
+                    <th className="text-center py-2 px-1.5 font-semibold text-slate-700 whitespace-nowrap">
                       Payroll
                     </th>
                   </tr>
@@ -684,95 +684,91 @@ export default function OverviewContratti() {
                       isScaduto ? 'bg-red-50' : isInScadenza ? 'bg-orange-50' : ''}`
                       }>
 
-                        <td className="py-3 px-2 font-medium text-slate-800">
-                          <div>
-                            {dip.nome_cognome}
+                        <td className="py-2 px-1.5 font-medium text-slate-800 whitespace-nowrap">
+                          <div className="max-w-[120px]">
+                            <div className="truncate">{dip.nome_cognome}</div>
                             {hasFutureExit && (
-                              <div className="text-xs font-bold text-yellow-700 mt-1 flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" />
-                                Uscita prevista tra {giorniUscita} giorni ({moment(dip.uscita.data_uscita).format('DD/MM/YYYY')})
+                              <div className="text-[10px] font-bold text-yellow-700 flex items-center gap-1 whitespace-nowrap">
+                                <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0" />
+                                Uscita {moment(dip.uscita.data_uscita).format('DD/MM/YY')} ({giorniUscita}gg)
                               </div>
                             )}
                           </div>
                         </td>
-                        <td className="py-3 px-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <td className="py-2 px-1.5 whitespace-nowrap">
+                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
                         dip.employee_group === 'FT' ? 'bg-green-100 text-green-700' :
                         dip.employee_group === 'PT' ? 'bg-purple-100 text-purple-700' :
                         'bg-blue-100 text-blue-700'}`
                         }>
-                            {dip.tipo_contratto_label}
+                            {dip.employee_group}
                           </span>
                         </td>
-                        <td className="py-3 px-2 text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <td className="py-2 px-1.5 text-center whitespace-nowrap">
+                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
                         dip.durata_contratto === 'Determinato' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`
                         }>
-                            {dip.durata_contratto}
+                            {dip.durata_contratto === 'Determinato' ? 'Det.' : 'Ind.'}
                           </span>
                         </td>
-                        <td className="py-3 px-2 text-center font-medium text-slate-700">
-                          {dip.ore_settimanali ?? 'N/A'}
+                        <td className="py-2 px-1.5 text-center font-medium text-slate-700 whitespace-nowrap">
+                          {dip.ore_settimanali ?? '-'}h
                         </td>
-                        <td className="py-3 px-2 text-slate-600">
-                          {dip.ruoli}
+                        <td className="py-2 px-1.5 text-slate-600 whitespace-nowrap max-w-[100px]">
+                          <div className="truncate text-[10px]">{dip.ruoli}</div>
                         </td>
-                        <td className="py-3 px-2 text-center text-slate-700">
-                          {dip.data_inizio ? moment(dip.data_inizio).format('DD/MM/YYYY') : 'N/A'}
+                        <td className="py-2 px-1.5 text-center text-slate-700 whitespace-nowrap">
+                          {dip.data_inizio ? moment(dip.data_inizio).format('DD/MM/YY') : '-'}
                         </td>
-                        <td className="py-3 px-2 text-center text-slate-700">
-                          {dip.data_fine ?
-                        moment(dip.data_fine).format('DD/MM/YYYY') :
-
-                        'N/A'
-                        }
+                        <td className="py-2 px-1.5 text-center text-slate-700 whitespace-nowrap">
+                          {dip.data_fine ? moment(dip.data_fine).format('DD/MM/YY') : '-'}
                         </td>
-                        <td className="py-3 px-2 text-center">
+                        <td className="py-2 px-1.5 text-center whitespace-nowrap">
                           {dip.durata_contratto === 'Indeterminato' ?
                         <span className="text-slate-400">-</span> :
                         dip.giorni_rimanenti !== null ?
-                        <span className={`font-bold ${
+                        <span className={`font-bold text-[11px] ${
                         isScaduto ? 'text-red-700' :
                         isInScadenza ? 'text-orange-700' :
                         dip.giorni_rimanenti <= 60 ? 'text-yellow-700' :
                         'text-green-700'}`
                         }>
-                              {isScaduto ? `Scaduto da ${Math.abs(dip.giorni_rimanenti)}gg` : `${dip.giorni_rimanenti}gg`}
+                              {isScaduto ? `-${Math.abs(dip.giorni_rimanenti)}` : dip.giorni_rimanenti}
                             </span> :
 
-                        <span className="text-slate-400">N/A</span>
+                        <span className="text-slate-400">-</span>
                         }
                         </td>
-                        <td className="py-3 px-2 text-center">
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
-                            {dip.tenure_mesi} {dip.tenure_mesi === 1 ? 'mese' : 'mesi'}
+                        <td className="py-2 px-1.5 text-center whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
+                            {dip.tenure_mesi}m
                           </span>
                         </td>
-                        <td className="py-3 px-2 text-center">
+                        <td className="py-2 px-1.5 text-center whitespace-nowrap">
                           <button
                           onClick={() => setViewingHistory(dip)}
-                          className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="nav-button p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
                           title="Vedi storico contratti">
 
-                            <History className="w-4 h-4 text-blue-600" />
+                            <History className="w-3.5 h-3.5 text-blue-600" />
                           </button>
                         </td>
-                        <td className="py-3 px-2 text-center">
+                        <td className="py-2 px-1.5 text-center whitespace-nowrap">
                           <button
                           onClick={() => setRenewingContract(dip)}
-                          className="nav-button p-2 rounded-lg hover:bg-green-50 transition-colors"
+                          className="nav-button p-1.5 rounded-lg hover:bg-green-50 transition-colors"
                           title="Rinnova Contratto">
 
-                            <RefreshCw className="w-4 h-4 text-green-600" />
+                            <RefreshCw className="w-3.5 h-3.5 text-green-600" />
                           </button>
                         </td>
-                        <td className="py-3 px-2 text-center">
+                        <td className="py-2 px-1.5 text-center whitespace-nowrap">
                           <button
                           onClick={() => setSendingToPayroll(dip)}
-                          className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="nav-button p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
                           title="Invia a Payroll">
 
-                            <Send className="w-4 h-4 text-blue-600" />
+                            <Send className="w-3.5 h-3.5 text-blue-600" />
                           </button>
                         </td>
                       </tr>);
