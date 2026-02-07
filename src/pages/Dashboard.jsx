@@ -853,7 +853,7 @@ export default function Dashboard() {
   }, [stores, inventario, inventarioCantina, materiePrime, ordiniInviati, ordiniCompletati]);
 
   const contrattiInScadenza = useMemo(() => {
-    if (!allUsers) return [];
+    if (!allUsers || !contratti) return [];
     const oggi = moment();
     const tra30Giorni = moment().add(30, 'days');
 
@@ -878,6 +878,18 @@ export default function Dashboard() {
       if (!dataFine) return null;
 
       const giorniRimanenti = dataFine.diff(oggi, 'days');
+      
+      // Verifica se il dipendente ha già firmato un nuovo contratto
+      const hasFutureContract = contratti.some((c) => 
+        c.user_id === user.id && 
+        c.status === 'firmato' && 
+        c.data_inizio && 
+        moment(c.data_inizio).isAfter(dataFine)
+      );
+
+      // Escludi se ha già firmato un nuovo contratto
+      if (hasFutureContract) return null;
+
       if (dataFine.isBetween(oggi, tra30Giorni, 'day', '[]')) {
         return {
           dipendente: user.nome_cognome || user.full_name || 'N/A',
@@ -889,7 +901,7 @@ export default function Dashboard() {
     }).
     filter((c) => c !== null).
     sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
-  }, [allUsers, uscite]);
+  }, [allUsers, uscite, contratti]);
 
   const pulizieScores = useMemo(() => {
     if (!cleaningInspections || !stores) return [];
@@ -1207,16 +1219,21 @@ export default function Dashboard() {
           </NeumorphicCard>
 
           {/* # Recensioni Google Maps */}
-          <NeumorphicCard className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-lg">
-                <Star className="w-6 h-6 text-white" />
+          <NeumorphicCard className="p-4 hover:shadow-lg transition-shadow">
+            <Link to={createPageUrl('StoreReviews')} className="block">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-lg">
+                    <Star className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800">{googleMapsStats.totalReviews}</h3>
+                    <p className="text-xs text-slate-500">Recensioni Totali</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-5 h-5 text-yellow-600" />
               </div>
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800">{googleMapsStats.totalReviews}</h3>
-                <p className="text-xs text-slate-500">Recensioni Totali</p>
-              </div>
-            </div>
+            </Link>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-green-600">🏆 {googleMapsStats.bestEmployeeCount?.name || 'N/A'}</span>
@@ -1230,24 +1247,29 @@ export default function Dashboard() {
           </NeumorphicCard>
 
           {/* Score Medio Google Maps */}
-          <NeumorphicCard className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center shadow-lg">
-                <Star className="w-6 h-6 text-white" />
+          <NeumorphicCard className="p-4 hover:shadow-lg transition-shadow">
+            <Link to={createPageUrl('EmployeeReviewsPerformance')} className="block">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center shadow-lg">
+                    <Star className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-slate-800">{googleMapsStats.avgScore.toFixed(1)} ⭐</h3>
+                    <p className="text-xs text-slate-500">Score Medio</p>
+                  </div>
+                </div>
+                <ExternalLink className="w-5 h-5 text-amber-600" />
               </div>
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800">{googleMapsStats.avgScore.toFixed(1)} ⭐</h3>
-                <p className="text-xs text-slate-500">Score Medio</p>
-              </div>
-            </div>
+            </Link>
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-green-600">🏆 {googleMapsStats.bestEmployeeScore?.name || 'N/A'}</span>
-                <span className="font-medium">{googleMapsStats.bestEmployeeScore?.rating ? googleMapsStats.bestEmployeeScore.rating.toFixed(1) : '0.0'} ⭐</span>
+                <span className="font-medium">{googleMapsStats.bestEmployeeScore?.avgRating ? googleMapsStats.bestEmployeeScore.avgRating.toFixed(1) : '0.0'} ⭐</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-red-600">📉 {googleMapsStats.worstEmployeeScore?.name || 'N/A'}</span>
-                <span className="font-medium">{googleMapsStats.worstEmployeeScore?.rating ? googleMapsStats.worstEmployeeScore.rating.toFixed(1) : '0.0'} ⭐</span>
+                <span className="font-medium">{googleMapsStats.worstEmployeeScore?.avgRating ? googleMapsStats.worstEmployeeScore.avgRating.toFixed(1) : '0.0'} ⭐</span>
               </div>
             </div>
           </NeumorphicCard>
