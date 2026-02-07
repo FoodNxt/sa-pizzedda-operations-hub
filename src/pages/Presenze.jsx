@@ -30,11 +30,10 @@ export default function Presenze() {
     queryFn: async () => {
       const oggi = new Date().toISOString().split('T')[0];
 
-      // Prendi turni di oggi (escludendo quelli con uscita timbrata)
+      // Prendi turni di oggi (tutti, anche quelli completati)
       const turniOggi = await base44.entities.TurnoPlanday.filter({
         data: oggi,
-        stato: { $ne: 'annullato' },
-        timbratura_uscita: null
+        stato: { $ne: 'annullato' }
       });
 
       const turniAperti = await base44.entities.TurnoPlanday.filter({
@@ -94,6 +93,8 @@ export default function Presenze() {
       if (turno.store_id !== storeId) return false;
       if (turno.data !== todayStr) return false;
       if (includedTipiTurno.length > 0 && !includedTipiTurno.includes(turno.tipo_turno)) return false;
+      // Escludi turni completati (con uscita timbrata)
+      if (turno.timbratura_uscita) return false;
 
       try {
         // Parse ora_inizio e ora_fine
@@ -124,6 +125,19 @@ export default function Presenze() {
         console.error('Error parsing turno times:', error);
         return false;
       }
+    });
+  };
+
+  // Determina turni completati oggi
+  const getTurniCompletatiPerStore = (storeId) => {
+    const todayStr = format(currentTime, 'yyyy-MM-dd');
+
+    return turni.filter((turno) => {
+      if (turno.store_id !== storeId) return false;
+      if (turno.data !== todayStr) return false;
+      if (includedTipiTurno.length > 0 && !includedTipiTurno.includes(turno.tipo_turno)) return false;
+      // Solo turni con uscita timbrata
+      return turno.timbratura_entrata && turno.timbratura_uscita;
     });
   };
 
@@ -171,6 +185,7 @@ export default function Presenze() {
   const storeStats = stores.map((store) => {
     const turniAttivi = getTurniAttiviPerStore(store.id);
     const turniProssimi = getTurniProssimiPerStore(store.id);
+    const turniCompletati = getTurniCompletatiPerStore(store.id);
     const timbrati = turniAttivi.filter((t) => t.timbratura_entrata).length;
     const nonTimbrati = turniAttivi.filter((t) => !t.timbratura_entrata).length;
 
@@ -178,6 +193,7 @@ export default function Presenze() {
       store,
       turniAttivi,
       turniProssimi,
+      turniCompletati,
       timbrati,
       nonTimbrati,
       totale: turniAttivi.length
@@ -243,7 +259,7 @@ export default function Presenze() {
 
         {/* Store List */}
         <div className="grid grid-cols-1 gap-4">
-          {storeStats.map(({ store, turniAttivi, turniProssimi, timbrati, nonTimbrati, totale }) =>
+          {storeStats.map(({ store, turniAttivi, turniProssimi, turniCompletati, timbrati, nonTimbrati, totale }) =>
           <NeumorphicCard key={store.id} className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -325,6 +341,47 @@ export default function Presenze() {
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 rounded-full bg-orange-500"></div>
                     <span className="text-slate-600">{nonTimbrati} non timbrati</span>
+                  </div>
+                </div>
+            }
+
+              {/* Turni Completati Oggi */}
+              {turniCompletati.length > 0 &&
+            <div className="mt-4 pt-4 border-t border-slate-200">
+                  <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    Turni Completati Oggi
+                  </h3>
+                  <div className="space-y-2">
+                    {turniCompletati.map((turno) =>
+                <div
+                  key={turno.id}
+                  className="neumorphic-pressed p-3 rounded-xl bg-green-50">
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium text-slate-700 text-sm">{turno.dipendente_nome}</p>
+                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-200 text-green-700">
+                                {turno.ruolo}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-slate-600">
+                              <span className="text-slate-500">Turno: {turno.ora_inizio} - {turno.ora_fine}</span>
+                              {turno.tipo_turno && turno.tipo_turno !== 'Normale' &&
+                        <span className="text-slate-500">({turno.tipo_turno})</span>
+                        }
+                            </div>
+                            <div className="flex items-center gap-3 text-xs mt-1">
+                              <span className="text-green-700 font-medium">
+                                Timbrato: {format(parseISO(turno.timbratura_entrata), 'HH:mm')} - {format(parseISO(turno.timbratura_uscita), 'HH:mm')}
+                              </span>
+                            </div>
+                          </div>
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        </div>
+                      </div>
+                )}
                   </div>
                 </div>
             }
