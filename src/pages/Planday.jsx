@@ -1366,14 +1366,16 @@ export default function Planday() {
   };
 
   const filteredTurniTimbrature = useMemo(() => {
+    if (!turniTimbrature || turniTimbrature.length === 0) return [];
+    
     return turniTimbrature.filter((t) => {
       if (selectedStore !== 'all' && selectedStore !== '' && t.store_id !== selectedStore) return false;
-      if (selectedDipendenteTimbr !== 'all' && t.dipendente_id !== selectedDipendenteTimbr) return false;
-      if (selectedRuolo !== 'all' && t.ruolo !== selectedRuolo) return false;
+      if (selectedDipendenteTimbr !== 'all' && selectedDipendenteTimbr !== '' && t.dipendente_id !== selectedDipendenteTimbr) return false;
+      if (selectedRuolo !== 'all' && selectedRuolo !== '' && t.ruolo !== selectedRuolo) return false;
       return true;
     }).sort((a, b) => {
-      const dateA = `${a.data} ${a.ora_inizio}`;
-      const dateB = `${b.data} ${b.ora_inizio}`;
+      const dateA = `${a.data || ''} ${a.ora_inizio || ''}`;
+      const dateB = `${b.data || ''} ${b.ora_inizio || ''}`;
       return dateB.localeCompare(dateA);
     });
   }, [turniTimbrature, selectedStore, selectedDipendenteTimbr, selectedRuolo]);
@@ -1553,6 +1555,16 @@ export default function Planday() {
   };
 
   const timbratureStats = useMemo(() => {
+    if (!filteredTurniTimbrature || filteredTurniTimbrature.length === 0) {
+      return {
+        totale: 0,
+        conTimbratura: 0,
+        senzaTimbratura: 0,
+        inRitardo: 0,
+        totaleMinutiRitardo: 0
+      };
+    }
+    
     // Filtra solo turni che richiedono timbratura
     const turniCheRichiedonoTimbratura = filteredTurniTimbrature.filter((t) => {
       const tipoTurno = t.tipo_turno || 'Normale';
@@ -3308,10 +3320,12 @@ export default function Planday() {
               {filteredTurniTimbrature.length === 0 ?
             <div className="text-center py-12">
                   <Clock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500">Nessuna timbratura trovata</p>
+                  <p className="text-slate-500">Nessuna timbratura trovata nel periodo selezionato</p>
+                  <p className="text-xs text-slate-400 mt-2">Prova a cambiare i filtri o il periodo</p>
                 </div> :
 
             <div className="overflow-x-auto">
+                  <p className="text-xs text-slate-500 mb-2">Mostrando {filteredTurniTimbrature.length} turni</p>
                   <table className="w-full">
                     <thead>
                       <tr className="border-b-2 border-slate-200">
@@ -3333,7 +3347,7 @@ export default function Planday() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredTurniTimbrature.slice(0, 100).map((turno) => {
+                      {filteredTurniTimbrature.map((turno) => {
                     const stato = getTimbraturaTipo(turno);
                     const turnoTipo = getTurnoTipo(turno);
                     const formStatus = getFormCompilati(turno);
