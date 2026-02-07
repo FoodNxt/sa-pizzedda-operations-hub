@@ -10,7 +10,11 @@ import {
   Clock,
   Filter,
   X,
-  AlertCircle
+  AlertCircle,
+  Edit,
+  Save,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -23,6 +27,15 @@ export default function PagamentoStraordinari() {
   const [showPagati, setShowPagati] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [editingDefaultRate, setEditingDefaultRate] = useState(false);
+  const [showCostiForm, setShowCostiForm] = useState(false);
+  const [editingCostoId, setEditingCostoId] = useState(null);
+  const [costoFormData, setCostoFormData] = useState({
+    dipendente_id: '',
+    dipendente_nome: '',
+    costo_orario_straordinario: '',
+    note: ''
+  });
 
   const queryClient = useQueryClient();
 
@@ -54,6 +67,11 @@ export default function PagamentoStraordinari() {
   const { data: disponibilitaConfigs = [] } = useQuery({
     queryKey: ['disponibilita-config'],
     queryFn: () => base44.entities.DisponibilitaConfig.filter({ is_active: true })
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees'],
+    queryFn: () => base44.entities.Employee.list()
   });
 
   const { data: attivitaCompletate = [] } = useQuery({
@@ -92,6 +110,44 @@ export default function PagamentoStraordinari() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pagamenti-straordinari'] });
       queryClient.invalidateQueries({ queryKey: ['depositi'] });
+    }
+  });
+
+  const updateDefaultRateMutation = useMutation({
+    mutationFn: (newRate) => {
+      if (activeConfig?.id) {
+        return base44.entities.DisponibilitaConfig.update(activeConfig.id, {
+          retribuzione_oraria_straordinari: newRate
+        });
+      }
+      return base44.entities.DisponibilitaConfig.create({
+        retribuzione_oraria_straordinari: newRate,
+        is_active: true
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['disponibilita-config'] });
+      setEditingDefaultRate(false);
+    }
+  });
+
+  const saveCostoMutation = useMutation({
+    mutationFn: (data) => {
+      if (editingCostoId) {
+        return base44.entities.StraordinarioDipendente.update(editingCostoId, data);
+      }
+      return base44.entities.StraordinarioDipendente.create(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['straordinari-configs'] });
+      resetCostoForm();
+    }
+  });
+
+  const deleteCostoMutation = useMutation({
+    mutationFn: (id) => base44.entities.StraordinarioDipendente.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['straordinari-configs'] });
     }
   });
 
@@ -263,6 +319,50 @@ export default function PagamentoStraordinari() {
     }
   };
 
+  const resetCostoForm = () => {
+    setCostoFormData({
+      dipendente_id: '',
+      dipendente_nome: '',
+      costo_orario_straordinario: '',
+      note: ''
+    });
+    setEditingCostoId(null);
+    setShowCostiForm(false);
+  };
+
+  const handleEditCosto = (item) => {
+    setCostoFormData({
+      dipendente_id: item.dipendente_id,
+      dipendente_nome: item.dipendente_nome,
+      costo_orario_straordinario: item.costo_orario_straordinario,
+      note: item.note || ''
+    });
+    setEditingCostoId(item.id);
+    setShowCostiForm(true);
+  };
+
+  const handleSubmitCosto = (e) => {
+    e.preventDefault();
+    if (costoFormData.dipendente_id && costoFormData.costo_orario_straordinario) {
+      saveCostoMutation.mutate({
+        dipendente_id: costoFormData.dipendente_id,
+        dipendente_nome: costoFormData.dipendente_nome,
+        costo_orario_straordinario: parseFloat(costoFormData.costo_orario_straordinario),
+        note: costoFormData.note
+      });
+    }
+  };
+
+  const handleSelectEmployee = (e) => {
+    const employeeId = e.target.value;
+    const employee = employees.find((emp) => emp.id === employeeId);
+    setCostoFormData({
+      ...costoFormData,
+      dipendente_id: employeeId,
+      dipendente_nome: employee?.full_name || ''
+    });
+  };
+
   return (
     <ProtectedPage pageName="PagamentoStraordinari">
       <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
@@ -272,6 +372,123 @@ export default function PagamentoStraordinari() {
           </h1>
           <p className="text-sm" style={{ color: '#000000' }}>Gestisci i pagamenti degli straordinari</p>
         </div>
+
+        {/* Tariffa Default + Costi Personalizzati */}
+        <NeumorphicCard className="p-4 lg:p-6 bg-blue-50 border border-blue-200">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base lg:text-lg font-bold text-slate-800 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-blue-600" />
+                Tariffa Oraria Default Straordinari
+              </h2>
+              <p className="text-xs lg:text-sm text-slate-500 mt-1">
+                Applicata ai dipendenti senza tariffa personalizzata
+              </p>
+            </div>
+            {!editingDefaultRate ? (
+              <div className="flex items-center gap-3">
+                <span className="text-2xl lg:text-3xl font-bold text-blue-600">
+                  €{(activeConfig?.retribuzione_oraria_straordinari || 10).toFixed(2)}/h
+                </span>
+                <button
+                  onClick={() => setEditingDefaultRate(true)}
+                  className="p-2 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors">
+                  <Edit className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  defaultValue={activeConfig?.retribuzione_oraria_straordinari || 10}
+                  className="w-32 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+                  id="defaultRate"
+                />
+                <button
+                  onClick={() => {
+                    const input = document.getElementById('defaultRate');
+                    updateDefaultRateMutation.mutate(parseFloat(input.value));
+                  }}
+                  className="p-2 rounded-lg bg-green-500 text-white hover:bg-green-600">
+                  <Save className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setEditingDefaultRate(false)}
+                  className="p-2 rounded-lg hover:bg-slate-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-blue-200 pt-4 mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm lg:text-base font-bold text-slate-800">Costi Personalizzati per Dipendente</h3>
+              <button
+                onClick={() => setShowCostiForm(!showCostiForm)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 text-sm">
+                <Plus className="w-4 h-4" />
+                Aggiungi
+              </button>
+            </div>
+
+            {straordinariConfigs.length === 0 ? (
+              <div className="text-center py-6 bg-white rounded-lg">
+                <Clock className="w-12 h-12 text-slate-300 opacity-50 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">Nessun costo personalizzato configurato</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto bg-white rounded-lg">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Dipendente</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">€/h</th>
+                      <th className="text-left p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Note</th>
+                      <th className="text-right p-2 lg:p-3 text-slate-600 font-medium text-xs lg:text-sm">Azioni</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {straordinariConfigs.map((item) => (
+                      <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="p-2 lg:p-3">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-slate-400" />
+                            <span className="text-slate-700 font-medium text-sm">{item.dipendente_nome}</span>
+                          </div>
+                        </td>
+                        <td className="p-2 lg:p-3 text-right">
+                          <span className="text-base lg:text-lg font-bold text-blue-600">
+                            €{parseFloat(item.costo_orario_straordinario).toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="p-2 lg:p-3">
+                          <span className="text-xs lg:text-sm text-slate-500">{item.note || '-'}</span>
+                        </td>
+                        <td className="p-2 lg:p-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleEditCosto(item)}
+                              className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteCostoMutation.mutate(item.id)}
+                              className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </NeumorphicCard>
 
         {/* Filters */}
         <NeumorphicCard className="p-4 lg:p-6">
@@ -517,6 +734,89 @@ export default function PagamentoStraordinari() {
             </div>
           </div>
         </NeumorphicCard>
+
+        {/* Modal Form Costi Personalizzati */}
+        {showCostiForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-800">
+                  {editingCostoId ? 'Modifica Costo Straordinario' : 'Aggiungi Costo Straordinario'}
+                </h2>
+                <button onClick={resetCostoForm} className="p-2 rounded-lg hover:bg-slate-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitCosto} className="space-y-4">
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Dipendente</label>
+                  <select
+                    value={costoFormData.dipendente_id}
+                    onChange={handleSelectEmployee}
+                    required
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+                    <option value="">Seleziona dipendente...</option>
+                    {employees.map((emp) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Costo Orario Straordinario (€)</label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={costoFormData.costo_orario_straordinario}
+                      onChange={(e) => setCostoFormData({
+                        ...costoFormData,
+                        costo_orario_straordinario: e.target.value
+                      })}
+                      required
+                      placeholder="Es. 15.50"
+                      className="w-full neumorphic-pressed px-4 py-3 pl-10 rounded-xl text-slate-700 outline-none text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block">Note (opzionale)</label>
+                  <input
+                    type="text"
+                    value={costoFormData.note}
+                    onChange={(e) => setCostoFormData({
+                      ...costoFormData,
+                      note: e.target.value
+                    })}
+                    placeholder="Es. Aumentato da gennaio 2026"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={resetCostoForm}
+                    className="flex-1 px-4 py-3 rounded-xl neumorphic-flat text-slate-700 font-medium">
+                    Annulla
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium flex items-center justify-center gap-2">
+                    <Save className="w-4 h-4" />
+                    Salva
+                  </button>
+                </div>
+              </form>
+            </NeumorphicCard>
+          </div>
+        )}
       </div>
     </ProtectedPage>
   );

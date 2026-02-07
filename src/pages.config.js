@@ -158,7 +158,6 @@ import StoreManagerAdmin from './pages/StoreManagerAdmin';
 import StoreReviews from './pages/StoreReviews';
 import StoricoCassa from './pages/StoricoCassa';
 import StoricoImpasti from './pages/StoricoImpasti';
-import Straordinari from './pages/Straordinari';
 import strutturamen from './pages/StrutturaMenù';
 import StrutturaTurno from './pages/StrutturaTurno';
 import TeglieButtate from './pages/TeglieButtate';
@@ -288,7 +287,6 @@ export const PAGES = {
     "StoreReviews": StoreReviews,
     "StoricoCassa": StoricoCassa,
     "StoricoImpasti": StoricoImpasti,
-    "Straordinari": Straordinari,
     "StrutturaMenù": strutturamen,
     "StrutturaTurno": StrutturaTurno,
     "TeglieButtate": TeglieButtate,
