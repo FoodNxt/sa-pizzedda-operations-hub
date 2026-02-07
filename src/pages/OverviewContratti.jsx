@@ -338,11 +338,34 @@ export default function OverviewContratti() {
   }, [users, dipendentiConContratti]);
 
   const contrattiAttivi = useMemo(() => {
-    return dipendentiConContratti.filter((d) => !d.uscita);
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+    
+    return dipendentiConContratti.filter((d) => {
+      if (!d.uscita) return true;
+      
+      // Se ha uscita, controlla se la data è futura
+      const dataUscita = new Date(d.uscita.data_uscita);
+      dataUscita.setHours(0, 0, 0, 0);
+      
+      // Se la data uscita è futura, mostralo in contratti attivi
+      return dataUscita > oggi;
+    });
   }, [dipendentiConContratti]);
 
   const contrattiTerminati = useMemo(() => {
-    return dipendentiConContratti.filter((d) => d.uscita);
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+    
+    return dipendentiConContratti.filter((d) => {
+      if (!d.uscita) return false;
+      
+      // Mostra solo se la data uscita è passata (oggi o prima)
+      const dataUscita = new Date(d.uscita.data_uscita);
+      dataUscita.setHours(0, 0, 0, 0);
+      
+      return dataUscita <= oggi;
+    });
   }, [dipendentiConContratti]);
 
   const stats = useMemo(() => {
@@ -648,16 +671,29 @@ export default function OverviewContratti() {
                   {contrattiAttivi.map((dip) => {
                   const isScaduto = dip.giorni_rimanenti !== null && dip.giorni_rimanenti < 0;
                   const isInScadenza = dip.giorni_rimanenti !== null && dip.giorni_rimanenti >= 0 && dip.giorni_rimanenti <= 30;
+                  
+                  // Check if uscita is in the future
+                  const hasFutureExit = dip.uscita && new Date(dip.uscita.data_uscita) > new Date();
+                  const giorniUscita = hasFutureExit ? Math.ceil((new Date(dip.uscita.data_uscita) - new Date()) / (1000 * 60 * 60 * 24)) : null;
 
                   return (
                     <tr
                       key={dip.id}
                       className={`border-b border-slate-100 hover:bg-slate-50 ${
+                      hasFutureExit ? 'bg-yellow-50' :
                       isScaduto ? 'bg-red-50' : isInScadenza ? 'bg-orange-50' : ''}`
                       }>
 
                         <td className="py-3 px-2 font-medium text-slate-800">
-                          {dip.nome_cognome}
+                          <div>
+                            {dip.nome_cognome}
+                            {hasFutureExit && (
+                              <div className="text-xs font-bold text-yellow-700 mt-1 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3" />
+                                Uscita prevista tra {giorniUscita} giorni ({moment(dip.uscita.data_uscita).format('DD/MM/YYYY')})
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-2">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
