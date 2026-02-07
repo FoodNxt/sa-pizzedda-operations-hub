@@ -2795,7 +2795,15 @@ export default function Financials() {
                               <p className="text-xs font-bold text-slate-800 mb-2 border-b border-slate-200 pb-1">
                                 Periodo Corrente
                               </p>
-                              <p className="text-xs text-slate-600 mb-1">Data: {label}</p>
+                              <p className="text-xs text-slate-600 mb-1">
+                                {(() => {
+                                  const currentDateObj = data.parsedDate;
+                                  if (currentDateObj && isValid(currentDateObj)) {
+                                    return `Data: ${format(currentDateObj, 'EEE dd/MM', { locale: it })}`;
+                                  }
+                                  return `Data: ${label}`;
+                                })()}
+                              </p>
                               {payload.map((entry, idx) => {
                                 if (entry.dataKey === 'revenue' || entry.dataKey === 'avgValue' || entry.dataKey === 'trend') {
                                   return (
@@ -2817,7 +2825,17 @@ export default function Financials() {
                                   <p className="text-xs font-bold text-slate-800 mt-3 mb-2 border-b border-slate-200 pb-1">
                                     Periodo di Confronto
                                   </p>
-                                  <p className="text-xs text-slate-600 mb-1">Data: {data.compareDate || label}</p>
+                                  <p className="text-xs text-slate-600 mb-1">
+                                    {(() => {
+                                      if (data.compareDate) {
+                                        const compareDateObj = safeParseDate(data.compareDate + 'T00:00:00');
+                                        if (compareDateObj && isValid(compareDateObj)) {
+                                          return `Data: ${format(compareDateObj, 'EEE dd/MM', { locale: it })}`;
+                                        }
+                                      }
+                                      return `Data: ${data.compareDate || label}`;
+                                    })()}
+                                  </p>
                                   {data.compareRevenue !== null && (
                                     <p className="text-xs text-slate-700 mb-1">
                                       <span style={{ color: '#f59e0b' }}>Revenue: </span>
