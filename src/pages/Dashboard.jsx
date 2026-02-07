@@ -212,11 +212,13 @@ export default function Dashboard() {
     const filteredData = iPraticoData.filter((item) => {
       if (!item.order_date) return false;
 
-      const itemDate = safeParseDate(item.order_date);
-      if (!itemDate) return false;
+      const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
+      const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
 
-      if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
-      if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
+      if (!itemDateStart || !itemDateEnd) return false;
+
+      if (cutoffDate && isBefore(itemDateEnd, cutoffDate)) return false;
+      if (endFilterDate && isAfter(itemDateStart, endFilterDate)) return false;
 
       return true;
     });

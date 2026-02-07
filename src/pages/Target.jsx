@@ -1,0 +1,1521 @@
+import React, { useState, useMemo } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { TrendingUp, DollarSign, BarChart3, AlertTriangle, CheckCircle, Settings, X, ChevronUp, Loader2 } from 'lucide-react';
+import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { format, subDays, isAfter, isBefore, parseISO, isValid, addDays, subYears } from 'date-fns';
+import { it } from 'date-fns/locale';
+import ProtectedPage from "../components/ProtectedPage";
+import { formatCurrency, formatEuro } from "../components/utils/formatCurrency";
+
+export default function Target() {
+  const [targetRevenue, setTargetRevenue] = useState('');
+  const [targetStore, setTargetStore] = useState('all');
+  const [targetApp, setTargetApp] = useState('');
+  const [targetChannel, setTargetChannel] = useState('');
+  const [targetDateMode, setTargetDateMode] = useState('range');
+  const [targetStartDate, setTargetStartDate] = useState('');
+  const [targetEndDate, setTargetEndDate] = useState('');
+  const [historicalDaysTarget, setHistoricalDaysTarget] = useState(30);
+  const [useEMA, setUseEMA] = useState(false);
+  const [growthRatePeriodDays, setGrowthRatePeriodDays] = useState(0);
+  const [selectedTargetView, setSelectedTargetView] = useState('list');
+  const [selectedTargetId, setSelectedTargetId] = useState(null);
+  const [targetName, setTargetName] = useState('');
+  const [detailView, setDetailView] = useState('daily');
+  const [splitBy, setSplitBy] = useState('store');
+  const [channelMapping, setChannelMapping] = useState({});
+  const [appMapping, setAppMapping] = useState({});
+
+  const queryClient = useQueryClient();
+
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list()
+  });
+
+  const { data: iPraticoData = [] } = useQuery({
+    queryKey: ['iPratico'],
+    queryFn: () => base44.entities.iPratico.list('-order_date', 1000)
+  });
+
+  const { data: financeConfigs = [] } = useQuery({
+    queryKey: ['finance-configs'],
+    queryFn: () => base44.entities.FinanceConfig.list()
+  });
+
+  const { data: targets = [] } = useQuery({
+    queryKey: ['targets'],
+    queryFn: () => base44.entities.Target.list()
+  });
+
+  const saveTargetMutation = useMutation({
+    mutationFn: (targetData) => base44.entities.Target.create(targetData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['targets'] });
+      setSelectedTargetView('list');
+      setTargetName('');
+    }
+  });
+
+  const updateTargetMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Target.update(id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['targets'] });
+      await queryClient.refetchQueries({ queryKey: ['targets'] });
+    }
+  });
+
+  const deleteTargetMutation = useMutation({
+    mutationFn: (id) => base44.entities.Target.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['targets'] });
+      setSelectedTargetView('list');
+      setSelectedTargetId(null);
+    }
+  });
+
+  React.useEffect(() => {
+    const activeConfig = financeConfigs.find((c) => c.is_active);
+    if (activeConfig) {
+      setChannelMapping(activeConfig.channel_mapping || {});
+      setAppMapping(activeConfig.app_mapping || {});
+    }
+  }, [financeConfigs]);
+
+  const safeParseDate = (dateString) => {
+    if (!dateString) return null;
+    try {
+      const date = parseISO(dateString);
+      if (!isValid(date)) return null;
+      return date;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const safeFormatDate = (date, formatString) => {
+    if (!date || !isValid(date)) return 'N/A';
+    try {
+      return format(date, formatString);
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
+  const allChannels = useMemo(() => {
+    const channelSet = new Set();
+    iPraticoData.forEach((item) => {
+      ['delivery', 'takeaway', 'takeawayOnSite', 'store'].forEach((key) => {
+        const mappedKey = channelMapping[key] || key;
+        channelSet.add(mappedKey);
+      });
+    });
+    return Array.from(channelSet);
+  }, [iPraticoData, channelMapping]);
+
+  const allApps = useMemo(() => {
+    const appSet = new Set();
+    iPraticoData.forEach((item) => {
+      ['glovo', 'deliveroo', 'justeat', 'onlineordering', 'ordertable', 'tabesto', 'store'].forEach((key) => {
+        const mappedKey = appMapping[key] || key;
+        appSet.add(mappedKey);
+      });
+    });
+    return Array.from(appSet);
+  }, [iPraticoData, appMapping]);
+
+  return (
+    <ProtectedPage pageName="Target">
+      <div className="max-w-7xl mx-auto space-y-4 lg:space-y-6">
+        <div className="mb-4 lg:mb-6">
+          <h1 className="mb-1 text-2xl font-bold lg:text-3xl" style={{ color: '#000000' }}>Target Revenue</h1>
+          <p className="text-sm" style={{ color: '#000000' }}>Monitora e prevedi i tuoi target di revenue</p>
+        </div>
+
+        {selectedTargetView === 'list' && (
+          <>
+            <NeumorphicCard className="p-6 mb-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-slate-800">I Tuoi Target</h2>
+                <button
+                  onClick={() => {
+                    setSelectedTargetView('create');
+                    setTargetName('');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
+                >
+                  + Nuovo Target
+                </button>
+              </div>
+            </NeumorphicCard>
+
+            {targets.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {targets.map((target) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  
+                  let periodStart, periodEnd;
+                  if (target.date_mode === 'rolling') {
+                    periodEnd = new Date(today);
+                    periodEnd.setDate(today.getDate() + 29);
+                    periodStart = today;
+                  } else {
+                    periodStart = target.start_date ? new Date(target.start_date) : today;
+                    periodEnd = target.end_date ? new Date(target.end_date) : today;
+                  }
+
+                  const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+                  const daysPassed = Math.max(0, Math.ceil((today - periodStart) / (1000 * 60 * 60 * 24)));
+                  const daysRemaining = Math.max(0, totalDays - daysPassed);
+
+                  let currentRevenue = 0;
+                  const currentData = iPraticoData.filter(item => {
+                    if (!item.order_date) return false;
+                    const itemDate = new Date(item.order_date);
+                    itemDate.setHours(0, 0, 0, 0);
+                    if (itemDate < periodStart || itemDate > today) return false;
+                    if (target.store_id !== 'all' && item.store_id !== target.store_id) return false;
+                    return true;
+                  });
+
+                  currentData.forEach(item => {
+                    let itemRevenue = 0;
+                    if (target.app) {
+                      const apps = [
+                        { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                        { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                        { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                        { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                        { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                        { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                        { key: 'store', revenue: item.sourceApp_store || 0 }
+                      ];
+                      apps.forEach(app => {
+                        const mappedKey = appMapping[app.key] || app.key;
+                        if (mappedKey === target.app) itemRevenue += app.revenue;
+                      });
+                    } else if (target.channel) {
+                      const channels = [
+                        { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                        { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                        { key: 'store', revenue: item.sourceType_store || 0 }
+                      ];
+                      channels.forEach(ch => {
+                        const mappedKey = channelMapping[ch.key] || ch.key;
+                        if (mappedKey === target.channel) itemRevenue += ch.revenue;
+                      });
+                    } else {
+                      itemRevenue = item.total_revenue || 0;
+                    }
+                    currentRevenue += itemRevenue;
+                  });
+
+                  const historicalCutoff = subDays(today, target.historical_days || 30);
+                  const historicalData = iPraticoData.filter(item => {
+                    if (!item.order_date) return false;
+                    const itemDate = new Date(item.order_date);
+                    itemDate.setHours(0, 0, 0, 0);
+                    if (itemDate < historicalCutoff || itemDate >= today) return false;
+                    if (target.store_id !== 'all' && item.store_id !== target.store_id) return false;
+                    return true;
+                  });
+
+                  const dailyTotals = {};
+                  historicalData.forEach(item => {
+                    if (!dailyTotals[item.order_date]) dailyTotals[item.order_date] = 0;
+                    let itemRevenue = item.total_revenue || 0;
+                    if (target.app) {
+                      itemRevenue = 0;
+                      const apps = [
+                        { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                        { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                        { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                        { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                        { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                        { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                        { key: 'store', revenue: item.sourceApp_store || 0 }
+                      ];
+                      apps.forEach(app => {
+                        const mappedKey = appMapping[app.key] || app.key;
+                        if (mappedKey === target.app) itemRevenue += app.revenue;
+                      });
+                    } else if (target.channel) {
+                      itemRevenue = 0;
+                      const channels = [
+                        { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                        { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                        { key: 'store', revenue: item.sourceType_store || 0 }
+                      ];
+                      channels.forEach(ch => {
+                        const mappedKey = channelMapping[ch.key] || ch.key;
+                        if (mappedKey === target.channel) itemRevenue += ch.revenue;
+                      });
+                    }
+                    dailyTotals[item.order_date] += itemRevenue;
+                  });
+
+                  const dayOfWeekRevenues = {};
+                  Object.entries(dailyTotals).forEach(([date, revenue]) => {
+                    const itemDate = new Date(date);
+                    const dayOfWeek = itemDate.getDay();
+                    if (!dayOfWeekRevenues[dayOfWeek]) dayOfWeekRevenues[dayOfWeek] = [];
+                    dayOfWeekRevenues[dayOfWeek].push(revenue);
+                  });
+
+                  const avgByDayOfWeek = {};
+                  Object.keys(dayOfWeekRevenues).forEach(dayOfWeek => {
+                    const revenues = dayOfWeekRevenues[dayOfWeek];
+                    let avg = 0;
+                    
+                    if (target.use_ema && revenues.length > 0) {
+                      const alpha = 0.2;
+                      avg = revenues[0];
+                      for (let i = 1; i < revenues.length; i++) {
+                        avg = alpha * revenues[i] + (1 - alpha) * avg;
+                      }
+                    } else {
+                      avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                    }
+                    
+                    avgByDayOfWeek[dayOfWeek] = avg;
+                  });
+
+                  let cardDailyGrowthRate = 0;
+                  if (target.growth_rate_period_days > 0) {
+                    const growthCutoff = subDays(today, target.growth_rate_period_days);
+                    const growthData = Object.entries(dailyTotals)
+                      .filter(([date]) => {
+                        const d = new Date(date);
+                        return d >= growthCutoff && d < today;
+                      })
+                      .sort(([a], [b]) => a.localeCompare(b));
+                    
+                    if (growthData.length >= 2) {
+                      const n = growthData.length;
+                      let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                      
+                      growthData.forEach(([date, revenue], index) => {
+                        sumX += index;
+                        sumY += revenue;
+                        sumXY += index * revenue;
+                        sumX2 += index * index;
+                      });
+                      
+                      const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                      cardDailyGrowthRate = slope;
+                    }
+                  }
+
+                  let predictedRevenue = 0;
+                  for (let i = 0; i < daysRemaining; i++) {
+                    const futureDate = new Date(today);
+                    futureDate.setDate(today.getDate() + i);
+                    const dayOfWeek = futureDate.getDay();
+                    const baseRev = avgByDayOfWeek[dayOfWeek] || 0;
+                    const growthAdj = cardDailyGrowthRate * (daysPassed + i);
+                    predictedRevenue += baseRev + growthAdj;
+                  }
+
+                  const totalProjected = currentRevenue + predictedRevenue;
+                  const gap = target.target_revenue - totalProjected;
+                  const progressPercent = target.target_revenue > 0 ? (totalProjected / target.target_revenue) * 100 : 0;
+
+                  return (
+                    <NeumorphicCard
+                      key={target.id}
+                      className="p-6 hover:shadow-lg transition-all cursor-pointer relative group"
+                      onClick={() => {
+                        setSelectedTargetId(target.id);
+                        setTargetRevenue(target.target_revenue.toString());
+                        setTargetStore(target.store_id || 'all');
+                        setTargetChannel(target.channel || '');
+                        setTargetApp(target.app || '');
+                        setTargetDateMode(target.date_mode || 'range');
+                        setTargetStartDate(target.start_date || '');
+                        setTargetEndDate(target.end_date || '');
+                        setHistoricalDaysTarget(target.historical_days || 30);
+                        setUseEMA(target.use_ema || false);
+                        setGrowthRatePeriodDays(target.growth_rate_period_days || 0);
+                        setSelectedTargetView('details');
+                      }}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="text-lg font-bold text-slate-800">{target.name}</h3>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTargetId(target.id);
+                              setTargetRevenue(target.target_revenue.toString());
+                              setTargetStore(target.store_id || 'all');
+                              setTargetChannel(target.channel || '');
+                              setTargetApp(target.app || '');
+                              setTargetDateMode(target.date_mode || 'range');
+                              setTargetStartDate(target.start_date || '');
+                              setTargetEndDate(target.end_date || '');
+                              setHistoricalDaysTarget(target.historical_days || 30);
+                              setUseEMA(target.use_ema || false);
+                              setGrowthRatePeriodDays(target.growth_rate_period_days || 0);
+                              setTargetName(target.name);
+                              setSelectedTargetView('edit');
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                          >
+                            <Settings className="w-4 h-4 text-slate-600" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Eliminare questo target?')) {
+                                deleteTargetMutation.mutate(target.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-red-100 transition-colors"
+                          >
+                            <X className="w-4 h-4 text-red-600" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <p className="text-2xl font-bold text-blue-600 mb-3">{formatEuro(target.target_revenue)}</p>
+                      
+                      <div className="space-y-2 mb-3">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-500">Previsione:</span>
+                          <span className={`font-bold ${gap <= 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                            {formatEuro(totalProjected)}
+                          </span>
+                        </div>
+                        <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                          <div 
+                            className={`h-full transition-all ${gap <= 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'}`}
+                            style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={`font-bold ${gap <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {gap <= 0 ? '✓ Sopra target' : '⚠ Sotto target'}
+                          </span>
+                          <span className="text-slate-600">{progressPercent.toFixed(0)}%</span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-xs text-slate-500">
+                        {target.store_id && target.store_id !== 'all' ? stores.find(s => s.id === target.store_id)?.name || 'Locale' : 'Tutti i Locali'}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Clicca per vedere il dettaglio completo
+                      </p>
+                    </NeumorphicCard>
+                  );
+                })}
+              </div>
+            ) : (
+              <NeumorphicCard className="p-6 text-center">
+                <TrendingUp className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500 mb-4">Nessun target impostato</p>
+                <button
+                  onClick={() => {
+                    setSelectedTargetView('create');
+                    setTargetName('');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
+                >
+                  Crea il tuo primo target
+                </button>
+              </NeumorphicCard>
+            )}
+          </>
+        )}
+
+        {(selectedTargetView === 'create' || selectedTargetView === 'edit') && (
+          <>
+            <NeumorphicCard className="p-6 mb-6">
+              <div className="flex items-center gap-3 mb-6">
+                <button
+                  onClick={() => {
+                    setSelectedTargetView('list');
+                    setSelectedTargetId(null);
+                    setTargetName('');
+                  }}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <ChevronUp className="w-5 h-5 text-slate-600 rotate-90" />
+                </button>
+                <h2 className="text-lg font-bold text-slate-800">
+                  {selectedTargetView === 'edit' ? 'Modifica Target' : 'Crea Nuovo Target'}
+                </h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Nome Target</label>
+                  <input
+                    type="text"
+                    value={targetName}
+                    onChange={(e) => setTargetName(e.target.value)}
+                    placeholder="es. Target Febbraio"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Target Revenue (€)</label>
+                  <input
+                    type="number"
+                    value={targetRevenue}
+                    onChange={(e) => setTargetRevenue(e.target.value)}
+                    placeholder="es. 50000"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Locale</label>
+                  <select
+                    value={targetStore}
+                    onChange={(e) => setTargetStore(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="all">Tutti i Locali</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Canale (opzionale)</label>
+                  <select
+                    value={targetChannel}
+                    onChange={(e) => setTargetChannel(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="">Tutti i Canali</option>
+                    {allChannels.map(channel => (
+                      <option key={channel} value={channel}>{channel.charAt(0).toUpperCase() + channel.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">App (opzionale)</label>
+                  <select
+                    value={targetApp}
+                    onChange={(e) => setTargetApp(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="">Tutte le App</option>
+                    {allApps.map(app => (
+                      <option key={app} value={app}>{app.charAt(0).toUpperCase() + app.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Modalità Periodo</label>
+                  <select
+                    value={targetDateMode}
+                    onChange={(e) => setTargetDateMode(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="range">Range Specifico</option>
+                    <option value="rolling">Rolling (ultimi 30 gg)</option>
+                  </select>
+                </div>
+
+                {targetDateMode === 'range' && (
+                  <>
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Data Inizio</label>
+                      <input
+                        type="date"
+                        value={targetStartDate}
+                        onChange={(e) => setTargetStartDate(e.target.value)}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-slate-600 mb-2 block font-medium">Data Target</label>
+                      <input
+                        type="date"
+                        value={targetEndDate}
+                        onChange={(e) => setTargetEndDate(e.target.value)}
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Giorni Storici per Stagionalità</label>
+                  <select
+                    value={historicalDaysTarget}
+                    onChange={(e) => setHistoricalDaysTarget(parseInt(e.target.value))}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="30">30 giorni</option>
+                    <option value="60">60 giorni</option>
+                    <option value="90">90 giorni</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Metodo Calcolo Stagionalità</label>
+                  <select
+                    value={useEMA}
+                    onChange={(e) => setUseEMA(e.target.value === 'true')}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="false">Media Semplice</option>
+                    <option value="true">Media Mobile Esponenziale (α=0.2)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-600 mb-2 block font-medium">Tasso Crescita (Regressione Lineare)</label>
+                  <select
+                    value={growthRatePeriodDays}
+                    onChange={(e) => setGrowthRatePeriodDays(parseInt(e.target.value))}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  >
+                    <option value="0">Nessuno</option>
+                    <option value="30">30 giorni</option>
+                    <option value="60">60 giorni</option>
+                    <option value="90">90 giorni</option>
+                    <option value="180">180 giorni</option>
+                    <option value="365">365 giorni</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setSelectedTargetView('list');
+                    setSelectedTargetId(null);
+                    setTargetName('');
+                  }}
+                  className="flex-1 px-4 py-3 rounded-xl bg-slate-200 text-slate-700 font-medium text-sm hover:bg-slate-300 transition-colors"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={() => {
+                    if (targetName && targetRevenue) {
+                      if (selectedTargetView === 'edit' && selectedTargetId) {
+                        updateTargetMutation.mutate({
+                          id: selectedTargetId,
+                          data: {
+                            name: targetName,
+                            target_revenue: parseFloat(targetRevenue),
+                            store_id: targetStore,
+                            channel: targetChannel,
+                            app: targetApp,
+                            date_mode: targetDateMode,
+                            start_date: targetStartDate,
+                            end_date: targetEndDate,
+                            historical_days: historicalDaysTarget,
+                            use_ema: useEMA,
+                            growth_rate_period_days: growthRatePeriodDays
+                          }
+                        });
+                      } else {
+                        saveTargetMutation.mutate({
+                          name: targetName,
+                          target_revenue: parseFloat(targetRevenue),
+                          store_id: targetStore,
+                          channel: targetChannel,
+                          app: targetApp,
+                          date_mode: targetDateMode,
+                          start_date: targetStartDate,
+                          end_date: targetEndDate,
+                          historical_days: historicalDaysTarget,
+                          use_ema: useEMA,
+                          growth_rate_period_days: growthRatePeriodDays
+                        });
+                      }
+                    }
+                  }}
+                  className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors"
+                >
+                  {selectedTargetView === 'edit' ? 'Aggiorna Target' : 'Salva Target'}
+                </button>
+              </div>
+            </NeumorphicCard>
+          </>
+        )}
+
+        {selectedTargetView === 'details' && (
+          <button
+            onClick={() => setSelectedTargetView('list')}
+            className="mb-4 p-2 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-2"
+          >
+            <ChevronUp className="w-5 h-5 text-slate-600 rotate-90" />
+            <span className="text-slate-600">Torna alla lista</span>
+          </button>
+        )}
+
+        {selectedTargetView === 'details' && (() => {
+          const selectedTarget = targets.find(t => t.id === selectedTargetId);
+          
+          const activeTargetRevenue = selectedTarget?.target_revenue || parseFloat(targetRevenue);
+          const activeTargetStore = selectedTarget?.store_id || targetStore;
+          const activeTargetChannel = selectedTarget?.channel || targetChannel;
+          const activeTargetApp = selectedTarget?.app || targetApp;
+          const activeTargetDateMode = selectedTarget?.date_mode || targetDateMode;
+          const activeTargetStartDate = selectedTarget?.start_date || targetStartDate;
+          const activeTargetEndDate = selectedTarget?.end_date || targetEndDate;
+          const activeHistoricalDays = selectedTarget?.historical_days || historicalDaysTarget;
+          const activeUseEMA = selectedTarget?.use_ema !== undefined ? selectedTarget.use_ema : useEMA;
+          const activeGrowthRatePeriodDays = selectedTarget?.growth_rate_period_days !== undefined ? selectedTarget.growth_rate_period_days : growthRatePeriodDays;
+          
+          const effectiveGrowthPeriodDays = activeGrowthRatePeriodDays || 0;
+          
+          if (!activeTargetRevenue || (activeTargetDateMode === 'range' && (!activeTargetStartDate || !activeTargetEndDate))) {
+            return (
+              <NeumorphicCard className="p-6 text-center">
+                <TrendingUp className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500">Configura il target per vedere la previsione</p>
+              </NeumorphicCard>
+            );
+          }
+
+          const target = activeTargetRevenue;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          let periodStart, periodEnd;
+          if (activeTargetDateMode === 'rolling') {
+            periodEnd = new Date(today);
+            periodEnd.setDate(today.getDate() + 29);
+            periodStart = today;
+          } else {
+            periodStart = new Date(activeTargetStartDate);
+            periodEnd = new Date(activeTargetEndDate);
+          }
+
+          const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+          const daysPassed = Math.max(0, Math.ceil((today - periodStart) / (1000 * 60 * 60 * 24)));
+          const daysRemaining = Math.max(0, totalDays - daysPassed);
+
+          let currentRevenue = 0;
+          const currentData = iPraticoData.filter(item => {
+            if (!item.order_date) return false;
+            const itemDate = new Date(item.order_date);
+            itemDate.setHours(0, 0, 0, 0);
+            if (itemDate < periodStart || itemDate > today) return false;
+            if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
+            return true;
+          });
+
+          currentData.forEach(item => {
+            let itemRevenue = 0;
+            if (activeTargetApp) {
+              const apps = [
+                { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                { key: 'store', revenue: item.sourceApp_store || 0 }
+              ];
+              apps.forEach(app => {
+                const mappedKey = appMapping[app.key] || app.key;
+                if (mappedKey === activeTargetApp) {
+                  itemRevenue += app.revenue;
+                }
+              });
+            } else if (activeTargetChannel) {
+              const channels = [
+                { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                { key: 'store', revenue: item.sourceType_store || 0 }
+              ];
+              channels.forEach(ch => {
+                const mappedKey = channelMapping[ch.key] || ch.key;
+                if (mappedKey === activeTargetChannel) {
+                  itemRevenue += ch.revenue;
+                }
+              });
+            } else {
+              itemRevenue = item.total_revenue || 0;
+            }
+            currentRevenue += itemRevenue;
+          });
+
+          let totalSeasonalityWeight = 0;
+          
+          const maxHistoricalDays = Math.max(activeHistoricalDays, effectiveGrowthPeriodDays || 0);
+          const historicalCutoff = subDays(today, maxHistoricalDays);
+          
+          const historicalData = iPraticoData.filter(item => {
+            if (!item.order_date) return false;
+            const itemDate = new Date(item.order_date);
+            itemDate.setHours(0, 0, 0, 0);
+            if (itemDate < historicalCutoff || itemDate >= today) return false;
+            if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
+            return true;
+          });
+
+          const dailyTotals = {};
+          historicalData.forEach(item => {
+            if (!dailyTotals[item.order_date]) {
+              dailyTotals[item.order_date] = 0;
+            }
+
+            let itemRevenue = 0;
+            if (activeTargetApp) {
+              const apps = [
+                { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                { key: 'store', revenue: item.sourceApp_store || 0 }
+              ];
+              apps.forEach(app => {
+                const mappedKey = appMapping[app.key] || app.key;
+                if (mappedKey === activeTargetApp) {
+                  itemRevenue += app.revenue;
+                }
+              });
+            } else if (activeTargetChannel) {
+              const channels = [
+                { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                { key: 'store', revenue: item.sourceType_store || 0 }
+              ];
+              channels.forEach(ch => {
+                const mappedKey = channelMapping[ch.key] || ch.key;
+                if (mappedKey === activeTargetChannel) {
+                  itemRevenue += ch.revenue;
+                }
+              });
+            } else {
+              itemRevenue = item.total_revenue || 0;
+            }
+            
+            dailyTotals[item.order_date] += itemRevenue;
+          });
+
+          const seasonalityCutoff = subDays(today, activeHistoricalDays);
+          const dayOfWeekRevenues = {};
+          Object.entries(dailyTotals).forEach(([date, revenue]) => {
+            const itemDate = new Date(date);
+            if (itemDate >= seasonalityCutoff) {
+              const dayOfWeek = itemDate.getDay();
+              if (!dayOfWeekRevenues[dayOfWeek]) {
+                dayOfWeekRevenues[dayOfWeek] = [];
+              }
+              dayOfWeekRevenues[dayOfWeek].push(revenue);
+            }
+          });
+
+          const actualHistoricalDays = Object.keys(dailyTotals).length;
+          const totalHistoricalRevenue = Object.values(dailyTotals).reduce((sum, r) => sum + r, 0);
+          const overallAvgDaily = actualHistoricalDays > 0 ? totalHistoricalRevenue / actualHistoricalDays : 0;
+
+          const avgByDayOfWeek = {};
+          
+          Object.keys(dayOfWeekRevenues).forEach(dayOfWeek => {
+            const revenues = dayOfWeekRevenues[dayOfWeek];
+            let avg = 0;
+            
+            if (activeUseEMA && revenues.length > 0) {
+              const alpha = 0.2;
+              avg = revenues[0];
+              for (let i = 1; i < revenues.length; i++) {
+                avg = alpha * revenues[i] + (1 - alpha) * avg;
+              }
+            } else {
+              avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+            }
+            
+            avgByDayOfWeek[dayOfWeek] = avg;
+          });
+
+          totalSeasonalityWeight = 0;
+          for (let i = 0; i < totalDays; i++) {
+            const currentDate = new Date(periodStart);
+            currentDate.setDate(periodStart.getDate() + i);
+            const dayOfWeek = currentDate.getDay();
+            totalSeasonalityWeight += avgByDayOfWeek[dayOfWeek] || 0;
+          }
+
+          let dailyGrowthRate = 0;
+          
+          if (effectiveGrowthPeriodDays > 0) {
+            const growthCutoff = subDays(today, effectiveGrowthPeriodDays);
+            const growthData = Object.entries(dailyTotals)
+              .filter(([date]) => {
+                const d = new Date(date);
+                return d >= growthCutoff && d < today;
+              })
+              .sort(([a], [b]) => a.localeCompare(b));
+
+            if (growthData.length >= 2) {
+              const n = growthData.length;
+              let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+
+              growthData.forEach(([date, revenue], index) => {
+                sumX += index;
+                sumY += revenue;
+                sumXY += index * revenue;
+                sumX2 += index * index;
+              });
+
+              const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+              dailyGrowthRate = slope;
+            }
+          }
+
+          let realGrowthRatePercent = 0;
+          let realGrowthAbsolute = 0;
+          const previousPeriodStart = subDays(periodStart, daysPassed);
+          const previousPeriodEnd = subDays(periodStart, 1);
+
+          const previousData = iPraticoData.filter(item => {
+            if (!item.order_date) return false;
+            const itemDate = new Date(item.order_date);
+            itemDate.setHours(0, 0, 0, 0);
+            if (itemDate < previousPeriodStart || itemDate > previousPeriodEnd) return false;
+            if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
+            return true;
+          });
+
+          let previousRevenue = 0;
+          previousData.forEach(item => {
+            let itemRevenue = 0;
+            if (activeTargetApp) {
+              const apps = [
+                { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                { key: 'store', revenue: item.sourceApp_store || 0 }
+              ];
+              apps.forEach(app => {
+                const mappedKey = appMapping[app.key] || app.key;
+                if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+              });
+            } else if (activeTargetChannel) {
+              const channels = [
+                { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                { key: 'store', revenue: item.sourceType_store || 0 }
+              ];
+              channels.forEach(ch => {
+                const mappedKey = channelMapping[ch.key] || ch.key;
+                if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+              });
+            } else {
+              itemRevenue = item.total_revenue || 0;
+            }
+            previousRevenue += itemRevenue;
+          });
+
+          if (previousRevenue > 0) {
+            realGrowthAbsolute = currentRevenue - previousRevenue;
+            realGrowthRatePercent = (realGrowthAbsolute / previousRevenue) * 100;
+          }
+
+          let yoyGrowthRatePercent = 0;
+          let yoyGrowthAbsolute = 0;
+          const yoyPeriodStart = subYears(periodStart, 1);
+          const yoyPeriodEnd = subYears(subDays(today, 1), 1);
+
+          const yoyData = iPraticoData.filter(item => {
+            if (!item.order_date) return false;
+            const itemDate = new Date(item.order_date);
+            itemDate.setHours(0, 0, 0, 0);
+            if (itemDate < yoyPeriodStart || itemDate > yoyPeriodEnd) return false;
+            if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
+            return true;
+          });
+
+          let yoyRevenue = 0;
+          yoyData.forEach(item => {
+            let itemRevenue = 0;
+            if (activeTargetApp) {
+              const apps = [
+                { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                { key: 'store', revenue: item.sourceApp_store || 0 }
+              ];
+              apps.forEach(app => {
+                const mappedKey = appMapping[app.key] || app.key;
+                if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+              });
+            } else if (activeTargetChannel) {
+              const channels = [
+                { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                { key: 'store', revenue: item.sourceType_store || 0 }
+              ];
+              channels.forEach(ch => {
+                const mappedKey = channelMapping[ch.key] || ch.key;
+                if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+              });
+            } else {
+              itemRevenue = item.total_revenue || 0;
+            }
+            yoyRevenue += itemRevenue;
+          });
+
+          if (yoyRevenue > 0) {
+            yoyGrowthAbsolute = currentRevenue - yoyRevenue;
+            yoyGrowthRatePercent = (yoyGrowthAbsolute / yoyRevenue) * 100;
+          }
+
+          let predictedRevenue = 0;
+          for (let i = 0; i < daysRemaining; i++) {
+            const futureDate = new Date(today);
+            futureDate.setDate(today.getDate() + i);
+            const dayOfWeek = futureDate.getDay();
+            const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+            
+            const growthAdjustment = dailyGrowthRate * (daysPassed + i);
+            predictedRevenue += baseRevenue + growthAdjustment;
+          }
+
+          const totalProjected = currentRevenue + predictedRevenue;
+          const gap = activeTargetRevenue - totalProjected;
+          const gapPercent = activeTargetRevenue > 0 ? (gap / activeTargetRevenue) * 100 : 0;
+          const progressPercent = activeTargetRevenue > 0 ? (totalProjected / activeTargetRevenue) * 100 : 0;
+          const currentProgress = activeTargetRevenue > 0 ? (currentRevenue / activeTargetRevenue) * 100 : 0;
+
+          return (
+            <>
+              {/* Target Info Header */}
+              {selectedTarget && (
+                <NeumorphicCard className="p-6 mb-6 bg-gradient-to-br from-blue-50 to-blue-100">
+                  <h2 className="text-2xl font-bold text-slate-800 mb-4">{selectedTarget.name}</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-500 mb-1">Target Revenue</p>
+                      <p className="font-bold text-blue-600 text-lg">{formatEuro(activeTargetRevenue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 mb-1">Locale</p>
+                      <p className="font-bold text-slate-800">
+                        {selectedTarget.store_id && selectedTarget.store_id !== 'all' 
+                          ? stores.find(s => s.id === selectedTarget.store_id)?.name || 'N/A'
+                          : 'Tutti i Locali'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 mb-1">Periodo</p>
+                      <p className="font-bold text-slate-800">
+                        {selectedTarget.date_mode === 'rolling' ? 'Rolling 30gg' : `${selectedTarget.start_date || 'N/A'} - ${selectedTarget.end_date || 'N/A'}`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 mb-1">Filtri</p>
+                      <p className="font-bold text-slate-800">
+                        {selectedTarget.channel || selectedTarget.app || 'Nessuno'}
+                      </p>
+                    </div>
+                  </div>
+                </NeumorphicCard>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <NeumorphicCard className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="text-sm text-slate-500 mb-1">Target</p>
+                      <p className="text-3xl font-bold text-blue-600">{formatEuro(activeTargetRevenue)}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-500">Obiettivo revenue</p>
+                </NeumorphicCard>
+
+                <NeumorphicCard className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="text-sm text-slate-500 mb-1">Attuale</p>
+                      <p className="text-3xl font-bold text-green-600">{formatEuro(currentRevenue)}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                      <DollarSign className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-green-500 to-green-600 h-full transition-all"
+                        style={{ width: `${Math.min(currentProgress, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-green-600">{currentProgress.toFixed(0)}%</span>
+                  </div>
+                </NeumorphicCard>
+
+                <NeumorphicCard className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="text-sm text-slate-500 mb-1">Previsione Finale</p>
+                      <p className="text-3xl font-bold text-purple-600">{formatEuro(totalProjected)}</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                      <BarChart3 className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-purple-600 h-full transition-all"
+                        style={{ width: `${Math.min(progressPercent, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-purple-600">{progressPercent.toFixed(0)}%</span>
+                  </div>
+                </NeumorphicCard>
+
+                <NeumorphicCard className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="text-sm text-slate-500 mb-1">Gap vs Target</p>
+                      <p className={`text-3xl font-bold ${gap > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {formatEuro(Math.abs(gap))}
+                      </p>
+                    </div>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                      gap > 0 ? 'bg-gradient-to-br from-red-500 to-red-600' : 'bg-gradient-to-br from-green-500 to-green-600'
+                    }`}>
+                      {gap > 0 ? <AlertTriangle className="w-6 h-6 text-white" /> : <CheckCircle className="w-6 h-6 text-white" />}
+                    </div>
+                  </div>
+                  <p className={`text-xs font-bold ${gap > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {gap > 0 ? 'Sotto target' : 'Sopra target'} di {Math.abs(gapPercent).toFixed(1)}%
+                  </p>
+                </NeumorphicCard>
+              </div>
+
+              {/* Growth Rate Analysis Card */}
+              <NeumorphicCard className="p-6 mb-6 bg-gradient-to-br from-cyan-50 to-cyan-100">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-slate-800 mb-2">Analisi Crescita</h3>
+                    
+                    <div className="mb-4 pb-4 border-b border-cyan-200">
+                      <p className="text-sm font-bold text-cyan-900 mb-2">
+                        Crescita Reale vs Periodo Precedente
+                      </p>
+                      <p className="text-xs text-slate-500 mb-2">
+                        📅 Periodo corrente: {format(periodStart, 'dd/MM')} - {format(subDays(today, 1), 'dd/MM/yyyy')} ({daysPassed} giorni)<br/>
+                        📅 Periodo precedente: {format(previousPeriodStart, 'dd/MM')} - {format(previousPeriodEnd, 'dd/MM/yyyy')} ({daysPassed} giorni)
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-slate-500 mb-1">Revenue Corrente</p>
+                          <p className="text-lg font-bold text-blue-600">
+                            {formatEuro(currentRevenue)}
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-slate-500 mb-1">Revenue Precedente</p>
+                          <p className="text-lg font-bold text-slate-600">
+                            {formatEuro(previousRevenue)}
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-slate-500 mb-1">Crescita %</p>
+                          <p className={`text-xl font-bold ${realGrowthRatePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {realGrowthRatePercent >= 0 ? '+' : ''}{realGrowthRatePercent.toFixed(1)}%
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-slate-500 mb-1">Differenza Assoluta</p>
+                          <p className={`text-xl font-bold ${realGrowthAbsolute >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {realGrowthAbsolute >= 0 ? '+' : ''}{formatEuro(realGrowthAbsolute)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4 pb-4 border-b border-cyan-200">
+                      <p className="text-sm font-bold text-cyan-900 mb-2">
+                        Crescita YoY (stesso periodo anno scorso)
+                      </p>
+                      <p className="text-xs text-slate-500 mb-2">
+                        📅 Periodo corrente: {format(periodStart, 'dd/MM')} - {format(subDays(today, 1), 'dd/MM/yyyy')} ({daysPassed} giorni)<br/>
+                        📅 Periodo YoY: {format(yoyPeriodStart, 'dd/MM')} - {format(yoyPeriodEnd, 'dd/MM/yyyy')} ({daysPassed} giorni)
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-slate-500 mb-1">Revenue Corrente</p>
+                          <p className="text-lg font-bold text-blue-600">
+                            {formatEuro(currentRevenue)}
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-slate-500 mb-1">Revenue Anno Scorso</p>
+                          <p className="text-lg font-bold text-slate-600">
+                            {formatEuro(yoyRevenue)}
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-slate-500 mb-1">Crescita %</p>
+                          <p className={`text-xl font-bold ${yoyGrowthRatePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {yoyGrowthRatePercent >= 0 ? '+' : ''}{yoyGrowthRatePercent.toFixed(1)}%
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-slate-500 mb-1">Differenza Assoluta</p>
+                          <p className={`text-xl font-bold ${yoyGrowthAbsolute >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {yoyGrowthAbsolute >= 0 ? '+' : ''}{formatEuro(yoyGrowthAbsolute)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {effectiveGrowthPeriodDays > 0 && (
+                      <>
+                        <p className="text-sm font-bold text-cyan-900 mb-2">
+                          Tasso Applicato alle Previsioni
+                        </p>
+                        <p className="text-xs text-slate-700 mb-3">
+                          Calcolato con <strong>regressione lineare</strong> sugli ultimi <strong>{effectiveGrowthPeriodDays} giorni</strong>
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="bg-white rounded-lg p-3">
+                            <p className="text-xs text-slate-500 mb-1">Tasso Giornaliero</p>
+                            <p className={`text-xl font-bold ${dailyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate)}/gg
+                            </p>
+                          </div>
+                          <div className="bg-white rounded-lg p-3">
+                            <p className="text-xs text-slate-500 mb-1">Tasso %</p>
+                            <p className={`text-xl font-bold ${dailyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {(() => {
+                                const avgDailyRevenue = actualHistoricalDays > 0 ? totalHistoricalRevenue / actualHistoricalDays : 0;
+                                const growthPercent = avgDailyRevenue > 0 ? (dailyGrowthRate / avgDailyRevenue) * 100 : 0;
+                                return `${growthPercent >= 0 ? '+' : ''}${growthPercent.toFixed(2)}%`;
+                              })()}
+                            </p>
+                          </div>
+                          <div className="bg-white rounded-lg p-3">
+                            <p className="text-xs text-slate-500 mb-1">Impatto su Periodo</p>
+                            <p className={`text-xl font-bold ${dailyGrowthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate * daysRemaining)}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </NeumorphicCard>
+
+              {/* Timeline Chart - same as Financials */}
+              <NeumorphicCard className="p-6 mb-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4">Andamento Temporale</h3>
+                <div className="w-full overflow-x-auto">
+                  <div style={{ minWidth: '500px' }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={(() => {
+                        const timelineData = [];
+                        const dailyRevenueMap = {};
+                        
+                        currentData.forEach(item => {
+                          if (!dailyRevenueMap[item.order_date]) {
+                            dailyRevenueMap[item.order_date] = 0;
+                          }
+                          let itemRevenue = 0;
+                          if (activeTargetApp) {
+                            const apps = [
+                              { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                              { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                              { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                              { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                              { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                              { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                              { key: 'store', revenue: item.sourceApp_store || 0 }
+                            ];
+                            apps.forEach(app => {
+                              const mappedKey = appMapping[app.key] || app.key;
+                              if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+                            });
+                          } else if (activeTargetChannel) {
+                            const channels = [
+                              { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                              { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                              { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                              { key: 'store', revenue: item.sourceType_store || 0 }
+                            ];
+                            channels.forEach(ch => {
+                              const mappedKey = channelMapping[ch.key] || ch.key;
+                              if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+                            });
+                          } else {
+                            itemRevenue = item.total_revenue || 0;
+                          }
+                          dailyRevenueMap[item.order_date] += itemRevenue;
+                        });
+
+                        let cumulativeActual = 0;
+                        let cumulativePredicted = 0;
+                        let cumulativeRequired = 0;
+                        
+                        for (let i = 0; i < totalDays; i++) {
+                          const currentDate = new Date(periodStart);
+                          currentDate.setDate(periodStart.getDate() + i);
+                          const dateStr = format(currentDate, 'yyyy-MM-dd');
+                          const isPast = currentDate < today;
+                          const dayOfWeek = currentDate.getDay();
+                          
+                          const dayRevenue = dailyRevenueMap[dateStr] || 0;
+                          const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                          const growthAdjustment = dailyGrowthRate * i;
+                          const predictedDayRevenue = baseRevenue + growthAdjustment;
+                          
+                          const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+                          const requiredDayRevenue = totalSeasonalityWeight > 0 ? (activeTargetRevenue * (dayWeight / totalSeasonalityWeight)) : (activeTargetRevenue / totalDays);
+                          
+                          if (isPast) {
+                            cumulativeActual += dayRevenue;
+                          } else {
+                            if (cumulativePredicted === 0) {
+                              cumulativePredicted = cumulativeActual;
+                            }
+                            cumulativePredicted += predictedDayRevenue;
+                          }
+                          
+                          cumulativeRequired += requiredDayRevenue;
+                          
+                          timelineData.push({
+                            date: format(currentDate, 'dd/MM'),
+                            actual: isPast ? parseFloat(cumulativeActual.toFixed(2)) : null,
+                            predicted: !isPast ? parseFloat(cumulativePredicted.toFixed(2)) : null,
+                            required: parseFloat(cumulativeRequired.toFixed(2))
+                          });
+                        }
+
+                        return timelineData;
+                      })()}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="#64748b" 
+                          tick={{ fontSize: 10 }}
+                          interval={Math.floor(totalDays / 10)}
+                        />
+                        <YAxis 
+                          stroke="#64748b" 
+                          tick={{ fontSize: 11 }}
+                          width={70}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            background: 'rgba(248, 250, 252, 0.95)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            fontSize: '11px'
+                          }}
+                          formatter={(value) => value ? `€${formatCurrency(value)}` : '-'}
+                        />
+                        <Legend wrapperStyle={{ fontSize: '11px' }} />
+                        
+                        <Line 
+                          type="monotone" 
+                          dataKey={() => activeTargetRevenue}
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                          strokeDasharray="3 3"
+                          name="Target"
+                          dot={false}
+                        />
+                        
+                        <Line 
+                          type="monotone" 
+                          dataKey="actual"
+                          stroke="#10b981"
+                          strokeWidth={3}
+                          name="Effettivo"
+                          dot={{ fill: '#10b981', r: 2 }}
+                          connectNulls={false}
+                        />
+                        
+                        <Line 
+                          type="monotone" 
+                          dataKey="predicted"
+                          stroke="#8b5cf6"
+                          strokeWidth={3}
+                          strokeDasharray="5 5"
+                          name="Previsto"
+                          dot={{ fill: '#8b5cf6', r: 2 }}
+                          connectNulls={false}
+                        />
+                        
+                        <Line 
+                          type="monotone" 
+                          dataKey="required"
+                          stroke="#f97316"
+                          strokeWidth={2}
+                          strokeDasharray="3 3"
+                          name="Richiesto"
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-3">
+                  📈 Il grafico mostra il revenue cumulativo nel periodo {format(periodStart, 'dd/MM')} - {format(periodEnd, 'dd/MM')}: linea verde = dati effettivi, linea viola tratteggiata = previsione{selectedTarget?.use_ema ? ' (EMA α=0.2)' : ''}{selectedTarget?.growth_rate_period_days > 0 ? ` + tasso crescita (${selectedTarget.growth_rate_period_days}gg)` : ''}, linea arancione = richiesto per target (con stagionalità)
+                </p>
+              </NeumorphicCard>
+
+              {/* Detail Tables and Rest of Details View - copy from Financials */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <NeumorphicCard className="p-6">
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">Dettaglio Periodo</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Giorni Totali</span>
+                      <span className="text-sm font-bold text-slate-800">{totalDays}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Giorni Passati</span>
+                      <span className="text-sm font-bold text-slate-800">{daysPassed}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Giorni Rimanenti</span>
+                      <span className="text-sm font-bold text-blue-600">{daysRemaining}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Revenue Media Giornaliera (reale)</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        {formatEuro(daysPassed > 0 ? currentRevenue / daysPassed : 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Giorni con Dati (periodo storico)</span>
+                      <span className="text-sm font-bold text-slate-800">{actualHistoricalDays}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Revenue Prevista (giorni rimanenti)</span>
+                      <span className="text-sm font-bold text-purple-600">{formatEuro(predictedRevenue)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-sm text-slate-600 font-bold">Revenue Giornaliera Necessaria</span>
+                      <span className="text-sm font-bold text-orange-600">
+                        {daysRemaining > 0 ? formatEuro((target - currentRevenue) / daysRemaining) : '-'}
+                      </span>
+                    </div>
+                  </div>
+                </NeumorphicCard>
+
+                <NeumorphicCard className="p-6">
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">Stagionalità per Giorno</h3>
+                  <div className="space-y-2">
+                    {['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'].map((dayName, idx) => {
+                      const dayOfWeek = idx === 6 ? 0 : idx + 1;
+                      const avgRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                      const maxAvg = Math.max(...Object.values(avgByDayOfWeek));
+                      const widthPercent = maxAvg > 0 ? (avgRevenue / maxAvg) * 100 : 0;
+
+                      return (
+                        <div key={dayName} className="flex items-center gap-3">
+                          <span className="text-xs text-slate-600 w-20">{dayName}</span>
+                          <div className="flex-1 bg-slate-200 rounded-full h-6 overflow-hidden relative">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 h-full transition-all flex items-center justify-end pr-2"
+                              style={{ width: `${widthPercent}%` }}
+                            >
+                              <span className="text-xs font-bold text-white">{formatEuro(avgRevenue)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-4">
+                    📊 Media calcolata sugli ultimi {activeHistoricalDays} giorni{activeUseEMA ? ' con Media Mobile Esponenziale (α=0.2)' : ''}
+                    {activeGrowthRatePeriodDays > 0 && dailyGrowthRate !== 0 && (
+                      <><br />📈 Tasso di crescita: {dailyGrowthRate >= 0 ? '+' : ''}{formatEuro(dailyGrowthRate)}/giorno (regressione lineare su {activeGrowthRatePeriodDays}gg)</>
+                    )}
+                  </p>
+                </NeumorphicCard>
+              </div>
+
+              {gap > 0 && daysRemaining > 0 && (
+                <NeumorphicCard className="p-6 bg-orange-50 border-2 border-orange-200">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0">
+                      <AlertTriangle className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-orange-800 mb-2">Azione Richiesta</h3>
+                      <p className="text-sm text-slate-700 mb-3">
+                        Per raggiungere il target di <strong>{formatEuro(activeTargetRevenue)}</strong> entro il {format(periodEnd, 'dd/MM/yyyy')}, 
+                        è necessario aumentare la revenue giornaliera media.
+                      </p>
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-slate-500 mb-1">Media Attuale (storico)</p>
+                          <p className="text-xl font-bold text-slate-800">
+                            {formatEuro(daysPassed > 0 ? currentRevenue / daysPassed : 0)}
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-lg p-3">
+                          <p className="text-xs text-slate-500 mb-1">Media Necessaria</p>
+                          <p className="text-xl font-bold text-orange-600">
+                            {formatEuro(daysRemaining > 0 ? (activeTargetRevenue - currentRevenue) / daysRemaining : 0)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </NeumorphicCard>
+              )}
+
+              {gap <= 0 && (
+                <NeumorphicCard className="p-6 bg-green-50 border-2 border-green-200">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-green-800 mb-2">Target Raggiunto!</h3>
+                      <p className="text-sm text-slate-700">
+                        La previsione indica che raggiungerai <strong>{formatEuro(totalProjected)}</strong>, 
+                        superando il target di <strong>{formatEuro(Math.abs(gap))}</strong> ({Math.abs(gapPercent).toFixed(1)}%).
+                      </p>
+                    </div>
+                  </div>
+                </NeumorphicCard>
+              )}
+            </>
+          );
+        })()}
+      </div>
+    </ProtectedPage>
+  );
+}

@@ -135,6 +135,12 @@ const navigationStructure = [
         icon: TrendingUp,
       },
       {
+        title: "Target",
+        page: "Target",
+        url: createPageUrl("Target"),
+        icon: TrendingUp,
+      },
+      {
         title: "Forms",
         page: "FinancialForms",
         url: createPageUrl("FinancialForms"),

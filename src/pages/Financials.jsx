@@ -2056,17 +2056,7 @@ export default function Financials() {
             <BarChart3 className="w-4 h-4" />
             Daily
           </button>
-          <button
-            onClick={() => setActiveTab('target')}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-            activeTab === 'target' ?
-            'neumorphic-pressed bg-blue-50 text-blue-700' :
-            'neumorphic-flat text-slate-600 hover:text-slate-800'}`
-            }>
 
-            <TrendingUp className="w-4 h-4" />
-            Target
-          </button>
         </div>
 
         {activeTab === 'overview' &&
@@ -4345,8 +4335,8 @@ export default function Financials() {
           </>
         }
 
-        {/* Target Tab */}
-        {activeTab === 'target' && (
+        {/* Target Tab - REMOVED - Now separate page */}
+        {activeTab === 'target_removed_now_separate_page' && (
           <>
             {selectedTargetView === 'list' && (
               <>
