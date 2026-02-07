@@ -2726,9 +2726,10 @@ export default function Financials() {
                         compareRevenueByDate[date].orders += item.total_orders || 0;
                       });
 
-                      const compareDailyData = Object.values(compareRevenueByDate)
-                        .map((d) => ({
-                          parsedDate: safeParseDate(d.date || ''),
+                      const compareDailyData = Object.entries(compareRevenueByDate)
+                        .map(([date, d]) => ({
+                          date: date,
+                          parsedDate: safeParseDate(date + 'T00:00:00'),
                           revenue: d.revenue,
                           orders: d.orders
                         }))
@@ -2741,7 +2742,9 @@ export default function Financials() {
                         return {
                           ...curr,
                           compareRevenue: comp ? parseFloat(comp.revenue.toFixed(2)) : null,
-                          compareAvgValue: comp && comp.orders > 0 ? parseFloat((comp.revenue / comp.orders).toFixed(2)) : null
+                          compareAvgValue: comp && comp.orders > 0 ? parseFloat((comp.revenue / comp.orders).toFixed(2)) : null,
+                          compareDate: comp ? comp.date : null,
+                          compareOrders: comp ? comp.orders : null
                         };
                       });
 
