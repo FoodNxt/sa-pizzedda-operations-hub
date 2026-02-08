@@ -1202,7 +1202,8 @@ export default function Layout({ children, currentPageName }) {
       'PlandayStoreManager': 'Planday',
       'FormSprechi': 'Sprechi',
       'FormSpostamenti': 'Spostamenti',
-      'PagamentoStraordinari': 'Pagamento Straordinari'
+      'PagamentoStraordinari': 'Pagamento Straordinari',
+      'Presenze': 'Presenze'
     };
     return titles[pageName] || pageName;
   };
@@ -1235,7 +1236,8 @@ export default function Layout({ children, currentPageName }) {
         'PlandayStoreManager': Calendar,
         'FormSprechi': AlertTriangle,
         'AssistenteDipendente': Users,
-        'PagamentoStraordinari': Euro
+        'PagamentoStraordinari': Euro,
+        'Presenze': Users
       };
       return icons[pageName] || User;
     } catch (error) {
