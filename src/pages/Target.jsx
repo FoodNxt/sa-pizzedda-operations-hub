@@ -698,7 +698,9 @@ export default function Target() {
             periodStart = today;
           } else {
             periodStart = new Date(activeTargetStartDate);
+            periodStart.setHours(0, 0, 0, 0);
             periodEnd = new Date(activeTargetEndDate);
+            periodEnd.setHours(0, 0, 0, 0);
           }
 
           const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
@@ -710,7 +712,8 @@ export default function Target() {
             if (!item.order_date) return false;
             const itemDate = new Date(item.order_date);
             itemDate.setHours(0, 0, 0, 0);
-            if (itemDate < periodStart || itemDate > today) return false;
+            const maxDate = today < periodEnd ? today : periodEnd;
+            if (itemDate < periodStart || itemDate > maxDate) return false;
             if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
             return true;
           });
@@ -1533,6 +1536,14 @@ export default function Target() {
                     <tbody>
                       {(() => {
                         const dailyRevenueMap = {};
+                        
+                        // Debug log per il primo giorno
+                        console.log('Period start:', periodStart);
+                        console.log('Period end:', periodEnd);
+                        console.log('Today:', today);
+                        console.log('Total currentData items:', currentData.length);
+                        console.log('First 5 items:', currentData.slice(0, 5).map(i => ({ date: i.order_date, revenue: i.total_revenue })));
+                        
                         currentData.forEach(item => {
                           if (!dailyRevenueMap[item.order_date]) {
                             dailyRevenueMap[item.order_date] = 0;
