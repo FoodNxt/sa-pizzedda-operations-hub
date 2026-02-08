@@ -710,7 +710,7 @@ export default function Target() {
             if (!item.order_date) return false;
             const itemDate = new Date(item.order_date);
             itemDate.setHours(0, 0, 0, 0);
-            if (itemDate < periodStart || itemDate >= today) return false;
+            if (itemDate < periodStart || itemDate > today) return false;
             if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
             return true;
           });
