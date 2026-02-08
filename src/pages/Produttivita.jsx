@@ -708,11 +708,46 @@ export default function Produttivita() {
     sort((a, b) => b.date.localeCompare(a.date));
   }, [filteredData, filteredShifts, dateRange, startDate, endDate]);
 
+  // Calculate total hours worked in the period
+  const totalHoursWorked = useMemo(() => {
+    const now = new Date();
+    let shiftStartDate, shiftEndDate;
+    
+    if (dateRange === 'month') {
+      shiftStartDate = startOfMonth(now);
+      shiftEndDate = endOfMonth(now);
+    } else if (dateRange === 'custom') {
+      shiftStartDate = parseISO(startDate);
+      shiftEndDate = parseISO(endDate);
+    } else {
+      shiftStartDate = null;
+      shiftEndDate = null;
+    }
+
+    let total = 0;
+    filteredShifts.forEach((shift) => {
+      if (!shift.ora_inizio || !shift.ora_fine || !shift.data) return;
+      if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
+
+      const date = parseISO(shift.data);
+      if (shiftStartDate && date < shiftStartDate) return;
+      if (shiftEndDate && date > shiftEndDate) return;
+
+      const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
+      const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
+      const hours = (endHour * 60 + endMin - (startHour * 60 + startMin)) / 60;
+      total += hours;
+    });
+
+    return total;
+  }, [filteredShifts, selectedStore, dateRange, startDate, endDate]);
+
   const stats = {
     totalRevenue: filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0),
     avgDailyRevenue: filteredData.length > 0 ? filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0) / filteredData.length : 0,
     daysTracked: filteredData.length,
-    totalHours: Object.values(hoursWorkedBySlot).reduce((sum, h) => sum + h, 0),
+    totalHours: totalHoursWorked,
+    hourlyProductivity: totalHoursWorked > 0 ? (filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0) / totalHoursWorked) : 0,
     peakHour: aggregatedData.length > 0 ? aggregatedData.reduce((max, h) => h.avgRevenue > max.avgRevenue ? h : max, aggregatedData[0]).slot : '-'
   };
 
@@ -731,73 +766,6 @@ export default function Produttivita() {
             <Settings className="w-5 h-5 text-slate-600" />
           </button>
         </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <NeumorphicCard className="p-6 text-center">
-            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <DollarSign className="w-8 h-8 text-green-600" />
-            </div>
-            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">€{stats.totalRevenue.toFixed(2)}</h3>
-            <p className="text-sm text-[#9b9b9b]">Revenue Totale</p>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-6 text-center">
-            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
-            </div>
-            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">€{stats.avgDailyRevenue.toFixed(2)}</h3>
-            <p className="text-sm text-[#9b9b9b]">Media Giornaliera</p>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-6 text-center">
-            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Calendar className="w-8 h-8 text-[#8b7355]" />
-            </div>
-            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{stats.daysTracked}</h3>
-            <p className="text-sm text-[#9b9b9b]">Giorni Tracciati</p>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-6 text-center">
-            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Clock className="w-8 h-8 text-orange-600" />
-            </div>
-            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{stats.totalHours.toFixed(1)}h</h3>
-            <p className="text-sm text-[#9b9b9b]">Ore Lavorate Totali</p>
-          </NeumorphicCard>
-        </div>
-
-        {/* View Toggle */}
-        <NeumorphicCard className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-[#6b6b6b] mb-1">Vista Temporale</h3>
-              <p className="text-sm text-[#9b9b9b]">Seleziona la granularità dei dati</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setTimeSlotView('30min')}
-                className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                timeSlotView === '30min' ?
-                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
-                'neumorphic-flat text-[#6b6b6b]'}`
-                }>
-
-                30 minuti
-              </button>
-              <button
-                onClick={() => setTimeSlotView('1hour')}
-                className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                timeSlotView === '1hour' ?
-                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
-                'neumorphic-flat text-[#6b6b6b]'}`
-                }>
-
-                1 ora
-              </button>
-            </div>
-          </div>
-        </NeumorphicCard>
 
         {/* Filters */}
         <NeumorphicCard className="p-6">
@@ -851,6 +819,81 @@ export default function Produttivita() {
                 </div>
               </>
             }
+          </div>
+        </NeumorphicCard>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <NeumorphicCard className="p-6 text-center">
+            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <DollarSign className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">€{stats.totalRevenue.toFixed(2)}</h3>
+            <p className="text-sm text-[#9b9b9b]">Revenue Totale</p>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-6 text-center">
+            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <TrendingUp className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">€{stats.avgDailyRevenue.toFixed(2)}</h3>
+            <p className="text-sm text-[#9b9b9b]">Media Giornaliera</p>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-6 text-center">
+            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <Calendar className="w-8 h-8 text-[#8b7355]" />
+            </div>
+            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{stats.daysTracked}</h3>
+            <p className="text-sm text-[#9b9b9b]">Giorni Tracciati</p>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-6 text-center">
+            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <Clock className="w-8 h-8 text-orange-600" />
+            </div>
+            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{stats.totalHours.toFixed(1)}h</h3>
+            <p className="text-sm text-[#9b9b9b]">Ore Lavorate Totali</p>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-6 text-center">
+            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <TrendingUp className="w-8 h-8 text-purple-600" />
+            </div>
+            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">€{stats.hourlyProductivity.toFixed(2)}/h</h3>
+            <p className="text-sm text-[#9b9b9b]">Produttività Oraria</p>
+          </NeumorphicCard>
+        </div>
+
+        {/* View Toggle */}
+        <NeumorphicCard className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-[#6b6b6b] mb-1">Vista Temporale</h3>
+              <p className="text-sm text-[#9b9b9b]">Seleziona la granularità dei dati</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTimeSlotView('30min')}
+                className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                timeSlotView === '30min' ?
+                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                'neumorphic-flat text-[#6b6b6b]'}`
+                }>
+
+                30 minuti
+              </button>
+              <button
+                onClick={() => setTimeSlotView('1hour')}
+                className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                timeSlotView === '1hour' ?
+                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                'neumorphic-flat text-[#6b6b6b]'}`
+                }>
+
+                1 ora
+              </button>
+            </div>
           </div>
         </NeumorphicCard>
 
