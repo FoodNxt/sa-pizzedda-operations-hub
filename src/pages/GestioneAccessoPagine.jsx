@@ -281,6 +281,7 @@ export default function GestioneAccessoPagine() {
   { value: 'FormDeposito', label: '✅ Form Deposito', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
   { value: 'FormPagamentiContanti', label: '✅ Form Pagamenti Contanti', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
   { value: 'AssistenteDipendente', label: '✅ Assistente AI', icon: Users, category: 'Area Dipendente', recommended: true },
+  { value: 'Presenze', label: '✅ Presenze', icon: Users, category: 'Area Dipendente', recommended: true },
   { value: 'Dashboard', label: '🚫 Dashboard Overview (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
   { value: 'SummaryAI', label: '🚫 Summary AI (DATI FINANZIARI)', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
   { value: 'StoreReviews', label: '🚫 Store Reviews', icon: AlertCircle, category: 'Pagine Sensibili', recommended: false },
