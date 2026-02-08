@@ -1414,8 +1414,8 @@ export default function Produttivita() {
             }
           </button>
           {!collapsedSections.produttivitaMensile && (
-          {Object.keys(storeProductivity).length > 0 ?
-          <div className="overflow-x-auto">
+            Object.keys(storeProductivity).length > 0 ?
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
