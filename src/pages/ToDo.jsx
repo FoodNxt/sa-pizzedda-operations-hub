@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Package, Calendar, ExternalLink, UserX, Users, FileText } from "lucide-react";
+import { AlertTriangle, Package, Calendar, ExternalLink, UserX, Users, FileText, Clock } from "lucide-react";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 import { Link } from 'react-router-dom';
@@ -89,6 +89,11 @@ export default function ToDo() {
   const { data: turni = [] } = useQuery({
     queryKey: ['turni-planday'],
     queryFn: () => base44.entities.TurnoPlanday.list()
+  });
+
+  const { data: periodoProvaConfig = [] } = useQuery({
+    queryKey: ['periodo-prova-config'],
+    queryFn: () => base44.entities.PeriodoProvaConfig.list()
   });
 
   const safeParseDate = (dateString) => {
@@ -313,6 +318,69 @@ export default function ToDo() {
     return Array.from(dipendentiMap.values()).sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
   }, [allUsers, contratti]);
 
+  const dipendentiInPeriodoProva = useMemo(() => {
+    if (!allUsers || !turni || !periodoProvaConfig) return [];
+    const activeConfig = periodoProvaConfig.find((c) => c.is_active);
+    const turniRichiesti = activeConfig?.turni_richiesti || 5;
+    const oggi = moment();
+
+    return allUsers
+      .filter((user) => {
+        if (user.user_type !== 'dipendente' && user.user_type !== 'user') return false;
+        if (!user.data_inizio_contratto) return false;
+        if (uscite.some((u) => u.dipendente_id === user.id && moment(u.data_uscita).isSameOrBefore(oggi))) return false;
+
+        const inizioContratto = moment(user.data_inizio_contratto);
+        if (inizioContratto.isAfter(oggi)) return false;
+
+        const turniEffettuati = turni.filter((t) =>
+          t.dipendente_id === user.id &&
+          t.data >= user.data_inizio_contratto &&
+          t.stato === 'completato'
+        ).length;
+
+        return turniEffettuati < turniRichiesti;
+      })
+      .map((user) => {
+        const turniEffettuati = turni.filter((t) =>
+          t.dipendente_id === user.id &&
+          t.data >= user.data_inizio_contratto &&
+          t.stato === 'completato'
+        ).length;
+
+        return {
+          dipendente: user.nome_cognome || user.full_name || 'N/A',
+          turniEffettuati,
+          turniMancanti: turniRichiesti - turniEffettuati,
+          dataInizio: user.data_inizio_contratto
+        };
+      })
+      .sort((a, b) => b.turniMancanti - a.turniMancanti);
+  }, [allUsers, turni, periodoProvaConfig, uscite]);
+
+  const dipendentiUscitiRecenti = useMemo(() => {
+    if (!uscite || !allUsers) return [];
+    const oggi = moment();
+    const trentaGiorniFa = moment().subtract(30, 'days');
+
+    return uscite
+      .filter((u) => {
+        const dataUscita = moment(u.data_uscita);
+        return dataUscita.isBetween(trentaGiorniFa, oggi, 'day', '[]');
+      })
+      .map((u) => {
+        const user = allUsers.find((usr) => usr.id === u.dipendente_id);
+        return {
+          dipendente: user?.nome_cognome || user?.full_name || 'N/A',
+          dataUscita: u.data_uscita,
+          giorniPassati: oggi.diff(moment(u.data_uscita), 'days'),
+          motivazione: u.motivazione,
+          tipo: u.tipo
+        };
+      })
+      .sort((a, b) => b.giorniPassati - a.giorniPassati);
+  }, [uscite, allUsers]);
+
   return (
     <ProtectedPage pageName="ToDo">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -322,13 +390,7 @@ export default function ToDo() {
         </div>
 
         {/* Alert Operativi */}
-        <NeumorphicCard className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-red-500" />
-            Alert Operativi
-          </h2>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Ordini da fare */}
             <div className="neumorphic-pressed p-4 rounded-xl">
               <Link to={createPageUrl('OrdiniAdmin')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
@@ -514,8 +576,66 @@ export default function ToDo() {
                 }
               </div>
             </div>
+
+            {/* Dipendenti in Periodo di Prova */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <Link to={createPageUrl('Alerts')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
+                <Clock className="w-4 h-4 text-blue-600" />
+                Dipendenti in Periodo di Prova
+                {dipendentiInPeriodoProva.length > 0 &&
+                  <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">{dipendentiInPeriodoProva.length}</span>
+                }
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {dipendentiInPeriodoProva.length > 0 ? dipendentiInPeriodoProva.map((d, idx) =>
+                  <div key={idx} className="p-2 rounded-lg bg-blue-50 border border-blue-200">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-xs font-medium text-slate-700">{d.dipendente}</p>
+                        <p className="text-[10px] text-blue-600">
+                          Inizio: {d.dataInizio && moment(d.dataInizio).isValid() ? moment(d.dataInizio).format('DD/MM/YYYY') : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-orange-700">{d.turniMancanti}</p>
+                        <p className="text-[10px] text-slate-500">turni mancanti</p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">Turni completati: {d.turniEffettuati}</p>
+                  </div>
+                ) :
+                  <p className="text-xs text-slate-400 text-center py-4">Nessun dipendente in periodo di prova</p>
+                }
+              </div>
+            </div>
+
+            {/* Dipendenti Usciti di Recente */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <Link to={createPageUrl('Uscite')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
+                <UserX className="w-4 h-4 text-slate-600" />
+                Dipendenti Usciti di Recente (30gg)
+                {dipendentiUscitiRecenti.length > 0 &&
+                  <span className="bg-slate-500 text-white text-xs px-2 py-0.5 rounded-full">{dipendentiUscitiRecenti.length}</span>
+                }
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {dipendentiUscitiRecenti.length > 0 ? dipendentiUscitiRecenti.map((d, idx) =>
+                  <div key={idx} className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+                    <p className="text-xs font-medium text-slate-700">{d.dipendente}</p>
+                    <p className="text-[10px] text-slate-600">
+                      Uscita: {d.dataUscita && moment(d.dataUscita).isValid() ? moment(d.dataUscita).format('DD/MM/YYYY') : 'N/A'} ({d.giorniPassati} giorni fa)
+                    </p>
+                    {d.tipo && <p className="text-[10px] text-slate-500 mt-1">{d.tipo === 'dimissioni' ? '📤 Dimissioni' : '❌ Licenziamento'}</p>}
+                    {d.motivazione && <p className="text-[10px] text-slate-400 mt-1">{d.motivazione}</p>}
+                  </div>
+                ) :
+                  <p className="text-xs text-slate-400 text-center py-4">Nessuna uscita recente</p>
+                }
+              </div>
+            </div>
           </div>
-        </NeumorphicCard>
       </div>
     </ProtectedPage>
   );

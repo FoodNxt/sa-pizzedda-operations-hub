@@ -162,6 +162,7 @@ import strutturamen from './pages/StrutturaMenù';
 import StrutturaTurno from './pages/StrutturaTurno';
 import Target from './pages/Target';
 import TeglieButtate from './pages/TeglieButtate';
+import ToDo from './pages/ToDo';
 import TurniDipendente from './pages/TurniDipendente';
 import UploadFattureXML from './pages/UploadFattureXML';
 import Uscite from './pages/Uscite';
@@ -173,7 +174,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import ToDo from './pages/ToDo';
 import __Layout from './Layout.jsx';
 
 
@@ -293,6 +293,7 @@ export const PAGES = {
     "StrutturaTurno": StrutturaTurno,
     "Target": Target,
     "TeglieButtate": TeglieButtate,
+    "ToDo": ToDo,
     "TurniDipendente": TurniDipendente,
     "UploadFattureXML": UploadFattureXML,
     "Uscite": Uscite,
@@ -304,7 +305,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "ToDo": ToDo,
 }
 
 export const pagesConfig = {
