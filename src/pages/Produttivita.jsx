@@ -1415,7 +1415,7 @@ export default function Produttivita() {
           </button>
           {!collapsedSections.produttivitaMensile && (
             Object.keys(storeProductivity).length > 0 ?
-          <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
@@ -1485,7 +1485,7 @@ export default function Produttivita() {
           </button>
           {!collapsedSections.datiRaw && (
             filteredData.length > 0 ?
-          <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
@@ -1518,8 +1518,7 @@ export default function Produttivita() {
                 </tbody>
               </table>
             </div> :
-
-          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
           )}
         </NeumorphicCard>
 

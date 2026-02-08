@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Package, Calendar, ExternalLink, UserX, Users } from "lucide-react";
+import { AlertTriangle, Package, Calendar, ExternalLink, UserX, Users, FileText } from "lucide-react";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 import { Link } from 'react-router-dom';
