@@ -5,7 +5,7 @@ import { TrendingUp, Clock, DollarSign, Calendar, Store, X, Settings } from 'luc
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, startOfMonth, endOfMonth, parseISO, startOfWeek, endOfWeek, getWeek } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, ComposedChart } from 'recharts';
 import ProtectedPage from "../components/ProtectedPage";
 
 export default function Produttivita() {
@@ -796,29 +796,13 @@ export default function Produttivita() {
         </NeumorphicCard>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <NeumorphicCard className="p-6 text-center">
             <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
               <DollarSign className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">€{stats.totalRevenue.toFixed(2)}</h3>
             <p className="text-sm text-[#9b9b9b]">Revenue Totale</p>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-6 text-center">
-            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
-            </div>
-            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">€{stats.avgDailyRevenue.toFixed(2)}</h3>
-            <p className="text-sm text-[#9b9b9b]">Media Giornaliera</p>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-6 text-center">
-            <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Calendar className="w-8 h-8 text-[#8b7355]" />
-            </div>
-            <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{stats.daysTracked}</h3>
-            <p className="text-sm text-[#9b9b9b]">Giorni Tracciati</p>
           </NeumorphicCard>
 
           <NeumorphicCard className="p-6 text-center">
@@ -894,6 +878,15 @@ export default function Produttivita() {
 
                    Ore Lavorate
                  </label>
+                 <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
+                   <input
+                    type="checkbox"
+                    checked={showRevenuePerHour}
+                    onChange={(e) => setShowRevenuePerHour(e.target.checked)}
+                    className="w-4 h-4" />
+
+                   €/ora
+                 </label>
                </div>
              </div>
              <div>
@@ -916,7 +909,7 @@ export default function Produttivita() {
            </div>
           {aggregatedData.length > 0 ?
           <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={aggregatedData}>
+              <ComposedChart data={aggregatedData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                 dataKey="slot"
@@ -931,13 +924,15 @@ export default function Produttivita() {
                 formatter={(value, name) => {
                   if (name === 'avgRevenue') return `€${value.toFixed(2)}`;
                   if (name === 'avgHours') return `${value.toFixed(1)}h`;
+                  if (name === 'revenuePerHour') return `€${value.toFixed(2)}/h`;
                   return value;
                 }} />
 
                 <Legend />
                 {showRevenue && <Bar yAxisId="left" dataKey="avgRevenue" fill="#3b82f6" name="Revenue Media (€)" />}
                 {showHours && <Bar yAxisId="right" dataKey="avgHours" fill="#f59e0b" name="Ore Medie Lavorate" />}
-              </BarChart>
+                {showRevenuePerHour && <Line yAxisId="left" type="monotone" dataKey="revenuePerHour" stroke="#10b981" strokeWidth={3} name="€/ora" dot={{ fill: '#10b981', r: 4 }} />}
+              </ComposedChart>
             </ResponsiveContainer> :
 
           <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
@@ -950,7 +945,8 @@ export default function Produttivita() {
             <div>
               <h3 className="text-lg font-bold text-[#6b6b6b]">Heatmap per Giorno e Slot</h3>
               <p className="text-sm text-[#9b9b9b]">
-                {heatmapMode === 'productivity' ? '€ fatturato / Ore lavorate (media per giorno e slot)' : 'Fatturato medio per giorno e slot'}
+                {heatmapMode === 'productivity' ? '€ fatturato / Ore lavorate (media per giorno e slot)' : 
+                 heatmapMode === 'revenue' ? 'Fatturato medio per giorno e slot' : 'Ore lavorate medie per giorno e slot'}
               </p>
             </div>
             <div className="flex gap-2">
@@ -974,6 +970,16 @@ export default function Produttivita() {
 
                 Fatturato (€)
               </button>
+              <button
+                onClick={() => setHeatmapMode('hours')}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                heatmapMode === 'hours' ?
+                'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                'neumorphic-flat text-[#6b6b6b]'}`
+                }>
+
+                Ore Lavorate
+              </button>
             </div>
           </div>
           {heatmapData.length > 0 && (() => {
@@ -991,8 +997,10 @@ export default function Produttivita() {
             slots.map((slot) => {
               if (heatmapMode === 'productivity') {
                 return row[slot] || 0;
-              } else {
+              } else if (heatmapMode === 'revenue') {
                 return row.metadata?.[slot]?.avgRevenue || 0;
+              } else {
+                return row.metadata?.[slot]?.avgHours || 0;
               }
             }).filter((v) => v > 0)
             );
@@ -1031,16 +1039,23 @@ export default function Produttivita() {
                         {slots.map((slot) => {
                         const value = heatmapMode === 'productivity' ?
                         row[slot] || 0 :
-                        row.metadata?.[slot]?.avgRevenue || 0;
+                        heatmapMode === 'revenue' ?
+                        row.metadata?.[slot]?.avgRevenue || 0 :
+                        row.metadata?.[slot]?.avgHours || 0;
                         const metadata = row.metadata?.[slot];
                         return (
                           <td
                             key={slot}
                             onClick={() => metadata && setSelectedHeatmapCell({ day: row.day, slot, ...metadata })}
                             className={`p-2 text-center font-semibold transition-all hover:scale-110 cursor-pointer ${getColor(value)}`}
-                            title={value > 0 ? heatmapMode === 'productivity' ? `€${value.toFixed(2)}/ora` : `€${value.toFixed(2)}` : 'Nessun dato'}>
+                            title={value > 0 ? 
+                              heatmapMode === 'productivity' ? `€${value.toFixed(2)}/ora` : 
+                              heatmapMode === 'revenue' ? `€${value.toFixed(2)}` :
+                              `${value.toFixed(1)}h` : 'Nessun dato'}>
 
-                              {value > 0 ? `€${value.toFixed(0)}` : '-'}
+                              {value > 0 ? 
+                                heatmapMode === 'hours' ? `${value.toFixed(1)}h` : `€${value.toFixed(0)}` 
+                                : '-'}
                             </td>);
 
                       })}
@@ -1126,75 +1141,6 @@ export default function Produttivita() {
             </NeumorphicCard>
           </div>
         }
-
-        {/* Revenue per Hour Chart - NEW */}
-        <NeumorphicCard className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-bold text-[#6b6b6b]">Revenue per Ora Lavorata</h3>
-              <p className="text-sm text-[#9b9b9b]">Analisi produttività oraria (€/ora)</p>
-            </div>
-            <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showRevenuePerHour}
-                onChange={(e) => setShowRevenuePerHour(e.target.checked)}
-                className="w-4 h-4" />
-
-              Mostra grafico
-            </label>
-          </div>
-          {showRevenuePerHour && aggregatedData.length > 0 ?
-          <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={aggregatedData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                dataKey="slot"
-                angle={timeSlotView === '30min' ? -45 : 0}
-                textAnchor={timeSlotView === '30min' ? 'end' : 'middle'}
-                height={timeSlotView === '30min' ? 100 : 50}
-                interval={timeSlotView === '30min' ? 1 : 0} />
-
-                <YAxis />
-                <Tooltip
-                content={({ active, payload, label }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    return (
-                      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-                          <p className="font-bold text-gray-800 mb-2">{label}</p>
-                          <p className="text-sm text-gray-700">
-                            <span className="font-semibold">€/ora:</span> €{data.revenuePerHour.toFixed(2)}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-semibold">Revenue media:</span> €{data.avgRevenue.toFixed(2)}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-semibold">Ore medie:</span> {data.avgHours.toFixed(1)}h
-                          </p>
-                        </div>);
-
-                  }
-                  return null;
-                }} />
-
-                <Legend />
-                <Line
-                type="monotone"
-                dataKey="revenuePerHour"
-                stroke="#10b981"
-                strokeWidth={3}
-                name="€/ora"
-                dot={{ fill: '#10b981', r: 4 }} />
-
-              </LineChart>
-            </ResponsiveContainer> :
-          !showRevenuePerHour ?
-          <p className="text-center text-[#9b9b9b] py-8">Grafico nascosto</p> :
-
-          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          }
-        </NeumorphicCard>
 
         {/* Store Productivity Comparison - Weekly */}
         <NeumorphicCard className="p-6">
