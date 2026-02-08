@@ -23,9 +23,6 @@ export default function Produttivita() {
   const [showSettings, setShowSettings] = useState(false);
   const [includedTipiTurno, setIncludedTipiTurno] = useState([]);
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState('all'); // 'all' or day index 0-6
-  const [selectedChannels, setSelectedChannels] = useState([]);
-  const [selectedApps, setSelectedApps] = useState([]);
-  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState([]);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -95,58 +92,11 @@ export default function Produttivita() {
     );
   }, [allShifts, includedTipiTurno]);
 
-  // Extract available channels, apps, and payment methods from data
-  const { availableChannels, availableApps, availablePaymentMethods } = useMemo(() => {
-    const channelsSet = new Set();
-    const appsSet = new Set();
-    const paymentsSet = new Set();
-    
-    revenueData.forEach((record) => {
-      if (record.channel) channelsSet.add(record.channel);
-      if (record.app) appsSet.add(record.app);
-      if (record.payment_method) paymentsSet.add(record.payment_method);
-    });
-    
-    return {
-      availableChannels: Array.from(channelsSet).sort(),
-      availableApps: Array.from(appsSet).sort(),
-      availablePaymentMethods: Array.from(paymentsSet).sort()
-    };
-  }, [revenueData]);
-
-  // Initialize filters with all channels, apps, and payment methods
-  React.useEffect(() => {
-    if (selectedChannels.length === 0 && availableChannels.length > 0) {
-      setSelectedChannels(availableChannels);
-    }
-    if (selectedApps.length === 0 && availableApps.length > 0) {
-      setSelectedApps(availableApps);
-    }
-    if (selectedPaymentMethods.length === 0 && availablePaymentMethods.length > 0) {
-      setSelectedPaymentMethods(availablePaymentMethods);
-    }
-  }, [availableChannels, availableApps, availablePaymentMethods]);
-
   const filteredData = useMemo(() => {
     let filtered = revenueData;
 
     if (selectedStore !== 'all') {
       filtered = filtered.filter((r) => r.store_id === selectedStore);
-    }
-
-    // Filter by channel
-    if (selectedChannels.length > 0) {
-      filtered = filtered.filter((r) => !r.channel || selectedChannels.includes(r.channel));
-    }
-
-    // Filter by app
-    if (selectedApps.length > 0) {
-      filtered = filtered.filter((r) => !r.app || selectedApps.includes(r.app));
-    }
-
-    // Filter by payment method
-    if (selectedPaymentMethods.length > 0) {
-      filtered = filtered.filter((r) => !r.payment_method || selectedPaymentMethods.includes(r.payment_method));
     }
 
     const now = new Date();
@@ -167,7 +117,7 @@ export default function Produttivita() {
     }
 
     return filtered;
-  }, [revenueData, selectedStore, dateRange, startDate, endDate, selectedChannels, selectedApps, selectedPaymentMethods]);
+  }, [revenueData, selectedStore, dateRange, startDate, endDate]);
 
   // Calculate AVERAGE hours worked by time slot (per day)
   const hoursWorkedBySlot = useMemo(() => {
@@ -901,141 +851,6 @@ export default function Produttivita() {
                 </div>
               </>
             }
-
-            {/* Channel Filter */}
-            <div>
-              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Canali</label>
-              <div className="neumorphic-pressed px-4 py-3 rounded-xl max-h-32 overflow-y-auto">
-                {availableChannels.length > 0 ? (
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedChannels.length === availableChannels.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedChannels(availableChannels);
-                          } else {
-                            setSelectedChannels([]);
-                          }
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm text-[#6b6b6b] font-medium">Tutti</span>
-                    </label>
-                    {availableChannels.map((channel) => (
-                      <label key={channel} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedChannels.includes(channel)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedChannels([...selectedChannels, channel]);
-                            } else {
-                              setSelectedChannels(selectedChannels.filter((c) => c !== channel));
-                            }
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm text-[#6b6b6b]">{channel}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#9b9b9b]">Nessun canale disponibile</p>
-                )}
-              </div>
-            </div>
-
-            {/* App Filter */}
-            <div>
-              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">App</label>
-              <div className="neumorphic-pressed px-4 py-3 rounded-xl max-h-32 overflow-y-auto">
-                {availableApps.length > 0 ? (
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedApps.length === availableApps.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedApps(availableApps);
-                          } else {
-                            setSelectedApps([]);
-                          }
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm text-[#6b6b6b] font-medium">Tutte</span>
-                    </label>
-                    {availableApps.map((app) => (
-                      <label key={app} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedApps.includes(app)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedApps([...selectedApps, app]);
-                            } else {
-                              setSelectedApps(selectedApps.filter((a) => a !== app));
-                            }
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm text-[#6b6b6b]">{app}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#9b9b9b]">Nessuna app disponibile</p>
-                )}
-              </div>
-            </div>
-
-            {/* Payment Method Filter */}
-            <div>
-              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Metodi di Pagamento</label>
-              <div className="neumorphic-pressed px-4 py-3 rounded-xl max-h-32 overflow-y-auto">
-                {availablePaymentMethods.length > 0 ? (
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedPaymentMethods.length === availablePaymentMethods.length}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedPaymentMethods(availablePaymentMethods);
-                          } else {
-                            setSelectedPaymentMethods([]);
-                          }
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm text-[#6b6b6b] font-medium">Tutti</span>
-                    </label>
-                    {availablePaymentMethods.map((method) => (
-                      <label key={method} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedPaymentMethods.includes(method)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedPaymentMethods([...selectedPaymentMethods, method]);
-                            } else {
-                              setSelectedPaymentMethods(selectedPaymentMethods.filter((m) => m !== method));
-                            }
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm text-[#6b6b6b]">{method}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#9b9b9b]">Nessun metodo disponibile</p>
-                )}
-              </div>
-            </div>
           </div>
         </NeumorphicCard>
 
