@@ -710,7 +710,7 @@ export default function Target() {
             if (!item.order_date) return false;
             const itemDate = new Date(item.order_date);
             itemDate.setHours(0, 0, 0, 0);
-            if (itemDate < periodStart || itemDate > today) return false;
+            if (itemDate < periodStart || itemDate >= today) return false;
             if (activeTargetStore !== 'all' && item.store_id !== activeTargetStore) return false;
             return true;
           });
@@ -1512,6 +1512,140 @@ export default function Target() {
                   </div>
                 </NeumorphicCard>
               )}
+
+              {/* Tabella Dettaglio Giornaliero */}
+              <NeumorphicCard className="p-6 mb-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4">Dettaglio Giornaliero</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[600px]">
+                    <thead>
+                      <tr className="border-b-2 border-blue-600">
+                        <th className="text-left p-3 text-slate-600 font-medium text-sm">Giorno</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Effettivo</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Previsto</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm bg-purple-50">Δ vs Previsto</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm bg-purple-50">Δ % vs Previsto</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm">Richiesto</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm bg-orange-50">Δ vs Richiesto</th>
+                        <th className="text-right p-3 text-slate-600 font-medium text-sm bg-orange-50">Δ % vs Richiesto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const dailyRevenueMap = {};
+                        currentData.forEach(item => {
+                          if (!dailyRevenueMap[item.order_date]) {
+                            dailyRevenueMap[item.order_date] = 0;
+                          }
+                          let itemRevenue = 0;
+                          if (activeTargetApp) {
+                            const apps = [
+                              { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                              { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                              { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                              { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                              { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                              { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                              { key: 'store', revenue: item.sourceApp_store || 0 }
+                            ];
+                            apps.forEach(app => {
+                              const mappedKey = appMapping[app.key] || app.key;
+                              if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+                            });
+                          } else if (activeTargetChannel) {
+                            const channels = [
+                              { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                              { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                              { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                              { key: 'store', revenue: item.sourceType_store || 0 }
+                            ];
+                            channels.forEach(ch => {
+                              const mappedKey = channelMapping[ch.key] || ch.key;
+                              if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+                            });
+                          } else {
+                            itemRevenue = item.total_revenue || 0;
+                          }
+                          dailyRevenueMap[item.order_date] += itemRevenue;
+                        });
+
+                        const detailRows = [];
+                        for (let i = 0; i < totalDays; i++) {
+                          const currentDate = new Date(periodStart);
+                          currentDate.setDate(periodStart.getDate() + i);
+                          const dateStr = format(currentDate, 'yyyy-MM-dd');
+                          const isPast = currentDate < today;
+                          
+                          const actualRevenue = dailyRevenueMap[dateStr] || 0;
+                          const dayOfWeek = currentDate.getDay();
+                          const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                          const growthAdjustment = dailyGrowthRate * i;
+                          const predictedRevenue = baseRevenue + growthAdjustment;
+                          
+                          const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+                          const requiredRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                          
+                          const deltaVsPredicted = actualRevenue - predictedRevenue;
+                          const deltaPercentVsPredicted = predictedRevenue > 0 ? (deltaVsPredicted / predictedRevenue) * 100 : 0;
+                          const deltaVsRequired = actualRevenue - requiredRevenue;
+                          const deltaPercentVsRequired = requiredRevenue > 0 ? (deltaVsRequired / requiredRevenue) * 100 : 0;
+                          
+                          detailRows.push({
+                            date: format(currentDate, 'dd/MM (EEE)', { locale: it }),
+                            actual: isPast ? actualRevenue : null,
+                            predicted: predictedRevenue,
+                            deltaVsPredicted: isPast ? deltaVsPredicted : null,
+                            deltaPercentVsPredicted: isPast ? deltaPercentVsPredicted : null,
+                            required: requiredRevenue,
+                            deltaVsRequired: isPast ? deltaVsRequired : null,
+                            deltaPercentVsRequired: isPast ? deltaPercentVsRequired : null,
+                            isPast
+                          });
+                        }
+                        
+                        return detailRows.map((row, idx) => (
+                          <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50">
+                            <td className="p-3 text-slate-700 font-medium text-sm">{row.date}</td>
+                            <td className="p-3 text-right text-slate-700 font-bold text-sm">
+                              {row.actual !== null ? `€${formatCurrency(Math.round(row.actual), 0)}` : '-'}
+                            </td>
+                            <td className="p-3 text-right text-slate-600 text-sm">
+                              €{formatCurrency(Math.round(row.predicted), 0)}
+                            </td>
+                            <td className={`p-3 text-right font-bold text-sm bg-purple-50 ${
+                              row.deltaVsPredicted !== null ? (row.deltaVsPredicted >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
+                            }`}>
+                              {row.deltaVsPredicted !== null ? `${row.deltaVsPredicted >= 0 ? '+' : ''}€${formatCurrency(Math.round(row.deltaVsPredicted), 0)}` : '-'}
+                            </td>
+                            <td className={`p-3 text-right font-bold text-sm bg-purple-50 ${
+                              row.deltaPercentVsPredicted !== null ? (row.deltaPercentVsPredicted >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
+                            }`}>
+                              {row.deltaPercentVsPredicted !== null ? `${row.deltaPercentVsPredicted >= 0 ? '+' : ''}${row.deltaPercentVsPredicted.toFixed(1)}%` : '-'}
+                            </td>
+                            <td className="p-3 text-right text-orange-600 font-bold text-sm">
+                              €{formatCurrency(Math.round(row.required), 0)}
+                            </td>
+                            <td className={`p-3 text-right font-bold text-sm bg-orange-50 ${
+                              row.deltaVsRequired !== null ? (row.deltaVsRequired >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
+                            }`}>
+                              {row.deltaVsRequired !== null ? `${row.deltaVsRequired >= 0 ? '+' : ''}€${formatCurrency(Math.round(row.deltaVsRequired), 0)}` : '-'}
+                            </td>
+                            <td className={`p-3 text-right font-bold text-sm bg-orange-50 ${
+                              row.deltaPercentVsRequired !== null ? (row.deltaPercentVsRequired >= 0 ? 'text-green-600' : 'text-red-600') : 'text-slate-400'
+                            }`}>
+                              {row.deltaPercentVsRequired !== null ? `${row.deltaPercentVsRequired >= 0 ? '+' : ''}${row.deltaPercentVsRequired.toFixed(1)}%` : '-'}
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <p className="text-xs text-slate-500 mt-3">
+                  💡 "Previsto" = stima basata su stagionalità storica, "Richiesto" = quanto serviva per raggiungere il target (distribuito con stagionalità). <strong>"Delta"</strong> = differenza tra Effettivo e Previsto (in € assoluti e %).
+                </p>
+              </NeumorphicCard>
             </>
           );
         })()}

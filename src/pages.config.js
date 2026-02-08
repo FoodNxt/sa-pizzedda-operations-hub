@@ -160,6 +160,7 @@ import StoricoCassa from './pages/StoricoCassa';
 import StoricoImpasti from './pages/StoricoImpasti';
 import strutturamen from './pages/StrutturaMenù';
 import StrutturaTurno from './pages/StrutturaTurno';
+import Target from './pages/Target';
 import TeglieButtate from './pages/TeglieButtate';
 import TurniDipendente from './pages/TurniDipendente';
 import UploadFattureXML from './pages/UploadFattureXML';
@@ -172,7 +173,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import Target from './pages/Target';
 import __Layout from './Layout.jsx';
 
 
@@ -290,6 +290,7 @@ export const PAGES = {
     "StoricoImpasti": StoricoImpasti,
     "StrutturaMenù": strutturamen,
     "StrutturaTurno": StrutturaTurno,
+    "Target": Target,
     "TeglieButtate": TeglieButtate,
     "TurniDipendente": TurniDipendente,
     "UploadFattureXML": UploadFattureXML,
@@ -302,7 +303,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "Target": Target,
 }
 
 export const pagesConfig = {
