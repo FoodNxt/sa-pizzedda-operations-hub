@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, Clock, DollarSign, Calendar, Store, X, Settings } from 'lucide-react';
+import { TrendingUp, Clock, DollarSign, Calendar, Store, X, Settings, ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, startOfMonth, endOfMonth, parseISO, startOfWeek, endOfWeek, getWeek } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -23,6 +23,11 @@ export default function Produttivita() {
   const [showSettings, setShowSettings] = useState(false);
   const [includedTipiTurno, setIncludedTipiTurno] = useState([]);
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState('all'); // 'all' or day index 0-6
+  const [collapsedSections, setCollapsedSections] = useState({
+    datiRaw: true,
+    produttivitaGiornaliera: true,
+    produttivitaMensile: true
+  });
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -1142,6 +1147,138 @@ export default function Produttivita() {
           </div>
         }
 
+        {/* Insights e Suggerimenti */}
+        <NeumorphicCard className="p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            <h3 className="text-lg font-bold text-[#6b6b6b]">Insights e Suggerimenti</h3>
+          </div>
+          {(() => {
+            const insights = [];
+            
+            // Analizza heatmap per trovare slot con bassa produttività ma alte ore
+            const lowProductivitySlots = heatmapData.flatMap(row => 
+              Object.entries(row.metadata || {})
+                .map(([slot, data]) => ({
+                  day: row.day,
+                  slot,
+                  productivity: data.productivity,
+                  avgHours: data.avgHours,
+                  avgRevenue: data.avgRevenue
+                }))
+                .filter(item => item.avgHours > 0 && item.productivity < 30)
+            ).sort((a, b) => a.productivity - b.productivity).slice(0, 3);
+
+            if (lowProductivitySlots.length > 0) {
+              insights.push({
+                type: 'warning',
+                icon: AlertTriangle,
+                title: 'Slot a Bassa Produttività',
+                description: `${lowProductivitySlots.length} slot con produttività <€30/ora rilevati`,
+                details: lowProductivitySlots.map(s => 
+                  `${s.day} ${s.slot}: €${s.productivity.toFixed(2)}/h (${s.avgHours.toFixed(1)}h lavorate)`
+                ),
+                suggestion: 'Considera di ridurre le ore lavorate in questi slot o aumentare il fatturato con promozioni mirate.'
+              });
+            }
+
+            // Analizza slot con alta produttività ma poche ore
+            const highProductivitySlots = heatmapData.flatMap(row => 
+              Object.entries(row.metadata || {})
+                .map(([slot, data]) => ({
+                  day: row.day,
+                  slot,
+                  productivity: data.productivity,
+                  avgHours: data.avgHours,
+                  avgRevenue: data.avgRevenue
+                }))
+                .filter(item => item.avgHours > 0 && item.productivity > 60)
+            ).sort((a, b) => b.productivity - a.productivity).slice(0, 3);
+
+            if (highProductivitySlots.length > 0) {
+              insights.push({
+                type: 'success',
+                icon: TrendingUp,
+                title: 'Slot ad Alta Produttività',
+                description: `${highProductivitySlots.length} slot con produttività >€60/ora rilevati`,
+                details: highProductivitySlots.map(s => 
+                  `${s.day} ${s.slot}: €${s.productivity.toFixed(2)}/h (${s.avgHours.toFixed(1)}h lavorate)`
+                ),
+                suggestion: 'Valuta di aumentare le ore lavorate in questi slot per massimizzare il fatturato.'
+              });
+            }
+
+            // Confronto produttività tra negozi
+            const storeProdArray = Object.entries(storeProductivity).map(([storeId, data]) => {
+              const store = stores.find(s => s.id === storeId);
+              const monthlyData = Object.values(data.monthly);
+              const avgProd = monthlyData.length > 0 ? 
+                monthlyData.reduce((sum, m) => sum + m.productivity, 0) / monthlyData.length : 0;
+              return { storeName: store?.name || 'N/A', avgProd };
+            }).sort((a, b) => b.avgProd - a.avgProd);
+
+            if (storeProdArray.length > 1) {
+              const best = storeProdArray[0];
+              const worst = storeProdArray[storeProdArray.length - 1];
+              const diff = ((best.avgProd - worst.avgProd) / worst.avgProd * 100);
+              
+              if (diff > 20) {
+                insights.push({
+                  type: 'info',
+                  icon: Store,
+                  title: 'Gap Produttività tra Negozi',
+                  description: `${best.storeName} ha una produttività ${diff.toFixed(0)}% superiore a ${worst.storeName}`,
+                  details: [
+                    `${best.storeName}: €${best.avgProd.toFixed(2)}/h`,
+                    `${worst.storeName}: €${worst.avgProd.toFixed(2)}/h`
+                  ],
+                  suggestion: `Analizza le best practice di ${best.storeName} e applicale a ${worst.storeName}.`
+                });
+              }
+            }
+
+            return insights.length > 0 ? (
+              <div className="space-y-3">
+                {insights.map((insight, idx) => (
+                  <div key={idx} className={`neumorphic-pressed p-4 rounded-xl ${
+                    insight.type === 'warning' ? 'bg-orange-50' :
+                    insight.type === 'success' ? 'bg-green-50' :
+                    'bg-blue-50'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <insight.icon className={`w-5 h-5 flex-shrink-0 ${
+                        insight.type === 'warning' ? 'text-orange-600' :
+                        insight.type === 'success' ? 'text-green-600' :
+                        'text-blue-600'
+                      }`} />
+                      <div className="flex-1">
+                        <h4 className="font-bold text-[#6b6b6b] text-sm mb-1">{insight.title}</h4>
+                        <p className="text-xs text-[#9b9b9b] mb-2">{insight.description}</p>
+                        {insight.details && (
+                          <ul className="text-xs text-[#6b6b6b] space-y-1 mb-2">
+                            {insight.details.map((detail, i) => (
+                              <li key={i}>• {detail}</li>
+                            ))}
+                          </ul>
+                        )}
+                        <div className="neumorphic-flat p-2 rounded-lg bg-white/50">
+                          <p className="text-xs text-[#6b6b6b]">
+                            <strong>Suggerimento:</strong> {insight.suggestion}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-[#9b9b9b] py-4 text-sm">
+                Nessun insight disponibile. Continua a raccogliere dati per ricevere suggerimenti.
+              </p>
+            );
+          })()}
+        </NeumorphicCard>
+
         {/* Store Productivity Comparison - Weekly */}
         <NeumorphicCard className="p-6">
           <div className="mb-4">
@@ -1205,59 +1342,78 @@ export default function Produttivita() {
           }
         </NeumorphicCard>
 
-        {/* Daily Productivity Table by Store */}
+        {/* Produttività Giornaliera per Negozio - Collapsabile */}
         <NeumorphicCard className="p-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-[#6b6b6b]">Produttività Giornaliera per Negozio</h3>
-            <p className="text-sm text-[#9b9b9b]">Fatturato, ore lavorate e produttività per ogni giorno</p>
-          </div>
-          {dailyProductivity.length > 0 ?
-          <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-[#8b7355]">
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Fatturato</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Ore Lavorate</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Produttività (€/ora)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dailyProductivity.map((record) =>
-                <tr key={`${record.date}_${record.store_id}`} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                      <td className="p-3 text-[#6b6b6b] font-medium">
-                        {format(parseISO(record.date), 'dd/MM/yyyy', { locale: it })}
-                      </td>
-                      <td className="p-3 text-[#6b6b6b]">{record.store_name}</td>
-                      <td className="p-3 text-right font-bold text-green-600">
-                        €{record.revenue.toFixed(2)}
-                      </td>
-                      <td className="p-3 text-right font-bold text-orange-600">
-                        {record.hours.toFixed(1)}h
-                      </td>
-                      <td className="p-3 text-right font-bold text-blue-600">
-                        {record.productivity > 0 ? `€${record.productivity.toFixed(2)}` : '-'}
-                      </td>
+          <button 
+            onClick={() => setCollapsedSections(prev => ({ ...prev, produttivitaGiornaliera: !prev.produttivitaGiornaliera }))}
+            className="w-full flex items-center justify-between mb-4"
+          >
+            <div>
+              <h3 className="text-lg font-bold text-[#6b6b6b] text-left">Produttività Giornaliera per Negozio</h3>
+              <p className="text-sm text-[#9b9b9b] text-left">Fatturato, ore lavorate e produttività per ogni giorno</p>
+            </div>
+            {collapsedSections.produttivitaGiornaliera ? 
+              <ChevronRight className="w-5 h-5 text-[#9b9b9b]" /> : 
+              <ChevronDown className="w-5 h-5 text-[#9b9b9b]" />
+            }
+          </button>
+          {!collapsedSections.produttivitaGiornaliera && (
+            dailyProductivity.length > 0 ?
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-[#8b7355]">
+                      <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
+                      <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Fatturato</th>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Ore Lavorate</th>
+                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Produttività (€/ora)</th>
                     </tr>
-                )}
-                </tbody>
-              </table>
-            </div> :
-
-          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          }
+                  </thead>
+                  <tbody>
+                    {dailyProductivity.map((record) =>
+                  <tr key={`${record.date}_${record.store_id}`} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
+                        <td className="p-3 text-[#6b6b6b] font-medium">
+                          {format(parseISO(record.date), 'dd/MM/yyyy', { locale: it })}
+                        </td>
+                        <td className="p-3 text-[#6b6b6b]">{record.store_name}</td>
+                        <td className="p-3 text-right font-bold text-green-600">
+                          €{record.revenue.toFixed(2)}
+                        </td>
+                        <td className="p-3 text-right font-bold text-orange-600">
+                          {record.hours.toFixed(1)}h
+                        </td>
+                        <td className="p-3 text-right font-bold text-blue-600">
+                          {record.productivity > 0 ? `€${record.productivity.toFixed(2)}` : '-'}
+                        </td>
+                      </tr>
+                  )}
+                  </tbody>
+                </table>
+              </div> :
+            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+          )}
         </NeumorphicCard>
 
-        {/* Store Productivity Comparison - Monthly */}
+        {/* Store Productivity Comparison - Monthly - Collapsabile */}
         <NeumorphicCard className="p-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-[#6b6b6b] flex items-center gap-2">
-              <Store className="w-5 h-5" />
-              Produttività Mensile per Negozio
-            </h3>
-            <p className="text-sm text-[#9b9b9b]">€/ora per mese - confronto tra negozi</p>
-          </div>
+          <button 
+            onClick={() => setCollapsedSections(prev => ({ ...prev, produttivitaMensile: !prev.produttivitaMensile }))}
+            className="w-full flex items-center justify-between mb-4"
+          >
+            <div className="flex items-center gap-2">
+              <Store className="w-5 h-5 text-[#6b6b6b]" />
+              <div className="text-left">
+                <h3 className="text-lg font-bold text-[#6b6b6b]">Produttività Mensile per Negozio</h3>
+                <p className="text-sm text-[#9b9b9b]">€/ora per mese - confronto tra negozi</p>
+              </div>
+            </div>
+            {collapsedSections.produttivitaMensile ? 
+              <ChevronRight className="w-5 h-5 text-[#9b9b9b]" /> : 
+              <ChevronDown className="w-5 h-5 text-[#9b9b9b]" />
+            }
+          </button>
+          {!collapsedSections.produttivitaMensile && (
           {Object.keys(storeProductivity).length > 0 ?
           <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -1309,59 +1465,25 @@ export default function Produttivita() {
             </div> :
 
           <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          }
+          )}
         </NeumorphicCard>
 
-        {/* Daily Productivity Table by Store */}
+        {/* Raw Data Table - Collapsabile */}
         <NeumorphicCard className="p-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-[#6b6b6b]">Produttività Giornaliera per Negozio</h3>
-            <p className="text-sm text-[#9b9b9b]">Fatturato, ore lavorate e produttività per ogni giorno</p>
-          </div>
-          {dailyProductivity.length > 0 ?
-          <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b-2 border-[#8b7355]">
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Fatturato</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Ore Lavorate</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Produttività (€/ora)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dailyProductivity.map((record) =>
-                <tr key={`${record.date}_${record.store_id}`} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                      <td className="p-3 text-[#6b6b6b] font-medium">
-                        {format(parseISO(record.date), 'dd/MM/yyyy', { locale: it })}
-                      </td>
-                      <td className="p-3 text-[#6b6b6b]">{record.store_name}</td>
-                      <td className="p-3 text-right font-bold text-green-600">
-                        €{record.revenue.toFixed(2)}
-                      </td>
-                      <td className="p-3 text-right font-bold text-orange-600">
-                        {record.hours.toFixed(1)}h
-                      </td>
-                      <td className="p-3 text-right font-bold text-blue-600">
-                        {record.productivity > 0 ? `€${record.productivity.toFixed(2)}` : '-'}
-                      </td>
-                    </tr>
-                )}
-                </tbody>
-              </table>
-            </div> :
-
-          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          }
-        </NeumorphicCard>
-
-        {/* Raw Data Table */}
-        <NeumorphicCard className="p-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-[#6b6b6b]">Dati Raw da Zapier</h3>
-            <p className="text-sm text-[#9b9b9b]">Tutti i record caricati ({filteredData.length} record)</p>
-          </div>
+          <button 
+            onClick={() => setCollapsedSections(prev => ({ ...prev, datiRaw: !prev.datiRaw }))}
+            className="w-full flex items-center justify-between mb-4"
+          >
+            <div className="text-left">
+              <h3 className="text-lg font-bold text-[#6b6b6b]">Dati Raw da Zapier</h3>
+              <p className="text-sm text-[#9b9b9b]">Tutti i record caricati ({filteredData.length} record)</p>
+            </div>
+            {collapsedSections.datiRaw ? 
+              <ChevronRight className="w-5 h-5 text-[#9b9b9b]" /> : 
+              <ChevronDown className="w-5 h-5 text-[#9b9b9b]" />
+            }
+          </button>
+          {!collapsedSections.datiRaw && (
           {filteredData.length > 0 ?
           <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -1398,7 +1520,7 @@ export default function Produttivita() {
             </div> :
 
           <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          }
+          )}
         </NeumorphicCard>
 
         {/* Settings Modal */}
