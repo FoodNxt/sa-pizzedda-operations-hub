@@ -1415,7 +1415,7 @@ export default function Produttivita() {
           </button>
           {!collapsedSections.produttivitaMensile && (
             Object.keys(storeProductivity).length > 0 ?
-            <div className="overflow-x-auto">
+          <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
@@ -1484,7 +1484,7 @@ export default function Produttivita() {
             }
           </button>
           {!collapsedSections.datiRaw && (
-          {filteredData.length > 0 ?
+            filteredData.length > 0 ?
           <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
