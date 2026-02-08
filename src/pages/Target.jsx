@@ -1874,8 +1874,6 @@ export default function Target() {
                   </div>
                 </div>
                 <div className="overflow-x-auto">
-
-                <div className="overflow-x-auto">
                   <table className="w-full min-w-[600px]">
                     <thead>
                       <tr className="border-b-2 border-blue-600">
