@@ -1518,7 +1518,30 @@ export default function Target() {
 
               {/* Tabella Dettaglio Giornaliero */}
               <NeumorphicCard className="p-6 mb-6">
-                <h3 className="text-lg font-bold text-slate-800 mb-4">Dettaglio Giornaliero</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-slate-800">Dettaglio Periodo</h3>
+                  <div className="flex gap-2">
+                    <select
+                      value={detailView}
+                      onChange={(e) => setDetailView(e.target.value)}
+                      className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 text-sm"
+                    >
+                      <option value="daily">Giornaliero</option>
+                      <option value="weekly">Settimanale</option>
+                      <option value="monthly">Mensile</option>
+                    </select>
+                    {activeTargetStore === 'all' && (
+                      <select
+                        value={splitBy}
+                        onChange={(e) => setSplitBy(e.target.value)}
+                        className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 text-sm"
+                      >
+                        <option value="none">Nessun Split</option>
+                        <option value="store">Per Locale</option>
+                      </select>
+                    )}
+                  </div>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[600px]">
                     <thead>
@@ -1535,19 +1558,21 @@ export default function Target() {
                     </thead>
                     <tbody>
                       {(() => {
+                        // Build daily revenue map with store split if needed
                         const dailyRevenueMap = {};
-                        
-                        // Debug log per il primo giorno
-                        console.log('Period start:', periodStart);
-                        console.log('Period end:', periodEnd);
-                        console.log('Today:', today);
-                        console.log('Total currentData items:', currentData.length);
-                        console.log('First 5 items:', currentData.slice(0, 5).map(i => ({ date: i.order_date, revenue: i.total_revenue })));
+                        const dailyRevenueByStore = {};
                         
                         currentData.forEach(item => {
+                          const key = splitBy === 'store' ? `${item.order_date}_${item.store_id}` : item.order_date;
                           if (!dailyRevenueMap[item.order_date]) {
                             dailyRevenueMap[item.order_date] = 0;
                           }
+                          if (splitBy === 'store') {
+                            if (!dailyRevenueByStore[key]) {
+                              dailyRevenueByStore[key] = { storeId: item.store_id, revenue: 0 };
+                            }
+                          }
+                          
                           let itemRevenue = 0;
                           if (activeTargetApp) {
                             const apps = [
@@ -1577,40 +1602,207 @@ export default function Target() {
                           } else {
                             itemRevenue = item.total_revenue || 0;
                           }
+                          
                           dailyRevenueMap[item.order_date] += itemRevenue;
+                          if (splitBy === 'store') {
+                            dailyRevenueByStore[key].revenue += itemRevenue;
+                          }
                         });
 
-                        const detailRows = [];
-                        for (let i = 0; i < totalDays; i++) {
-                          const currentDate = new Date(periodStart);
-                          currentDate.setDate(periodStart.getDate() + i);
-                          const dateStr = format(currentDate, 'yyyy-MM-dd');
-                          const isPast = currentDate < today;
+                        // Aggregate based on view
+                        let detailRows = [];
+                        
+                        if (detailView === 'daily') {
+                          // Daily view
+                          if (splitBy === 'store') {
+                            // Group by date and store
+                            const dateStoreMap = {};
+                            Object.entries(dailyRevenueByStore).forEach(([key, data]) => {
+                              const [dateStr, storeId] = key.split('_');
+                              if (!dateStoreMap[dateStr]) dateStoreMap[dateStr] = [];
+                              dateStoreMap[dateStr].push({ storeId, revenue: data.revenue });
+                            });
+                            
+                            for (let i = 0; i < totalDays; i++) {
+                              const currentDate = new Date(periodStart);
+                              currentDate.setDate(periodStart.getDate() + i);
+                              const dateStr = format(currentDate, 'yyyy-MM-dd');
+                              const isPast = currentDate <= today;
+                              
+                              const storesForDate = dateStoreMap[dateStr] || [];
+                              const totalActual = dailyRevenueMap[dateStr] || 0;
+                              
+                              if (storesForDate.length > 0) {
+                                storesForDate.forEach(s => {
+                                  const storeName = stores.find(st => st.id === s.storeId)?.name || s.storeId;
+                                  const dayOfWeek = currentDate.getDay();
+                                  const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                                  const growthAdjustment = dailyGrowthRate * i;
+                                  const predictedRevenue = (baseRevenue + growthAdjustment) * (s.revenue / (totalActual || 1));
+                                  
+                                  detailRows.push({
+                                    date: `${format(currentDate, 'dd/MM (EEE)', { locale: it })} - ${storeName}`,
+                                    actual: isPast ? s.revenue : null,
+                                    predicted: predictedRevenue,
+                                    deltaVsPredicted: isPast ? (s.revenue - predictedRevenue) : null,
+                                    deltaPercentVsPredicted: isPast && predictedRevenue > 0 ? ((s.revenue - predictedRevenue) / predictedRevenue) * 100 : null,
+                                    required: 0,
+                                    deltaVsRequired: null,
+                                    deltaPercentVsRequired: null,
+                                    isPast
+                                  });
+                                });
+                              } else {
+                                const dayOfWeek = currentDate.getDay();
+                                const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                                const growthAdjustment = dailyGrowthRate * i;
+                                const predictedRevenue = baseRevenue + growthAdjustment;
+                                
+                                detailRows.push({
+                                  date: format(currentDate, 'dd/MM (EEE)', { locale: it }),
+                                  actual: isPast ? 0 : null,
+                                  predicted: predictedRevenue,
+                                  deltaVsPredicted: isPast ? -predictedRevenue : null,
+                                  deltaPercentVsPredicted: null,
+                                  required: 0,
+                                  deltaVsRequired: null,
+                                  deltaPercentVsRequired: null,
+                                  isPast
+                                });
+                              }
+                            }
+                          } else {
+                            // No split
+                            for (let i = 0; i < totalDays; i++) {
+                              const currentDate = new Date(periodStart);
+                              currentDate.setDate(periodStart.getDate() + i);
+                              const dateStr = format(currentDate, 'yyyy-MM-dd');
+                              const isPast = currentDate <= today;
+                              
+                              const actualRevenue = dailyRevenueMap[dateStr] || 0;
+                              const dayOfWeek = currentDate.getDay();
+                              const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                              const growthAdjustment = dailyGrowthRate * i;
+                              const predictedRevenue = baseRevenue + growthAdjustment;
+                              
+                              const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+                              const requiredRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                              
+                              detailRows.push({
+                                date: format(currentDate, 'dd/MM (EEE)', { locale: it }),
+                                actual: isPast ? actualRevenue : null,
+                                predicted: predictedRevenue,
+                                deltaVsPredicted: isPast ? (actualRevenue - predictedRevenue) : null,
+                                deltaPercentVsPredicted: isPast && predictedRevenue > 0 ? ((actualRevenue - predictedRevenue) / predictedRevenue) * 100 : null,
+                                required: requiredRevenue,
+                                deltaVsRequired: isPast ? (actualRevenue - requiredRevenue) : null,
+                                deltaPercentVsRequired: isPast && requiredRevenue > 0 ? ((actualRevenue - requiredRevenue) / requiredRevenue) * 100 : null,
+                                isPast
+                              });
+                            }
+                          }
+                        } else if (detailView === 'weekly') {
+                          // Weekly aggregation
+                          const weeklyData = {};
+                          Object.entries(dailyRevenueMap).forEach(([dateStr, revenue]) => {
+                            const date = new Date(dateStr);
+                            const weekStart = new Date(date);
+                            weekStart.setDate(date.getDate() - date.getDay() + 1);
+                            const weekKey = format(weekStart, 'yyyy-MM-dd');
+                            
+                            if (!weeklyData[weekKey]) {
+                              weeklyData[weekKey] = { actual: 0, predicted: 0, required: 0, days: 0, isPast: false };
+                            }
+                            weeklyData[weekKey].actual += revenue;
+                            weeklyData[weekKey].days++;
+                          });
                           
-                          const actualRevenue = dailyRevenueMap[dateStr] || 0;
-                          const dayOfWeek = currentDate.getDay();
-                          const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
-                          const growthAdjustment = dailyGrowthRate * i;
-                          const predictedRevenue = baseRevenue + growthAdjustment;
+                          for (let i = 0; i < totalDays; i += 7) {
+                            const weekStart = new Date(periodStart);
+                            weekStart.setDate(periodStart.getDate() + i);
+                            const weekKey = format(weekStart, 'yyyy-MM-dd');
+                            const weekEnd = new Date(weekStart);
+                            weekEnd.setDate(weekStart.getDate() + 6);
+                            
+                            const isPast = weekEnd <= today;
+                            let weekPredicted = 0;
+                            let weekRequired = 0;
+                            
+                            for (let d = 0; d < 7 && (i + d) < totalDays; d++) {
+                              const currentDate = new Date(weekStart);
+                              currentDate.setDate(weekStart.getDate() + d);
+                              const dayOfWeek = currentDate.getDay();
+                              const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                              const growthAdjustment = dailyGrowthRate * (i + d);
+                              weekPredicted += baseRevenue + growthAdjustment;
+                              
+                              const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+                              weekRequired += totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                            }
+                            
+                            const weekActual = weeklyData[weekKey]?.actual || 0;
+                            
+                            detailRows.push({
+                              date: `${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}`,
+                              actual: isPast ? weekActual : null,
+                              predicted: weekPredicted,
+                              deltaVsPredicted: isPast ? (weekActual - weekPredicted) : null,
+                              deltaPercentVsPredicted: isPast && weekPredicted > 0 ? ((weekActual - weekPredicted) / weekPredicted) * 100 : null,
+                              required: weekRequired,
+                              deltaVsRequired: isPast ? (weekActual - weekRequired) : null,
+                              deltaPercentVsRequired: isPast && weekRequired > 0 ? ((weekActual - weekRequired) / weekRequired) * 100 : null,
+                              isPast
+                            });
+                          }
+                        } else if (detailView === 'monthly') {
+                          // Monthly aggregation
+                          const monthlyData = {};
+                          Object.entries(dailyRevenueMap).forEach(([dateStr, revenue]) => {
+                            const date = new Date(dateStr);
+                            const monthKey = format(date, 'yyyy-MM');
+                            
+                            if (!monthlyData[monthKey]) {
+                              monthlyData[monthKey] = { actual: 0, days: 0 };
+                            }
+                            monthlyData[monthKey].actual += revenue;
+                            monthlyData[monthKey].days++;
+                          });
                           
-                          const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
-                          const requiredRevenue = totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                          const months = {};
+                          for (let i = 0; i < totalDays; i++) {
+                            const currentDate = new Date(periodStart);
+                            currentDate.setDate(periodStart.getDate() + i);
+                            const monthKey = format(currentDate, 'yyyy-MM');
+                            
+                            if (!months[monthKey]) {
+                              months[monthKey] = { start: currentDate, predicted: 0, required: 0, lastDay: currentDate };
+                            }
+                            months[monthKey].lastDay = currentDate;
+                            
+                            const dayOfWeek = currentDate.getDay();
+                            const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+                            const growthAdjustment = dailyGrowthRate * i;
+                            months[monthKey].predicted += baseRevenue + growthAdjustment;
+                            
+                            const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+                            months[monthKey].required += totalSeasonalityWeight > 0 ? (target * (dayWeight / totalSeasonalityWeight)) : (target / totalDays);
+                          }
                           
-                          const deltaVsPredicted = actualRevenue - predictedRevenue;
-                          const deltaPercentVsPredicted = predictedRevenue > 0 ? (deltaVsPredicted / predictedRevenue) * 100 : 0;
-                          const deltaVsRequired = actualRevenue - requiredRevenue;
-                          const deltaPercentVsRequired = requiredRevenue > 0 ? (deltaVsRequired / requiredRevenue) * 100 : 0;
-                          
-                          detailRows.push({
-                            date: format(currentDate, 'dd/MM (EEE)', { locale: it }),
-                            actual: isPast ? actualRevenue : null,
-                            predicted: predictedRevenue,
-                            deltaVsPredicted: isPast ? deltaVsPredicted : null,
-                            deltaPercentVsPredicted: isPast ? deltaPercentVsPredicted : null,
-                            required: requiredRevenue,
-                            deltaVsRequired: isPast ? deltaVsRequired : null,
-                            deltaPercentVsRequired: isPast ? deltaPercentVsRequired : null,
-                            isPast
+                          Object.entries(months).forEach(([monthKey, monthData]) => {
+                            const isPast = monthData.lastDay <= today;
+                            const monthActual = monthlyData[monthKey]?.actual || 0;
+                            
+                            detailRows.push({
+                              date: format(monthData.start, 'MMMM yyyy', { locale: it }),
+                              actual: isPast ? monthActual : null,
+                              predicted: monthData.predicted,
+                              deltaVsPredicted: isPast ? (monthActual - monthData.predicted) : null,
+                              deltaPercentVsPredicted: isPast && monthData.predicted > 0 ? ((monthActual - monthData.predicted) / monthData.predicted) * 100 : null,
+                              required: monthData.required,
+                              deltaVsRequired: isPast ? (monthActual - monthData.required) : null,
+                              deltaPercentVsRequired: isPast && monthData.required > 0 ? ((monthActual - monthData.required) / monthData.required) * 100 : null,
+                              isPast
+                            });
                           });
                         }
                         
