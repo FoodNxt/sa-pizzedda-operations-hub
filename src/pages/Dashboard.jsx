@@ -1520,12 +1520,21 @@ export default function Dashboard() {
           </div>
         </NeumorphicCard>
 
-        {/* Link to ToDo page */}
+        {/* Alert Operativi */}
         <NeumorphicCard className="p-6">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-red-500" />
-            Alert Operativi
-          </h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              Alert Operativi
+            </h2>
+            <Link 
+              to={createPageUrl('ToDo')} 
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+            >
+              Vedi tutti
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Ordini da fare */}
