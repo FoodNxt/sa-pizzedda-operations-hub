@@ -159,6 +159,7 @@ export default function GestioneAccessoPagine() {
 
   const allAdminPages = [
   { value: 'Dashboard', label: 'Dashboard Overview', category: 'Dashboard' },
+  { value: 'Presenze', label: 'Presenze', category: 'Dashboard' },
   { value: 'SummaryAI', label: 'Summary AI', category: 'Dashboard' },
   { value: 'FormTracker', label: 'Form Tracker', category: 'Dashboard' },
   { value: 'Alerts', label: 'Alerts', category: 'Dashboard' },
