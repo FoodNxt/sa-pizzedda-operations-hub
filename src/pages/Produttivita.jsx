@@ -1485,8 +1485,8 @@ export default function Produttivita() {
           </button>
           {!collapsedSections.datiRaw && (
             filteredData.length > 0 ?
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#8b7355]">
                     <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
@@ -1516,11 +1516,11 @@ export default function Produttivita() {
 
                 })}
                 </tbody>
-              </table>
-            </div> :
-            <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          )}
-        </NeumorphicCard>
+                </table>
+                </div> :
+                <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
+                )}
+                </NeumorphicCard>
 
         {/* Settings Modal */}
         {showSettings &&
