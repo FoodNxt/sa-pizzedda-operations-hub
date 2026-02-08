@@ -18,6 +18,9 @@ Deno.serve(async (req) => {
       date,
       store,
       total_sum_all_slots,
+      channel,
+      app,
+      payment_method,
       secret,
       ...slots
     } = body;
@@ -61,10 +64,15 @@ Deno.serve(async (req) => {
 
     if (existing.length > 0) {
       // Update existing
-      await base44.asServiceRole.entities.RevenueByTimeSlot.update(existing[0].id, {
+      const updateData = {
         slots: parsedSlots,
         total_revenue: totalRevenue
-      });
+      };
+      if (channel) updateData.channel = channel;
+      if (app) updateData.app = app;
+      if (payment_method) updateData.payment_method = payment_method;
+      
+      await base44.asServiceRole.entities.RevenueByTimeSlot.update(existing[0].id, updateData);
 
       return Response.json({
         success: true,
@@ -76,13 +84,18 @@ Deno.serve(async (req) => {
       });
     } else {
       // Create new
-      const record = await base44.asServiceRole.entities.RevenueByTimeSlot.create({
+      const recordData = {
         date,
         store_id: storeRecord.id,
         store_name: storeRecord.name,
         slots: parsedSlots,
         total_revenue: totalRevenue
-      });
+      };
+      if (channel) recordData.channel = channel;
+      if (app) recordData.app = app;
+      if (payment_method) recordData.payment_method = payment_method;
+      
+      const record = await base44.asServiceRole.entities.RevenueByTimeSlot.create(recordData);
 
       return Response.json({
         success: true,
