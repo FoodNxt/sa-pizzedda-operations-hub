@@ -708,48 +708,21 @@ export default function Produttivita() {
     sort((a, b) => b.date.localeCompare(a.date));
   }, [filteredData, filteredShifts, dateRange, startDate, endDate]);
 
-  // Calculate total hours worked in the period
-  const totalHoursWorked = useMemo(() => {
-    const now = new Date();
-    let shiftStartDate, shiftEndDate;
-    
-    if (dateRange === 'month') {
-      shiftStartDate = startOfMonth(now);
-      shiftEndDate = endOfMonth(now);
-    } else if (dateRange === 'custom') {
-      shiftStartDate = parseISO(startDate);
-      shiftEndDate = parseISO(endDate);
-    } else {
-      shiftStartDate = null;
-      shiftEndDate = null;
-    }
+  const stats = useMemo(() => {
+    const totalRevenue = filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0);
+    const totalHours = dailyProductivity.reduce((sum, d) => sum + d.hours, 0);
+    const avgProductivity = dailyProductivity.length > 0 ? 
+      dailyProductivity.reduce((sum, d) => sum + d.productivity, 0) / dailyProductivity.length : 0;
 
-    let total = 0;
-    filteredShifts.forEach((shift) => {
-      if (!shift.ora_inizio || !shift.ora_fine || !shift.data) return;
-      if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
-
-      const date = parseISO(shift.data);
-      if (shiftStartDate && date < shiftStartDate) return;
-      if (shiftEndDate && date > shiftEndDate) return;
-
-      const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
-      const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
-      const hours = (endHour * 60 + endMin - (startHour * 60 + startMin)) / 60;
-      total += hours;
-    });
-
-    return total;
-  }, [filteredShifts, selectedStore, dateRange, startDate, endDate]);
-
-  const stats = {
-    totalRevenue: filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0),
-    avgDailyRevenue: filteredData.length > 0 ? filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0) / filteredData.length : 0,
-    daysTracked: filteredData.length,
-    totalHours: totalHoursWorked,
-    hourlyProductivity: totalHoursWorked > 0 ? (filteredData.reduce((sum, r) => sum + (r.total_revenue || 0), 0) / totalHoursWorked) : 0,
-    peakHour: aggregatedData.length > 0 ? aggregatedData.reduce((max, h) => h.avgRevenue > max.avgRevenue ? h : max, aggregatedData[0]).slot : '-'
-  };
+    return {
+      totalRevenue,
+      avgDailyRevenue: filteredData.length > 0 ? totalRevenue / filteredData.length : 0,
+      daysTracked: filteredData.length,
+      totalHours,
+      hourlyProductivity: avgProductivity,
+      peakHour: aggregatedData.length > 0 ? aggregatedData.reduce((max, h) => h.avgRevenue > max.avgRevenue ? h : max, aggregatedData[0]).slot : '-'
+    };
+  }, [filteredData, dailyProductivity, aggregatedData]);
 
   return (
     <ProtectedPage pageName="Produttivita" requiredUserTypes={['admin', 'manager']}>
