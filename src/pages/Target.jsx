@@ -25,6 +25,11 @@ export default function Target() {
   const [targetName, setTargetName] = useState('');
   const [detailView, setDetailView] = useState('daily');
   const [splitBy, setSplitBy] = useState('store');
+  const [expandedSplit, setExpandedSplit] = useState({
+    store: false,
+    app: false,
+    channel: false
+  });
   const [channelMapping, setChannelMapping] = useState({});
   const [appMapping, setAppMapping] = useState({});
 
@@ -1516,147 +1521,340 @@ export default function Target() {
                 </NeumorphicCard>
               )}
 
-              {/* Split View - Cards */}
-              {splitBy !== 'none' && (
-                <NeumorphicCard className="p-6 mb-6">
-                  <h3 className="text-lg font-bold text-slate-800 mb-4">
-                    Dettaglio Previsionale {splitBy === 'store' ? 'per Locale' : splitBy === 'app' ? 'per App' : 'per Canale'}
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    {(() => {
-                      const splitData = {};
-                      
-                      currentData.forEach(item => {
-                        let splitKey = '';
-                        let itemRevenue = 0;
-                        
-                        if (splitBy === 'store') {
-                          splitKey = item.store_id;
-                          itemRevenue = item.total_revenue || 0;
-                        } else if (splitBy === 'app') {
-                          const apps = [
-                            { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
-                            { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
-                            { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
-                            { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
-                            { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
-                            { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
-                            { key: 'store', revenue: item.sourceApp_store || 0 }
-                          ];
-                          apps.forEach(app => {
-                            const mappedKey = appMapping[app.key] || app.key;
-                            if (app.revenue > 0) {
-                              if (!splitData[mappedKey]) splitData[mappedKey] = { actual: 0, name: mappedKey };
-                              splitData[mappedKey].actual += app.revenue;
-                            }
-                          });
-                          return;
-                        } else if (splitBy === 'channel') {
-                          const channels = [
-                            { key: 'delivery', revenue: item.sourceType_delivery || 0 },
-                            { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
-                            { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
-                            { key: 'store', revenue: item.sourceType_store || 0 }
-                          ];
-                          channels.forEach(ch => {
-                            const mappedKey = channelMapping[ch.key] || ch.key;
-                            if (ch.revenue > 0) {
-                              if (!splitData[mappedKey]) splitData[mappedKey] = { actual: 0, name: mappedKey };
-                              splitData[mappedKey].actual += ch.revenue;
-                            }
-                          });
-                          return;
-                        }
-                        
-                        if (splitBy === 'store') {
-                          if (!splitData[splitKey]) {
-                            const storeName = stores.find(s => s.id === splitKey)?.name || splitKey;
-                            splitData[splitKey] = { actual: 0, name: storeName };
-                          }
-                          splitData[splitKey].actual += itemRevenue;
-                        }
-                      });
-                      
-                      // Calculate proportions
-                      const totalActual = Object.values(splitData).reduce((sum, d) => sum + d.actual, 0);
-                      
-                      return Object.entries(splitData)
-                        .sort(([, a], [, b]) => b.actual - a.actual)
-                        .map(([key, data]) => {
-                          const proportion = totalActual > 0 ? data.actual / totalActual : 0;
-                          const splitTarget = target * proportion;
-                          const splitPredicted = predictedRevenue * proportion;
-                          const splitTotalProjected = data.actual + splitPredicted;
-                          const splitGap = splitTarget - splitTotalProjected;
-                          const splitProgress = splitTarget > 0 ? (splitTotalProjected / splitTarget) * 100 : 0;
+              {/* Split Views - Separate Collapsible Cards */}
+              {activeTargetStore === 'all' && (
+                <>
+                  {/* Per Locale */}
+                  <NeumorphicCard className="p-6 mb-4">
+                    <button
+                      onClick={() => setExpandedSplit(prev => ({ ...prev, store: !prev.store }))}
+                      className="w-full flex items-center justify-between"
+                    >
+                      <h3 className="text-lg font-bold text-slate-800">Dettaglio per Locale</h3>
+                      <ChevronUp className={`w-5 h-5 text-slate-600 transition-transform ${expandedSplit.store ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {expandedSplit.store && (
+                      <div className="mt-4 space-y-4">
+                        {(() => {
+                          const splitData = {};
                           
-                          return (
-                            <div key={key} className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200">
-                              <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-lg font-bold text-slate-800">{data.name}</h4>
-                                <span className={`text-xs font-bold px-2 py-1 rounded ${
-                                  splitGap <= 0 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                                }`}>
-                                  {splitGap <= 0 ? '▲ Sopra' : '▼ Sotto'}
-                                </span>
-                              </div>
+                          currentData.forEach(item => {
+                            const splitKey = item.store_id;
+                            const itemRevenue = item.total_revenue || 0;
+                            
+                            if (!splitData[splitKey]) {
+                              const storeName = stores.find(s => s.id === splitKey)?.name || splitKey;
+                              splitData[splitKey] = { actual: 0, name: storeName };
+                            }
+                            splitData[splitKey].actual += itemRevenue;
+                          });
+                          
+                          const totalActual = Object.values(splitData).reduce((sum, d) => sum + d.actual, 0);
+                          
+                          return Object.entries(splitData)
+                            .sort(([, a], [, b]) => b.actual - a.actual)
+                            .map(([key, data]) => {
+                              const proportion = totalActual > 0 ? data.actual / totalActual : 0;
+                              const splitTarget = target * proportion;
+                              const splitPredicted = predictedRevenue * proportion;
+                              const splitTotalProjected = data.actual + splitPredicted;
+                              const splitGap = splitTarget - splitTotalProjected;
+                              const splitProgress = splitTarget > 0 ? (splitTotalProjected / splitTarget) * 100 : 0;
                               
-                              <div className="grid grid-cols-4 gap-3 mb-3">
-                                <div>
-                                  <p className="text-xs text-slate-500 mb-1">Target</p>
-                                  <p className="text-sm font-bold text-blue-600">{formatEuro(splitTarget)}</p>
+                              return (
+                                <div key={key} className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-lg font-bold text-slate-800">{data.name}</h4>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded ${
+                                      splitGap <= 0 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                    }`}>
+                                      {splitGap <= 0 ? '▲ Sopra' : '▼ Sotto'}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-4 gap-3 mb-3">
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Target</p>
+                                      <p className="text-sm font-bold text-blue-600">{formatEuro(splitTarget)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Attuale</p>
+                                      <p className="text-sm font-bold text-green-600">{formatEuro(data.actual)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Previsto</p>
+                                      <p className="text-sm font-bold text-purple-600">{formatEuro(splitTotalProjected)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Gap</p>
+                                      <p className={`text-sm font-bold ${splitGap > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                        {formatEuro(Math.abs(splitGap))}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1 bg-slate-200 rounded-full h-3 overflow-hidden">
+                                      <div 
+                                        className={`h-full transition-all ${
+                                          splitGap <= 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'
+                                        }`}
+                                        style={{ width: `${Math.min(splitProgress, 100)}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-600">{splitProgress.toFixed(0)}%</span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                                    <div className="text-slate-500">
+                                      <span>Δ Attuale vs Richiesto (oggi): </span>
+                                      <span className={`font-bold ${
+                                        data.actual >= (splitTarget * (daysPassed / totalDays)) ? 'text-green-600' : 'text-red-600'
+                                      }`}>
+                                        {formatEuro(data.actual - (splitTarget * (daysPassed / totalDays)))}
+                                      </span>
+                                    </div>
+                                    <div className="text-slate-500">
+                                      <span>Δ Previsto vs Target: </span>
+                                      <span className={`font-bold ${splitGap <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {formatEuro(-splitGap)}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="text-xs text-slate-500 mb-1">Attuale</p>
-                                  <p className="text-sm font-bold text-green-600">{formatEuro(data.actual)}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-slate-500 mb-1">Previsto</p>
-                                  <p className="text-sm font-bold text-purple-600">{formatEuro(splitTotalProjected)}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-slate-500 mb-1">Gap</p>
-                                  <p className={`text-sm font-bold ${splitGap > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                    {formatEuro(Math.abs(splitGap))}
-                                  </p>
-                                </div>
-                              </div>
+                              );
+                            });
+                        })()}
+                      </div>
+                    )}
+                  </NeumorphicCard>
+
+                  {/* Per App */}
+                  <NeumorphicCard className="p-6 mb-4">
+                    <button
+                      onClick={() => setExpandedSplit(prev => ({ ...prev, app: !prev.app }))}
+                      className="w-full flex items-center justify-between"
+                    >
+                      <h3 className="text-lg font-bold text-slate-800">Dettaglio per App</h3>
+                      <ChevronUp className={`w-5 h-5 text-slate-600 transition-transform ${expandedSplit.app ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {expandedSplit.app && (
+                      <div className="mt-4 space-y-4">
+                        {(() => {
+                          const splitData = {};
+                          
+                          currentData.forEach(item => {
+                            const apps = [
+                              { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                              { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                              { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                              { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                              { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                              { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                              { key: 'store', revenue: item.sourceApp_store || 0 }
+                            ];
+                            apps.forEach(app => {
+                              const mappedKey = appMapping[app.key] || app.key;
+                              if (app.revenue > 0) {
+                                if (!splitData[mappedKey]) splitData[mappedKey] = { actual: 0, name: mappedKey };
+                                splitData[mappedKey].actual += app.revenue;
+                              }
+                            });
+                          });
+                          
+                          const totalActual = Object.values(splitData).reduce((sum, d) => sum + d.actual, 0);
+                          
+                          return Object.entries(splitData)
+                            .sort(([, a], [, b]) => b.actual - a.actual)
+                            .map(([key, data]) => {
+                              const proportion = totalActual > 0 ? data.actual / totalActual : 0;
+                              const splitTarget = target * proportion;
+                              const splitPredicted = predictedRevenue * proportion;
+                              const splitTotalProjected = data.actual + splitPredicted;
+                              const splitGap = splitTarget - splitTotalProjected;
+                              const splitProgress = splitTarget > 0 ? (splitTotalProjected / splitTarget) * 100 : 0;
                               
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 bg-slate-200 rounded-full h-3 overflow-hidden">
-                                  <div 
-                                    className={`h-full transition-all ${
-                                      splitGap <= 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'
-                                    }`}
-                                    style={{ width: `${Math.min(splitProgress, 100)}%` }}
-                                  />
+                              return (
+                                <div key={key} className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-lg font-bold text-slate-800">{data.name}</h4>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded ${
+                                      splitGap <= 0 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                    }`}>
+                                      {splitGap <= 0 ? '▲ Sopra' : '▼ Sotto'}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-4 gap-3 mb-3">
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Target</p>
+                                      <p className="text-sm font-bold text-blue-600">{formatEuro(splitTarget)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Attuale</p>
+                                      <p className="text-sm font-bold text-green-600">{formatEuro(data.actual)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Previsto</p>
+                                      <p className="text-sm font-bold text-purple-600">{formatEuro(splitTotalProjected)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Gap</p>
+                                      <p className={`text-sm font-bold ${splitGap > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                        {formatEuro(Math.abs(splitGap))}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1 bg-slate-200 rounded-full h-3 overflow-hidden">
+                                      <div 
+                                        className={`h-full transition-all ${
+                                          splitGap <= 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'
+                                        }`}
+                                        style={{ width: `${Math.min(splitProgress, 100)}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-600">{splitProgress.toFixed(0)}%</span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                                    <div className="text-slate-500">
+                                      <span>Δ Attuale vs Richiesto (oggi): </span>
+                                      <span className={`font-bold ${
+                                        data.actual >= (splitTarget * (daysPassed / totalDays)) ? 'text-green-600' : 'text-red-600'
+                                      }`}>
+                                        {formatEuro(data.actual - (splitTarget * (daysPassed / totalDays)))}
+                                      </span>
+                                    </div>
+                                    <div className="text-slate-500">
+                                      <span>Δ Previsto vs Target: </span>
+                                      <span className={`font-bold ${splitGap <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {formatEuro(-splitGap)}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <span className="text-xs font-bold text-slate-600">{splitProgress.toFixed(0)}%</span>
-                              </div>
+                              );
+                            });
+                        })()}
+                      </div>
+                    )}
+                  </NeumorphicCard>
+
+                  {/* Per Canale */}
+                  <NeumorphicCard className="p-6 mb-4">
+                    <button
+                      onClick={() => setExpandedSplit(prev => ({ ...prev, channel: !prev.channel }))}
+                      className="w-full flex items-center justify-between"
+                    >
+                      <h3 className="text-lg font-bold text-slate-800">Dettaglio per Canale</h3>
+                      <ChevronUp className={`w-5 h-5 text-slate-600 transition-transform ${expandedSplit.channel ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {expandedSplit.channel && (
+                      <div className="mt-4 space-y-4">
+                        {(() => {
+                          const splitData = {};
+                          
+                          currentData.forEach(item => {
+                            const channels = [
+                              { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                              { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                              { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                              { key: 'store', revenue: item.sourceType_store || 0 }
+                            ];
+                            channels.forEach(ch => {
+                              const mappedKey = channelMapping[ch.key] || ch.key;
+                              if (ch.revenue > 0) {
+                                if (!splitData[mappedKey]) splitData[mappedKey] = { actual: 0, name: mappedKey };
+                                splitData[mappedKey].actual += ch.revenue;
+                              }
+                            });
+                          });
+                          
+                          const totalActual = Object.values(splitData).reduce((sum, d) => sum + d.actual, 0);
+                          
+                          return Object.entries(splitData)
+                            .sort(([, a], [, b]) => b.actual - a.actual)
+                            .map(([key, data]) => {
+                              const proportion = totalActual > 0 ? data.actual / totalActual : 0;
+                              const splitTarget = target * proportion;
+                              const splitPredicted = predictedRevenue * proportion;
+                              const splitTotalProjected = data.actual + splitPredicted;
+                              const splitGap = splitTarget - splitTotalProjected;
+                              const splitProgress = splitTarget > 0 ? (splitTotalProjected / splitTarget) * 100 : 0;
                               
-                              <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
-                                <div className="text-slate-500">
-                                  <span>Δ Attuale vs Richiesto (oggi): </span>
-                                  <span className={`font-bold ${
-                                    data.actual >= (splitTarget * (daysPassed / totalDays)) ? 'text-green-600' : 'text-red-600'
-                                  }`}>
-                                    {formatEuro(data.actual - (splitTarget * (daysPassed / totalDays)))}
-                                  </span>
+                              return (
+                                <div key={key} className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200">
+                                  <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-lg font-bold text-slate-800">{data.name}</h4>
+                                    <span className={`text-xs font-bold px-2 py-1 rounded ${
+                                      splitGap <= 0 ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                    }`}>
+                                      {splitGap <= 0 ? '▲ Sopra' : '▼ Sotto'}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-4 gap-3 mb-3">
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Target</p>
+                                      <p className="text-sm font-bold text-blue-600">{formatEuro(splitTarget)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Attuale</p>
+                                      <p className="text-sm font-bold text-green-600">{formatEuro(data.actual)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Previsto</p>
+                                      <p className="text-sm font-bold text-purple-600">{formatEuro(splitTotalProjected)}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-slate-500 mb-1">Gap</p>
+                                      <p className={`text-sm font-bold ${splitGap > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                        {formatEuro(Math.abs(splitGap))}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1 bg-slate-200 rounded-full h-3 overflow-hidden">
+                                      <div 
+                                        className={`h-full transition-all ${
+                                          splitGap <= 0 ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'
+                                        }`}
+                                        style={{ width: `${Math.min(splitProgress, 100)}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs font-bold text-slate-600">{splitProgress.toFixed(0)}%</span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                                    <div className="text-slate-500">
+                                      <span>Δ Attuale vs Richiesto (oggi): </span>
+                                      <span className={`font-bold ${
+                                        data.actual >= (splitTarget * (daysPassed / totalDays)) ? 'text-green-600' : 'text-red-600'
+                                      }`}>
+                                        {formatEuro(data.actual - (splitTarget * (daysPassed / totalDays)))}
+                                      </span>
+                                    </div>
+                                    <div className="text-slate-500">
+                                      <span>Δ Previsto vs Target: </span>
+                                      <span className={`font-bold ${splitGap <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {formatEuro(-splitGap)}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="text-slate-500">
-                                  <span>Δ Previsto vs Target: </span>
-                                  <span className={`font-bold ${splitGap <= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {formatEuro(-splitGap)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        });
-                    })()}
-                  </div>
-                </NeumorphicCard>
+                              );
+                            });
+                        })()}
+                      </div>
+                    )}
+                  </NeumorphicCard>
+                </>
               )}
 
               {/* Tabella Dettaglio Giornaliero */}
@@ -1673,18 +1871,10 @@ export default function Target() {
                       <option value="weekly">Settimanale</option>
                       <option value="monthly">Mensile</option>
                     </select>
-                    <select
-                      value={splitBy}
-                      onChange={(e) => setSplitBy(e.target.value)}
-                      className="neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 text-sm"
-                    >
-                      <option value="none">Nessun Split</option>
-                      <option value="store">Per Locale</option>
-                      <option value="app">Per App</option>
-                      <option value="channel">Per Canale</option>
-                    </select>
                   </div>
                 </div>
+                <div className="overflow-x-auto">
+
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[600px]">
                     <thead>
@@ -1936,11 +2126,11 @@ export default function Target() {
                           }
                           
                           Object.values(monthlyDataMap).forEach(month => {
-                            const isPast = month.end <= today;
+                            const isPast = month.end < today || (month.end.getTime() === today.getTime());
                             
                             detailRows.push({
                               date: format(month.start, 'MMMM yyyy', { locale: it }),
-                              actual: isPast ? month.actual : null,
+                              actual: month.actual > 0 ? month.actual : null,
                               predicted: month.predicted,
                               deltaVsPredicted: isPast ? (month.actual - month.predicted) : null,
                               deltaPercentVsPredicted: isPast && month.predicted > 0 ? ((month.actual - month.predicted) / month.predicted) * 100 : null,
