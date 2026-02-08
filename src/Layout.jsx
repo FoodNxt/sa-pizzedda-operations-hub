@@ -93,13 +93,13 @@ const navigationStructure = [
     ]
   },
   {
-    title: "Financials",
+    title: "Analisi Ricavi",
     icon: Euro,
     type: "section",
     requiredUserType: ["admin", "manager"],
     items: [
       {
-        title: "Financials",
+        title: "Analisi Ricavi",
         page: "Financials",
         url: createPageUrl("Financials"),
         icon: Euro,

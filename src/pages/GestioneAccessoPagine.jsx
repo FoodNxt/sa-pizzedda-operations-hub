@@ -167,7 +167,7 @@ export default function GestioneAccessoPagine() {
   { value: 'AssignReviews', label: 'Assign Reviews', category: 'Reviews' },
   { value: 'EmployeeReviewsPerformance', label: 'Employee Reviews', category: 'Reviews' },
   { value: 'RealTime', label: 'Real Time', category: 'Financials' },
-  { value: 'Financials', label: 'Financials', category: 'Financials' },
+  { value: 'Financials', label: 'Analisi Ricavi', category: 'Financials' },
   { value: 'ChannelComparison', label: 'Channel Comparison', category: 'Financials' },
   { value: 'StoricoCassa', label: 'Storico Cassa', category: 'Financials' },
   { value: 'Costi', label: 'Costi', category: 'Financials' },
