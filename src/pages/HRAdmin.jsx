@@ -13,7 +13,8 @@ import {
   Navigation,
   Settings,
   Clock,
-  Map } from
+  Map,
+  TrendingUp } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -54,6 +55,11 @@ export default function HRAdmin() {
   const { data: timbraturaConfigs = [] } = useQuery({
     queryKey: ['timbratura-config'],
     queryFn: () => base44.entities.TimbraturaConfig.list()
+  });
+
+  const { data: targets = [] } = useQuery({
+    queryKey: ['targets'],
+    queryFn: () => base44.entities.Target.list()
   });
 
   // Inizializza storeManagers e GPS quando i dati sono caricati
@@ -326,6 +332,68 @@ export default function HRAdmin() {
           })}
         </div>
       </NeumorphicCard>
+
+      {/* Target Store Manager */}
+      {storeManagerUsers.length > 0 && (
+        <NeumorphicCard className="p-6 bg-amber-50">
+          <div className="flex items-start gap-3 mb-4">
+            <TrendingUp className="w-6 h-6 text-amber-600 flex-shrink-0 mt-1" />
+            <div>
+              <h3 className="font-bold text-amber-800 mb-2">📊 Target Store Manager</h3>
+              <p className="text-sm text-amber-700">
+                Visualizza i target assegnati a ciascun Store Manager.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {storeManagerUsers.map((manager) => {
+              const managerTargets = targets.filter((t) => t.store_manager_id === manager.id);
+              const managerStores = stores.filter((s) => s.store_manager_id === manager.id);
+
+              return (
+                <div key={manager.id} className="neumorphic-flat p-4 rounded-xl bg-white">
+                  <h4 className="font-bold text-slate-800 mb-2">
+                    {manager.nome_cognome || manager.full_name}
+                  </h4>
+                  
+                  {managerStores.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs font-medium text-slate-600 mb-1">Locali assegnati:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {managerStores.map((store) => (
+                          <span key={store.id} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                            {store.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {managerTargets.length > 0 ? (
+                    <div>
+                      <p className="text-xs font-medium text-slate-600 mb-2">Target attivi:</p>
+                      <div className="space-y-1">
+                        {managerTargets.slice(0, 3).map((target) => (
+                          <div key={target.id} className="text-xs bg-amber-50 border border-amber-200 p-2 rounded">
+                            <p className="font-medium text-amber-900">{target.name}</p>
+                            <p className="text-amber-700">€{(target.target_revenue || 0).toLocaleString('it-IT')}</p>
+                          </div>
+                        ))}
+                        {managerTargets.length > 3 && (
+                          <p className="text-xs text-slate-500 italic">+{managerTargets.length - 3} altri...</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 italic">Nessun target assegnato</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </NeumorphicCard>
+      )}
 
       {/* Store Manager per Locale */}
       <NeumorphicCard className="p-6 bg-purple-50">
