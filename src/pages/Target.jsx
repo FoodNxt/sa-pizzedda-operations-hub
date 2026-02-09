@@ -37,6 +37,26 @@ export default function Target() {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
 
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list()
+  });
+
+  const { data: iPraticoData = [] } = useQuery({
+    queryKey: ['iPratico'],
+    queryFn: () => base44.entities.iPratico.list('-order_date', 1000)
+  });
+
+  const { data: financeConfigs = [] } = useQuery({
+    queryKey: ['finance-configs'],
+    queryFn: () => base44.entities.FinanceConfig.list()
+  });
+
+  const { data: targets = [] } = useQuery({
+    queryKey: ['targets'],
+    queryFn: () => base44.entities.Target.list()
+  });
+
   useEffect(() => {
     const targetId = searchParams.get('id');
     if (targetId && targets.length > 0) {
@@ -57,26 +77,6 @@ export default function Target() {
       }
     }
   }, [searchParams, targets]);
-
-  const { data: stores = [] } = useQuery({
-    queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list()
-  });
-
-  const { data: iPraticoData = [] } = useQuery({
-    queryKey: ['iPratico'],
-    queryFn: () => base44.entities.iPratico.list('-order_date', 1000)
-  });
-
-  const { data: financeConfigs = [] } = useQuery({
-    queryKey: ['finance-configs'],
-    queryFn: () => base44.entities.FinanceConfig.list()
-  });
-
-  const { data: targets = [] } = useQuery({
-    queryKey: ['targets'],
-    queryFn: () => base44.entities.Target.list()
-  });
 
   const saveTargetMutation = useMutation({
     mutationFn: (targetData) => base44.entities.Target.create(targetData),
