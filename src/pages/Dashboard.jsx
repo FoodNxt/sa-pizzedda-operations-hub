@@ -1715,9 +1715,9 @@ export default function Dashboard() {
                 const isOnTrack = target.forecastRevenue >= target.target_revenue;
                 
                 return (
-                  <div key={target.id} className="neumorphic-pressed p-4 rounded-xl">
-                    <h4 className="font-bold text-slate-800 mb-1">{target.name}</h4>
-                    <p className="text-xs text-slate-500 mb-3">{storeName}</p>
+                   <Link to={`${createPageUrl('Target')}?id=${target.id}`} className="neumorphic-pressed p-4 rounded-xl block hover:shadow-lg transition-shadow">
+                     <h4 className="font-bold text-slate-800 mb-1">{target.name}</h4>
+                     <p className="text-xs text-slate-500 mb-3">{storeName}</p>
                     
                     <div className="mb-3 space-y-1">
                       <div className="flex justify-between items-center text-xs">
