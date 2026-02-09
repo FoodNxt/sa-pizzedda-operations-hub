@@ -4,12 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FileText, Plus, Edit, Save, X, Trash2, Send, CheckCircle, Clock, Eye, Download,
   AlertCircle, User, Briefcase, FileEdit, AlertTriangle, BookOpen, History, Settings, Loader2,
-  Upload, DollarSign, Folder, FolderPlus } from
+  Upload, DollarSign, Folder, FolderPlus, BarChart3 } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import { isValid } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Documenti() {
   const [activeTab, setActiveTab] = useState('contratti');
@@ -2092,8 +2093,55 @@ function LettereSection() {
 
   const chiusuraTemplates = templates.filter((t) => t.tipo_lettera === 'chiusura_procedura' && t.attivo);
 
+  // Dati per il grafico
+  const richiamiInviate = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'inviata');
+  const richiamiVisualizzate = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'visualizzata');
+  const richiamiFirmate = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'firmata');
+  const chiusureInviate = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'inviata');
+  const chiusureVisualizzate = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'visualizzata');
+  const chiusureFirmate = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'firmata');
+
+  const chartData = [
+    { name: 'Richiami Inviati', value: richiamiInviate.length, fill: '#3b82f6' },
+    { name: 'Richiami Visualizzati', value: richiamiVisualizzate.length, fill: '#f59e0b' },
+    { name: 'Richiami Firmati', value: richiamiFirmate.length, fill: '#10b981' },
+    { name: 'Chiusure Inviate', value: chiusureInviate.length, fill: '#8b5cf6' },
+    { name: 'Chiusure Visualizzate', value: chiusureVisualizzate.length, fill: '#ec4899' },
+    { name: 'Chiusure Firmate', value: chiusureFirmate.length, fill: '#14b8a6' }
+  ].filter(item => item.value > 0);
+
   return (
     <>
+      {/* Grafico Overview */}
+      <NeumorphicCard className="p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="w-5 h-5 text-blue-600" />
+          <h2 className="text-lg font-bold text-slate-800">Stato Lettere</h2>
+        </div>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} angle={-15} textAnchor="end" height={80} />
+              <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                  border: '1px solid rgba(51, 65, 85, 0.6)',
+                  borderRadius: '8px',
+                  color: '#f1f5f9'
+                }}
+              />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-slate-400">Nessuna lettera presente</p>
+          </div>
+        )}
+      </NeumorphicCard>
+
       <div className="flex gap-3 mb-6 flex-wrap">
         <NeumorphicButton onClick={() => setShowTemplateForm(true)} className="flex items-center gap-2">
           <Plus className="w-5 h-5" />
