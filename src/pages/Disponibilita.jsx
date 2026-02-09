@@ -254,34 +254,8 @@ export default function Disponibilita() {
           <p style={{ color: '#000000' }}>Ore straordinario fatte vs potenziali per ogni dipendente</p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          <button
-            onClick={() => setActiveTab('disponibilita')}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-            activeTab === 'disponibilita' ?
-            'neumorphic-pressed bg-blue-50 text-blue-700' :
-            'neumorphic-flat text-slate-600 hover:text-slate-800'}`
-            }>
 
-            <TrendingUp className="w-4 h-4" />
-            Disponibilità
-          </button>
-          <button
-            onClick={() => setActiveTab('straordinari')}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-            activeTab === 'straordinari' ?
-            'neumorphic-pressed bg-blue-50 text-blue-700' :
-            'neumorphic-flat text-slate-600 hover:text-slate-800'}`
-            }>
 
-            <Euro className="w-4 h-4" />
-            Straordinari
-          </button>
-        </div>
-
-        {activeTab === 'disponibilita' &&
-        <>
         {/* Filters */}
         <NeumorphicCard className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
