@@ -112,7 +112,6 @@ import IPraticoBulkImport from './pages/IPraticoBulkImport';
 import IPraticoSetup from './pages/IPraticoSetup';
 import Impasto from './pages/Impasto';
 import ImportReviews from './pages/ImportReviews';
-import InventarioAdmin from './pages/InventarioAdmin';
 import InventarioStoreManager from './pages/InventarioStoreManager';
 import Inventory from './pages/Inventory';
 import InventoryForms from './pages/InventoryForms';
@@ -245,7 +244,6 @@ export const PAGES = {
     "IPraticoSetup": IPraticoSetup,
     "Impasto": Impasto,
     "ImportReviews": ImportReviews,
-    "InventarioAdmin": InventarioAdmin,
     "InventarioStoreManager": InventarioStoreManager,
     "Inventory": Inventory,
     "InventoryForms": InventoryForms,
