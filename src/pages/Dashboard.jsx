@@ -186,29 +186,9 @@ export default function Dashboard() {
     queryFn: () => base44.entities.StoreManagerTarget.list()
   });
 
-  const { data: iPratico = [] } = useQuery({
-    queryKey: ['ipratico'],
-    queryFn: () => base44.entities.iPratico.list()
-  });
-
-  const { data: reviews = [] } = useQuery({
-    queryKey: ['reviews'],
-    queryFn: () => base44.entities.Review.list()
-  });
-
   const { data: wrongOrder = [] } = useQuery({
     queryKey: ['wrong-orders'],
     queryFn: () => base44.entities.WrongOrder.list()
-  });
-
-  const { data: shifts = [] } = useQuery({
-    queryKey: ['shifts'],
-    queryFn: () => base44.entities.TurnoPlanday.list()
-  });
-
-  const { data: cleaningInspections = [] } = useQuery({
-    queryKey: ['cleaning-inspections'],
-    queryFn: () => base44.entities.CleaningInspection.list()
   });
 
   const safeParseDate = (dateString) => {
