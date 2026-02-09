@@ -358,11 +358,35 @@ export default function Ordini() {
           )}
           </div>) : (
 
-        /* Vista admin/manager - lista semplice */
-        <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">Ordini da Ricevere</h2>
-            <div className="space-y-3">
-              {myOrders.map((ordine) =>
+        /* Vista admin/manager - raggruppata per fornitore */
+        <div className="space-y-6">
+          {fornitori.map((fornitore) => {
+            const ordiniFornitore = myOrders.filter(o => o.fornitore === fornitore);
+            return (
+              <NeumorphicCard key={fornitore} className="p-6">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-blue-200">
+                  <div className="flex items-center gap-3">
+                    <div className="neumorphic-flat w-12 h-12 rounded-xl flex items-center justify-center">
+                      <Package className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-[#6b6b6b]">{fornitore}</h2>
+                      <p className="text-sm text-[#9b9b9b]">{ordiniFornitore.length} ordini in attesa</p>
+                    </div>
+                  </div>
+                  {ordiniFornitore.length > 1 && (
+                    <NeumorphicButton 
+                      onClick={() => openConsolidationModal(fornitore)}
+                      variant="primary"
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <Package className="w-4 h-4" />
+                      Consolida
+                    </NeumorphicButton>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {ordiniFornitore.map((ordine) =>
             <div
               key={ordine.id}
               onClick={() => openOrderDetail(ordine)}
