@@ -706,7 +706,14 @@ export default function OverviewContratti() {
                   className="neumorphic-pressed px-4 py-3 rounded-lg flex-1 outline-none"
                 />
                 <NeumorphicButton
-                  onClick={() => savePeriodoProvaConfigMutation.mutate({ giorni_prova_per_mese: parseInt(turniPerMese) || 10 })}
+                  onClick={() => {
+                    const value = parseInt(turniPerMese);
+                    if (!value || value < 1) {
+                      alert('Inserisci un valore valido (minimo 1)');
+                      return;
+                    }
+                    savePeriodoProvaConfigMutation.mutate({ giorni_prova_per_mese: value });
+                  }}
                   variant="primary"
                   disabled={savePeriodoProvaConfigMutation.isPending}
                 >
