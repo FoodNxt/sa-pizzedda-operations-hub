@@ -134,48 +134,39 @@ export default function OverviewContratti() {
 
   const savePeriodoProvaConfigMutation = useMutation({
     mutationFn: async (giorni_prova) => {
-      console.log('🔵 Saving config with value:', giorni_prova);
-      
       const configs = await base44.entities.PeriodoProvaConfig.list();
-      console.log('🔵 Existing configs:', configs);
-      
       const activeConfig = configs.find((c) => c.is_active);
-      console.log('🔵 Active config found:', activeConfig);
       
       const dataToSave = { 
         giorni_prova_per_mese: parseInt(giorni_prova), 
         is_active: true 
       };
-      console.log('🔵 Data to save:', dataToSave);
       
       let result;
       if (activeConfig) {
-        console.log('🔵 Updating existing config:', activeConfig.id);
         result = await base44.entities.PeriodoProvaConfig.update(activeConfig.id, dataToSave);
       } else {
-        console.log('🔵 Creating new config');
         result = await base44.entities.PeriodoProvaConfig.create(dataToSave);
       }
       
-      console.log('✅ Save result:', result);
       return result;
     },
     onSuccess: async (data) => {
-      console.log('✅ Save successful, data:', data);
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['periodo-prova-config'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-periodo-prova'] });
+      queryClient.invalidateQueries({ queryKey: ['users-overview'] });
+      queryClient.invalidateQueries({ queryKey: ['contratti-overview'] });
       
-      await queryClient.invalidateQueries({ queryKey: ['periodo-prova-config'] });
-      await queryClient.invalidateQueries({ queryKey: ['turni-periodo-prova'] });
-      await queryClient.invalidateQueries({ queryKey: ['users-overview'] });
-      await queryClient.invalidateQueries({ queryKey: ['contratti-overview'] });
+      // Wait for refetch to complete
+      await queryClient.refetchQueries({ queryKey: ['periodo-prova-config'] });
       
-      const newValue = data.giorni_prova_per_mese?.toString() || '';
-      console.log('🔵 Setting local state to:', newValue);
-      setTurniPerMese(newValue);
+      // Update local state with saved value
+      setTurniPerMese(data.giorni_prova_per_mese?.toString() || '');
       
-      alert('✅ Configurazione salvata: ' + newValue + ' turni per mese');
+      alert('✅ Configurazione salvata: ' + data.giorni_prova_per_mese + ' turni per mese');
     },
     onError: (error) => {
-      console.error('❌ Save error:', error);
       alert('❌ Errore nel salvataggio: ' + error.message);
     }
   });
@@ -753,16 +744,12 @@ export default function OverviewContratti() {
                   className="neumorphic-pressed px-4 py-3 rounded-lg flex-1 outline-none"
                 />
                 <NeumorphicButton
-                  onClick={async () => {
+                  onClick={() => {
                     const value = parseInt(turniPerMese);
-                    console.log('🔵 Button clicked, turniPerMese:', turniPerMese, 'parsed:', value);
-                    
                     if (!value || value < 1 || isNaN(value)) {
                       alert('Inserisci un valore valido (minimo 1)');
                       return;
                     }
-                    
-                    console.log('🔵 Calling mutation with value:', value);
                     savePeriodoProvaConfigMutation.mutate(value);
                   }}
                   variant="primary"
