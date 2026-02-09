@@ -35,6 +35,28 @@ export default function Target() {
   const [appMapping, setAppMapping] = useState({});
 
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const targetId = searchParams.get('id');
+    if (targetId && targets.length > 0) {
+      const foundTarget = targets.find(t => t.id === targetId);
+      if (foundTarget) {
+        setSelectedTargetId(targetId);
+        setTargetRevenue(foundTarget.target_revenue.toString());
+        setTargetStore(foundTarget.store_id || 'all');
+        setTargetChannel(foundTarget.channel || '');
+        setTargetApp(foundTarget.app || '');
+        setTargetDateMode(foundTarget.date_mode || 'range');
+        setTargetStartDate(foundTarget.start_date || '');
+        setTargetEndDate(foundTarget.end_date || '');
+        setHistoricalDaysTarget(foundTarget.historical_days || 30);
+        setUseEMA(foundTarget.use_ema || false);
+        setGrowthRatePeriodDays(foundTarget.growth_rate_period_days || 0);
+        setSelectedTargetView('details');
+      }
+    }
+  }, [searchParams, targets]);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
