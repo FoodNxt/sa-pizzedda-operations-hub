@@ -291,7 +291,7 @@ export default function PulizieMatch() {
 
         {/* Filters */}
         <NeumorphicCard className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
                 <Filter className="w-4 h-4" />
