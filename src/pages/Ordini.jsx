@@ -435,7 +435,8 @@ export default function Ordini() {
             );
           })}
         </div>
-        )
+        ) 
+        }
 
         {/* Create Consolidated Order Modal */}
         {showCreateMultiStoreOrder &&
