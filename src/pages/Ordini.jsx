@@ -249,9 +249,21 @@ export default function Ordini() {
   return (
     <ProtectedPage pageName="Ordini">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="mb-6">
-          <h1 className="text-slate-50 mb-2 text-3xl font-bold">📦 Ordini</h1>
-          <p className="text-slate-50">Gestisci gli ordini inviati ai fornitori</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-slate-50 mb-2 text-3xl font-bold">📦 Ordini</h1>
+            <p className="text-slate-50">Gestisci gli ordini inviati ai fornitori</p>
+          </div>
+          {(currentUser?.user_type === 'admin' || currentUser?.user_type === 'manager') && (
+            <NeumorphicButton 
+              onClick={() => setShowCreateMultiStoreOrder(true)}
+              variant="primary"
+              className="flex items-center gap-2"
+            >
+              <Package className="w-4 h-4" />
+              Nuovo Ordine Multi-Store
+            </NeumorphicButton>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
