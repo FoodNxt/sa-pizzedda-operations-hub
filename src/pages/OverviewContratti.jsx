@@ -162,21 +162,21 @@ export default function OverviewContratti() {
       return result;
     },
     onSuccess: async (data) => {
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['periodo-prova-config'] });
-      queryClient.invalidateQueries({ queryKey: ['turni-periodo-prova'] });
-      queryClient.invalidateQueries({ queryKey: ['users-overview'] });
-      queryClient.invalidateQueries({ queryKey: ['contratti-overview'] });
-      
-      // Wait for refetch to complete
+      // Force immediate refetch of config
       await queryClient.refetchQueries({ queryKey: ['periodo-prova-config'] });
       
-      // Update local state with saved value
+      // Invalidate all related queries to trigger recalculation
+      await queryClient.invalidateQueries({ queryKey: ['turni-periodo-prova'] });
+      await queryClient.invalidateQueries({ queryKey: ['users-overview'] });
+      await queryClient.invalidateQueries({ queryKey: ['contratti-overview'] });
+      
+      // Update local state
       setTurniPerMese(data.giorni_prova_per_mese?.toString() || '');
       
       alert('✅ Configurazione salvata: ' + data.giorni_prova_per_mese + ' turni per mese');
     },
     onError: (error) => {
+      console.error('Errore salvataggio:', error);
       alert('❌ Errore nel salvataggio: ' + error.message);
     }
   });
