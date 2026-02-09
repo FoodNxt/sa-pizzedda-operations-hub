@@ -1192,7 +1192,7 @@ export default function Produttivita() {
           {(() => {
             const insights = [];
             
-            // Funzione per verificare se uno slot è negli orari di apertura
+            // Funzione per verificare se uno slot è negli orari di apertura (esclude slot che iniziano all'orario di chiusura o dopo)
             const isInOpeningHours = (slot) => {
               const slotMatch = slot.match(/(\d{2}):(\d{2})/);
               if (!slotMatch) return true;
@@ -1207,7 +1207,8 @@ export default function Produttivita() {
               const [closeHours, closeMinutes] = orarioChiusura.split(':').map(Number);
               const closeMinutesTotal = closeHours * 60 + closeMinutes;
               
-              return slotMinutesTotal >= openMinutesTotal && slotMinutesTotal <= closeMinutesTotal;
+              // Slot deve iniziare >= apertura e PRIMA della chiusura (non all'orario di chiusura)
+              return slotMinutesTotal >= openMinutesTotal && slotMinutesTotal < closeMinutesTotal;
             };
 
             // Analizza heatmap per trovare slot con bassa produttività ma alte ore (SOLO negli orari di apertura)
