@@ -22,6 +22,8 @@ export default function Produttivita() {
   const [heatmapMode, setHeatmapMode] = useState('productivity'); // 'productivity' or 'revenue'
   const [showSettings, setShowSettings] = useState(false);
   const [includedTipiTurno, setIncludedTipiTurno] = useState([]);
+  const [orarioApertura, setOrarioApertura] = useState('11:00');
+  const [orarioChiusura, setOrarioChiusura] = useState('23:00');
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState('all'); // 'all' or day index 0-6
   const [collapsedSections, setCollapsedSections] = useState({
     datiRaw: true,
@@ -1237,9 +1239,34 @@ export default function Produttivita() {
               }
             }
 
-            return insights.length > 0 ? (
+            // Filtra insights per considerare solo slot negli orari di apertura
+            const filteredInsights = insights.filter(insight => {
+              // Se ha details, verifica che almeno uno sia negli orari di apertura
+              if (insight.details && insight.details.length > 0) {
+                return insight.details.some(detail => {
+                  const slotMatch = detail.match(/(\d{2}:\d{2})/);
+                  if (slotMatch) {
+                    const slotTime = slotMatch[1];
+                    const [hours, minutes] = slotTime.split(':').map(Number);
+                    const slotMinutes = hours * 60 + minutes;
+                    
+                    const [openHours, openMinutes] = orarioApertura.split(':').map(Number);
+                    const openMinutes24 = openHours * 60 + openMinutes;
+                    
+                    const [closeHours, closeMinutes] = orarioChiusura.split(':').map(Number);
+                    const closeMinutes24 = closeHours * 60 + closeMinutes;
+                    
+                    return slotMinutes >= openMinutes24 && slotMinutes <= closeMinutes24;
+                  }
+                  return true;
+                });
+              }
+              return true;
+            });
+
+            return filteredInsights.length > 0 ? (
               <div className="space-y-3">
-                {insights.map((insight, idx) => (
+                {filteredInsights.map((insight, idx) => (
                   <div key={idx} className={`neumorphic-pressed p-4 rounded-xl ${
                     insight.type === 'warning' ? 'bg-orange-50' :
                     insight.type === 'success' ? 'bg-green-50' :
@@ -1537,6 +1564,34 @@ export default function Produttivita() {
               </div>
 
               <div className="space-y-4">
+                {/* Orari Apertura/Chiusura */}
+                <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
+                  <h4 className="font-bold text-[#6b6b6b] mb-3">Orari Standard Negozi</h4>
+                  <p className="text-xs text-[#9b9b9b] mb-3">
+                    Gli orari fuori da questo range sono considerati di preparazione e non vengono ottimizzati negli insights
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-[#6b6b6b] mb-1 block font-medium">Apertura</label>
+                      <input
+                        type="time"
+                        value={orarioApertura}
+                        onChange={(e) => setOrarioApertura(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-blue-300 text-sm outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-[#6b6b6b] mb-1 block font-medium">Chiusura</label>
+                      <input
+                        type="time"
+                        value={orarioChiusura}
+                        onChange={(e) => setOrarioChiusura(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-blue-300 text-sm outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="neumorphic-pressed p-4 rounded-xl">
                   <h4 className="font-bold text-[#6b6b6b] mb-3">Tipi di Turno da Includere</h4>
                   <p className="text-xs text-[#9b9b9b] mb-3">
