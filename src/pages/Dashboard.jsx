@@ -1575,7 +1575,7 @@ export default function Dashboard() {
                   const wrongOrders = wrongOrder.filter(w => w.store_id === target.store_id && w.data_ordine >= monthStart && w.data_ordine <= monthEndStr);
                   const wrongOrderCount = wrongOrders.length;
                   
-                  const storeShifts = shifts.filter(s => s.store_id === target.store_id && s.data >= monthStart && s.data <= monthEndStr);
+                  const storeShifts = turni.filter(s => s.store_id === target.store_id && s.data >= monthStart && s.data <= monthEndStr);
                   const totalLateMinutes = storeShifts.reduce((sum, s) => sum + (s.ritardo_minuti || 0), 0);
                   
                   const cleanings = cleaningInspections.filter(c => c.store_id === target.store_id && c.inspection_date >= monthStart && c.inspection_date <= monthEndStr);
