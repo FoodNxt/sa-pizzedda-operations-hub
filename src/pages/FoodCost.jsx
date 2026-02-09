@@ -18,6 +18,7 @@ export default function FoodCost() {
     start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     end: format(new Date(), 'yyyy-MM-dd')
   });
+  const [selectedDateDetail, setSelectedDateDetail] = useState(null);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -311,11 +312,64 @@ export default function FoodCost() {
         .sort((a, b) => new Date(a.date) - new Date(b.date))
         .map(d => ({
           date: format(new Date(d.date), 'dd MMM', { locale: it }),
+          rawDate: d.date,
           foodCostReale: d.revenue > 0 ? (d.costoReale / d.revenue) * 100 : 0,
-          foodCostTeorico: d.revenue > 0 ? (d.costoTeorico / d.revenue) * 100 : 0
+          foodCostTeorico: d.revenue > 0 ? (d.costoTeorico / d.revenue) * 100 : 0,
+          revenue: d.revenue,
+          costoReale: d.costoReale,
+          costoTeorico: d.costoTeorico
         }));
     }
   }, [iPraticoData, ordiniFornitori, prodottiVenduti, ricette, dateRange, selectedStore]);
+
+  // Dettaglio per data selezionata
+  const dateDetailData = useMemo(() => {
+    if (!selectedDateDetail) return null;
+
+    // Food cost teorico breakdown
+    const prodottiDelGiorno = prodottiVenduti.filter(p => 
+      p.order_date === selectedDateDetail &&
+      (selectedStore === 'all' || p.store_id === selectedStore)
+    );
+
+    const teoricoBreakdown = [];
+    prodottiDelGiorno.forEach(prod => {
+      const ricetta = ricette.find(r => r.nome_prodotto === prod.product_name);
+      if (ricetta && ricetta.ingredienti) {
+        ricetta.ingredienti.forEach(ing => {
+          const existing = teoricoBreakdown.find(t => t.nome === ing.nome_prodotto);
+          const quantitaTotale = (ing.quantita || 0) * (prod.quantity || 0);
+          const costoTotale = quantitaTotale * (ing.prezzo_unitario || 0);
+          
+          if (existing) {
+            existing.quantita += quantitaTotale;
+            existing.costo += costoTotale;
+          } else {
+            teoricoBreakdown.push({
+              nome: ing.nome_prodotto,
+              quantita: quantitaTotale,
+              unita_misura: ing.unita_misura,
+              prezzo_unitario: ing.prezzo_unitario || 0,
+              costo: costoTotale
+            });
+          }
+        });
+      }
+    });
+
+    // Food cost reale breakdown
+    const ordiniDelGiorno = ordiniFornitori.filter(o => {
+      if (o.status !== 'completato' || !o.data_completamento) return false;
+      const dataArrivo = format(new Date(o.data_completamento), 'yyyy-MM-dd');
+      return dataArrivo === selectedDateDetail &&
+        (selectedStore === 'all' || o.store_id === selectedStore);
+    });
+
+    return {
+      teoricoBreakdown: teoricoBreakdown.sort((a, b) => b.costo - a.costo),
+      ordiniDelGiorno
+    };
+  }, [selectedDateDetail, prodottiVenduti, ricette, ordiniFornitori, selectedStore]);
 
   // Quick date range buttons
   const setQuickRange = (days) => {
@@ -570,6 +624,7 @@ export default function FoodCost() {
         {/* Trend nel tempo */}
         <NeumorphicCard className="p-6">
           <h3 className="text-lg font-bold text-slate-800 mb-4">Andamento Food Cost</h3>
+          <p className="text-sm text-slate-500 mb-4">Clicca su un punto del grafico per vedere i dettagli</p>
           {trendGiornaliero.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trendGiornaliero}>
@@ -589,6 +644,8 @@ export default function FoodCost() {
                     strokeWidth={3}
                     name="Food Cost Reale %"
                     dot={{ fill: '#f59e0b', r: 4 }}
+                    onClick={(data) => data && data.rawDate && setSelectedDateDetail(data.rawDate)}
+                    style={{ cursor: 'pointer' }}
                   />
                 )}
                 {(foodCostView === 'teorico' || foodCostView === 'confronto') && (
@@ -599,6 +656,8 @@ export default function FoodCost() {
                     strokeWidth={3}
                     name="Food Cost Teorico %"
                     dot={{ fill: '#3b82f6', r: 4 }}
+                    onClick={(data) => data && data.rawDate && setSelectedDateDetail(data.rawDate)}
+                    style={{ cursor: 'pointer' }}
                   />
                 )}
               </LineChart>
@@ -609,6 +668,143 @@ export default function FoodCost() {
             </div>
           )}
         </NeumorphicCard>
+
+        {/* Dettaglio giorno selezionato */}
+        {selectedDateDetail && dateDetailData && (
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">
+                  Dettaglio {format(new Date(selectedDateDetail), 'dd MMMM yyyy', { locale: it })}
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {selectedStore === 'all' ? 'Tutti i locali' : stores.find(s => s.id === selectedStore)?.name}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedDateDetail(null)}
+                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <span className="text-2xl">×</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Food Cost Teorico - Breakdown ingredienti */}
+              <div className="neumorphic-pressed p-4 rounded-xl">
+                <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                  <ChefHat className="w-5 h-5 text-blue-600" />
+                  Food Cost Teorico - Ingredienti Utilizzati
+                </h4>
+                <p className="text-xs text-slate-500 mb-4">
+                  Calcolato dalle ricette × quantità vendute
+                </p>
+                {dateDetailData.teoricoBreakdown.length > 0 ? (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {dateDetailData.teoricoBreakdown.map((item, idx) => (
+                      <div key={idx} className="neumorphic-flat p-3 rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium text-slate-800 text-sm">{item.nome}</p>
+                            <p className="text-xs text-slate-500 mt-1">
+                              {item.quantita.toFixed(2)} {item.unita_misura} × €{item.prezzo_unitario.toFixed(2)}
+                            </p>
+                          </div>
+                          <p className="font-bold text-blue-600 text-sm">
+                            €{item.costo.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="neumorphic-pressed p-3 rounded-lg bg-blue-50 mt-4">
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold text-slate-800">Totale Teorico</p>
+                        <p className="font-bold text-blue-600 text-lg">
+                          €{dateDetailData.teoricoBreakdown.reduce((sum, i) => sum + i.costo, 0).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 text-center py-4">Nessun dato teorico per questo giorno</p>
+                )}
+              </div>
+
+              {/* Food Cost Reale - Ordini fornitori */}
+              <div className="neumorphic-pressed p-4 rounded-xl">
+                <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-orange-600" />
+                  Food Cost Reale - Ordini Ricevuti
+                </h4>
+                <p className="text-xs text-slate-500 mb-4">
+                  Ordini fornitori completati in questo giorno
+                </p>
+                {dateDetailData.ordiniDelGiorno.length > 0 ? (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {dateDetailData.ordiniDelGiorno.map((ordine) => {
+                      const totaleOrdine = (ordine.prodotti || []).reduce((sum, p) => {
+                        const q = p.quantita_ricevuta || p.quantita_ordinata || 0;
+                        return sum + (q * (p.prezzo_unitario || 0));
+                      }, 0);
+
+                      return (
+                        <div key={ordine.id} className="neumorphic-flat p-3 rounded-lg">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="font-medium text-slate-800 text-sm">
+                                {ordine.fornitore || 'N/A'}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {ordine.prodotti?.length || 0} prodotti
+                              </p>
+                            </div>
+                            <p className="font-bold text-orange-600 text-sm">
+                              €{totaleOrdine.toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="space-y-1 mt-2 pl-2 border-l-2 border-slate-200">
+                            {(ordine.prodotti || []).slice(0, 3).map((prod, idx) => {
+                              const q = prod.quantita_ricevuta || prod.quantita_ordinata || 0;
+                              const subtotale = q * (prod.prezzo_unitario || 0);
+                              return (
+                                <div key={idx} className="flex justify-between items-center text-xs">
+                                  <span className="text-slate-600">{prod.nome_prodotto}</span>
+                                  <span className="text-slate-500">
+                                    {q} × €{(prod.prezzo_unitario || 0).toFixed(2)} = €{subtotale.toFixed(2)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            {ordine.prodotti?.length > 3 && (
+                              <p className="text-xs text-slate-400 italic">
+                                +{ordine.prodotti.length - 3} altri prodotti...
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="neumorphic-pressed p-3 rounded-lg bg-orange-50 mt-4">
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold text-slate-800">Totale Reale</p>
+                        <p className="font-bold text-orange-600 text-lg">
+                          €{dateDetailData.ordiniDelGiorno.reduce((sum, o) => {
+                            return sum + (o.prodotti || []).reduce((s, p) => {
+                              const q = p.quantita_ricevuta || p.quantita_ordinata || 0;
+                              return s + (q * (p.prezzo_unitario || 0));
+                            }, 0);
+                          }, 0).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 text-center py-4">Nessun ordine fornitore ricevuto in questo giorno</p>
+                )}
+              </div>
+            </div>
+          </NeumorphicCard>
+        )}
 
         {/* Comparazione tra locali */}
         {selectedStore === 'all' && foodCostByStore.length > 0 && (
