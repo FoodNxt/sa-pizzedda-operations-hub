@@ -27,7 +27,7 @@ export default function Ordini() {
     queryFn: () => base44.entities.MateriePrime.list()
   });
 
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me()
   });
