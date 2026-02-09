@@ -51,7 +51,6 @@ import ATS from './pages/ATS';
 import Academy from './pages/Academy';
 import AcademyAdmin from './pages/AcademyAdmin';
 import Activation from './pages/Activation';
-import Alerts from './pages/Alerts';
 import AnalisiSprechi from './pages/AnalisiSprechi';
 import Assenze from './pages/Assenze';
 import AssignReviews from './pages/AssignReviews';
@@ -60,6 +59,7 @@ import Attrezzature from './pages/Attrezzature';
 import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
 import BulkImportProduttivita from './pages/BulkImportProduttivita';
 import BulkImportSconti from './pages/BulkImportSconti';
+import Cannibalizzazione from './pages/Cannibalizzazione';
 import ChannelComparison from './pages/ChannelComparison';
 import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
 import Compliance from './pages/Compliance';
@@ -173,7 +173,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import Cannibalizzazione from './pages/Cannibalizzazione';
 import __Layout from './Layout.jsx';
 
 
@@ -182,7 +181,6 @@ export const PAGES = {
     "Academy": Academy,
     "AcademyAdmin": AcademyAdmin,
     "Activation": Activation,
-    "Alerts": Alerts,
     "AnalisiSprechi": AnalisiSprechi,
     "Assenze": Assenze,
     "AssignReviews": AssignReviews,
@@ -191,6 +189,7 @@ export const PAGES = {
     "BulkImportProdottiVenduti": BulkImportProdottiVenduti,
     "BulkImportProduttivita": BulkImportProduttivita,
     "BulkImportSconti": BulkImportSconti,
+    "Cannibalizzazione": Cannibalizzazione,
     "ChannelComparison": ChannelComparison,
     "CleanupDuplicateShifts": CleanupDuplicateShifts,
     "Compliance": Compliance,
@@ -304,7 +303,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "Cannibalizzazione": Cannibalizzazione,
 }
 
 export const pagesConfig = {

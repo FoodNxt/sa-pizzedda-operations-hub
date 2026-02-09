@@ -32,6 +32,8 @@ export default function OverviewContratti() {
   const [editableEmailOggetto, setEditableEmailOggetto] = useState('');
   const [editableEmailCorpo, setEditableEmailCorpo] = useState('');
   const corpoTextareaRef = React.useRef(null);
+  const [showPeriodoProvaConfig, setShowPeriodoProvaConfig] = useState(false);
+  const [turniPerMese, setTurniPerMese] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -119,6 +121,21 @@ export default function OverviewContratti() {
     mutationFn: (id) => base44.entities.PayrollEmailLog.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payroll-email-logs'] });
+    }
+  });
+
+  const savePeriodoProvaConfigMutation = useMutation({
+    mutationFn: async (data) => {
+      const activeConfig = periodoProvaConfig.find((c) => c.is_active);
+      if (activeConfig) {
+        return await base44.entities.PeriodoProvaConfig.update(activeConfig.id, data);
+      } else {
+        return await base44.entities.PeriodoProvaConfig.create({ ...data, is_active: true });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['periodo-prova-config'] });
+      alert('✅ Configurazione periodo prova salvata!');
     }
   });
 
@@ -379,51 +396,61 @@ export default function OverviewContratti() {
   }, [dipendentiConContratti]);
 
   const dipendentiInPeriodoProva = useMemo(() => {
-    const activeConfig = periodoProvaConfig.find((c) => c.is_active) || { turni_richiesti: 20 };
-    const turniRichiesti = activeConfig.turni_richiesti;
+    const activeConfig = periodoProvaConfig.find((c) => c.is_active);
+    const turniProvaPerMese = activeConfig?.giorni_prova_per_mese || 10;
 
-    const dipendentiConTurni = users
-      .filter((u) => u.user_type === 'dipendente' && u.data_inizio_contratto)
-      .map((user) => {
-        const dataInizioContratto = new Date(user.data_inizio_contratto);
-        const dataOggi = new Date();
-        const giorniDallaAssunzione = Math.floor((dataOggi - dataInizioContratto) / (1000 * 60 * 60 * 24));
+    const dipendentiConContratto = users.filter((u) => {
+      if (u.user_type !== 'dipendente' && u.user_type !== 'user') return false;
+      if (!u.data_inizio_contratto) return false;
 
-        const turniDipendente = turni.filter((t) =>
-          t.dipendente_id === user.id &&
-          t.stato === 'completato'
-        );
+      const dataInizio = new Date(u.data_inizio_contratto);
+      const oggi = new Date();
+      return dataInizio <= oggi;
+    });
 
-        const turniCompletati = turniDipendente.length;
-        const turniRimanenti = Math.max(0, turniRichiesti - turniCompletati);
+    const dipendentiConTurni = dipendentiConContratto.map((user) => {
+      const dataInizio = new Date(user.data_inizio_contratto);
+      const contractDuration = user.durata_contratto_mesi || 0;
+      const turniProvaTotali = contractDuration * turniProvaPerMese;
 
-        let severity = 'ok';
-        if (turniRimanenti === 0) {
-          severity = 'completato';
-        } else if (giorniDallaAssunzione >= 40 && turniRimanenti > 5) {
-          severity = 'critico';
-        } else if (giorniDallaAssunzione >= 30 && turniRimanenti > 10) {
-          severity = 'attenzione';
+      const shiftsFromContractStart = turni.filter((shift) => {
+        if (shift.dipendente_id !== user.id) return false;
+        try {
+          const shiftDate = new Date(shift.data);
+          return shiftDate >= dataInizio;
+        } catch (e) {
+          return false;
         }
-
-        return {
-          ...user,
-          dataInizioContratto,
-          giorniDallaAssunzione,
-          turniCompletati,
-          turniRimanenti,
-          severity
-        };
       });
 
-    const inPeriodoProva = dipendentiConTurni.filter((d) => d.turniRimanenti > 0);
+      const numeroTurniEffettuati = shiftsFromContractStart.length;
+      const turniRimanenti = Math.max(0, turniProvaTotali - numeroTurniEffettuati);
+      const inPeriodoProva = numeroTurniEffettuati < turniProvaTotali;
+
+      let severity = 'ok';
+      if (turniRimanenti <= 3) {
+        severity = 'critico';
+      } else if (turniRimanenti <= 6) {
+        severity = 'attenzione';
+      }
+
+      return {
+        ...user,
+        dataInizioContratto: dataInizio,
+        numeroTurniEffettuati,
+        turniProvaTotali,
+        turniRimanenti,
+        inPeriodoProva,
+        severity,
+        shiftsFromContractStart
+      };
+    });
+
+    const inPeriodoProva = dipendentiConTurni.filter((d) => d.inPeriodoProva);
 
     return {
-      dipendenti: inPeriodoProva.sort((a, b) => {
-        const severityOrder = { critico: 1, attenzione: 2, ok: 3, completato: 4 };
-        return (severityOrder[a.severity] || 5) - (severityOrder[b.severity] || 5);
-      }),
-      turniRichiesti
+      dipendenti: inPeriodoProva.sort((a, b) => a.turniRimanenti - b.turniRimanenti),
+      turniProvaPerMese
     };
   }, [users, turni, periodoProvaConfig]);
 
@@ -649,20 +676,72 @@ export default function OverviewContratti() {
         </div>
 
         {/* Dipendenti in Periodo di Prova */}
-        {dipendentiInPeriodoProva.dipendenti.length > 0 && (
-          <NeumorphicCard className="p-6 bg-blue-50 border-2 border-blue-300">
-            <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
+        <NeumorphicCard className="p-6 bg-blue-50 border-2 border-blue-300">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-blue-800 flex items-center gap-2">
               <Clock className="w-5 h-5 text-blue-600" />
               Dipendenti in Periodo di Prova ({dipendentiInPeriodoProva.dipendenti.length})
             </h2>
+            <NeumorphicButton
+              onClick={() => setShowPeriodoProvaConfig(!showPeriodoProvaConfig)}
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              {showPeriodoProvaConfig ? 'Nascondi Config' : 'Configura'}
+            </NeumorphicButton>
+          </div>
+
+          {showPeriodoProvaConfig && (
+            <div className="mb-6 neumorphic-pressed p-4 rounded-xl">
+              <label className="text-sm font-medium text-blue-800 mb-2 block">
+                Turni di prova per ogni mese di contratto
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Es: 10"
+                  value={turniPerMese || periodoProvaConfig.find(c => c.is_active)?.giorni_prova_per_mese || ''}
+                  onChange={(e) => setTurniPerMese(e.target.value)}
+                  className="neumorphic-pressed px-4 py-3 rounded-lg flex-1 outline-none"
+                />
+                <NeumorphicButton
+                  onClick={() => savePeriodoProvaConfigMutation.mutate({ giorni_prova_per_mese: parseInt(turniPerMese) || 10 })}
+                  variant="primary"
+                  disabled={savePeriodoProvaConfigMutation.isPending}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Salva
+                </NeumorphicButton>
+              </div>
+              <p className="text-xs text-blue-700 mt-2">
+                Esempio: Se imposti 10, un contratto di 6 mesi avrà 60 turni di prova (6 × 10)
+              </p>
+              {periodoProvaConfig.find(c => c.is_active) && (
+                <div className="mt-3 p-3 bg-blue-100 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Configurazione attuale:</strong> {periodoProvaConfig.find(c => c.is_active).giorni_prova_per_mese} turni per mese
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {dipendentiInPeriodoProva.dipendenti.length === 0 ? (
+            <div className="text-center py-12">
+              <AlertTriangle className="w-16 h-16 text-green-600 mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-bold text-green-700 mb-2">Nessun dipendente in prova!</h3>
+              <p className="text-blue-800">Non ci sono dipendenti attualmente in periodo di prova.</p>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-blue-200">
                     <th className="text-left py-3 px-2 font-semibold text-blue-800">Nome</th>
                     <th className="text-center py-3 px-2 font-semibold text-blue-800">Data Inizio</th>
-                    <th className="text-center py-3 px-2 font-semibold text-blue-800">Giorni</th>
-                    <th className="text-center py-3 px-2 font-semibold text-blue-800">Turni Completati</th>
+                    <th className="text-center py-3 px-2 font-semibold text-blue-800">Turni Effettuati</th>
+                    <th className="text-center py-3 px-2 font-semibold text-blue-800">Turni Totali Prova</th>
                     <th className="text-center py-3 px-2 font-semibold text-blue-800">Turni Rimanenti</th>
                     <th className="text-center py-3 px-2 font-semibold text-blue-800">Stato</th>
                   </tr>
@@ -682,13 +761,13 @@ export default function OverviewContratti() {
                       <td className="py-3 px-2 text-center text-blue-800">
                         {moment(dip.dataInizioContratto).format('DD/MM/YYYY')}
                       </td>
-                      <td className="py-3 px-2 text-center text-blue-800">
-                        {dip.giorniDallaAssunzione}
-                      </td>
                       <td className="py-3 px-2 text-center">
                         <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                          {dip.turniCompletati}
+                          {dip.numeroTurniEffettuati}
                         </span>
+                      </td>
+                      <td className="py-3 px-2 text-center text-blue-800">
+                        {dip.turniProvaTotali}
                       </td>
                       <td className="py-3 px-2 text-center">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -721,8 +800,8 @@ export default function OverviewContratti() {
                 </tbody>
               </table>
             </div>
-          </NeumorphicCard>
-        )}
+          )}
+        </NeumorphicCard>
 
         {/* Dipendenti Senza Contratto */}
         {dipendentiSenzaContratto.length > 0 &&
