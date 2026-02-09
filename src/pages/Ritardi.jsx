@@ -532,6 +532,62 @@ export default function Ritardi() {
           </NeumorphicCard>
         }
 
+        {/* Top Dipendenti per Minuti Reali */}
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-red-600" />
+            Top 10 Dipendenti per Minuti Reali di Ritardo
+          </h2>
+          
+          {statsPerDipendente.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              Nessun ritardo registrato
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-slate-300">
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">#</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Dipendente</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">N° Ritardi</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Min. Reali Totali</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Ore Reali</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Media per Ritardo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...statsPerDipendente]
+                    .sort((a, b) => b.minutiReali - a.minutiReali)
+                    .slice(0, 10)
+                    .map((stat, index) => (
+                      <tr key={stat.dipendenteId} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-3 px-4 text-sm text-slate-500 font-bold">
+                          {index + 1}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-slate-700 font-medium">
+                          {stat.dipendenteNome}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-red-600 text-right font-bold">
+                          {stat.totalRitardi}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-orange-600 text-right font-bold">
+                          {stat.minutiReali}m
+                        </td>
+                        <td className="py-3 px-4 text-sm text-amber-600 text-right font-medium">
+                          {stat.oreReali}h
+                        </td>
+                        <td className="py-3 px-4 text-sm text-blue-600 text-right font-bold">
+                          {stat.mediaMinutiReali}m
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </NeumorphicCard>
+
         {/* Stats per Dipendente */}
         {viewMode === 'dipendente' &&
         <NeumorphicCard className="p-6">
