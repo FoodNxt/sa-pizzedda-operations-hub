@@ -18,23 +18,6 @@ import {
 } from 'lucide-react';
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import NeumorphicButton from "../neumorphic/NeumorphicButton";
-import {
-  Truck,
-  Plus,
-  Edit,
-  Trash2,
-  Save,
-  X,
-  Phone,
-  Mail,
-  MapPin,
-  Clock,
-  Package,
-  CheckCircle,
-  Euro
-} from 'lucide-react';
-import NeumorphicCard from "../neumorphic/NeumorphicCard";
-import NeumorphicButton from "../neumorphic/NeumorphicButton";
 
 export default function FornitoriContent() {
   const [showForm, setShowForm] = useState(false);
