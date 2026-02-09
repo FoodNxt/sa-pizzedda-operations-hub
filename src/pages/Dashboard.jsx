@@ -1541,7 +1541,7 @@ export default function Dashboard() {
               {allUsers.filter(u => u.ruoli_dipendente?.includes('Store Manager')).map((manager) => {
                 const managerStores = stores.filter(s => s.store_manager_id === manager.id);
                 const managerTargets = activeTargets.filter(t => 
-                  managerStores.some(s => s.id === t.store_id)
+                  t.store_id === 'all' || managerStores.some(s => s.id === t.store_id)
                 );
                 
                 const totalManagerRevenue = managerTargets.reduce((sum, t) => sum + (t.currentRevenue || 0), 0);

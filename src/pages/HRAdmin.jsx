@@ -348,8 +348,10 @@ export default function HRAdmin() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {storeManagerUsers.map((manager) => {
-              const managerTargets = targets.filter((t) => t.store_manager_id === manager.id);
               const managerStores = stores.filter((s) => s.store_manager_id === manager.id);
+              const managerTargets = targets.filter((t) => 
+                t.store_id === 'all' || managerStores.some(s => s.id === t.store_id)
+              );
 
               return (
                 <div key={manager.id} className="neumorphic-flat p-4 rounded-xl bg-white">
