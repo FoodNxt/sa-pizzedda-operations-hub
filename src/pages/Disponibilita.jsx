@@ -13,19 +13,22 @@ import {
   X,
   CheckCircle,
   XCircle,
-  Save } from
+  Save,
+  BarChart3 } from
 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 export default function Disponibilita() {
-
+  const [activeTab, setActiveTab] = useState('straordinari');
   const [timeRange, setTimeRange] = useState('month');
   const [showSettings, setShowSettings] = useState(false);
   const [retribuzioneOraria, setRetribuzioneOraria] = useState(10);
   const [attivitaPagamentoAbilitata, setAttivitaPagamentoAbilitata] = useState(true);
+  const [selectedStoreChart, setSelectedStoreChart] = useState('all');
 
   const queryClient = useQueryClient();
 
@@ -52,6 +55,11 @@ export default function Disponibilita() {
   const { data: disponibilitaConfigs = [] } = useQuery({
     queryKey: ['disponibilita-config'],
     queryFn: () => base44.entities.DisponibilitaConfig.list()
+  });
+
+  const { data: richiesteMalattia = [] } = useQuery({
+    queryKey: ['richieste-malattia'],
+    queryFn: () => base44.entities.RichiestaMalattia.list()
   });
 
   const saveConfigMutation = useMutation({
@@ -246,36 +254,112 @@ export default function Disponibilita() {
     });
   };
 
+  // Chart data for sick leave trend by employee and store
+  const malattiaChartData = useMemo(() => {
+    const dataByDate = {};
+    
+    richiesteMalattia.forEach((m) => {
+      if (m.stato !== 'approvata') return;
+      
+      const data_inizio = m.data_inizio;
+      const data_fine = m.data_fine;
+      if (!data_inizio || !data_fine) return;
+      
+      const start = new Date(data_inizio);
+      const end = new Date(data_fine);
+      const giorni = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      const ore = giorni * 8;
+      
+      const dateStr = format(parseISO(data_inizio), 'yyyy-MM-dd', { locale: it });
+      const storeName = selectedStoreChart === 'all' ? 'Totale' : selectedStoreChart;
+      
+      if (selectedStoreChart !== 'all' && m.store_id !== selectedStoreChart) return;
+      
+      if (!dataByDate[dateStr]) {
+        dataByDate[dateStr] = { date: format(parseISO(dateStr), 'dd/MM', { locale: it }), ore: 0, count: 0 };
+      }
+      
+      dataByDate[dateStr].ore += ore;
+      dataByDate[dateStr].count += 1;
+    });
+    
+    return Object.values(dataByDate).sort((a, b) => {
+      const dateA = new Date(Object.keys(dataByDate).find(k => dataByDate[k].date === a.date));
+      const dateB = new Date(Object.keys(dataByDate).find(k => dataByDate[k].date === b.date));
+      return dateA - dateB;
+    });
+  }, [richiesteMalattia, selectedStoreChart]);
+
+  // Malattia stats
+  const malattiaStats = useMemo(() => {
+    const approvate = richiesteMalattia.filter(m => m.stato === 'approvata');
+    const totalOre = approvate.reduce((sum, m) => {
+      if (!m.data_inizio || !m.data_fine) return sum;
+      const start = new Date(m.data_inizio);
+      const end = new Date(m.data_fine);
+      const giorni = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      return sum + (giorni * 8);
+    }, 0);
+    
+    return {
+      totalGiorni: approvate.length,
+      totalOre,
+      inPending: richiesteMalattia.filter(m => m.stato === 'pending').length
+    };
+  }, [richiesteMalattia]);
+
   return (
     <ProtectedPage pageName="Disponibilita">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
           <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>📊 Disponibilità Dipendenti</h1>
-          <p style={{ color: '#000000' }}>Ore straordinario fatte vs potenziali per ogni dipendente</p>
+          <p style={{ color: '#000000' }}>{activeTab === 'straordinari' ? 'Ore straordinario fatte vs potenziali per ogni dipendente' : 'Andamento ore malattia per dipendente e locale'}</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('straordinari')}
+            className={`px-4 py-2 rounded-xl font-medium transition-all ${
+            activeTab === 'straordinari' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'neumorphic-flat text-slate-700'}`
+            }>
+            <Clock className="w-4 h-4 inline mr-2" />
+            Straordinari
+          </button>
+          <button
+            onClick={() => setActiveTab('malattia')}
+            className={`px-4 py-2 rounded-xl font-medium transition-all ${
+            activeTab === 'malattia' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'neumorphic-flat text-slate-700'}`
+            }>
+            <AlertCircle className="w-4 h-4 inline mr-2" />
+            Malattia
+          </button>
         </div>
 
 
 
+        {/* Straordinari Tab */}
+        {activeTab === 'straordinari' && <>
         {/* Filters */}
-        <NeumorphicCard className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Periodo Temporale
-              </label>
-              <select
-                  value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+         <NeumorphicCard className="p-6">
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div>
+               <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                 <Calendar className="w-4 h-4" />
+                 Periodo Temporale
+               </label>
+               <select
+                   value={timeRange}
+                   onChange={(e) => setTimeRange(e.target.value)}
+                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
 
-                <option value="week">Ultima Settimana</option>
-                <option value="2weeks">Ultime 2 Settimane</option>
-                <option value="month">Ultimo Mese</option>
-                <option value="3months">Ultimi 3 Mesi</option>
-                <option value="6months">Ultimi 6 Mesi</option>
-              </select>
-            </div>
+                 <option value="week">Ultima Settimana</option>
+                 <option value="2weeks">Ultime 2 Settimane</option>
+                 <option value="month">Ultimo Mese</option>
+                 <option value="3months">Ultimi 3 Mesi</option>
+                 <option value="6months">Ultimi 6 Mesi</option>
+               </select>
+             </div>
             <div className="neumorphic-pressed p-4 rounded-xl flex items-center gap-3">
               <Calendar className="w-5 h-5 text-blue-600" />
               <div>
@@ -601,8 +685,71 @@ export default function Disponibilita() {
                                    </div>
                                    }
                                    </NeumorphicCard>
+                                   </> }
 
-        {/* Settings Modal */}
+                                   {/* Malattia Tab */}
+                                   {activeTab === 'malattia' && <>
+                                   <NeumorphicCard className="p-6">
+                                   <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                   <BarChart3 className="w-5 h-5 text-blue-600" />
+                                   Andamento Ore Malattia
+                                   </h2>
+
+                                   <div className="mb-4">
+                                   <label className="text-sm font-medium text-slate-700 mb-2 block">Filtra per negozio</label>
+                                   <select
+                                   value={selectedStoreChart}
+                                   onChange={(e) => setSelectedStoreChart(e.target.value)}
+                                   className="w-full md:w-64 neumorphic-pressed px-4 py-2 rounded-xl outline-none text-sm">
+                                   <option value="all">Tutti i negozi</option>
+                                   {stores.map((s) => (
+                                   <option key={s.id} value={s.id}>{s.name}</option>
+                                   ))}
+                                   </select>
+                                   </div>
+
+                                   {malattiaChartData.length === 0 ? (
+                                   <div className="text-center py-12">
+                                   <Clock className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                                   <p className="text-slate-500">Nessun dato di malattia disponibile</p>
+                                   </div>
+                                   ) : (
+                                   <ResponsiveContainer width="100%" height={300}>
+                                   <LineChart data={malattiaChartData}>
+                                   <CartesianGrid strokeDasharray="3 3" />
+                                   <XAxis dataKey="date" />
+                                   <YAxis />
+                                   <Tooltip />
+                                   <Legend />
+                                   <Line type="monotone" dataKey="ore" stroke="#ef4444" strokeWidth={2} name="Ore Malattia" connectNulls dot={{ r: 4 }} />
+                                   <Line type="monotone" dataKey="count" stroke="#f59e0b" strokeWidth={2} name="Numero Richieste" connectNulls dot={{ r: 4 }} yAxisId="right" />
+                                   </LineChart>
+                                   </ResponsiveContainer>
+                                   )}
+                                   </NeumorphicCard>
+
+                                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                                   <NeumorphicCard className="p-6 text-center">
+                                   <Clock className="w-12 h-12 text-red-600 mx-auto mb-3" />
+                                   <p className="text-sm text-[#9b9b9b] mb-1">Ore Malattia Totali</p>
+                                   <p className="text-3xl font-bold text-red-600">{malattiaStats.totalOre.toFixed(0)}h</p>
+                                   </NeumorphicCard>
+
+                                   <NeumorphicCard className="p-6 text-center">
+                                   <Users className="w-12 h-12 text-orange-600 mx-auto mb-3" />
+                                   <p className="text-sm text-[#9b9b9b] mb-1">Giorni Malattia Approvati</p>
+                                   <p className="text-3xl font-bold text-orange-600">{malattiaStats.totalGiorni}</p>
+                                   </NeumorphicCard>
+
+                                   <NeumorphicCard className="p-6 text-center">
+                                   <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
+                                   <p className="text-sm text-[#9b9b9b] mb-1">In Sospeso</p>
+                                   <p className="text-3xl font-bold text-yellow-600">{malattiaStats.inPending}</p>
+                                   </NeumorphicCard>
+                                   </div>
+                                   </> }
+
+                                   {/* Settings Modal */}
         {showSettings &&
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <NeumorphicCard className="max-w-md w-full p-6">
