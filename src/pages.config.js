@@ -174,7 +174,6 @@ import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
 import Cannibalizzazione from './pages/Cannibalizzazione';
-import GestioneInventario from './pages/GestioneInventario';
 import __Layout from './Layout.jsx';
 
 
@@ -306,7 +305,6 @@ export const PAGES = {
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
     "Cannibalizzazione": Cannibalizzazione,
-    "GestioneInventario": GestioneInventario,
 }
 
 export const pagesConfig = {

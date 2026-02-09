@@ -20,7 +20,9 @@ import {
   ArrowUp,
   ArrowDown,
   Upload,
-  Camera } from
+  Camera,
+  ChefHat,
+  Truck } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -28,6 +30,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import ProgressBar from "../components/neumorphic/ProgressBar";
 
 export default function MateriePrime() {
+  const [activeTab, setActiveTab] = useState('materie_prime'); // materie_prime | ricette | fornitori
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -427,20 +430,58 @@ export default function MateriePrime() {
         <div className="mb-4 lg:mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="mb-1 text-2xl font-bold lg:text-3xl" style={{ color: '#000000' }}>Materie Prime
+              <h1 className="mb-1 text-2xl font-bold lg:text-3xl" style={{ color: '#000000' }}>Gestione Inventario
               </h1>
-              <p className="text-sm" style={{ color: '#000000' }}>Gestisci le materie prime e le scorte minime</p>
+              <p className="text-sm" style={{ color: '#000000' }}>Gestisci materie prime, ricette e fornitori</p>
             </div>
-            <NeumorphicButton
-              onClick={() => setShowForm(true)}
-              variant="primary"
-              className="flex items-center gap-2">
-
-              <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Aggiungi</span>
-            </NeumorphicButton>
+            {activeTab === 'materie_prime' && (
+              <NeumorphicButton
+                onClick={() => setShowForm(true)}
+                variant="primary"
+                className="flex items-center gap-2">
+                <Plus className="w-5 h-5" />
+                <span className="hidden sm:inline">Aggiungi</span>
+              </NeumorphicButton>
+            )}
           </div>
         </div>
+
+        {/* Tabs */}
+        <NeumorphicCard className="p-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('materie_prime')}
+              className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'materie_prime'
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'bg-transparent text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              <span className="hidden sm:inline">Materie Prime</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('ricette');
+                window.location.href = '/Ricette';
+              }}
+              className="flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 bg-transparent text-slate-600 hover:bg-slate-100"
+            >
+              <ChefHat className="w-4 h-4" />
+              <span className="hidden sm:inline">Ricette</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('fornitori');
+                window.location.href = '/ElencoFornitori';
+              }}
+              className="flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 bg-transparent text-slate-600 hover:bg-slate-100"
+            >
+              <Truck className="w-4 h-4" />
+              <span className="hidden sm:inline">Fornitori</span>
+            </button>
+          </div>
+        </NeumorphicCard>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <NeumorphicCard className="p-4">
