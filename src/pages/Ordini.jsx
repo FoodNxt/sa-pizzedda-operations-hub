@@ -16,6 +16,10 @@ export default function Ordini() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [playingAudio, setPlayingAudio] = useState(null);
   const [expandedStores, setExpandedStores] = useState({});
+  const [showCreateMultiStoreOrder, setShowCreateMultiStoreOrder] = useState(false);
+  const [selectedFornitore, setSelectedFornitore] = useState(null);
+  const [destinationStore, setDestinationStore] = useState(null);
+  const [selectedProductsForOrder, setSelectedProductsForOrder] = useState({});
   const queryClient = useQueryClient();
 
   const { data: materiePrime = [] } = useQuery({
