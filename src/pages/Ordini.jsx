@@ -19,7 +19,7 @@ export default function Ordini() {
   const [showCreateMultiStoreOrder, setShowCreateMultiStoreOrder] = useState(false);
   const [selectedFornitore, setSelectedFornitore] = useState(null);
   const [destinationStore, setDestinationStore] = useState(null);
-  const [selectedProductsForOrder, setSelectedProductsForOrder] = useState({});
+  const [selectedStoresForConsolidation, setSelectedStoresForConsolidation] = useState({});
   const queryClient = useQueryClient();
 
   const { data: materiePrime = [] } = useQuery({
