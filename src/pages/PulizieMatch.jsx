@@ -549,9 +549,9 @@ export default function PulizieMatch() {
 
             })}
             </div>
-          }
-        </NeumorphicCard>
-      </div>
-    </ProtectedPage>);
+            )}
+            </NeumorphicCard>
+            </div>
+            </ProtectedPage>);
 
 }
