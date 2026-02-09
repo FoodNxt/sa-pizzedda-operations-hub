@@ -11,6 +11,8 @@ export default function PulizieMatch() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedEmployee, setSelectedEmployee] = useState('all');
+  const [sortBy, setSortBy] = useState('percentage');
+  const [viewMode, setViewMode] = useState('list');
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
