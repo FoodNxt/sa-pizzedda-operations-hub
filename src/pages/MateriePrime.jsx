@@ -461,21 +461,23 @@ export default function MateriePrime() {
               <span className="hidden sm:inline">Materie Prime</span>
             </button>
             <button
-              onClick={() => {
-                setActiveTab('ricette');
-                window.location.href = '/Ricette';
-              }}
-              className="flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 bg-transparent text-slate-600 hover:bg-slate-100"
+              onClick={() => setActiveTab('ricette')}
+              className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'ricette'
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'bg-transparent text-slate-600 hover:bg-slate-100'
+              }`}
             >
               <ChefHat className="w-4 h-4" />
               <span className="hidden sm:inline">Ricette</span>
             </button>
             <button
-              onClick={() => {
-                setActiveTab('fornitori');
-                window.location.href = '/ElencoFornitori';
-              }}
-              className="flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 bg-transparent text-slate-600 hover:bg-slate-100"
+              onClick={() => setActiveTab('fornitori')}
+              className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'fornitori'
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'bg-transparent text-slate-600 hover:bg-slate-100'
+              }`}
             >
               <Truck className="w-4 h-4" />
               <span className="hidden sm:inline">Fornitori</span>
@@ -483,6 +485,21 @@ export default function MateriePrime() {
           </div>
         </NeumorphicCard>
 
+        {/* Import componenti ricette e fornitori */}
+        {activeTab === 'ricette' && (
+          <div className="ricette-content">
+            <iframe src="/Ricette" style={{ width: '100%', minHeight: '800px', border: 'none' }} />
+          </div>
+        )}
+        
+        {activeTab === 'fornitori' && (
+          <div className="fornitori-content">
+            <iframe src="/ElencoFornitori" style={{ width: '100%', minHeight: '800px', border: 'none' }} />
+          </div>
+        )}
+
+        {activeTab === 'materie_prime' && (
+          <>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           <NeumorphicCard className="p-4">
             <div className="text-center">
@@ -1408,6 +1425,8 @@ export default function MateriePrime() {
 
         })
         }
+          </>
+        )}
       </div>
     </ProtectedPage>);
 
