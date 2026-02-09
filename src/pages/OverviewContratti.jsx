@@ -138,20 +138,27 @@ export default function OverviewContratti() {
       const configs = await base44.entities.PeriodoProvaConfig.list();
       const activeConfig = configs.find((c) => c.is_active);
       
-      const dataToSave = { giorni_prova_per_mese: giorni_prova, is_active: true };
+      const dataToSave = { giorni_prova_per_mese: parseInt(giorni_prova), is_active: true };
       
+      let result;
       if (activeConfig) {
-        await base44.entities.PeriodoProvaConfig.update(activeConfig.id, dataToSave);
+        result = await base44.entities.PeriodoProvaConfig.update(activeConfig.id, dataToSave);
       } else {
-        await base44.entities.PeriodoProvaConfig.create(dataToSave);
+        result = await base44.entities.PeriodoProvaConfig.create(dataToSave);
       }
       
-      return dataToSave;
+      return result;
     },
     onSuccess: async (data) => {
+      // Invalidate all relevant queries to force recalculation
       await queryClient.invalidateQueries({ queryKey: ['periodo-prova-config'] });
+      await queryClient.invalidateQueries({ queryKey: ['turni-periodo-prova'] });
+      await queryClient.invalidateQueries({ queryKey: ['users-overview'] });
+      // Force immediate refetch
       await queryClient.refetchQueries({ queryKey: ['periodo-prova-config'] });
-      alert('✅ Configurazione periodo prova salvata!');
+      // Update local state
+      setTurniPerMese(data.giorni_prova_per_mese?.toString() || '');
+      alert('✅ Configurazione periodo prova salvata e calcoli aggiornati!');
     }
   });
 
