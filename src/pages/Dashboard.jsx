@@ -181,6 +181,11 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Target.list()
   });
 
+  const { data: storeManagerTargets = [] } = useQuery({
+    queryKey: ['store-manager-targets'],
+    queryFn: () => base44.entities.StoreManagerTarget.list()
+  });
+
   const safeParseDate = (dateString) => {
     if (!dateString) return null;
     try {
@@ -1527,6 +1532,85 @@ export default function Dashboard() {
             </div>
           </div>
         </NeumorphicCard>
+
+        {/* Target Store Manager Snapshot */}
+        {(() => {
+          const currentMonth = new Date().toISOString().substring(0, 7);
+          const currentMonthTargets = storeManagerTargets.filter(t => t.mese === currentMonth);
+          
+          if (currentMonthTargets.length === 0) return null;
+          
+          return (
+            <NeumorphicCard className="p-4 lg:p-6 bg-purple-50">
+              <Link to={createPageUrl('StoreManager')} className="text-base lg:text-lg font-bold text-purple-800 mb-4 flex items-center gap-2 hover:text-purple-600 transition-colors">
+                <Users className="w-5 h-5 text-purple-600" />
+                Target Store Manager {new Date().toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
+                <ExternalLink className="w-4 h-4 ml-auto" />
+              </Link>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {currentMonthTargets.map((target) => {
+                  const manager = allUsers.find(u => u.id === target.store_manager_id);
+                  const store = stores.find(s => s.id === target.store_id);
+                  const totalBonus = (target.bonus_fatturato || 0) + (target.bonus_recensioni || 0) + (target.bonus_num_recensioni || 0) + (target.bonus_ordini_sbagliati || 0) + (target.bonus_ritardi || 0) + (target.bonus_pulizie || 0);
+                  
+                  return (
+                    <div key={target.id} className="neumorphic-flat p-3 rounded-lg bg-white">
+                      <h4 className="text-sm font-bold text-slate-800 mb-1">
+                        {manager?.nome_cognome || manager?.full_name || 'N/A'}
+                      </h4>
+                      {store && (
+                        <p className="text-xs text-slate-500 mb-2">{store.name}</p>
+                      )}
+                      <div className="space-y-1 text-xs">
+                        {target.metriche_attive?.includes('fatturato') && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Fatturato</span>
+                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_fatturato || 0)}</span>
+                          </div>
+                        )}
+                        {target.metriche_attive?.includes('recensioni_media') && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Recensioni Avg</span>
+                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_recensioni || 0)}</span>
+                          </div>
+                        )}
+                        {target.metriche_attive?.includes('num_recensioni') && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">N. Recensioni</span>
+                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_num_recensioni || 0)}</span>
+                          </div>
+                        )}
+                        {target.metriche_attive?.includes('ordini_sbagliati') && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Ordini OK</span>
+                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_ordini_sbagliati || 0)}</span>
+                          </div>
+                        )}
+                        {target.metriche_attive?.includes('ritardi') && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Ritardi</span>
+                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_ritardi || 0)}</span>
+                          </div>
+                        )}
+                        {target.metriche_attive?.includes('pulizie') && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">Pulizie</span>
+                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_pulizie || 0)}</span>
+                          </div>
+                        )}
+                        <div className="border-t border-purple-200 pt-1 mt-1 flex justify-between font-bold">
+                          <span className="text-purple-700">Bonus Totale</span>
+                          <span className="text-purple-600">{formatEuro(totalBonus)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </NeumorphicCard>
+          );
+        })()}
 
         {/* Target in Corso */}
         {activeTargets.length > 0 && (
