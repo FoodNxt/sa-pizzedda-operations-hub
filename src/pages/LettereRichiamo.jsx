@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Plus, Send, CheckCircle, Clock, Edit, Trash2, Save, X, AlertTriangle, ChevronDown } from 'lucide-react';
+import { FileText, Plus, Send, CheckCircle, Clock, Edit, Trash2, Save, X, AlertTriangle, ChevronDown, BarChart3 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function LettereRichiamo() {
   const [activeTab, setActiveTab] = useState('lettere');
@@ -288,6 +289,16 @@ export default function LettereRichiamo() {
     }
   };
 
+  // Dati per il grafico
+  const chartData = [
+    { name: 'Richiami Inviati', value: richiamiInviate.length, fill: '#3b82f6' },
+    { name: 'Richiami Visualizzati', value: richiamiVisualizzate.length, fill: '#f59e0b' },
+    { name: 'Richiami Firmati', value: richiamiFirmate.length, fill: '#10b981' },
+    { name: 'Chiusure Inviate', value: chiusureInviate.length, fill: '#8b5cf6' },
+    { name: 'Chiusure Visualizzate', value: chiusureVisualizzate.length, fill: '#ec4899' },
+    { name: 'Chiusure Firmate', value: chiusureFirmate.length, fill: '#14b8a6' }
+  ].filter(item => item.value > 0);
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -298,6 +309,36 @@ export default function LettereRichiamo() {
           <p className="text-sm text-slate-500">Gestisci lettere di richiamo e chiusure procedura</p>
         </div>
       </div>
+
+      {/* Grafico Overview */}
+      <NeumorphicCard className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className="w-5 h-5 text-blue-600" />
+          <h2 className="text-lg font-bold text-slate-800">Stato Lettere</h2>
+        </div>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} angle={-15} textAnchor="end" height={80} />
+              <YAxis tick={{ fill: '#64748b', fontSize: 12 }} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                  border: '1px solid rgba(51, 65, 85, 0.6)',
+                  borderRadius: '8px',
+                  color: '#f1f5f9'
+                }}
+              />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-slate-400">Nessuna lettera presente</p>
+          </div>
+        )}
+      </NeumorphicCard>
 
       <NeumorphicCard className="p-6">
         <div className="flex gap-2 mb-6">
