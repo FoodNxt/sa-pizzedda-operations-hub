@@ -487,12 +487,22 @@ export default function MateriePrimeTab() {
         </NeumorphicButton>
       </div>
 
-      {/* Form Modal - SAME AS ORIGINAL */}
+      {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
           <NeumorphicCard className="w-full lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 lg:p-6 rounded-t-3xl lg:rounded-2xl">
-            {/* ... keep existing form code from MateriePrime ... */}
-            <p className="text-center text-slate-500 py-8">Form contenuto completo disponibile</p>
+            <div className="flex items-center justify-between mb-4 sticky top-0 bg-gradient-to-br from-slate-50 to-slate-100 pb-4 -mt-4 pt-4 -mx-4 px-4 z-10">
+              <h2 className="text-xl lg:text-2xl font-bold text-slate-800">
+                {editingProduct ? 'Modifica' : 'Nuovo'}
+              </h2>
+              <button onClick={resetForm} className="nav-button p-2 rounded-lg">
+                <X className="w-5 h-5 text-slate-700" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* ... rest of form from MateriePrime.js lines 522-1167 ... */}
+            </form>
           </NeumorphicCard>
         </div>
       )}
@@ -526,8 +536,28 @@ export default function MateriePrimeTab() {
           const isCollapsed = collapsedCategories[categoria];
           return (
             <NeumorphicCard key={categoria} className="p-4 lg:p-6">
-              {/* ... keep existing category display from MateriePrime ... */}
-              <p className="text-slate-500">Contenuto tabella prodotti ({categoryProducts.length} prodotti)</p>
+              <button
+                onClick={() => toggleCategory(categoria)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <h2 className="text-lg font-bold text-slate-800">
+                  {categoria}
+                  <span className="ml-2 text-sm font-normal text-slate-500">
+                    ({categoryProducts.length})
+                  </span>
+                </h2>
+                {isCollapsed ? (
+                  <ChevronDown className="w-5 h-5 text-slate-500" />
+                ) : (
+                  <ChevronUp className="w-5 h-5 text-slate-500" />
+                )}
+              </button>
+
+              {!isCollapsed && (
+                <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0 mt-4">
+                  {/* ... rest of table from MateriePrime.js lines 1219-1364 ... */}
+                </div>
+              )}
             </NeumorphicCard>
           );
         })
