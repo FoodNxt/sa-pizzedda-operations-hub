@@ -613,6 +613,12 @@ const navigationStructure = [
         page: "FormTracker",
         url: createPageUrl("FormTracker"),
         icon: ClipboardCheck,
+      },
+      {
+        title: "Cannibalizzazione",
+        page: "Cannibalizzazione",
+        url: createPageUrl("Cannibalizzazione"),
+        icon: BarChart3,
       }
     ]
   }
