@@ -14,8 +14,10 @@ import {
   Edit,
   Save,
   Plus,
-  Trash2
+  Trash2,
+  BarChart3
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
@@ -287,6 +289,32 @@ export default function PagamentoStraordinari() {
     return { totale, daPagare, pagati, count, countDaPagare };
   }, [filteredStraordinari]);
 
+  // Chart data for overtime paid vs to pay over time
+  const chartData = useMemo(() => {
+    const dataByDate = {};
+    
+    allStraordinari.forEach((s) => {
+      const dateStr = s.data_turno;
+      if (!dateStr) return;
+      
+      if (!dataByDate[dateStr]) {
+        dataByDate[dateStr] = { date: format(parseISO(dateStr), 'dd/MM', { locale: it }), pagati: 0, daPagare: 0 };
+      }
+      
+      if (s.pagato) {
+        dataByDate[dateStr].pagati += s.importo_totale || 0;
+      } else {
+        dataByDate[dateStr].daPagare += s.importo_totale || 0;
+      }
+    });
+    
+    return Object.values(dataByDate).sort((a, b) => {
+      const dateA = new Date(Object.keys(dataByDate).find(k => dataByDate[k].date === a.date));
+      const dateB = new Date(Object.keys(dataByDate).find(k => dataByDate[k].date === b.date));
+      return dateA - dateB;
+    });
+  }, [allStraordinari]);
+
   const handleEffettuaPagamento = async (straordinario) => {
     if (!confirm(`Confermare il pagamento di €${straordinario.importo_totale.toFixed(2)} a ${straordinario.dipendente_nome}?`)) {
       return;
@@ -542,6 +570,27 @@ export default function PagamentoStraordinari() {
             )}
           </div>
         </NeumorphicCard>
+
+        {/* Chart */}
+        {chartData.length > 0 && (
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-blue-600" />
+              Andamento Straordinari
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip formatter={(value) => `€${value.toFixed(2)}`} />
+                <Legend />
+                <Line type="monotone" dataKey="pagati" stroke="#10b981" strokeWidth={2} name="Pagati" connectNulls dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="daPagare" stroke="#ef4444" strokeWidth={2} name="Da Pagare" connectNulls dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </NeumorphicCard>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
