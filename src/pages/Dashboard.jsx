@@ -587,9 +587,12 @@ export default function Dashboard() {
       return {
         id: user.id,
         name: employeeName,
-        performanceScore: Math.round(performanceScore)
+        performanceScore: Math.round(performanceScore),
+        hasData: employeeShifts.length > 0 || employeeGoogleReviews.length > 0 || employeeWrongOrders.length > 0
       };
-    }).sort((a, b) => b.performanceScore - a.performanceScore);
+      })
+      .filter((emp) => emp.hasData)
+      .sort((a, b) => b.performanceScore - a.performanceScore);
 
     return {
       top: employeeScores[0],
