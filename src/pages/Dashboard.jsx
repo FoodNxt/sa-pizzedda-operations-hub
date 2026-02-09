@@ -1579,13 +1579,47 @@ export default function Dashboard() {
                   const avgRating = storeReviews.length > 0 ? (storeReviews.reduce((sum, r) => sum + r.rating, 0) / storeReviews.length).toFixed(1) : 0;
                   const reviewCount = storeReviews.length;
                   
-                  const wrongOrders = wrongOrder.filter(w => w.store_id === target.store_id && w.data_ordine >= monthStart && w.data_ordine <= monthEndStr);
+                  // Ordini Sbagliati
+                  const monthStartDate = new Date(monthStart + 'T00:00:00');
+                  const monthEndDate = new Date(monthEndStr + 'T23:59:59');
+                  
+                  const wrongOrders = wrongOrder.filter(w => {
+                    if (w.store_id !== target.store_id) return false;
+                    if (!w.data_ordine) return false;
+                    const wDate = safeParseDate(w.data_ordine);
+                    return wDate && wDate >= monthStartDate && wDate <= monthEndDate;
+                  });
                   const wrongOrderCount = wrongOrders.length;
                   
-                  const storeShifts = turni.filter(s => s.store_id === target.store_id && s.data >= monthStart && s.data <= monthEndStr);
-                  const totalLateMinutes = storeShifts.reduce((sum, s) => sum + (s.ritardo_minuti || 0), 0);
+                  // Ritardi
+                  const storeShifts = turni.filter(s => {
+                    if (s.store_id !== target.store_id) return false;
+                    if (!s.data) return false;
+                    const sDate = safeParseDate(s.data);
+                    return sDate && sDate >= monthStartDate && sDate <= monthEndDate;
+                  });
+                  const totalLateMinutes = storeShifts.reduce((sum, s) => {
+                    if (!s.timbratura_entrata || !s.ora_inizio) return sum;
+                    try {
+                      const clockInTime = new Date(s.timbratura_entrata);
+                      const [oraHH, oraMM] = s.ora_inizio.split(':').map(Number);
+                      const scheduledStart = new Date(clockInTime);
+                      scheduledStart.setHours(oraHH, oraMM, 0, 0);
+                      const delayMs = clockInTime - scheduledStart;
+                      const delayMinutes = Math.floor(delayMs / 60000);
+                      return sum + Math.max(0, delayMinutes);
+                    } catch (e) {
+                      return sum;
+                    }
+                  }, 0);
                   
-                  const cleanings = cleaningInspections.filter(c => c.store_id === target.store_id && c.inspection_date >= monthStart && c.inspection_date <= monthEndStr);
+                  // Pulizie
+                  const cleanings = cleaningInspections.filter(c => {
+                    if (c.store_id !== target.store_id) return false;
+                    if (!c.inspection_date) return false;
+                    const cDate = safeParseDate(c.inspection_date);
+                    return cDate && cDate >= monthStartDate && cDate <= monthEndDate && c.analysis_status === 'completed';
+                  });
                   const avgCleaning = cleanings.length > 0 ? (cleanings.reduce((sum, c) => sum + (c.overall_score || 0), 0) / cleanings.length).toFixed(0) : 0;
                   
                   return (
