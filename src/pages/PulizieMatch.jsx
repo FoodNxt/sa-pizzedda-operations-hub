@@ -385,9 +385,35 @@ export default function PulizieMatch() {
 
         {/* Employee Results */}
         <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-[#6b6b6b] mb-4">
-            Performance Dipendenti ({sortedResults.length})
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-[#6b6b6b]">
+              Score Pulizia ({sortedResults.length})
+            </h2>
+            {selectedEmployee !== 'all' && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    viewMode === 'list' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-slate-200 text-[#6b6b6b] hover:bg-slate-300'
+                  }`}
+                >
+                  Lista
+                </button>
+                <button
+                  onClick={() => setViewMode('detail')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    viewMode === 'detail' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-slate-200 text-[#6b6b6b] hover:bg-slate-300'
+                  }`}
+                >
+                  Dettaglio
+                </button>
+              </div>
+            )}
+          </div>
 
           {sortedResults.length === 0 ?
           <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p> :
