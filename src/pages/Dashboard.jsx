@@ -1565,7 +1565,7 @@ export default function Dashboard() {
                   const store = stores.find(s => s.id === target.store_id);
                   
                   // Calcolo metriche attuali
-                  const storeData = iPratico.filter(d => d.store_id === target.store_id && d.order_date >= monthStart && d.order_date <= monthEndStr);
+                  const storeData = iPraticoData.filter(d => d.store_id === target.store_id && d.order_date >= monthStart && d.order_date <= monthEndStr);
                   const currentRevenue = storeData.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
                   
                   const storeReviews = reviews.filter(r => r.store_id === target.store_id && r.review_date >= monthStart && r.review_date <= monthEndStr);
