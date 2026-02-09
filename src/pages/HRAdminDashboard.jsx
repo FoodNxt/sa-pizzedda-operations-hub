@@ -36,6 +36,27 @@ export default function HRAdminDashboard() {
       icon: MapPin,
       page: 'HRAdmin',
       color: 'from-green-500 to-green-600'
+    },
+    {
+      title: 'Uscite',
+      description: 'Gestisci dimissioni e fine contratti',
+      icon: AlertTriangle,
+      page: 'Uscite',
+      color: 'from-red-500 to-red-600'
+    },
+    {
+      title: 'Pause',
+      description: 'Configura pause e break dipendenti',
+      icon: Clock,
+      page: 'Pause',
+      color: 'from-indigo-500 to-indigo-600'
+    },
+    {
+      title: 'Disponibilità',
+      description: 'Gestisci disponibilità dipendenti',
+      icon: Calendar,
+      page: 'Disponibilita',
+      color: 'from-cyan-500 to-cyan-600'
     }
   ];
 
