@@ -266,6 +266,72 @@ export default function Cannibalizzazione() {
       .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [selectedStore, storeOpeningDates, iPraticoData, stores]);
 
+  // Analisi impatto per canale
+  const channelImpactAnalysis = useMemo(() => {
+    return storeOpeningDates.map((opening, index) => {
+      const openingDate = new Date(opening.opening_date);
+      const store = stores.find(s => s.name === opening.store_name);
+      
+      let beforeStart;
+      if (index === 0) {
+        beforeStart = new Date(openingDate);
+        beforeStart.setDate(beforeStart.getDate() - 30);
+      } else {
+        beforeStart = new Date(storeOpeningDates[index - 1].opening_date);
+      }
+      
+      const beforeEnd = new Date(openingDate);
+      beforeEnd.setDate(beforeEnd.getDate() - 1);
+      const afterStart = openingDate;
+      const afterEnd = new Date(openingDate);
+      afterEnd.setDate(afterEnd.getDate() + 30);
+
+      const daysBefore = Math.ceil((beforeEnd - beforeStart) / (1000 * 60 * 60 * 24)) + 1;
+      const daysAfter = Math.ceil((afterEnd - afterStart) / (1000 * 60 * 60 * 24)) + 1;
+
+      const channelData = {};
+      const channels = ['glovo', 'deliveroo', 'justeat', 'onlineordering', 'ordertable', 'tabesto', 'store'];
+
+      channels.forEach(channel => {
+        // Altri locali - prima
+        const otherBefore = iPraticoData
+          .filter(d => {
+            const date = new Date(d.order_date);
+            return date >= beforeStart && date <= beforeEnd && d.store_id !== store?.id;
+          })
+          .reduce((sum, d) => sum + (d[`sourceApp_${channel}`] || 0), 0);
+
+        // Altri locali - dopo
+        const otherAfter = iPraticoData
+          .filter(d => {
+            const date = new Date(d.order_date);
+            return date >= afterStart && date <= afterEnd && d.store_id !== store?.id;
+          })
+          .reduce((sum, d) => sum + (d[`sourceApp_${channel}`] || 0), 0);
+
+        const avgBefore = daysBefore > 0 ? otherBefore / daysBefore : 0;
+        const avgAfter = daysAfter > 0 ? otherAfter / daysAfter : 0;
+        const change = avgAfter - avgBefore;
+        const changePerc = avgBefore > 0 ? (change / avgBefore) * 100 : 0;
+        const cannibalization = change < 0 ? Math.abs(change) : 0;
+
+        channelData[channel] = {
+          avgBefore,
+          avgAfter,
+          change,
+          changePerc,
+          cannibalization
+        };
+      });
+
+      return {
+        store_name: opening.store_name,
+        opening_date: opening.opening_date,
+        channels: channelData
+      };
+    });
+  }, [storeOpeningDates, iPraticoData, stores]);
+
   return (
     <ProtectedPage pageName="Cannibalizzazione">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -686,6 +752,85 @@ export default function Cannibalizzazione() {
             <p className="text-xs text-slate-500">Dal primo all'ultimo locale</p>
           </NeumorphicCard>
         </div>
+
+        {/* Analisi Cannibalizzazione per Canale */}
+        <NeumorphicCard className="p-6">
+          <h3 className="text-lg font-bold text-slate-800 mb-4">📱 Impatto per Canale/App</h3>
+          <p className="text-sm text-slate-500 mb-4">
+            Analisi cannibalizzazione per canale di vendita (30 giorni pre/post apertura)
+          </p>
+          <div className="space-y-6">
+            {channelImpactAnalysis.map((impact, idx) => (
+              <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
+                  <div>
+                    <p className="font-bold text-slate-800 text-lg">{impact.store_name}</p>
+                    <p className="text-sm text-slate-500">
+                      {format(parseISO(impact.opening_date), 'dd MMMM yyyy', { locale: it })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {Object.keys(COLORS).map(channel => {
+                    const data = impact.channels[channel];
+                    const hasData = data.avgBefore > 0 || data.avgAfter > 0;
+                    
+                    if (!hasData) return null;
+
+                    return (
+                      <div key={channel} className="neumorphic-flat p-3 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: COLORS[channel] }}
+                          />
+                          <p className="font-medium text-slate-800 text-sm">
+                            {CHANNEL_LABELS[channel]}
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Media/gg Prima:</span>
+                            <span className="text-slate-700 font-medium">
+                              {formatEuro(data.avgBefore)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Media/gg Dopo:</span>
+                            <span className="text-slate-700 font-medium">
+                              {formatEuro(data.avgAfter)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs pt-1 border-t border-slate-200">
+                            <span className="text-slate-500">Variazione:</span>
+                            <span className={`font-bold ${
+                              data.change >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {data.change >= 0 ? '+' : ''}{formatEuro(data.change)}
+                              <span className="text-xs ml-1">
+                                ({data.changePerc >= 0 ? '+' : ''}{data.changePerc.toFixed(1)}%)
+                              </span>
+                            </span>
+                          </div>
+                          {data.cannibalization > 0 && (
+                            <div className="flex justify-between text-xs pt-1">
+                              <span className="text-orange-600 font-medium">Cannib.:</span>
+                              <span className="text-orange-600 font-bold">
+                                -{formatEuro(data.cannibalization)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </NeumorphicCard>
 
         {/* Insights */}
         <NeumorphicCard className="p-6">
