@@ -109,8 +109,38 @@ export default function PagamentoStraordinari() {
         impostato_da: currentUser?.email || ''
       });
     },
+    onMutate: async ({ pagamentoId, importo, dipendente }) => {
+      // Cancel ongoing queries
+      await queryClient.cancelQueries({ queryKey: ['pagamenti-straordinari'] });
+
+      // Get previous data
+      const previousData = queryClient.getQueryData(['pagamenti-straordinari']);
+
+      // Optimistic update
+      queryClient.setQueryData(['pagamenti-straordinari'], (old) => {
+        if (!old) return old;
+        return old.map((p) => 
+          p.id === pagamentoId 
+            ? {
+                ...p,
+                pagato: true,
+                data_pagamento: new Date().toISOString(),
+                pagato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email,
+                pagato_da_id: currentUser?.id
+              }
+            : p
+        );
+      });
+
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(['pagamenti-straordinari'], context.previousData);
+      }
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pagamenti-straordinari'] });
       queryClient.invalidateQueries({ queryKey: ['depositi'] });
     }
   });
