@@ -753,12 +753,13 @@ export default function PagamentoStraordinari() {
                             )}
                           </div>
                         ) : (
-                          <NeumorphicButton
+                          <button
                             onClick={() => handleEffettuaPagamento(straordinario)}
-                            className="text-xs px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white"
-                            disabled={effettuaPagamentoMutation.isPending}>
-                            Paga
-                          </NeumorphicButton>
+                            disabled={effettuaPagamentoMutation.isPending}
+                            className="px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-sm shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 whitespace-nowrap">
+                            <DollarSign className="w-4 h-4" />
+                            Paga Ora
+                          </button>
                         )}
                       </td>
                     </tr>
