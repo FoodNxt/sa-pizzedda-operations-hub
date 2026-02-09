@@ -1758,13 +1758,13 @@ export default function Dashboard() {
                       <p className={`text-xs italic ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
                         {isOnTrack ? '✓ In linea' : '⚠ Sotto previsione'}
                       </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </NeumorphicCard>
-        )}
+                      </div>
+                      </Link>
+                      );
+                      })}
+                      </div>
+                      </NeumorphicCard>
+                      )}
 
         {/* Metriche Operative */}
         <NeumorphicCard className="p-6">
