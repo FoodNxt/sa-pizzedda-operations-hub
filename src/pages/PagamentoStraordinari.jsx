@@ -255,7 +255,7 @@ export default function PagamentoStraordinari() {
     let filtered = allStraordinari;
 
     if (!showPagati) {
-      filtered = filtered.filter(s => !s.pagato || s.data_turno <= today);
+      filtered = filtered.filter(s => !s.pagato && s.data_turno <= today);
     }
 
     if (selectedStore !== 'all') {
