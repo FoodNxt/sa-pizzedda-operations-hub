@@ -34,6 +34,7 @@ import ProtectedPage from "../components/ProtectedPage";
 
 export default function OrdiniAdmin() {
   const [activeTab, setActiveTab] = useState('suggeriti');
+  const [viewMode, setViewMode] = useState('per_locale'); // 'per_locale' | 'per_fornitore'
   const [selectedStore, setSelectedStore] = useState('all');
   const [editingOrder, setEditingOrder] = useState(null);
   const [sendingEmail, setSendingEmail] = useState({});
@@ -407,6 +408,33 @@ export default function OrdiniAdmin() {
     return grouped;
   }, [ordersNeeded]);
 
+  // Group orders by supplier (for per_fornitore view)
+  const ordersBySupplier = React.useMemo(() => {
+    const grouped = {};
+
+    ordersNeeded.forEach((order) => {
+      const supplierKey = order.fornitore;
+
+      if (!grouped[supplierKey]) {
+        grouped[supplierKey] = {
+          stores: {}
+        };
+      }
+
+      const storeKey = order.store_id;
+      if (!grouped[supplierKey].stores[storeKey]) {
+        grouped[supplierKey].stores[storeKey] = {
+          store: order.store,
+          orders: []
+        };
+      }
+
+      grouped[supplierKey].stores[storeKey].orders.push(order);
+    });
+
+    return grouped;
+  }, [ordersNeeded]);
+
   const getFornitoreByName = (name) => {
     return fornitori.find((f) =>
     f.ragione_sociale?.toLowerCase() === name?.toLowerCase() ||
@@ -731,19 +759,61 @@ Sa Pizzedda`,
           )}
         </div>
 
-        {/* Filter */}
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value)}
-            className="neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm flex-1 lg:flex-initial">
+        {/* Filters */}
+        {activeTab === 'suggeriti' && (
+          <NeumorphicCard className="p-4">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setViewMode('per_locale')}
+                  className={`flex-1 lg:flex-initial px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    viewMode === 'per_locale' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Building2 className="w-4 h-4 inline mr-2" />
+                  Per Locale
+                </button>
+                <button
+                  onClick={() => setViewMode('per_fornitore')}
+                  className={`flex-1 lg:flex-initial px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    viewMode === 'per_fornitore' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Truck className="w-4 h-4 inline mr-2" />
+                  Per Fornitore
+                </button>
+              </div>
+              
+              <select
+                value={selectedStore}
+                onChange={(e) => setSelectedStore(e.target.value)}
+                className="neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm flex-1 lg:flex-initial">
+                <option value="all">Tutti i Locali</option>
+                {stores.map((store) =>
+                  <option key={store.id} value={store.id}>{store.name}</option>
+                )}
+              </select>
+            </div>
+          </NeumorphicCard>
+        )}
 
-            <option value="all">Tutti i Locali</option>
-            {stores.map((store) =>
-            <option key={store.id} value={store.id}>{store.name}</option>
-            )}
-          </select>
-        </div>
+        {activeTab !== 'suggeriti' && (
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedStore}
+              onChange={(e) => setSelectedStore(e.target.value)}
+              className="neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm flex-1 lg:flex-initial">
+              <option value="all">Tutti i Locali</option>
+              {stores.map((store) =>
+                <option key={store.id} value={store.id}>{store.name}</option>
+              )}
+            </select>
+          </div>
+        )}
 
         {/* Ordini Suggeriti Tab */}
         {activeTab === 'suggeriti' &&
@@ -755,6 +825,7 @@ Sa Pizzedda`,
                 <p className="text-slate-500">Tutte le scorte sono sopra il livello critico</p>
               </NeumorphicCard> :
 
+          viewMode === 'per_locale' ? (
           Object.entries(ordersByStoreAndSupplier).
           filter(([storeId]) => selectedStore === 'all' || storeId === selectedStore).
           map(([storeId, storeData]) => {
@@ -1167,6 +1238,309 @@ Sa Pizzedda`,
                   </NeumorphicCard>);
 
           })
+          ) : (
+          // Vista Per Fornitore
+          Object.entries(ordersBySupplier).map(([fornitore, supplierData]) => {
+            const isExpanded = expandedFornitori[fornitore];
+            const totalOrdersForSupplier = Object.values(supplierData.stores).reduce((sum, storeData) => sum + storeData.orders.length, 0);
+            
+            // Calculate totals across all stores for this supplier
+            let totalNettoIVA = 0;
+            let totalConIVA = 0;
+            Object.values(supplierData.stores).forEach(storeData => {
+              storeData.orders.forEach(order => {
+                const hasPendingOrder = ordiniInviati.some((o) =>
+                  o.store_id === storeData.store.id &&
+                  o.fornitore === fornitore &&
+                  o.prodotti.some((p) => p.prodotto_id === order.product.id)
+                );
+                const hasArrivedToday = ordiniCompletati.some((o) => {
+                  const completedToday = o.data_completamento &&
+                    new Date(o.data_completamento).toDateString() === new Date().toDateString();
+                  return completedToday &&
+                    o.store_id === storeData.store.id &&
+                    o.fornitore === fornitore &&
+                    o.prodotti.some((p) => p.prodotto_id === order.product.id);
+                });
+                
+                if (!hasPendingOrder && !hasArrivedToday) {
+                  const prezzoUnitario = order.product.prezzo_unitario || 0;
+                  const ivaPerc = order.product.iva_percentuale ?? 22;
+                  const prezzoConIVA = prezzoUnitario * (1 + ivaPerc / 100);
+                  totalNettoIVA += prezzoUnitario * order.quantita_ordine;
+                  totalConIVA += prezzoConIVA * order.quantita_ordine;
+                }
+              });
+            });
+
+            const fornitoreEntity = getFornitoreByName(fornitore);
+            const ordineMinimo = fornitoreEntity?.ordine_minimo || 0;
+            const superaMinimo = totalConIVA >= ordineMinimo;
+
+            return (
+              <NeumorphicCard key={fornitore} className="overflow-hidden">
+                <button
+                  onClick={() => setExpandedFornitori((prev) => ({ ...prev, [fornitore]: !prev[fornitore] }))}
+                  className="w-full p-6 text-left hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
+                        <Truck className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-bold text-slate-800">{fornitore}</h2>
+                        <p className="text-xs text-slate-500">
+                          {totalOrdersForSupplier} prodotti • {Object.keys(supplierData.stores).length} locali
+                        </p>
+                        {fornitoreEntity?.contatto_email && (
+                          <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            {fornitoreEntity.contatto_email}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {isExpanded ? 
+                      <ChevronDown className="w-5 h-5 text-slate-600" /> : 
+                      <ChevronRight className="w-5 h-5 text-slate-600" />
+                    }
+                  </div>
+                </button>
+                
+                {isExpanded && (
+                  <div className="p-6 pt-0 space-y-4">
+                    <div className="mb-3 p-3 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-slate-500">Netto IVA:</span>
+                            <span className="text-sm font-bold text-slate-700">€{totalNettoIVA.toFixed(2)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-slate-500">Con IVA:</span>
+                            <span className="text-lg font-bold text-blue-600">€{totalConIVA.toFixed(2)}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-slate-700">Min. Fornitore:</span>
+                          <span className="text-lg font-bold text-slate-600">€{ordineMinimo.toFixed(2)}</span>
+                        </div>
+                        {ordineMinimo > 0 && (
+                          <div className={`px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1 ${
+                            superaMinimo 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {superaMinimo ? (
+                              <>
+                                <CheckCircle className="w-4 h-4" />
+                                Supera minimo
+                              </>
+                            ) : (
+                              <>
+                                <AlertTriangle className="w-4 h-4" />
+                                Sotto minimo (€{(ordineMinimo - totalConIVA).toFixed(2)})
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {Object.entries(supplierData.stores)
+                      .filter(([storeId]) => selectedStore === 'all' || storeId === selectedStore)
+                      .map(([storeId, storeData]) => {
+                        const ordersForStore = storeData.orders;
+
+                        // Separate products
+                        const prodottiInCorso = [];
+                        const prodottiArrivatiOggi = [];
+                        const prodottiNormali = [];
+
+                        ordersForStore.forEach((order) => {
+                          const hasPendingOrder = ordiniInviati.some((o) =>
+                            o.store_id === storeId &&
+                            o.fornitore === fornitore &&
+                            o.prodotti.some((p) => p.prodotto_id === order.product.id && p.quantita_ordinata > 0)
+                          );
+
+                          const hasArrivedToday = ordiniCompletati.some((o) => {
+                            const completedToday = o.data_completamento &&
+                              new Date(o.data_completamento).toDateString() === new Date().toDateString();
+                            return completedToday &&
+                              o.store_id === storeId &&
+                              o.fornitore === fornitore &&
+                              o.prodotti.some((p) => p.prodotto_id === order.product.id && p.quantita_ordinata > 0);
+                          });
+
+                          if (hasArrivedToday) {
+                            prodottiArrivatiOggi.push(order);
+                          } else if (hasPendingOrder) {
+                            prodottiInCorso.push(order);
+                          } else {
+                            prodottiNormali.push(order);
+                          }
+                        });
+
+                        const collapseKey = `${storeId}-${fornitore}`;
+                        const isInCorsoCollapsed = collapsedInCorso[collapseKey] !== false;
+                        const isArrivatiCollapsed = collapsedArrivati[collapseKey] !== false;
+
+                        return (
+                          <div key={storeId} className="neumorphic-pressed p-4 rounded-xl">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <Building2 className="w-5 h-5 text-blue-600" />
+                                <h3 className="font-bold text-slate-700">{storeData.store.name}</h3>
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">
+                                  {ordersForStore.length} prodotti
+                                </span>
+                              </div>
+                              
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => openOrderEditor(storeData.store.name, storeId, fornitore, ordersForStore)}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 transition-all">
+                                  <Send className="w-3 h-3" />
+                                  Segna Inviato
+                                </button>
+                                {fornitoreEntity?.contatto_email && (
+                                  <button
+                                    onClick={() => openEmailCustomization(storeData.store.name, storeId, fornitore, ordersForStore)}
+                                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all">
+                                    <Mail className="w-3 h-3" />
+                                    Invia Email
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Products table */}
+                            {prodottiNormali.length > 0 && (
+                              <div className="overflow-x-auto">
+                                <table className="w-full min-w-[500px]">
+                                  <thead>
+                                    <tr className="border-b border-slate-300">
+                                      <th className="text-left p-2 text-slate-600 font-medium text-xs">Prodotto</th>
+                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">Attuale</th>
+                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">Critica</th>
+                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">Da Ordinare</th>
+                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">IVA</th>
+                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">Prezzo Unit.</th>
+                                      <th className="text-right p-2 text-slate-600 font-medium text-xs">Totale+IVA</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {prodottiNormali.map((order, idx) => {
+                                      const prezzoUnitario = order.product.prezzo_unitario || 0;
+                                      const ivaPerc = order.product.iva_percentuale ?? 22;
+                                      const prezzoUnitarioConIVA = prezzoUnitario * (1 + ivaPerc / 100);
+                                      const totaleRigaConIVA = prezzoUnitarioConIVA * order.quantita_ordine;
+
+                                      return (
+                                        <tr key={idx} className="border-b border-slate-200">
+                                          <td className="p-2 text-sm text-slate-700">{order.nome_prodotto}</td>
+                                          <td className="p-2 text-sm text-right text-red-600 font-bold">
+                                            {order.quantita_rilevata} {order.unita_misura}
+                                          </td>
+                                          <td className="p-2 text-sm text-right text-slate-500">
+                                            {order.quantita_critica} {order.unita_misura}
+                                          </td>
+                                          <td className="p-2 text-sm text-right font-bold text-green-600">
+                                            {order.quantita_ordine} {order.unita_misura}
+                                          </td>
+                                          <td className="p-2 text-sm text-right text-slate-500">
+                                            {ivaPerc}%
+                                          </td>
+                                          <td className="p-2 text-sm text-right text-slate-600">
+                                            {prezzoUnitario > 0 ? `€${prezzoUnitario.toFixed(2)}` : '-'}
+                                          </td>
+                                          <td className="p-2 text-sm text-right font-bold text-blue-600">
+                                            {totaleRigaConIVA > 0 ? `€${totaleRigaConIVA.toFixed(2)}` : '-'}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+
+                            {/* In corso / Arrivati sections */}
+                            {prodottiInCorso.length > 0 && (
+                              <div className="mt-4">
+                                <button
+                                  onClick={() => setCollapsedInCorso((prev) => ({ ...prev, [collapseKey]: !prev[collapseKey] }))}
+                                  className="w-full flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors border border-yellow-200">
+                                  <div className="flex items-center gap-2">
+                                    <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                    <span className="text-sm font-medium text-orange-700">
+                                      Ordine in corso ({prodottiInCorso.length})
+                                    </span>
+                                  </div>
+                                  {isInCorsoCollapsed ? 
+                                    <ChevronRight className="w-4 h-4 text-orange-600" /> : 
+                                    <ChevronDown className="w-4 h-4 text-orange-600" />
+                                  }
+                                </button>
+                                {!isInCorsoCollapsed && (
+                                  <div className="mt-2 space-y-1">
+                                    {prodottiInCorso.map((order, idx) => (
+                                      <div key={idx} className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm text-slate-700">{order.nome_prodotto}</span>
+                                          <span className="text-sm font-bold text-orange-600">
+                                            {order.quantita_ordine} {order.unita_misura}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {prodottiArrivatiOggi.length > 0 && (
+                              <div className="mt-4">
+                                <button
+                                  onClick={() => setCollapsedArrivati((prev) => ({ ...prev, [collapseKey]: !prev[collapseKey] }))}
+                                  className="w-full flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors border border-green-200">
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle className="w-4 h-4 text-green-600" />
+                                    <span className="text-sm font-medium text-green-700">
+                                      Arrivato oggi ({prodottiArrivatiOggi.length})
+                                    </span>
+                                  </div>
+                                  {isArrivatiCollapsed ? 
+                                    <ChevronRight className="w-4 h-4 text-green-600" /> : 
+                                    <ChevronDown className="w-4 h-4 text-green-600" />
+                                  }
+                                </button>
+                                {!isArrivatiCollapsed && (
+                                  <div className="mt-2 space-y-1">
+                                    {prodottiArrivatiOggi.map((order, idx) => (
+                                      <div key={idx} className="p-3 bg-green-50 rounded-lg border border-green-200">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-sm text-slate-700">{order.nome_prodotto}</span>
+                                          <span className="text-sm font-bold text-green-600">
+                                            {order.quantita_ordine} {order.unita_misura}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </NeumorphicCard>
+            );
+          })
+          )
           }
           </div>
         }
