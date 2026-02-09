@@ -254,7 +254,7 @@ export default function Ordini() {
             <h1 className="text-slate-50 mb-2 text-3xl font-bold">📦 Ordini</h1>
             <p className="text-slate-50">Gestisci gli ordini inviati ai fornitori</p>
           </div>
-          {(currentUser?.user_type === 'admin' || currentUser?.user_type === 'manager') && (
+          {!isLoadingUser && currentUser && (currentUser.user_type === 'admin' || currentUser.user_type === 'manager') && (
             <NeumorphicButton 
               onClick={() => setShowCreateMultiStoreOrder(true)}
               variant="primary"
