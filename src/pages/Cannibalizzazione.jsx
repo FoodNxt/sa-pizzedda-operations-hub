@@ -185,6 +185,56 @@ export default function Cannibalizzazione() {
         })
         .reduce((sum, d) => sum + (d.total_revenue || 0), 0);
 
+      // Analisi per canale
+      const channelAnalysis = {};
+      Object.keys(COLORS).forEach(channel => {
+        const channelKey = `sourceApp_${channel}`;
+        
+        // Before - altri locali
+        const otherStoresBefore = iPraticoData
+          .filter(d => {
+            const date = new Date(d.order_date);
+            return date >= beforeStart && date <= beforeEnd && d.store_id !== opening.store_id;
+          })
+          .reduce((sum, d) => sum + (d[channelKey] || 0), 0);
+
+        // After - altri locali
+        const otherStoresAfter = iPraticoData
+          .filter(d => {
+            const date = new Date(d.order_date);
+            return date >= afterStart && date <= afterEnd && d.store_id !== opening.store_id;
+          })
+          .reduce((sum, d) => sum + (d[channelKey] || 0), 0);
+
+        // Revenue nuovo locale per questo canale
+        const newStoreChannel = iPraticoData
+          .filter(d => {
+            const date = new Date(d.order_date);
+            return date >= afterStart && date <= afterEnd && d.store_id === opening.store_id;
+          })
+          .reduce((sum, d) => sum + (d[channelKey] || 0), 0);
+
+        const daysBefore = Math.ceil((beforeEnd - beforeStart) / (1000 * 60 * 60 * 24)) + 1;
+        const daysAfter = Math.ceil((afterEnd - afterStart) / (1000 * 60 * 60 * 24)) + 1;
+
+        const avgBefore = daysBefore > 0 ? otherStoresBefore / daysBefore : 0;
+        const avgAfter = daysAfter > 0 ? otherStoresAfter / daysAfter : 0;
+        const change = avgAfter - avgBefore;
+        const changePerc = avgBefore > 0 ? ((avgAfter - avgBefore) / avgBefore) * 100 : 0;
+        const cannibalization = change < 0 ? Math.abs(change) : 0;
+        const cannibalizationPerc = avgBefore > 0 ? (cannibalization / avgBefore) * 100 : 0;
+
+        channelAnalysis[channel] = {
+          avgBefore,
+          avgAfter,
+          change,
+          changePerc,
+          cannibalization,
+          cannibalizationPerc,
+          newStoreRevenue: newStoreChannel
+        };
+      });
+
       const daysBefore = Math.ceil((beforeEnd - beforeStart) / (1000 * 60 * 60 * 24)) + 1;
       const daysAfter = Math.ceil((afterEnd - afterStart) / (1000 * 60 * 60 * 24)) + 1;
 
@@ -216,7 +266,8 @@ export default function Cannibalizzazione() {
         newStoreRevenue,
         cannibalizzazione,
         cannibalizzazionePerc,
-        incrementoNetto: changeTotal - cannibalizzazione
+        incrementoNetto: changeTotal - cannibalizzazione,
+        channelAnalysis
       };
     });
   }, [storeOpeningDates, iPraticoData]);
@@ -826,6 +877,135 @@ export default function Cannibalizzazione() {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </NeumorphicCard>
+
+        {/* Analisi Cannibalizzazione per Canale */}
+        <NeumorphicCard className="p-6">
+          <h3 className="text-lg font-bold text-slate-800 mb-4">📱 Analisi Cannibalizzazione per Canale</h3>
+          <div className="space-y-6">
+            {impactAnalysis.map((impact, idx) => (
+              <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <p className="font-bold text-slate-800 text-lg">{impact.store_name}</p>
+                    <p className="text-sm text-slate-500">
+                      Apertura: {format(parseISO(impact.opening_date), 'dd MMM yyyy', { locale: it })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {Object.keys(impact.channelAnalysis).map(channel => {
+                    const data = impact.channelAnalysis[channel];
+                    const hasSignificantChange = Math.abs(data.changePerc) > 5;
+                    const hasCannibalization = data.cannibalization > 0;
+                    
+                    if (data.avgBefore === 0 && data.avgAfter === 0) return null;
+
+                    return (
+                      <div 
+                        key={channel}
+                        className="neumorphic-flat p-3 rounded-lg"
+                        style={{ borderLeft: `4px solid ${COLORS[channel]}` }}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: COLORS[channel] }}
+                          />
+                          <p className="font-bold text-sm text-slate-800">
+                            {CHANNEL_LABELS[channel]}
+                          </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Prima (altri):</span>
+                            <span className="font-medium text-slate-700">
+                              {formatEuro(data.avgBefore)}/gg
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-slate-500">Dopo (altri):</span>
+                            <span className="font-medium text-slate-700">
+                              {formatEuro(data.avgAfter)}/gg
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between text-xs pt-1 border-t border-slate-200">
+                            <span className="text-slate-500">Δ:</span>
+                            <span className={`font-bold ${
+                              data.change >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {data.change >= 0 ? '+' : ''}{formatEuro(data.change)}
+                              <span className="text-xs ml-1">
+                                ({data.changePerc >= 0 ? '+' : ''}{data.changePerc.toFixed(1)}%)
+                              </span>
+                            </span>
+                          </div>
+
+                          {hasCannibalization && (
+                            <div className="flex justify-between text-xs pt-1 border-t border-orange-200 bg-orange-50 -mx-3 px-3 py-1 rounded-b-lg">
+                              <span className="text-orange-700 font-medium">Cannibal.:</span>
+                              <span className="font-bold text-orange-600">
+                                -{formatEuro(data.cannibalization)}
+                                <span className="text-xs ml-1">
+                                  ({data.cannibalizationPerc.toFixed(1)}%)
+                                </span>
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between text-xs pt-1 border-t border-blue-200 bg-blue-50 -mx-3 px-3 py-1 rounded-b-lg">
+                            <span className="text-blue-700 font-medium">Nuovo store:</span>
+                            <span className="font-bold text-blue-600">
+                              {formatEuro(data.newStoreRevenue)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Summary canali più cannibalizzati */}
+                <div className="mt-4 pt-3 border-t border-slate-200">
+                  <p className="text-xs text-slate-500 mb-2">Canali più cannibalizzati:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.keys(impact.channelAnalysis)
+                      .filter(ch => impact.channelAnalysis[ch].cannibalizationPerc > 10)
+                      .sort((a, b) => 
+                        impact.channelAnalysis[b].cannibalizationPerc - 
+                        impact.channelAnalysis[a].cannibalizationPerc
+                      )
+                      .slice(0, 3)
+                      .map(channel => {
+                        const data = impact.channelAnalysis[channel];
+                        return (
+                          <div 
+                            key={channel}
+                            className="px-2 py-1 rounded-lg text-xs font-medium"
+                            style={{ 
+                              backgroundColor: `${COLORS[channel]}20`,
+                              color: COLORS[channel]
+                            }}
+                          >
+                            {CHANNEL_LABELS[channel]}: -{data.cannibalizationPerc.toFixed(1)}%
+                          </div>
+                        );
+                      })}
+                    {Object.keys(impact.channelAnalysis).every(ch => 
+                      impact.channelAnalysis[ch].cannibalizationPerc <= 10
+                    ) && (
+                      <p className="text-xs text-green-600 font-medium">
+                        ✓ Bassa cannibalizzazione su tutti i canali
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
