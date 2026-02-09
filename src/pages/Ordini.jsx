@@ -219,6 +219,33 @@ export default function Ordini() {
     }
   };
 
+  const handleCreateMultiStoreOrder = async () => {
+    if (!selectedFornitore || !destinationStore || Object.keys(selectedProductsForOrder).length === 0) {
+      alert('Seleziona fornitore, negozio di destinazione e almeno un prodotto');
+      return;
+    }
+
+    const prodotti = productsFromFornitore
+      .filter(p => selectedProductsForOrder[p.prodotto_id])
+      .map(p => ({
+        ...p,
+        quantita_ordinata: selectedProductsForOrder[p.prodotto_id]
+      }));
+
+    const destinationStoreObj = stores.find(s => s.id === destinationStore);
+
+    await createMultiStoreOrderMutation.mutateAsync({
+      store_id: destinationStore,
+      store_name: destinationStoreObj?.name || 'N/A',
+      fornitore: selectedFornitore,
+      status: 'inviato',
+      data_invio: new Date().toISOString(),
+      prodotti,
+      data_creazione: new Date().toISOString(),
+      creato_da: currentUser?.email || 'N/A'
+    });
+  };
+
   return (
     <ProtectedPage pageName="Ordini">
       <div className="max-w-7xl mx-auto space-y-6">
