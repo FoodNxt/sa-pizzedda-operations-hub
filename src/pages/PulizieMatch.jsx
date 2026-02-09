@@ -255,14 +255,18 @@ export default function PulizieMatch() {
     return matchedResults.filter((r) => r.id === selectedEmployee);
   }, [matchedResults, selectedEmployee]);
 
-  // Sort by performance (worst first)
+  // Sort by performance based on selected sort option
   const sortedResults = useMemo(() => {
     return [...filteredResults].sort((a, b) => {
-      const percentA = a.puliti + a.sporchi > 0 ? a.puliti / (a.puliti + a.sporchi) * 100 : 0;
-      const percentB = b.puliti + b.sporchi > 0 ? b.puliti / (b.puliti + b.sporchi) * 100 : 0;
-      return percentA - percentB;
+      if (sortBy === 'percentage') {
+        const percentA = a.puliti + a.sporchi > 0 ? a.puliti / (a.puliti + a.sporchi) * 100 : 0;
+        const percentB = b.puliti + b.sporchi > 0 ? b.puliti / (b.puliti + b.sporchi) * 100 : 0;
+        return percentA - percentB;
+      } else {
+        return a.sporchi - b.sporchi;
+      }
     });
-  }, [filteredResults]);
+  }, [filteredResults, sortBy]);
 
   // Overall stats
   const overallStats = useMemo(() => {
