@@ -1536,6 +1536,12 @@ export default function Dashboard() {
         {/* Target Store Manager Snapshot */}
         {(() => {
           const currentMonth = new Date().toISOString().substring(0, 7);
+          const monthStart = currentMonth + '-01';
+          const monthEnd = new Date(currentMonth + '-01');
+          monthEnd.setMonth(monthEnd.getMonth() + 1);
+          monthEnd.setDate(monthEnd.getDate() - 1);
+          const monthEndStr = monthEnd.toISOString().split('T')[0];
+          
           const currentMonthTargets = storeManagerTargets.filter(t => t.mese === currentMonth);
           
           if (currentMonthTargets.length === 0) return null;
@@ -1552,7 +1558,23 @@ export default function Dashboard() {
                 {currentMonthTargets.map((target) => {
                   const manager = allUsers.find(u => u.id === target.store_manager_id);
                   const store = stores.find(s => s.id === target.store_id);
-                  const totalBonus = (target.bonus_fatturato || 0) + (target.bonus_recensioni || 0) + (target.bonus_num_recensioni || 0) + (target.bonus_ordini_sbagliati || 0) + (target.bonus_ritardi || 0) + (target.bonus_pulizie || 0);
+                  
+                  // Calcolo metriche attuali
+                  const storeData = iPratico.filter(d => d.store_id === target.store_id && d.order_date >= monthStart && d.order_date <= monthEndStr);
+                  const currentRevenue = storeData.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
+                  
+                  const storeReviews = reviews.filter(r => r.store_id === target.store_id && r.review_date >= monthStart && r.review_date <= monthEndStr);
+                  const avgRating = storeReviews.length > 0 ? (storeReviews.reduce((sum, r) => sum + r.rating, 0) / storeReviews.length).toFixed(1) : 0;
+                  const reviewCount = storeReviews.length;
+                  
+                  const wrongOrders = wrongOrder.filter(w => w.store_id === target.store_id && w.data_ordine >= monthStart && w.data_ordine <= monthEndStr);
+                  const wrongOrderCount = wrongOrders.length;
+                  
+                  const storeShifts = shifts.filter(s => s.store_id === target.store_id && s.data >= monthStart && s.data <= monthEndStr);
+                  const totalLateMinutes = storeShifts.reduce((sum, s) => sum + (s.ritardo_minuti || 0), 0);
+                  
+                  const cleanings = cleaningInspections.filter(c => c.store_id === target.store_id && c.inspection_date >= monthStart && c.inspection_date <= monthEndStr);
+                  const avgCleaning = cleanings.length > 0 ? (cleanings.reduce((sum, c) => sum + (c.overall_score || 0), 0) / cleanings.length).toFixed(0) : 0;
                   
                   return (
                     <div key={target.id} className="neumorphic-flat p-3 rounded-lg bg-white">
@@ -1564,45 +1586,59 @@ export default function Dashboard() {
                       )}
                       <div className="space-y-1 text-xs">
                         {target.metriche_attive?.includes('fatturato') && (
-                          <div className="flex justify-between">
+                          <div className="flex items-center justify-between pb-1 border-b border-purple-100">
                             <span className="text-slate-600">Fatturato</span>
-                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_fatturato || 0)}</span>
+                            <div className="text-right">
+                              <div className="font-bold text-green-600">{formatEuro(currentRevenue)}</div>
+                              <div className="text-slate-500">/ {formatEuro(target.target_fatturato)}</div>
+                            </div>
                           </div>
                         )}
                         {target.metriche_attive?.includes('recensioni_media') && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Recensioni Avg</span>
-                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_recensioni || 0)}</span>
+                          <div className="flex items-center justify-between pb-1 border-b border-purple-100">
+                            <span className="text-slate-600">Media Rec.</span>
+                            <div className="text-right">
+                              <div className="font-bold text-green-600">{avgRating} ⭐</div>
+                              <div className="text-slate-500">/ {target.target_recensioni_media}</div>
+                            </div>
                           </div>
                         )}
                         {target.metriche_attive?.includes('num_recensioni') && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">N. Recensioni</span>
-                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_num_recensioni || 0)}</span>
+                          <div className="flex items-center justify-between pb-1 border-b border-purple-100">
+                            <span className="text-slate-600">N. Rec.</span>
+                            <div className="text-right">
+                              <div className="font-bold text-green-600">{reviewCount}</div>
+                              <div className="text-slate-500">/ {target.target_num_recensioni}</div>
+                            </div>
                           </div>
                         )}
                         {target.metriche_attive?.includes('ordini_sbagliati') && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Ordini OK</span>
-                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_ordini_sbagliati || 0)}</span>
+                          <div className="flex items-center justify-between pb-1 border-b border-purple-100">
+                            <span className="text-slate-600">Ordini Err.</span>
+                            <div className="text-right">
+                              <div className={`font-bold ${wrongOrderCount <= target.target_ordini_sbagliati_max ? 'text-green-600' : 'text-red-600'}`}>{wrongOrderCount}</div>
+                              <div className="text-slate-500">max {target.target_ordini_sbagliati_max}</div>
+                            </div>
                           </div>
                         )}
                         {target.metriche_attive?.includes('ritardi') && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">Ritardi</span>
-                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_ritardi || 0)}</span>
+                          <div className="flex items-center justify-between pb-1 border-b border-purple-100">
+                            <span className="text-slate-600">Ritardi (min)</span>
+                            <div className="text-right">
+                              <div className={`font-bold ${totalLateMinutes <= target.target_ritardi_max_minuti ? 'text-green-600' : 'text-red-600'}`}>{totalLateMinutes}</div>
+                              <div className="text-slate-500">max {target.target_ritardi_max_minuti}</div>
+                            </div>
                           </div>
                         )}
                         {target.metriche_attive?.includes('pulizie') && (
-                          <div className="flex justify-between">
+                          <div className="flex items-center justify-between pb-1">
                             <span className="text-slate-600">Pulizie</span>
-                            <span className="font-bold text-blue-600">{formatEuro(target.bonus_pulizie || 0)}</span>
+                            <div className="text-right">
+                              <div className="font-bold text-green-600">{avgCleaning}/100</div>
+                              <div className="text-slate-500">min {target.target_pulizie_min_score}</div>
+                            </div>
                           </div>
                         )}
-                        <div className="border-t border-purple-200 pt-1 mt-1 flex justify-between font-bold">
-                          <span className="text-purple-700">Bonus Totale</span>
-                          <span className="text-purple-600">{formatEuro(totalBonus)}</span>
-                        </div>
                       </div>
                     </div>
                   );
