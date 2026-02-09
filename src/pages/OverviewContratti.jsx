@@ -135,6 +135,8 @@ export default function OverviewContratti() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['periodo-prova-config'] });
+      queryClient.invalidateQueries({ queryKey: ['turni-periodo-prova'] });
+      setTurniPerMese('');
       alert('✅ Configurazione periodo prova salvata!');
     }
   });
