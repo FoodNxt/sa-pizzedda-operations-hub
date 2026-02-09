@@ -64,6 +64,31 @@ export default function Ordini() {
     }
   });
 
+  // Get list of fornitori from orders
+  const fornitori = useMemo(() => {
+    const fornitoriSet = new Set(ordiniInviati.map(o => o.fornitore).filter(Boolean));
+    return Array.from(fornitoriSet).sort();
+  }, [ordiniInviati]);
+
+  // Get products from selected fornitore (from multiple stores if needed)
+  const productsFromFornitore = useMemo(() => {
+    if (!selectedFornitore) return [];
+    
+    const productsMap = new Map();
+    ordiniInviati
+      .filter(o => o.fornitore === selectedFornitore)
+      .forEach(order => {
+        order.prodotti?.forEach(prod => {
+          const key = prod.prodotto_id;
+          if (!productsMap.has(key)) {
+            productsMap.set(key, { ...prod });
+          }
+        });
+      });
+    
+    return Array.from(productsMap.values());
+  }, [selectedFornitore, ordiniInviati]);
+
   // Filter orders by user's assigned stores
   const myOrders = useMemo(() => {
     if (!currentUser) return [];
