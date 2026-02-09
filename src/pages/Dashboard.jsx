@@ -176,6 +176,11 @@ export default function Dashboard() {
     queryFn: () => base44.entities.ProdottiVenduti.list('-data_vendita', 1000)
   });
 
+  const { data: targets = [] } = useQuery({
+    queryKey: ['targets'],
+    queryFn: () => base44.entities.Target.list()
+  });
+
   const safeParseDate = (dateString) => {
     if (!dateString) return null;
     try {
@@ -1070,6 +1075,59 @@ export default function Dashboard() {
     return { top3, bottom3 };
   }, [prodottiVenduti, dateRange, startDate, endDate]);
 
+  // Active Targets (ongoing: start date in past, end date in future)
+  const activeTargets = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return targets.filter(t => {
+      if (t.date_mode === 'rolling') return true;
+      if (!t.start_date || !t.end_date) return false;
+      
+      const startDate = new Date(t.start_date);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(t.end_date);
+      endDate.setHours(0, 0, 0, 0);
+      
+      return startDate <= today && endDate >= today;
+    }).map(target => {
+      // Calculate current progress
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      let periodStart, periodEnd;
+      if (target.date_mode === 'rolling') {
+        periodEnd = new Date(today);
+        periodEnd.setDate(today.getDate() + 29);
+        periodStart = today;
+      } else {
+        periodStart = new Date(target.start_date);
+        periodStart.setHours(0, 0, 0, 0);
+        periodEnd = new Date(target.end_date);
+        periodEnd.setHours(0, 0, 0, 0);
+      }
+      
+      const currentData = iPraticoData.filter(item => {
+        if (!item.order_date) return false;
+        const itemDate = new Date(item.order_date);
+        itemDate.setHours(0, 0, 0, 0);
+        const maxDate = today < periodEnd ? today : periodEnd;
+        if (itemDate < periodStart || itemDate > maxDate) return false;
+        if (target.store_id !== 'all' && item.store_id !== target.store_id) return false;
+        return true;
+      });
+      
+      const currentRevenue = currentData.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
+      const progressPercent = target.target_revenue > 0 ? (currentRevenue / target.target_revenue) * 100 : 0;
+      
+      return {
+        ...target,
+        currentRevenue,
+        progressPercent
+      };
+    });
+  }, [targets, iPraticoData]);
+
   const clearCustomDates = () => {
     setStartDate('');
     setEndDate('');
@@ -1458,6 +1516,58 @@ export default function Dashboard() {
             </div>
           </div>
         </NeumorphicCard>
+
+        {/* Target in Corso */}
+        {activeTargets.length > 0 && (
+          <NeumorphicCard className="p-6">
+            <Link to={createPageUrl('Target')} className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 hover:text-blue-600 transition-colors">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              Target in Corso
+              <ExternalLink className="w-4 h-4 ml-auto" />
+            </Link>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activeTargets.map((target) => {
+                const storeName = target.store_id && target.store_id !== 'all'
+                  ? stores.find(s => s.id === target.store_id)?.name || 'N/A'
+                  : 'Tutti i Locali';
+                const isOnTrack = target.progressPercent >= 50;
+                
+                return (
+                  <div key={target.id} className="neumorphic-pressed p-4 rounded-xl">
+                    <h4 className="font-bold text-slate-800 mb-2">{target.name}</h4>
+                    <p className="text-xs text-slate-500 mb-2">{storeName}</p>
+                    
+                    <div className="mb-3">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs text-slate-600">Target</span>
+                        <span className="text-sm font-bold text-blue-600">{formatEuro(target.target_revenue)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-slate-600">Attuale</span>
+                        <span className="text-sm font-bold text-green-600">{formatEuro(target.currentRevenue)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div 
+                          className={`h-full transition-all ${
+                            isOnTrack ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'
+                          }`}
+                          style={{ width: `${Math.min(target.progressPercent, 100)}%` }}
+                        />
+                      </div>
+                      <span className={`text-xs font-bold ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
+                        {target.progressPercent.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </NeumorphicCard>
+        )}
 
         {/* Metriche Operative */}
         <NeumorphicCard className="p-6">
