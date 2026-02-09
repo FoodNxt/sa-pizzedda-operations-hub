@@ -430,12 +430,12 @@ export default function Ordini() {
                       </div>
                     </div>
                   )}
-                  </div>
-                  </NeumorphicCard>
-                  );
-                  })}
-                  </div>
-        }
+                </div>
+              </NeumorphicCard>
+            );
+          })}
+        </div>
+        )
 
         {/* Create Consolidated Order Modal */}
         {showCreateMultiStoreOrder &&
