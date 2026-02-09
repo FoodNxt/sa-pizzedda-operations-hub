@@ -28,6 +28,8 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import ProgressBar from "../components/neumorphic/ProgressBar";
+import RicetteContent from "../components/inventory/RicetteContent";
+import FornitoriContent from "../components/inventory/FornitoriContent";
 
 export default function MateriePrime() {
   const [activeTab, setActiveTab] = useState('materie_prime'); // materie_prime | ricette | fornitori
@@ -485,18 +487,8 @@ export default function MateriePrime() {
           </div>
         </NeumorphicCard>
 
-        {/* Import componenti ricette e fornitori */}
-        {activeTab === 'ricette' && (
-          <div className="ricette-content">
-            <iframe src="/Ricette" style={{ width: '100%', minHeight: '800px', border: 'none' }} />
-          </div>
-        )}
-        
-        {activeTab === 'fornitori' && (
-          <div className="fornitori-content">
-            <iframe src="/ElencoFornitori" style={{ width: '100%', minHeight: '800px', border: 'none' }} />
-          </div>
-        )}
+        {activeTab === 'ricette' && <RicetteContent />}
+        {activeTab === 'fornitori' && <FornitoriContent />}
 
         {activeTab === 'materie_prime' && (
           <>
