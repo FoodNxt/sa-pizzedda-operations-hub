@@ -342,6 +342,21 @@ export default function PulizieMatch() {
                 )}
               </select>
             </div>
+
+            <div>
+              <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                Ordina per
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
+
+                <option value="percentage">% Successo (basso)</option>
+                <option value="errors">Errori (alto)</option>
+              </select>
+            </div>
           </div>
         </NeumorphicCard>
 
