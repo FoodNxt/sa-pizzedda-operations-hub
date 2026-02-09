@@ -85,10 +85,20 @@ export default function OverviewContratti() {
   // Initialize turniPerMese with existing config value
   React.useEffect(() => {
     const activeConfig = periodoProvaConfig.find((c) => c.is_active);
-    if (activeConfig) {
-      setTurniPerMese(activeConfig.giorni_prova_per_mese?.toString() || '');
+    if (activeConfig && activeConfig.giorni_prova_per_mese) {
+      setTurniPerMese(activeConfig.giorni_prova_per_mese.toString());
     }
   }, [periodoProvaConfig]);
+
+  // Update turniPerMese when modal opens
+  React.useEffect(() => {
+    if (showPeriodoProvaConfig) {
+      const activeConfig = periodoProvaConfig.find((c) => c.is_active);
+      if (activeConfig && activeConfig.giorni_prova_per_mese) {
+        setTurniPerMese(activeConfig.giorni_prova_per_mese.toString());
+      }
+    }
+  }, [showPeriodoProvaConfig, periodoProvaConfig]);
 
 
 
