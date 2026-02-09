@@ -7,9 +7,10 @@ import ProtectedPage from "../components/ProtectedPage";
 import {
   UserPlus, Users, Phone, Edit, Trash2, Save, X, Loader2, Store, Briefcase,
   Calendar, Clock, User, CheckCircle, XCircle, Plus, Link as LinkIcon,
-  ClipboardList, ChevronDown, ChevronRight, Eye } from
+  ClipboardList, ChevronDown, ChevronRight, Eye, BarChart3 } from
 "lucide-react";
 import moment from "moment";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const POSIZIONI = ["Pizzaiolo", "Cassiere", "Store Manager"];
 const STATI = [
@@ -25,6 +26,7 @@ export default function ATS() {
   const [editingCandidato, setEditingCandidato] = useState(null);
   const [showProvaModal, setShowProvaModal] = useState(null);
   const [activeTab, setActiveTab] = useState('candidati');
+  const [selectedStoreChart, setSelectedStoreChart] = useState('all');
   const [showValutazioneForm, setShowValutazioneForm] = useState(false);
   const [valutazioneConfig, setValutazioneConfig] = useState({ domande: [] });
   const [newDomanda, setNewDomanda] = useState({ testo: '', opzioni: ['', '', '', ''], obbligatoria: true });
@@ -295,6 +297,44 @@ export default function ATS() {
     assunti: candidati.filter((c) => c.stato === "assunto").length
   };
 
+  // Chart data for trial completions over time by store
+  const chartData = useMemo(() => {
+    const provaPassate = candidati.filter((c) => c.prova_data && moment(c.prova_data).isBefore(moment(), 'day'));
+    
+    if (provaPassate.length === 0) return [];
+
+    // Group by date and store
+    const grouped = {};
+    provaPassate.forEach((p) => {
+      const dateStr = moment(p.prova_data).format('YYYY-MM-DD');
+      const storeName = getStoreName(p.prova_store_id) || 'Sconosciuto';
+      
+      if (!grouped[dateStr]) {
+        grouped[dateStr] = {};
+      }
+      if (!grouped[dateStr][storeName]) {
+        grouped[dateStr][storeName] = 0;
+      }
+      grouped[dateStr][storeName]++;
+    });
+
+    // Convert to array and get all stores
+    const allStores = new Set();
+    Object.values(grouped).forEach((dateData) => {
+      Object.keys(dateData).forEach((store) => allStores.add(store));
+    });
+
+    const sortedDates = Object.keys(grouped).sort();
+    return sortedDates.map((date) => {
+      const dataPoint = { date: moment(date).format('DD/MM') };
+      allStores.forEach((store) => {
+        dataPoint[store] = grouped[date][store] || 0;
+      });
+      dataPoint.totale = Object.values(grouped[date]).reduce((sum, val) => sum + val, 0);
+      return dataPoint;
+    });
+  }, [candidati, stores]);
+
   return (
     <ProtectedPage pageName="ATS" requiredUserTypes={["admin", "manager"]}>
       <div className="max-w-full mx-auto space-y-6">
@@ -333,6 +373,15 @@ export default function ATS() {
 
             <ClipboardList className="w-4 h-4 inline mr-2" />
             Valutazioni Prove
+          </button>
+          <button
+            onClick={() => setActiveTab('statistiche')}
+            className={`px-4 py-2 rounded-xl font-medium transition-all ${
+            activeTab === 'statistiche' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'neumorphic-flat text-slate-700'}`
+            }>
+
+            <BarChart3 className="w-4 h-4 inline mr-2" />
+            Statistiche Prove
           </button>
         </div>
 
@@ -812,6 +861,92 @@ export default function ATS() {
             }
             </NeumorphicCard>
           </div>
+        }
+
+        {/* Statistiche Tab */}
+        {activeTab === 'statistiche' &&
+        <div className="space-y-6">
+          <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Prove Fatte nel Tempo</h2>
+            
+            {chartData.length === 0 ?
+            <div className="text-center py-12">
+              <BarChart3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <p className="text-slate-500">Nessuna prova completata ancora</p>
+            </div> :
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">Filtra per negozio</label>
+                <select
+                  value={selectedStoreChart}
+                  onChange={(e) => setSelectedStoreChart(e.target.value)}
+                  className="w-full md:w-64 neumorphic-pressed px-4 py-2 rounded-xl outline-none text-sm">
+                  <option value="all">Tutti i negozi</option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  {selectedStoreChart === 'all' ?
+                    <>
+                      {stores.map((s, idx) => {
+                        const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+                        return (
+                          <Line
+                            key={s.id}
+                            type="monotone"
+                            dataKey={s.name}
+                            stroke={colors[idx % colors.length]}
+                            strokeWidth={2}
+                            connectNulls
+                            dot={{ r: 4 }}
+                          />
+                        );
+                      })}
+                      <Line
+                        type="monotone"
+                        dataKey="totale"
+                        stroke="#000000"
+                        strokeWidth={3}
+                        connectNulls
+                        dot={{ r: 5 }}
+                      />
+                    </> :
+                    <Line
+                      type="monotone"
+                      dataKey={selectedStoreChart}
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      connectNulls
+                      dot={{ r: 4 }}
+                    />
+                  }
+                </LineChart>
+              </ResponsiveContainer>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <NeumorphicCard className="p-4 text-center">
+                  <p className="text-sm text-slate-600 mb-1">Prove Completate Totali</p>
+                  <p className="text-3xl font-bold text-blue-600">{candidati.filter((c) => c.prova_data && moment(c.prova_data).isBefore(moment(), 'day')).length}</p>
+                </NeumorphicCard>
+                <NeumorphicCard className="p-4 text-center">
+                  <p className="text-sm text-slate-600 mb-1">Prove Programmate</p>
+                  <p className="text-3xl font-bold text-purple-600">{candidati.filter((c) => c.stato === 'prova_programmata').length}</p>
+                </NeumorphicCard>
+              </div>
+            </div>
+            }
+          </NeumorphicCard>
+        </div>
         }
 
         {/* Prova Modal */}
