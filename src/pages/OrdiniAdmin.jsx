@@ -500,6 +500,16 @@ export default function OrdiniAdmin() {
       quantita_ricevuta: receivedQuantities[prod.prodotto_id] || 0
     }));
 
+    // Ricalcola il totale basandosi sulle quantità RICEVUTE
+    const totaleNettoRicevuto = updatedProdotti.reduce((sum, p) => {
+      return sum + (p.prezzo_unitario || 0) * (p.quantita_ricevuta || 0);
+    }, 0);
+
+    const totaleConIVARicevuto = updatedProdotti.reduce((sum, p) => {
+      const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + (p.iva_percentuale ?? 22) / 100);
+      return sum + prezzoConIVA * (p.quantita_ricevuta || 0);
+    }, 0);
+
     await completeOrderMutation.mutateAsync({
       orderId: confirmingOrder.id,
       data: {
@@ -507,6 +517,8 @@ export default function OrdiniAdmin() {
         data_completamento: new Date().toISOString(),
         completato_da: currentUser.email,
         prodotti: updatedProdotti,
+        totale_ordine: totaleNettoRicevuto,
+        totale_ordine_con_iva: totaleConIVARicevuto,
         foto_ddt: ddtPhotos
       }
     });
