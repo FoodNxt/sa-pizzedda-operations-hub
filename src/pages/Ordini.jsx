@@ -387,53 +387,54 @@ export default function Ordini() {
                 </div>
                 <div className="space-y-3">
                   {ordiniFornitore.map((ordine) =>
-            <div
-              key={ordine.id}
-              onClick={() => openOrderDetail(ordine)}
-              className="neumorphic-pressed p-4 rounded-xl cursor-pointer hover:shadow-xl transition-all">
-
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="font-bold text-[#6b6b6b]">{ordine.store_name}</h3>
-                      <p className="text-lg font-bold text-blue-600">{ordine.fornitore}</p>
-                      <p className="text-xs text-[#9b9b9b]">
-                        Inviato: {format(parseISO(ordine.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
-                      </p>
+                    <div
+                      key={ordine.id}
+                      onClick={() => openOrderDetail(ordine)}
+                      className="neumorphic-pressed p-4 rounded-xl cursor-pointer hover:shadow-xl transition-all">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-bold text-[#6b6b6b]">{ordine.store_name}</h3>
+                          <p className="text-xs text-[#9b9b9b]">
+                            Inviato: {format(parseISO(ordine.data_invio), 'dd/MM/yyyy HH:mm', { locale: it })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          {(() => {
+                            const totaleCalcolato = ordine.prodotti.reduce((sum, p) => {
+                              const currentProduct = materiePrime.find((prod) => prod.id === p.prodotto_id);
+                              const ivaCorrente = currentProduct?.iva_percentuale ?? p.iva_percentuale ?? 22;
+                              const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + ivaCorrente / 100);
+                              return sum + prezzoConIVA * p.quantita_ordinata;
+                            }, 0);
+                            return (
+                              <>
+                                <p className="text-lg font-bold text-green-600">€{totaleCalcolato.toFixed(2)}</p>
+                                <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
+                                <p className="text-xs text-[#9b9b9b] mt-1">{ordine.prodotti.length} prodotti</p>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {ordine.prodotti.slice(0, 3).map((prod, idx) =>
+                          <span key={idx} className="px-2 py-1 rounded-lg text-xs bg-blue-100 text-blue-700">
+                            {prod.nome_prodotto}
+                          </span>
+                        )}
+                        {ordine.prodotti.length > 3 &&
+                          <span className="px-2 py-1 rounded-lg text-xs bg-slate-100 text-slate-600">
+                            +{ordine.prodotti.length - 3}
+                          </span>
+                        }
+                      </div>
                     </div>
-                    <div className="text-right">
-                      {(() => {
-                    const totaleCalcolato = ordine.prodotti.reduce((sum, p) => {
-                      const currentProduct = materiePrime.find((prod) => prod.id === p.prodotto_id);
-                      const ivaCorrente = currentProduct?.iva_percentuale ?? p.iva_percentuale ?? 22;
-                      const prezzoConIVA = (p.prezzo_unitario || 0) * (1 + ivaCorrente / 100);
-                      return sum + prezzoConIVA * p.quantita_ordinata;
-                    }, 0);
-                    return (
-                      <>
-                            <p className="text-xl font-bold text-green-600">€{totaleCalcolato.toFixed(2)}</p>
-                            <p className="text-xs text-green-700 font-medium">IVA inclusa</p>
-                            <p className="text-xs text-[#9b9b9b] mt-1">{ordine.prodotti.length} prodotti</p>
-                          </>);
-
-                  })()}
-                    </div>
+                  )}
                   </div>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {ordine.prodotti.slice(0, 3).map((prod, idx) =>
-                <span key={idx} className="px-2 py-1 rounded-lg text-xs bg-blue-100 text-blue-700">
-                        {prod.nome_prodotto}
-                      </span>
-                )}
-                    {ordine.prodotti.length > 3 &&
-                <span className="px-2 py-1 rounded-lg text-xs bg-slate-100 text-slate-600">
-                        +{ordine.prodotti.length - 3}
-                      </span>
-                }
+                  </NeumorphicCard>
+                  );
+                  })}
                   </div>
-                </div>
-            )}
-            </div>
-          </NeumorphicCard>)
         }
 
         {/* Create Consolidated Order Modal */}
