@@ -52,6 +52,18 @@ export default function Ordini() {
     }
   });
 
+  const createMultiStoreOrderMutation = useMutation({
+    mutationFn: async (data) => base44.entities.OrdineFornitore.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ordini-inviati'] });
+      setShowCreateMultiStoreOrder(false);
+      setSelectedFornitore(null);
+      setDestinationStore(null);
+      setSelectedProductsForOrder({});
+      alert('✅ Ordine creato e inviato!');
+    }
+  });
+
   // Filter orders by user's assigned stores
   const myOrders = useMemo(() => {
     if (!currentUser) return [];
