@@ -82,6 +82,14 @@ export default function OverviewContratti() {
     queryFn: () => base44.entities.PeriodoProvaConfig.list()
   });
 
+  // Initialize turniPerMese with existing config value
+  React.useEffect(() => {
+    const activeConfig = periodoProvaConfig.find((c) => c.is_active);
+    if (activeConfig && !turniPerMese) {
+      setTurniPerMese(activeConfig.giorni_prova_per_mese?.toString() || '');
+    }
+  }, [periodoProvaConfig]);
+
 
 
   const createContractMutation = useMutation({
@@ -133,10 +141,10 @@ export default function OverviewContratti() {
         return await base44.entities.PeriodoProvaConfig.create({ ...data, is_active: true });
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['periodo-prova-config'] });
       queryClient.invalidateQueries({ queryKey: ['turni-periodo-prova'] });
-      setTurniPerMese('');
+      setTurniPerMese(data.giorni_prova_per_mese?.toString() || '');
       alert('✅ Configurazione periodo prova salvata!');
     }
   });
@@ -703,7 +711,7 @@ export default function OverviewContratti() {
                   type="number"
                   min="1"
                   placeholder="Es: 10"
-                  value={turniPerMese || periodoProvaConfig.find(c => c.is_active)?.giorni_prova_per_mese || ''}
+                  value={turniPerMese}
                   onChange={(e) => setTurniPerMese(e.target.value)}
                   className="neumorphic-pressed px-4 py-3 rounded-lg flex-1 outline-none"
                 />
