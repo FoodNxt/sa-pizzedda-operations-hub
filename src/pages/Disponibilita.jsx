@@ -29,6 +29,7 @@ export default function Disponibilita() {
   const [retribuzioneOraria, setRetribuzioneOraria] = useState(10);
   const [attivitaPagamentoAbilitata, setAttivitaPagamentoAbilitata] = useState(true);
   const [selectedStoreChart, setSelectedStoreChart] = useState('all');
+  const [expandedUser, setExpandedUser] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -55,11 +56,6 @@ export default function Disponibilita() {
   const { data: disponibilitaConfigs = [] } = useQuery({
     queryKey: ['disponibilita-config'],
     queryFn: () => base44.entities.DisponibilitaConfig.list()
-  });
-
-  const { data: richiesteMalattia = [] } = useQuery({
-    queryKey: ['richieste-malattia'],
-    queryFn: () => base44.entities.RichiestaMalattia.list()
   });
 
   const saveConfigMutation = useMutation({
@@ -254,32 +250,23 @@ export default function Disponibilita() {
     });
   };
 
-  // Chart data for sick leave trend by employee and store
+  // Malattia data from shifts with tipo_turno === "Malattia (Certificata)"
   const malattiaChartData = useMemo(() => {
+    const turniMalattia = turni.filter(t => t.tipo_turno === 'Malattia (Certificata)');
     const dataByDate = {};
     
-    richiesteMalattia.forEach((m) => {
-      if (m.stato !== 'approvata') return;
+    turniMalattia.forEach((t) => {
+      if (!t.data) return;
       
-      const data_inizio = m.data_inizio;
-      const data_fine = m.data_fine;
-      if (!data_inizio || !data_fine) return;
+      const dateStr = format(parseISO(t.data), 'yyyy-MM-dd', { locale: it });
       
-      const start = new Date(data_inizio);
-      const end = new Date(data_fine);
-      const giorni = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-      const ore = giorni * 8;
-      
-      const dateStr = format(parseISO(data_inizio), 'yyyy-MM-dd', { locale: it });
-      const storeName = selectedStoreChart === 'all' ? 'Totale' : selectedStoreChart;
-      
-      if (selectedStoreChart !== 'all' && m.store_id !== selectedStoreChart) return;
+      if (selectedStoreChart !== 'all' && t.store_id !== selectedStoreChart) return;
       
       if (!dataByDate[dateStr]) {
-        dataByDate[dateStr] = { date: format(parseISO(dateStr), 'dd/MM', { locale: it }), ore: 0, count: 0 };
+        dataByDate[dateStr] = { date: format(parseISO(dateStr), 'dd/MM', { locale: it }), ore: 8, count: 0 };
       }
       
-      dataByDate[dateStr].ore += ore;
+      dataByDate[dateStr].ore += 8;
       dataByDate[dateStr].count += 1;
     });
     
@@ -288,25 +275,20 @@ export default function Disponibilita() {
       const dateB = new Date(Object.keys(dataByDate).find(k => dataByDate[k].date === b.date));
       return dateA - dateB;
     });
-  }, [richiesteMalattia, selectedStoreChart]);
+  }, [turni, selectedStoreChart]);
 
-  // Malattia stats
+  // Malattia stats from shifts
   const malattiaStats = useMemo(() => {
-    const approvate = richiesteMalattia.filter(m => m.stato === 'approvata');
-    const totalOre = approvate.reduce((sum, m) => {
-      if (!m.data_inizio || !m.data_fine) return sum;
-      const start = new Date(m.data_inizio);
-      const end = new Date(m.data_fine);
-      const giorni = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-      return sum + (giorni * 8);
-    }, 0);
+    const turniMalattia = turni.filter(t => t.tipo_turno === 'Malattia (Certificata)');
+    const totalGiorni = turniMalattia.length;
+    const totalOre = totalGiorni * 8;
     
     return {
-      totalGiorni: approvate.length,
+      totalGiorni,
       totalOre,
-      inPending: richiesteMalattia.filter(m => m.stato === 'pending').length
+      inPending: 0
     };
-  }, [richiesteMalattia]);
+  }, [turni]);
 
   return (
     <ProtectedPage pageName="Disponibilita">
@@ -424,78 +406,130 @@ export default function Disponibilita() {
             sortedData.map((data) => {
               const { dipendente, oreStraordinarioFatte, oreStraordinarioPotenziali, percentuale, ruoli, storesAbilitati } = data;
               const nome = dipendente.nome_cognome || dipendente.full_name || dipendente.email;
+              const isExpanded = expandedUser === dipendente.id;
+              
+              // Get shifts done by this employee
+              const turniDipendente = filteredTurni.filter(t => t.dipendente_id === dipendente.id);
+              
+              // Get available shifts for this employee (same role in assigned stores)
+              const turniDisponibili = filteredTurni.filter(t => {
+                if (!storesAbilitati.includes(t.store_id)) return false;
+                return ruoli.includes(t.ruolo);
+              });
 
               return (
                 <NeumorphicCard key={dipendente.id} className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
-                        {nome.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-[#6b6b6b]">{nome}</h3>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {ruoli.map((ruolo) =>
-                          <span
-                            key={ruolo}
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
-                            ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
-                            'bg-purple-100 text-purple-700'}`
-                            }>
-
-                              {ruolo}
-                            </span>
-                          )}
+                  <button
+                    onClick={() => setExpandedUser(isExpanded ? null : dipendente.id)}
+                    className="w-full text-left">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                          {nome.charAt(0).toUpperCase()}
                         </div>
-                        <p className="text-xs text-[#9b9b9b] mt-2">
-                        Negozi abilitati: {storesAbilitati.length > 0 ?
-                          storesAbilitati.map((sid) => stores.find((s) => s.id === sid)?.name).filter(Boolean).join(', ') || 'Nessuno' :
-                          'Nessuno'}
-                        </p>
+                        <div>
+                          <h3 className="text-lg font-bold text-[#6b6b6b]">{nome}</h3>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {ruoli.map((ruolo) =>
+                            <span
+                              key={ruolo}
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              ruolo === 'Pizzaiolo' ? 'bg-orange-100 text-orange-700' :
+                              ruolo === 'Cassiere' ? 'bg-blue-100 text-blue-700' :
+                              'bg-purple-100 text-purple-700'}`
+                              }>
+
+                                {ruolo}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-[#9b9b9b] mt-2">
+                          Negozi abilitati: {storesAbilitati.length > 0 ?
+                            storesAbilitati.map((sid) => stores.find((s) => s.id === sid)?.name).filter(Boolean).join(', ') || 'Nessuno' :
+                            'Nessuno'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className={`text-4xl font-bold ${
+                        percentuale >= 80 ? 'text-green-600' :
+                        percentuale >= 50 ? 'text-orange-600' :
+                        'text-red-600'}`
+                        }>
+                          {percentuale.toFixed(0)}%
+                        </div>
+                        <p className="text-xs text-[#9b9b9b] mt-1">disponibilità</p>
+                        <p className="text-xs text-blue-600 mt-2 font-medium">{isExpanded ? '▼ Nascondi' : '▶ Espandi'}</p>
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <div className={`text-4xl font-bold ${
-                      percentuale >= 80 ? 'text-green-600' :
-                      percentuale >= 50 ? 'text-orange-600' :
-                      'text-red-600'}`
-                      }>
-                        {percentuale.toFixed(0)}%
+                    {/* Progress Bar */}
+                    <div className="mb-4">
+                      <div className="h-4 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-500 ${
+                          percentuale >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                          percentuale >= 50 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                          'bg-gradient-to-r from-red-500 to-red-600'}`
+                          }
+                          style={{ width: `${Math.min(percentuale, 100)}%` }} />
+
                       </div>
-                      <p className="text-xs text-[#9b9b9b] mt-1">disponibilità</p>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="h-4 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-500 ${
-                        percentuale >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                        percentuale >= 50 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                        'bg-gradient-to-r from-red-500 to-red-600'}`
-                        }
-                        style={{ width: `${Math.min(percentuale, 100)}%` }} />
-
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                      <Clock className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                      <p className="text-xs text-[#9b9b9b] mb-1">Ore Fatte</p>
-                      <p className="text-2xl font-bold text-green-600">{oreStraordinarioFatte.toFixed(1)}h</p>
                     </div>
 
-                    <div className="neumorphic-pressed p-4 rounded-xl text-center">
-                      <TrendingUp className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                      <p className="text-xs text-[#9b9b9b] mb-1">Ore Potenziali</p>
-                      <p className="text-2xl font-bold text-purple-600">{oreStraordinarioPotenziali.toFixed(1)}h</p>
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                        <Clock className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                        <p className="text-xs text-[#9b9b9b] mb-1">Ore Fatte</p>
+                        <p className="text-2xl font-bold text-green-600">{oreStraordinarioFatte.toFixed(1)}h</p>
+                      </div>
+
+                      <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                        <TrendingUp className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                        <p className="text-xs text-[#9b9b9b] mb-1">Ore Potenziali</p>
+                        <p className="text-2xl font-bold text-purple-600">{oreStraordinarioPotenziali.toFixed(1)}h</p>
+                      </div>
                     </div>
-                  </div>
+                  </button>
+
+                  {/* Expanded Details */}
+                  {isExpanded && (
+                    <div className="mt-6 pt-6 border-t border-slate-200 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 mb-3">Turni Straordinari Fatti</h4>
+                        {turniDipendente.length === 0 ? (
+                          <p className="text-xs text-slate-500">Nessun turno straordinario nel periodo</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {turniDipendente.map(t => (
+                              <div key={t.id} className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                <p className="text-xs font-medium text-green-700">{format(parseISO(t.data), 'dd MMM', { locale: it })}</p>
+                                <p className="text-xs text-green-600">{stores.find(s => s.id === t.store_id)?.name || t.store_nome}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 mb-3">Turni Disponibili (non effettuati)</h4>
+                        {turniDisponibili.filter(t => !turniDipendente.some(td => td.id === t.id)).length === 0 ? (
+                          <p className="text-xs text-slate-500">Nessun turno disponibile nel periodo</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {turniDisponibili.filter(t => !turniDipendente.some(td => td.id === t.id)).map(t => (
+                              <div key={t.id} className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                                <p className="text-xs font-medium text-orange-700">{format(parseISO(t.data), 'dd MMM', { locale: it })}</p>
+                                <p className="text-xs text-orange-600">{stores.find(s => s.id === t.store_id)?.name || t.store_nome} - {t.dipendente_nome}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </NeumorphicCard>);
 
             })
