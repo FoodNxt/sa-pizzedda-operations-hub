@@ -173,6 +173,7 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
+import HRAdminDashboard from './pages/HRAdminDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -303,6 +304,7 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
+    "HRAdminDashboard": HRAdminDashboard,
 }
 
 export const pagesConfig = {
