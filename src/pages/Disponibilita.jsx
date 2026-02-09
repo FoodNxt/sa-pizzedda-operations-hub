@@ -417,8 +417,8 @@ export default function Disponibilita() {
             })
             }
         </div>
-        <>
-            {/* Filters */}
+
+        {/* Filters */}
             <NeumorphicCard className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -589,19 +589,18 @@ export default function Disponibilita() {
                           <>
                                    <XCircle className="w-4 h-4" />
                                    Da Pagare
+                                   </>
+                                   }
+                                   </button>
+                                   }
+                                   </div>
+                                   </div>
+                                   </div>);
 
-                             </button>
-                        }
-                         </div>
-                       </div>
-                      </div>);
-
-              })}
-                </div>
-            }
-            </NeumorphicCard>
-          </>
-        }
+                                   })}
+                                   </div>
+                                   }
+                                   </NeumorphicCard>
 
         {/* Settings Modal */}
         {showSettings &&
