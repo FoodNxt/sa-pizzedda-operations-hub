@@ -248,12 +248,6 @@ const navigationStructure = [
         icon: Euro,
       },
       {
-        title: "Alerts",
-        page: "Alerts",
-        url: createPageUrl("Alerts"),
-        icon: AlertTriangle,
-      },
-      {
         title: "Overview Contratti",
         page: "OverviewContratti",
         url: createPageUrl("OverviewContratti"),

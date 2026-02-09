@@ -70,6 +70,16 @@ export default function OverviewContratti() {
     queryFn: () => base44.entities.PayrollEmailLog.list('-data_invio', 100)
   });
 
+  const { data: turni = [] } = useQuery({
+    queryKey: ['turni-periodo-prova'],
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 1000)
+  });
+
+  const { data: periodoProvaConfig = [] } = useQuery({
+    queryKey: ['periodo-prova-config'],
+    queryFn: () => base44.entities.PeriodoProvaConfig.list()
+  });
+
 
 
   const createContractMutation = useMutation({
@@ -368,6 +378,55 @@ export default function OverviewContratti() {
     });
   }, [dipendentiConContratti]);
 
+  const dipendentiInPeriodoProva = useMemo(() => {
+    const activeConfig = periodoProvaConfig.find((c) => c.is_active) || { turni_richiesti: 20 };
+    const turniRichiesti = activeConfig.turni_richiesti;
+
+    const dipendentiConTurni = users
+      .filter((u) => u.user_type === 'dipendente' && u.data_inizio_contratto)
+      .map((user) => {
+        const dataInizioContratto = new Date(user.data_inizio_contratto);
+        const dataOggi = new Date();
+        const giorniDallaAssunzione = Math.floor((dataOggi - dataInizioContratto) / (1000 * 60 * 60 * 24));
+
+        const turniDipendente = turni.filter((t) =>
+          t.dipendente_id === user.id &&
+          t.stato === 'completato'
+        );
+
+        const turniCompletati = turniDipendente.length;
+        const turniRimanenti = Math.max(0, turniRichiesti - turniCompletati);
+
+        let severity = 'ok';
+        if (turniRimanenti === 0) {
+          severity = 'completato';
+        } else if (giorniDallaAssunzione >= 40 && turniRimanenti > 5) {
+          severity = 'critico';
+        } else if (giorniDallaAssunzione >= 30 && turniRimanenti > 10) {
+          severity = 'attenzione';
+        }
+
+        return {
+          ...user,
+          dataInizioContratto,
+          giorniDallaAssunzione,
+          turniCompletati,
+          turniRimanenti,
+          severity
+        };
+      });
+
+    const inPeriodoProva = dipendentiConTurni.filter((d) => d.turniRimanenti > 0);
+
+    return {
+      dipendenti: inPeriodoProva.sort((a, b) => {
+        const severityOrder = { critico: 1, attenzione: 2, ok: 3, completato: 4 };
+        return (severityOrder[a.severity] || 5) - (severityOrder[b.severity] || 5);
+      }),
+      turniRichiesti
+    };
+  }, [users, turni, periodoProvaConfig]);
+
   const stats = useMemo(() => {
     const totale = dipendentiConContratti.length;
     const usciti = dipendentiConContratti.filter((d) => d.uscita).length;
@@ -376,9 +435,10 @@ export default function OverviewContratti() {
     const fullTime = dipendentiConContratti.filter((d) => d.employee_group === 'FT').length;
     const partTime = dipendentiConContratti.filter((d) => d.employee_group === 'PT').length;
     const senzaContratto = dipendentiSenzaContratto.length;
+    const periodoProva = dipendentiInPeriodoProva.dipendenti.length;
 
-    return { totale, inScadenza30, scaduti, fullTime, partTime, senzaContratto, usciti };
-  }, [dipendentiConContratti, dipendentiSenzaContratto]);
+    return { totale, inScadenza30, scaduti, fullTime, partTime, senzaContratto, usciti, periodoProva };
+  }, [dipendentiConContratti, dipendentiSenzaContratto, dipendentiInPeriodoProva]);
 
   // Load payroll config
   React.useEffect(() => {
@@ -544,11 +604,17 @@ export default function OverviewContratti() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
           <NeumorphicCard className="p-4 text-center">
             <User className="w-8 h-8 text-blue-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-slate-800">{stats.totale}</p>
             <p className="text-xs text-slate-500">Totale Contratti</p>
+          </NeumorphicCard>
+
+          <NeumorphicCard className="p-4 text-center">
+            <Clock className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-blue-700">{stats.periodoProva}</p>
+            <p className="text-xs text-slate-500">Periodo Prova</p>
           </NeumorphicCard>
 
           <NeumorphicCard className="p-4 text-center">
@@ -581,6 +647,82 @@ export default function OverviewContratti() {
             <p className="text-xs text-slate-500">Senza Contratto</p>
           </NeumorphicCard>
         </div>
+
+        {/* Dipendenti in Periodo di Prova */}
+        {dipendentiInPeriodoProva.dipendenti.length > 0 && (
+          <NeumorphicCard className="p-6 bg-blue-50 border-2 border-blue-300">
+            <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-600" />
+              Dipendenti in Periodo di Prova ({dipendentiInPeriodoProva.dipendenti.length})
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b-2 border-blue-200">
+                    <th className="text-left py-3 px-2 font-semibold text-blue-800">Nome</th>
+                    <th className="text-center py-3 px-2 font-semibold text-blue-800">Data Inizio</th>
+                    <th className="text-center py-3 px-2 font-semibold text-blue-800">Giorni</th>
+                    <th className="text-center py-3 px-2 font-semibold text-blue-800">Turni Completati</th>
+                    <th className="text-center py-3 px-2 font-semibold text-blue-800">Turni Rimanenti</th>
+                    <th className="text-center py-3 px-2 font-semibold text-blue-800">Stato</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dipendentiInPeriodoProva.dipendenti.map((dip) => (
+                    <tr
+                      key={dip.id}
+                      className={`border-b border-blue-100 hover:bg-blue-100 ${
+                        dip.severity === 'critico' ? 'bg-red-50' :
+                        dip.severity === 'attenzione' ? 'bg-yellow-50' : ''
+                      }`}
+                    >
+                      <td className="py-3 px-2 font-medium text-blue-900">
+                        {dip.nome_cognome || dip.full_name}
+                      </td>
+                      <td className="py-3 px-2 text-center text-blue-800">
+                        {moment(dip.dataInizioContratto).format('DD/MM/YYYY')}
+                      </td>
+                      <td className="py-3 px-2 text-center text-blue-800">
+                        {dip.giorniDallaAssunzione}
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                          {dip.turniCompletati}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          dip.severity === 'critico' ? 'bg-red-100 text-red-700' :
+                          dip.severity === 'attenzione' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {dip.turniRimanenti}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        {dip.severity === 'critico' && (
+                          <span className="px-2 py-1 bg-red-600 text-white rounded-full text-xs font-bold">
+                            ⚠️ CRITICO
+                          </span>
+                        )}
+                        {dip.severity === 'attenzione' && (
+                          <span className="px-2 py-1 bg-yellow-600 text-white rounded-full text-xs font-bold">
+                            ⚡ ATTENZIONE
+                          </span>
+                        )}
+                        {dip.severity === 'ok' && (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                            ✓ OK
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </NeumorphicCard>
+        )}
 
         {/* Dipendenti Senza Contratto */}
         {dipendentiSenzaContratto.length > 0 &&
