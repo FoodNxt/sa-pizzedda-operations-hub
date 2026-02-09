@@ -52,6 +52,11 @@ export default function FoodCost() {
     queryFn: () => base44.entities.Ricetta.list()
   });
 
+  const { data: materiePrime = [] } = useQuery({
+    queryKey: ['materie-prime'],
+    queryFn: () => base44.entities.MateriePrime.list()
+  });
+
   const { data: ordiniFornitori = [] } = useQuery({
     queryKey: ['ordini-fornitori'],
     queryFn: () => base44.entities.OrdineFornitore.list()
@@ -337,9 +342,41 @@ export default function FoodCost() {
       const ricetta = ricette.find(r => r.nome_prodotto === prod.product_name);
       if (ricetta && ricetta.ingredienti) {
         ricetta.ingredienti.forEach(ing => {
+          const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
+          
           const existing = teoricoBreakdown.find(t => t.nome === ing.nome_prodotto);
           const quantitaTotale = (ing.quantita || 0) * (prod.quantity || 0);
-          const costoTotale = quantitaTotale * (ing.prezzo_unitario || 0);
+          
+          // Calcolo corretto del costo considerando peso_dimensione_unita
+          let costoTotale = 0;
+          if (materiaPrima) {
+            const pesoDimensioneUnita = materiaPrima.peso_dimensione_unita || 1;
+            const unitaMisuraPeso = materiaPrima.unita_misura_peso || ing.unita_misura;
+            const prezzoUnitario = ing.prezzo_unitario || 0;
+            
+            // Converti tutto in unità base per il calcolo
+            let fattoreConversione = 1;
+            
+            // Se la ricetta usa grammi ma la materia prima è in kg
+            if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'kg') {
+              fattoreConversione = pesoDimensioneUnita * 1000; // es. 1kg = 1000g
+            } else if (ing.unita_misura === 'kg' && unitaMisuraPeso === 'kg') {
+              fattoreConversione = pesoDimensioneUnita; // es. 25kg
+            } else if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'g') {
+              fattoreConversione = pesoDimensioneUnita; // es. 500g
+            } else if (ing.unita_misura === 'ml' && unitaMisuraPeso === 'litri') {
+              fattoreConversione = pesoDimensioneUnita * 1000; // es. 1L = 1000ml
+            } else if (ing.unita_misura === 'litri' && unitaMisuraPeso === 'litri') {
+              fattoreConversione = pesoDimensioneUnita;
+            } else {
+              fattoreConversione = pesoDimensioneUnita;
+            }
+            
+            costoTotale = (quantitaTotale / fattoreConversione) * prezzoUnitario;
+          } else {
+            // Fallback se non troviamo la materia prima
+            costoTotale = quantitaTotale * (ing.prezzo_unitario || 0);
+          }
           
           if (existing) {
             existing.quantita += quantitaTotale;
@@ -350,6 +387,7 @@ export default function FoodCost() {
               quantita: quantitaTotale,
               unita_misura: ing.unita_misura,
               prezzo_unitario: ing.prezzo_unitario || 0,
+              peso_confezione: materiaPrima ? `${materiaPrima.peso_dimensione_unita}${materiaPrima.unita_misura_peso}` : 'N/A',
               costo: costoTotale
             });
           }
@@ -713,7 +751,10 @@ export default function FoodCost() {
                           <div className="flex-1">
                             <p className="font-medium text-slate-800 text-sm">{item.nome}</p>
                             <p className="text-xs text-slate-500 mt-1">
-                              {item.quantita.toFixed(2)} {item.unita_misura} × €{item.prezzo_unitario.toFixed(2)}
+                              {item.quantita.toFixed(2)} {item.unita_misura}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              Confezione: {item.peso_confezione} a €{item.prezzo_unitario.toFixed(2)}
                             </p>
                           </div>
                           <p className="font-bold text-blue-600 text-sm">
