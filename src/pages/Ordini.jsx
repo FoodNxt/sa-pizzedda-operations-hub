@@ -401,6 +401,120 @@ export default function Ordini() {
           </NeumorphicCard>)
         }
 
+        {/* Create Multi-Store Order Modal */}
+        {showCreateMultiStoreOrder &&
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-[#6b6b6b]">Crea Ordine Multi-Store</h2>
+                <button onClick={() => setShowCreateMultiStoreOrder(false)} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Selezione Fornitore */}
+                <div>
+                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Fornitore</label>
+                  <select
+                    value={selectedFornitore || ''}
+                    onChange={(e) => {
+                      setSelectedFornitore(e.target.value || null);
+                      setSelectedProductsForOrder({});
+                    }}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                  >
+                    <option value="">-- Seleziona Fornitore --</option>
+                    {fornitori.map(f => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Selezione Negozio di Destinazione */}
+                {selectedFornitore && (
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Negozio di Destinazione</label>
+                    <select
+                      value={destinationStore || ''}
+                      onChange={(e) => setDestinationStore(e.target.value || null)}
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-xl text-[#6b6b6b] outline-none"
+                    >
+                      <option value="">-- Seleziona Negozio --</option>
+                      {stores.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Selezione Prodotti */}
+                {selectedFornitore && productsFromFornitore.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Prodotti</label>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {productsFromFornitore.map(prod => (
+                        <div key={prod.prodotto_id} className="neumorphic-pressed p-3 rounded-xl">
+                          <div className="flex items-start gap-3 mb-2">
+                            <input
+                              type="checkbox"
+                              checked={!!selectedProductsForOrder[prod.prodotto_id]}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedProductsForOrder({
+                                    ...selectedProductsForOrder,
+                                    [prod.prodotto_id]: prod.quantita_ordinata
+                                  });
+                                } else {
+                                  const updated = { ...selectedProductsForOrder };
+                                  delete updated[prod.prodotto_id];
+                                  setSelectedProductsForOrder(updated);
+                                }
+                              }}
+                              className="w-4 h-4 mt-1"
+                            />
+                            <div className="flex-1">
+                              <p className="font-medium text-[#6b6b6b] text-sm">{prod.nome_prodotto}</p>
+                              <p className="text-xs text-[#9b9b9b]">{prod.prezzo_unitario || 0}€ x {prod.unita_misura}</p>
+                            </div>
+                          </div>
+                          {selectedProductsForOrder[prod.prodotto_id] && (
+                            <input
+                              type="number"
+                              step="0.1"
+                              value={selectedProductsForOrder[prod.prodotto_id]}
+                              onChange={(e) => setSelectedProductsForOrder({
+                                ...selectedProductsForOrder,
+                                [prod.prodotto_id]: parseFloat(e.target.value) || 0
+                              })}
+                              className="w-full neumorphic-flat px-2 py-1.5 rounded-lg text-[#6b6b6b] outline-none text-sm"
+                              placeholder="Quantità"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <NeumorphicButton onClick={() => setShowCreateMultiStoreOrder(false)} className="flex-1">
+                  Annulla
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={handleCreateMultiStoreOrder}
+                  variant="primary"
+                  disabled={!selectedFornitore || !destinationStore || Object.keys(selectedProductsForOrder).length === 0}
+                  className="flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Crea Ordine
+                </NeumorphicButton>
+              </div>
+            </NeumorphicCard>
+          </div>
+        }
+
         {/* Order Detail Modal */}
         {selectedOrder &&
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
