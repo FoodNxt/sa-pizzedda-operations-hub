@@ -85,7 +85,7 @@ export default function OverviewContratti() {
   // Initialize turniPerMese with existing config value
   React.useEffect(() => {
     const activeConfig = periodoProvaConfig.find((c) => c.is_active);
-    if (activeConfig && !turniPerMese) {
+    if (activeConfig) {
       setTurniPerMese(activeConfig.giorni_prova_per_mese?.toString() || '');
     }
   }, [periodoProvaConfig]);
@@ -432,8 +432,14 @@ export default function OverviewContratti() {
     });
 
     const dipendentiConTurni = dipendentiConContratto.map((user) => {
-      const dataInizio = new Date(user.data_inizio_contratto);
-      const contractDuration = user.durata_contratto_mesi || 0;
+      // CRITICAL FIX: Get contract duration from signed contract, not user field
+      const userContracts = contratti.filter(c => c.user_id === user.id);
+      const mostRecentContract = userContracts.sort((a, b) => 
+        new Date(b.data_inizio_contratto) - new Date(a.data_inizio_contratto)
+      )[0];
+      
+      const dataInizio = mostRecentContract ? new Date(mostRecentContract.data_inizio_contratto) : new Date(user.data_inizio_contratto);
+      const contractDuration = mostRecentContract?.durata_contratto_mesi || user.durata_contratto_mesi || 0;
       const turniProvaTotali = contractDuration * turniProvaPerMese;
 
       const shiftsFromContractStart = turni.filter((shift) => {
@@ -475,7 +481,7 @@ export default function OverviewContratti() {
       dipendenti: inPeriodoProva.sort((a, b) => a.turniRimanenti - b.turniRimanenti),
       turniProvaPerMese
     };
-  }, [users, turni, periodoProvaConfig]);
+  }, [users, turni, periodoProvaConfig, contratti]);
 
   const stats = useMemo(() => {
     const totale = dipendentiConContratti.length;
