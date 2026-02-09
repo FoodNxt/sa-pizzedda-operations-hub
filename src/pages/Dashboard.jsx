@@ -369,17 +369,21 @@ export default function Dashboard() {
       return weight ? weight.weight : 1;
     };
 
-    const employeeScores = dipendenti.map((user) => {
-      const employeeName = user.nome_cognome || user.full_name || user.email;
+    const employeeScores = dipendenti
+      .map((user) => {
+        const employeeName = user.nome_cognome || user.full_name || user.email;
 
-      const employeeShifts = turni.filter((s) => {
-        if (s.dipendente_nome !== employeeName) return false;
-        const shiftDate = safeParseDate(s.data);
-        if (!shiftDate) return false;
-        const today = new Date();
-        today.setHours(23, 59, 59, 999);
-        return shiftDate <= today;
-      });
+        const employeeShifts = turni.filter((s) => {
+          if (s.dipendente_id && user.id && s.dipendente_id === user.id) return true;
+          if (s.dipendente_nome && employeeName && s.dipendente_nome.toLowerCase() === employeeName.toLowerCase()) return true;
+          return false;
+        }).filter((s) => {
+          const shiftDate = safeParseDate(s.data);
+          if (!shiftDate) return false;
+          const today = new Date();
+          today.setHours(23, 59, 59, 999);
+          return shiftDate <= today;
+        });
 
       const employeeWrongOrders = wrongOrderMatches.filter((m) => m.matched_employee_name === employeeName);
 
