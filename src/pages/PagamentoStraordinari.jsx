@@ -251,10 +251,11 @@ export default function PagamentoStraordinari() {
   }, [pagamentiStraordinari, straordinariDaTurni, depositi]);
 
   const filteredStraordinari = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
     let filtered = allStraordinari;
 
     if (!showPagati) {
-      filtered = filtered.filter(s => !s.pagato);
+      filtered = filtered.filter(s => !s.pagato || s.data_turno <= today);
     }
 
     if (selectedStore !== 'all') {

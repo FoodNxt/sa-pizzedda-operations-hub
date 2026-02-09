@@ -21,7 +21,7 @@ import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, sub
 import { it } from 'date-fns/locale';
 
 export default function Disponibilita() {
-  const [activeTab, setActiveTab] = useState('disponibilita');
+
   const [timeRange, setTimeRange] = useState('month');
   const [showSettings, setShowSettings] = useState(false);
   const [retribuzioneOraria, setRetribuzioneOraria] = useState(10);
@@ -417,11 +417,6 @@ export default function Disponibilita() {
             })
             }
         </div>
-        </>
-        }
-
-        {/* Straordinari Tab */}
-        {activeTab === 'straordinari' &&
         <>
             {/* Filters */}
             <NeumorphicCard className="p-6">
@@ -594,8 +589,7 @@ export default function Disponibilita() {
                           <>
                                    <XCircle className="w-4 h-4" />
                                    Da Pagare
-                                 </>
-                          }
+
                              </button>
                         }
                          </div>
