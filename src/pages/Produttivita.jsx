@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TrendingUp, Clock, DollarSign, Calendar, Store, X, Settings, ChevronDown, ChevronRight, Sparkles, AlertTriangle } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import { format, startOfMonth, endOfMonth, parseISO, startOfWeek, endOfWeek, getWeek } from 'date-fns';
@@ -53,6 +53,28 @@ export default function Produttivita() {
     queryFn: () => base44.entities.TipoTurnoConfig.list()
   });
 
+  const { data: produttivitaConfigs = [] } = useQuery({
+    queryKey: ['produttivita-config'],
+    queryFn: () => base44.entities.ProduttivitaConfig.list()
+  });
+
+  const queryClient = useQueryClient();
+
+  const saveConfigMutation = useMutation({
+    mutationFn: async (configData) => {
+      const existingConfig = produttivitaConfigs.find(c => c.is_active);
+      if (existingConfig) {
+        return await base44.entities.ProduttivitaConfig.update(existingConfig.id, configData);
+      } else {
+        return await base44.entities.ProduttivitaConfig.create({ ...configData, config_name: 'default_config', is_active: true });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['produttivita-config'] });
+      setShowSettings(false);
+    }
+  });
+
   // Estrai tipi turno unici da config + turni esistenti
   const availableTipiTurno = useMemo(() => {
     const tipiMap = new Map();
@@ -83,13 +105,25 @@ export default function Produttivita() {
     return Array.from(tipiMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [allShifts, tipiTurnoConfig]);
 
-  // Inizializza tipi turno inclusi con tutti i tipi disponibili
+  // Carica configurazione salvata
   React.useEffect(() => {
-    if (includedTipiTurno.length === 0 && availableTipiTurno.length > 0) {
+    const activeConfig = produttivitaConfigs.find(c => c.is_active);
+    if (activeConfig) {
+      if (activeConfig.orario_apertura) setOrarioApertura(activeConfig.orario_apertura);
+      if (activeConfig.orario_chiusura) setOrarioChiusura(activeConfig.orario_chiusura);
+      if (activeConfig.tipi_turno_inclusi && activeConfig.tipi_turno_inclusi.length > 0) {
+        setIncludedTipiTurno(activeConfig.tipi_turno_inclusi);
+      }
+    }
+  }, [produttivitaConfigs]);
+
+  // Inizializza tipi turno inclusi con tutti i tipi disponibili solo se non ci sono config salvate
+  React.useEffect(() => {
+    if (includedTipiTurno.length === 0 && availableTipiTurno.length > 0 && produttivitaConfigs.length === 0) {
       const tipi = availableTipiTurno.map((t) => t.nome);
       setIncludedTipiTurno(tipi);
     }
-  }, [availableTipiTurno]);
+  }, [availableTipiTurno, produttivitaConfigs]);
 
   // Filtra turni in base ai tipi selezionati
   const filteredShifts = useMemo(() => {
@@ -1158,7 +1192,25 @@ export default function Produttivita() {
           {(() => {
             const insights = [];
             
-            // Analizza heatmap per trovare slot con bassa produttività ma alte ore
+            // Funzione per verificare se uno slot è negli orari di apertura
+            const isInOpeningHours = (slot) => {
+              const slotMatch = slot.match(/(\d{2}):(\d{2})/);
+              if (!slotMatch) return true;
+              
+              const slotHours = parseInt(slotMatch[1]);
+              const slotMinutes = parseInt(slotMatch[2]);
+              const slotMinutesTotal = slotHours * 60 + slotMinutes;
+              
+              const [openHours, openMinutes] = orarioApertura.split(':').map(Number);
+              const openMinutesTotal = openHours * 60 + openMinutes;
+              
+              const [closeHours, closeMinutes] = orarioChiusura.split(':').map(Number);
+              const closeMinutesTotal = closeHours * 60 + closeMinutes;
+              
+              return slotMinutesTotal >= openMinutesTotal && slotMinutesTotal <= closeMinutesTotal;
+            };
+
+            // Analizza heatmap per trovare slot con bassa produttività ma alte ore (SOLO negli orari di apertura)
             const lowProductivitySlots = heatmapData.flatMap(row => 
               Object.entries(row.metadata || {})
                 .map(([slot, data]) => ({
@@ -1168,26 +1220,32 @@ export default function Produttivita() {
                   avgHours: data.avgHours,
                   avgRevenue: data.avgRevenue
                 }))
-                .filter(item => item.avgHours > 0 && item.productivity < 30)
-            ).sort((a, b) => a.productivity - b.productivity).slice(0, 3);
+                .filter(item => item.avgHours > 0 && item.productivity < 30 && isInOpeningHours(item.slot))
+            ).sort((a, b) => a.productivity - b.productivity).slice(0, 5);
 
             if (lowProductivitySlots.length > 0) {
               const totalHoursToReduce = lowProductivitySlots.reduce((sum, s) => sum + s.avgHours, 0);
-              const potentialSavings = totalHoursToReduce * 12; // Assumendo €12/ora costo medio
+              const potentialSavingsPerWeek = totalHoursToReduce * 12; // Assumendo €12/ora costo medio
+              const potentialSavingsPerMonth = lowProductivitySlots.length * 12 * 4; // 1h per slot, 4 settimane
               
               insights.push({
                 type: 'warning',
                 icon: AlertTriangle,
-                title: 'Opportunità Riduzione Personale',
-                description: `${lowProductivitySlots.length} slot con bassa produttività (<€30/ora) - Possibile risparmio: €${potentialSavings.toFixed(0)}/settimana`,
-                details: lowProductivitySlots.map(s => 
-                  `${s.day} ${s.slot}: €${s.productivity.toFixed(2)}/h con ${s.avgHours.toFixed(1)}h lavorate → Riduci -1h = risparmio €12`
-                ),
-                suggestion: `Riducendo 1 ora in ciascuno di questi ${lowProductivitySlots.length} slot potresti risparmiare circa €${(lowProductivitySlots.length * 12 * 4).toFixed(0)}/mese mantenendo il servizio.`
+                title: '💰 Opportunità Riduzione Personale',
+                description: `${lowProductivitySlots.length} slot con bassa produttività (<€30/ora) negli orari di apertura`,
+                details: [
+                  ...lowProductivitySlots.map(s => 
+                    `${s.day} alle ${s.slot}: €${s.productivity.toFixed(2)}/h con ${s.avgHours.toFixed(1)}h lavorate (revenue: €${s.avgRevenue.toFixed(0)})`
+                  ),
+                  '',
+                  `📊 Riducendo 1h in ciascuno slot = risparmio €${potentialSavingsPerMonth.toFixed(0)}/mese`,
+                  `📈 Totale ore attualmente lavorate in questi slot: ${totalHoursToReduce.toFixed(1)}h/settimana`
+                ],
+                suggestion: `Considera di ridurre gradualmente il personale in questi ${lowProductivitySlots.length} slot durante gli orari di apertura (${orarioApertura}-${orarioChiusura}). Risparmio stimato: €${potentialSavingsPerMonth.toFixed(0)}/mese.`
               });
             }
 
-            // Analizza slot con alta produttività ma poche ore
+            // Analizza slot con alta produttività (SOLO negli orari di apertura)
             const highProductivitySlots = heatmapData.flatMap(row => 
               Object.entries(row.metadata || {})
                 .map(([slot, data]) => ({
@@ -1197,7 +1255,7 @@ export default function Produttivita() {
                   avgHours: data.avgHours,
                   avgRevenue: data.avgRevenue
                 }))
-                .filter(item => item.avgHours > 0 && item.productivity > 60)
+                .filter(item => item.avgHours > 0 && item.productivity > 60 && isInOpeningHours(item.slot))
             ).sort((a, b) => b.productivity - a.productivity).slice(0, 3);
 
             if (highProductivitySlots.length > 0) {
@@ -1643,12 +1701,25 @@ export default function Produttivita() {
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-end gap-3">
                 <button
-                onClick={() => setShowSettings(false)}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all">
-
-                  Applica
+                  onClick={() => setShowSettings(false)}
+                  className="px-6 py-3 neumorphic-flat text-[#6b6b6b] rounded-xl font-medium hover:bg-slate-100 transition-all"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={() => {
+                    saveConfigMutation.mutate({
+                      orario_apertura: orarioApertura,
+                      orario_chiusura: orarioChiusura,
+                      tipi_turno_inclusi: includedTipiTurno
+                    });
+                  }}
+                  disabled={saveConfigMutation.isPending || includedTipiTurno.length === 0}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saveConfigMutation.isPending ? 'Salvataggio...' : 'Salva'}
                 </button>
               </div>
             </NeumorphicCard>
