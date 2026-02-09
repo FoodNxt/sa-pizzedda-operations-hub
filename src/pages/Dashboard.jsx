@@ -1718,53 +1718,53 @@ export default function Dashboard() {
                    <Link to={`${createPageUrl('Target')}?id=${target.id}`} className="neumorphic-pressed p-4 rounded-xl block hover:shadow-lg transition-shadow">
                      <h4 className="font-bold text-slate-800 mb-1">{target.name}</h4>
                      <p className="text-xs text-slate-500 mb-3">{storeName}</p>
-                    
+
                     <div className="mb-3 space-y-1">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-600">Target</span>
-                        <span className="font-bold text-blue-600">{formatEuro(target.target_revenue)}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-600">Attuale</span>
-                        <span className="font-bold text-green-600">{formatEuro(target.currentRevenue)}</span>
-                      </div>
-                    </div>
-                    
+                       <div className="flex justify-between items-center text-xs">
+                         <span className="text-slate-600">Target</span>
+                         <span className="font-bold text-blue-600">{formatEuro(target.target_revenue)}</span>
+                       </div>
+                       <div className="flex justify-between items-center text-xs">
+                         <span className="text-slate-600">Attuale</span>
+                         <span className="font-bold text-green-600">{formatEuro(target.currentRevenue)}</span>
+                       </div>
+                     </div>
+
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
-                        <div 
-                          className={`h-full transition-all ${
-                            isOnTrack ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'
-                          }`}
-                          style={{ width: `${Math.min(target.progressPercent, 100)}%` }}
-                        />
-                      </div>
-                      <span className={`text-xs font-bold ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
-                        {target.progressPercent.toFixed(0)}%
-                      </span>
-                    </div>
+                       <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
+                         <div 
+                           className={`h-full transition-all ${
+                             isOnTrack ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'
+                           }`}
+                           style={{ width: `${Math.min(target.progressPercent, 100)}%` }}
+                         />
+                       </div>
+                       <span className={`text-xs font-bold ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
+                         {target.progressPercent.toFixed(0)}%
+                       </span>
+                     </div>
 
                     <div className="border-t border-slate-200 pt-2 space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Gap</span>
-                        <span className="font-bold text-red-600">{formatEuro(target.gap)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-600">Previsione</span>
-                        <span className={`font-bold ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
-                          {formatEuro(target.forecastRevenue)}
-                        </span>
-                      </div>
-                      <p className={`text-xs italic ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
-                        {isOnTrack ? '✓ In linea' : '⚠ Sotto previsione'}
-                      </p>
-                      </div>
-                      </Link>
-                      );
-                      })}
-                      </div>
-                      </NeumorphicCard>
-                      )}
+                       <div className="flex justify-between">
+                         <span className="text-slate-600">Gap</span>
+                         <span className="font-bold text-red-600">{formatEuro(target.gap)}</span>
+                       </div>
+                       <div className="flex justify-between">
+                         <span className="text-slate-600">Previsione</span>
+                         <span className={`font-bold ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
+                           {formatEuro(target.forecastRevenue)}
+                         </span>
+                       </div>
+                       <p className={`text-xs italic ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
+                         {isOnTrack ? '✓ In linea' : '⚠ Sotto previsione'}
+                       </p>
+                     </div>
+                   </Link>
+                 );
+                })}
+                </div>
+                </NeumorphicCard>
+                )}
 
         {/* Metriche Operative */}
         <NeumorphicCard className="p-6">
