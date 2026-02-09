@@ -627,7 +627,17 @@ export default function FoodCost() {
           <p className="text-sm text-slate-500 mb-4">Clicca su un punto del grafico per vedere i dettagli</p>
           {trendGiornaliero.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={trendGiornaliero}>
+              <LineChart 
+                data={trendGiornaliero}
+                onClick={(e) => {
+                  if (e && e.activePayload && e.activePayload[0]) {
+                    const rawDate = e.activePayload[0].payload.rawDate;
+                    if (rawDate) {
+                      setSelectedDateDetail(rawDate);
+                    }
+                  }
+                }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="date" stroke="#64748b" style={{ fontSize: '12px' }} />
                 <YAxis stroke="#64748b" style={{ fontSize: '12px' }} tickFormatter={(val) => `${val.toFixed(0)}%`} />
@@ -643,9 +653,7 @@ export default function FoodCost() {
                     stroke="#f59e0b" 
                     strokeWidth={3}
                     name="Food Cost Reale %"
-                    dot={{ fill: '#f59e0b', r: 4 }}
-                    onClick={(data) => data && data.rawDate && setSelectedDateDetail(data.rawDate)}
-                    style={{ cursor: 'pointer' }}
+                    dot={{ fill: '#f59e0b', r: 5, cursor: 'pointer' }}
                   />
                 )}
                 {(foodCostView === 'teorico' || foodCostView === 'confronto') && (
@@ -655,9 +663,7 @@ export default function FoodCost() {
                     stroke="#3b82f6" 
                     strokeWidth={3}
                     name="Food Cost Teorico %"
-                    dot={{ fill: '#3b82f6', r: 4 }}
-                    onClick={(data) => data && data.rawDate && setSelectedDateDetail(data.rawDate)}
-                    style={{ cursor: 'pointer' }}
+                    dot={{ fill: '#3b82f6', r: 5, cursor: 'pointer' }}
                   />
                 )}
               </LineChart>
