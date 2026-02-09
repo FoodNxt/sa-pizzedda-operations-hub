@@ -418,6 +418,41 @@ export default function PulizieMatch() {
           {sortedResults.length === 0 ?
           <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p> :
 
+          viewMode === 'detail' && selectedEmployee !== 'all' ? (
+            <div className="space-y-4">
+              {sortedResults.map((employee) => {
+                const failedDetails = employee.details.filter(d => d.stato === 'sporco');
+                if (failedDetails.length === 0) {
+                  return (
+                    <div key={employee.id} className="neumorphic-pressed p-5 rounded-xl text-center">
+                      <p className="text-green-600 font-medium">✓ Nessun controllo non passato</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={employee.id} className="space-y-3">
+                    <h3 className="font-bold text-[#6b6b6b] text-lg">{employee.name} - Controlli Non Passati ({failedDetails.length})</h3>
+                    {failedDetails.map((detail, idx) => (
+                      <div key={idx} className="neumorphic-pressed p-4 rounded-xl border-l-4 border-red-500">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="font-bold text-[#6b6b6b]">{detail.attrezzatura}</p>
+                            <p className="text-xs text-[#9b9b9b] mt-1">{detail.store_name} • {detail.ruolo}</p>
+                            <p className="text-xs text-[#9b9b9b]">Turno: {format(parseISO(detail.data_turno), 'dd/MM/yyyy', { locale: it })} fino alle {detail.ora_fine_turno}</p>
+                            <p className="text-xs text-[#9b9b9b]">Rilevato da: <span className="font-medium">{detail.compilato_da}</span></p>
+                          </div>
+                          <div className="text-right text-xs">
+                            <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Non passato</span>
+                            <p className="text-[#9b9b9b] mt-2">{format(parseISO(detail.data_compilazione), 'dd/MM/yyyy HH:mm', { locale: it })}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
           <div className="space-y-4">
               {sortedResults.map((employee) => {
               const total = employee.puliti + employee.sporchi;
