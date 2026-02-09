@@ -1613,14 +1613,18 @@ export default function Dashboard() {
                     }
                   }, 0);
                   
-                  // Pulizie
+                  // Pulizie - stessa logica di StoreManagerAdmin
+                  const monthStartMoment = moment(monthStart, 'YYYY-MM-DD');
+                  const monthEndMoment = moment(monthEndStr, 'YYYY-MM-DD');
                   const cleanings = cleaningInspections.filter(c => {
-                    if (c.store_id !== target.store_id) return false;
-                    if (!c.inspection_date) return false;
-                    const cDate = safeParseDate(c.inspection_date);
-                    return cDate && cDate >= monthStartDate && cDate <= monthEndDate && c.analysis_status === 'completed';
+                   if (c.store_id !== target.store_id) return false;
+                   if (!c.inspection_date) return false;
+                   const normalizedDate = c.inspection_date.replace(/T(\d):/, 'T0$1:');
+                   if (!moment(normalizedDate).isValid()) return false;
+                   return moment(normalizedDate).isBetween(monthStartMoment, monthEndMoment, 'day', '[]') && c.analysis_status === 'completed' && c.overall_score !== null && c.overall_score !== undefined;
                   });
-                  const avgCleaning = cleanings.length > 0 ? (cleanings.reduce((sum, c) => sum + (c.overall_score || 0), 0) / cleanings.length).toFixed(0) : 0;
+                  const cleaningScores = cleanings.map(c => c.overall_score).filter(s => s > 0);
+                  const avgCleaning = cleaningScores.length > 0 ? (cleaningScores.reduce((sum, s) => sum + s, 0) / cleaningScores.length).toFixed(0) : 0;
                   
                   return (
                     <div key={target.id} className="neumorphic-flat p-3 rounded-lg bg-white">
