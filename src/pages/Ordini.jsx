@@ -70,24 +70,31 @@ export default function Ordini() {
     return Array.from(fornitoriSet).sort();
   }, [ordiniInviati]);
 
-  // Get products from selected fornitore (from multiple stores if needed)
-  const productsFromFornitore = useMemo(() => {
+  // Get orders for selected fornitore
+  const ordersForSelectedFornitore = useMemo(() => {
     if (!selectedFornitore) return [];
-    
+    return ordiniInviati.filter(o => o.fornitore === selectedFornitore);
+  }, [selectedFornitore, ordiniInviati]);
+
+  // Get consolidated products from selected stores
+  const consolidatedProducts = useMemo(() => {
     const productsMap = new Map();
-    ordiniInviati
-      .filter(o => o.fornitore === selectedFornitore)
-      .forEach(order => {
+    
+    ordersForSelectedFornitore.forEach(order => {
+      if (selectedStoresForConsolidation[order.store_id]) {
         order.prodotti?.forEach(prod => {
           const key = prod.prodotto_id;
-          if (!productsMap.has(key)) {
-            productsMap.set(key, { ...prod });
+          if (productsMap.has(key)) {
+            productsMap.get(key).quantita_ordinata += prod.quantita_ordinata;
+          } else {
+            productsMap.set(key, { ...prod, quantita_ordinata: prod.quantita_ordinata });
           }
         });
-      });
+      }
+    });
     
     return Array.from(productsMap.values());
-  }, [selectedFornitore, ordiniInviati]);
+  }, [selectedFornitore, selectedStoresForConsolidation, ordersForSelectedFornitore]);
 
   // Filter orders by user's assigned stores
   const myOrders = useMemo(() => {
