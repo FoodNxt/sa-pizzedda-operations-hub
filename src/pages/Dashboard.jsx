@@ -1135,14 +1135,14 @@ export default function Dashboard() {
       });
       
       const currentRevenue = currentData.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
-      const progressPercent = target.target_revenue > 0 ? (currentRevenue / target.target_revenue) * 100 : 0;
-      
-      // Calculate forecast and gap
-      const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
-      const daysPassed = Math.ceil((today - periodStart) / (1000 * 60 * 60 * 24)) + 1;
-      const velocity = daysPassed > 0 ? currentRevenue / daysPassed : 0;
-      const forecastRevenue = velocity * totalDays;
-      const gap = target.target_revenue - currentRevenue;
+       const progressPercent = target.target_revenue > 0 ? (currentRevenue / target.target_revenue) * 100 : 0;
+
+       // Calculate forecast and gap
+       const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+       const daysPassed = Math.ceil((today - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+       const velocity = daysPassed > 0 ? currentRevenue / daysPassed : 0;
+       const forecastRevenue = velocity * totalDays;
+       const gap = target.target_revenue - forecastRevenue;
       
       return {
         ...target,
