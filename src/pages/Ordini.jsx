@@ -226,20 +226,16 @@ export default function Ordini() {
     }
   };
 
-  const handleCreateMultiStoreOrder = async () => {
-    if (!selectedFornitore || !destinationStore || Object.keys(selectedProductsForOrder).length === 0) {
-      alert('Seleziona fornitore, negozio di destinazione e almeno un prodotto');
+  const handleCreateConsolidatedOrder = async () => {
+    if (!selectedFornitore || !destinationStore || consolidatedProducts.length === 0) {
+      alert('Seleziona almeno un negozio e un negozio di destinazione');
       return;
     }
 
-    const prodotti = productsFromFornitore
-      .filter(p => selectedProductsForOrder[p.prodotto_id])
-      .map(p => ({
-        ...p,
-        quantita_ordinata: selectedProductsForOrder[p.prodotto_id]
-      }));
-
     const destinationStoreObj = stores.find(s => s.id === destinationStore);
+    const sourceStores = ordersForSelectedFornitore
+      .filter(o => selectedStoresForConsolidation[o.store_id])
+      .map(o => o.store_name);
 
     await createMultiStoreOrderMutation.mutateAsync({
       store_id: destinationStore,
@@ -247,9 +243,10 @@ export default function Ordini() {
       fornitore: selectedFornitore,
       status: 'inviato',
       data_invio: new Date().toISOString(),
-      prodotti,
+      prodotti: consolidatedProducts,
       data_creazione: new Date().toISOString(),
-      creato_da: currentUser?.email || 'N/A'
+      creato_da: currentUser?.email || 'N/A',
+      note_consolidamento: `Ordine consolidato da: ${sourceStores.join(', ')}`
     });
   };
 
