@@ -1528,6 +1528,59 @@ export default function Dashboard() {
           </div>
         </NeumorphicCard>
 
+        {/* Target Store Manager Snapshot */}
+        {allUsers.filter(u => u.ruoli_dipendente?.includes('Store Manager')).length > 0 && (
+          <NeumorphicCard className="p-4 lg:p-6 bg-amber-50">
+            <Link to={createPageUrl('HRAdmin')} className="text-base lg:text-lg font-bold text-amber-800 mb-4 flex items-center gap-2 hover:text-amber-600 transition-colors">
+              <Users className="w-5 h-5 text-amber-600" />
+              Target Store Manager
+              <ExternalLink className="w-4 h-4 ml-auto" />
+            </Link>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {allUsers.filter(u => u.ruoli_dipendente?.includes('Store Manager')).map((manager) => {
+                const managerStores = stores.filter(s => s.store_manager_id === manager.id);
+                const managerTargets = activeTargets.filter(t => 
+                  managerStores.some(s => s.id === t.store_id)
+                );
+                
+                const totalManagerRevenue = managerTargets.reduce((sum, t) => sum + (t.currentRevenue || 0), 0);
+                const totalManagerTarget = managerTargets.reduce((sum, t) => sum + (t.target_revenue || 0), 0);
+                const totalManagerGap = Math.max(0, totalManagerTarget - totalManagerRevenue);
+
+                return (
+                  <div key={manager.id} className="neumorphic-flat p-3 rounded-lg bg-white">
+                    <h4 className="text-sm font-bold text-slate-800 mb-1">
+                      {manager.nome_cognome || manager.full_name}
+                    </h4>
+                    {managerStores.length > 0 && (
+                      <p className="text-xs text-slate-500 mb-2">{managerStores.map(s => s.name).join(', ')}</p>
+                    )}
+                    {managerTargets.length > 0 ? (
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Target</span>
+                          <span className="font-bold text-blue-600">{formatEuro(totalManagerTarget)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Attuale</span>
+                          <span className="font-bold text-green-600">{formatEuro(totalManagerRevenue)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">Gap</span>
+                          <span className="font-bold text-red-600">{formatEuro(totalManagerGap)}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 italic">Nessun target attivo</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </NeumorphicCard>
+        )}
+
         {/* Target in Corso */}
         {activeTargets.length > 0 && (
           <NeumorphicCard className="p-6">
@@ -1542,25 +1595,25 @@ export default function Dashboard() {
                 const storeName = target.store_id && target.store_id !== 'all'
                   ? stores.find(s => s.id === target.store_id)?.name || 'N/A'
                   : 'Tutti i Locali';
-                const isOnTrack = target.progressPercent >= 50;
+                const isOnTrack = target.forecastRevenue >= target.target_revenue;
                 
                 return (
                   <div key={target.id} className="neumorphic-pressed p-4 rounded-xl">
-                    <h4 className="font-bold text-slate-800 mb-2">{target.name}</h4>
-                    <p className="text-xs text-slate-500 mb-2">{storeName}</p>
+                    <h4 className="font-bold text-slate-800 mb-1">{target.name}</h4>
+                    <p className="text-xs text-slate-500 mb-3">{storeName}</p>
                     
-                    <div className="mb-3">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs text-slate-600">Target</span>
-                        <span className="text-sm font-bold text-blue-600">{formatEuro(target.target_revenue)}</span>
+                    <div className="mb-3 space-y-1">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-600">Target</span>
+                        <span className="font-bold text-blue-600">{formatEuro(target.target_revenue)}</span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-slate-600">Attuale</span>
-                        <span className="text-sm font-bold text-green-600">{formatEuro(target.currentRevenue)}</span>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-600">Attuale</span>
+                        <span className="font-bold text-green-600">{formatEuro(target.currentRevenue)}</span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-3">
                       <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
                         <div 
                           className={`h-full transition-all ${
@@ -1572,6 +1625,22 @@ export default function Dashboard() {
                       <span className={`text-xs font-bold ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
                         {target.progressPercent.toFixed(0)}%
                       </span>
+                    </div>
+
+                    <div className="border-t border-slate-200 pt-2 space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Gap</span>
+                        <span className="font-bold text-red-600">{formatEuro(target.gap)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Previsione</span>
+                        <span className={`font-bold ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
+                          {formatEuro(target.forecastRevenue)}
+                        </span>
+                      </div>
+                      <p className={`text-xs italic ${isOnTrack ? 'text-green-600' : 'text-orange-600'}`}>
+                        {isOnTrack ? '✓ In linea' : '⚠ Sotto previsione'}
+                      </p>
                     </div>
                   </div>
                 );
