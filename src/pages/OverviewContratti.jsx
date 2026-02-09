@@ -133,18 +133,24 @@ export default function OverviewContratti() {
   });
 
   const savePeriodoProvaConfigMutation = useMutation({
-    mutationFn: async (data) => {
-      const activeConfig = periodoProvaConfig.find((c) => c.is_active);
+    mutationFn: async (giorni_prova) => {
+      // Get fresh config data
+      const configs = await base44.entities.PeriodoProvaConfig.list();
+      const activeConfig = configs.find((c) => c.is_active);
+      
+      const dataToSave = { giorni_prova_per_mese: giorni_prova, is_active: true };
+      
       if (activeConfig) {
-        return await base44.entities.PeriodoProvaConfig.update(activeConfig.id, data);
+        await base44.entities.PeriodoProvaConfig.update(activeConfig.id, dataToSave);
       } else {
-        return await base44.entities.PeriodoProvaConfig.create({ ...data, is_active: true });
+        await base44.entities.PeriodoProvaConfig.create(dataToSave);
       }
+      
+      return dataToSave;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['periodo-prova-config'] });
-      queryClient.invalidateQueries({ queryKey: ['turni-periodo-prova'] });
-      setTurniPerMese(data.giorni_prova_per_mese?.toString() || '');
+    onSuccess: async (data) => {
+      await queryClient.invalidateQueries({ queryKey: ['periodo-prova-config'] });
+      await queryClient.refetchQueries({ queryKey: ['periodo-prova-config'] });
       alert('✅ Configurazione periodo prova salvata!');
     }
   });
@@ -722,13 +728,13 @@ export default function OverviewContratti() {
                       alert('Inserisci un valore valido (minimo 1)');
                       return;
                     }
-                    savePeriodoProvaConfigMutation.mutate({ giorni_prova_per_mese: value });
+                    savePeriodoProvaConfigMutation.mutate(value);
                   }}
                   variant="primary"
                   disabled={savePeriodoProvaConfigMutation.isPending}
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  Salva
+                  {savePeriodoProvaConfigMutation.isPending ? 'Salvataggio...' : 'Salva'}
                 </NeumorphicButton>
               </div>
               <p className="text-xs text-blue-700 mt-2">
