@@ -1172,15 +1172,18 @@ export default function Produttivita() {
             ).sort((a, b) => a.productivity - b.productivity).slice(0, 3);
 
             if (lowProductivitySlots.length > 0) {
+              const totalHoursToReduce = lowProductivitySlots.reduce((sum, s) => sum + s.avgHours, 0);
+              const potentialSavings = totalHoursToReduce * 12; // Assumendo €12/ora costo medio
+              
               insights.push({
                 type: 'warning',
                 icon: AlertTriangle,
-                title: 'Slot a Bassa Produttività',
-                description: `${lowProductivitySlots.length} slot con produttività <€30/ora rilevati`,
+                title: 'Opportunità Riduzione Personale',
+                description: `${lowProductivitySlots.length} slot con bassa produttività (<€30/ora) - Possibile risparmio: €${potentialSavings.toFixed(0)}/settimana`,
                 details: lowProductivitySlots.map(s => 
-                  `${s.day} ${s.slot}: €${s.productivity.toFixed(2)}/h (${s.avgHours.toFixed(1)}h lavorate)`
+                  `${s.day} ${s.slot}: €${s.productivity.toFixed(2)}/h con ${s.avgHours.toFixed(1)}h lavorate → Riduci -1h = risparmio €12`
                 ),
-                suggestion: 'Considera di ridurre le ore lavorate in questi slot o aumentare il fatturato con promozioni mirate.'
+                suggestion: `Riducendo 1 ora in ciascuno di questi ${lowProductivitySlots.length} slot potresti risparmiare circa €${(lowProductivitySlots.length * 12 * 4).toFixed(0)}/mese mantenendo il servizio.`
               });
             }
 
