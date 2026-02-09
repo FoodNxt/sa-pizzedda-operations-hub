@@ -1308,11 +1308,11 @@ export default function Dashboard() {
             <div className="space-y-1 text-xs">
               <div className="flex justify-between items-center">
                 <span className="text-green-600">🏆 {googleMapsStats.bestEmployeeCount?.name || 'N/A'}</span>
-                <span className="font-medium">{googleMapsStats.bestEmployeeCount?.count || 0}</span>
+                <span className="font-medium">{googleMapsStats.bestEmployeeCount?.totalReviews || 0}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-red-600">📉 {googleMapsStats.worstEmployeeCount?.name || 'N/A'}</span>
-                <span className="font-medium">{googleMapsStats.worstEmployeeCount?.count || 0}</span>
+                <span className="font-medium">{googleMapsStats.worstEmployeeCount?.totalReviews || 0}</span>
               </div>
             </div>
           </NeumorphicCard>
