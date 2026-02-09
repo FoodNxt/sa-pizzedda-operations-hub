@@ -100,7 +100,7 @@ export default function FoodCost() {
       }
     });
 
-    // COSTO TEORICO: dalle ricette e prodotti venduti
+    // COSTO TEORICO: dalle ricette e prodotti venduti (CON CONVERSIONE UNITÀ DI MISURA CORRETTA)
     const prodotti = prodottiVenduti.filter(p => {
       const orderDate = new Date(p.order_date);
       return orderDate >= startDate && orderDate <= endDate &&
@@ -110,8 +110,42 @@ export default function FoodCost() {
     let costoTeorico = 0;
     prodotti.forEach(prod => {
       const ricetta = ricette.find(r => r.nome_prodotto === prod.product_name);
-      if (ricetta && ricetta.costo_unitario) {
-        costoTeorico += ricetta.costo_unitario * (prod.quantity || 0);
+      if (ricetta && ricetta.ingredienti) {
+        ricetta.ingredienti.forEach(ing => {
+          const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
+          const quantitaTotale = (ing.quantita || 0) * (prod.quantity || 0);
+          
+          if (materiaPrima) {
+            const pesoDimensioneUnita = materiaPrima.peso_dimensione_unita || 1;
+            const unitaMisuraPeso = materiaPrima.unita_misura_peso || ing.unita_misura;
+            const prezzoUnitario = materiaPrima.prezzo_unitario || ing.prezzo_unitario || 0;
+            
+            let fattoreConversione = 1;
+            
+            if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'kg') {
+              fattoreConversione = pesoDimensioneUnita * 1000;
+            } else if (ing.unita_misura === 'g' && unitaMisuraPeso === 'kg') {
+              fattoreConversione = pesoDimensioneUnita * 1000;
+            } else if (ing.unita_misura === 'kg' && unitaMisuraPeso === 'kg') {
+              fattoreConversione = pesoDimensioneUnita;
+            } else if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'g') {
+              fattoreConversione = pesoDimensioneUnita;
+            } else if (ing.unita_misura === 'g' && unitaMisuraPeso === 'g') {
+              fattoreConversione = pesoDimensioneUnita;
+            } else if (ing.unita_misura === 'ml' && unitaMisuraPeso === 'litri') {
+              fattoreConversione = pesoDimensioneUnita * 1000;
+            } else if (ing.unita_misura === 'litri' && unitaMisuraPeso === 'litri') {
+              fattoreConversione = pesoDimensioneUnita;
+            } else {
+              fattoreConversione = pesoDimensioneUnita;
+            }
+            
+            costoTeorico += (quantitaTotale / fattoreConversione) * prezzoUnitario;
+          } else {
+            // Fallback: usa costo dalla ricetta se non troviamo materia prima
+            costoTeorico += quantitaTotale * (ing.prezzo_unitario || 0);
+          }
+        });
       }
     });
 
@@ -170,8 +204,41 @@ export default function FoodCost() {
       let storeCostoTeorico = 0;
       storeProdotti.forEach(prod => {
         const ricetta = ricette.find(r => r.nome_prodotto === prod.product_name);
-        if (ricetta && ricetta.costo_unitario) {
-          storeCostoTeorico += ricetta.costo_unitario * (prod.quantity || 0);
+        if (ricetta && ricetta.ingredienti) {
+          ricetta.ingredienti.forEach(ing => {
+            const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
+            const quantitaTotale = (ing.quantita || 0) * (prod.quantity || 0);
+            
+            if (materiaPrima) {
+              const pesoDimensioneUnita = materiaPrima.peso_dimensione_unita || 1;
+              const unitaMisuraPeso = materiaPrima.unita_misura_peso || ing.unita_misura;
+              const prezzoUnitario = materiaPrima.prezzo_unitario || ing.prezzo_unitario || 0;
+              
+              let fattoreConversione = 1;
+              
+              if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'kg') {
+                fattoreConversione = pesoDimensioneUnita * 1000;
+              } else if (ing.unita_misura === 'g' && unitaMisuraPeso === 'kg') {
+                fattoreConversione = pesoDimensioneUnita * 1000;
+              } else if (ing.unita_misura === 'kg' && unitaMisuraPeso === 'kg') {
+                fattoreConversione = pesoDimensioneUnita;
+              } else if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'g') {
+                fattoreConversione = pesoDimensioneUnita;
+              } else if (ing.unita_misura === 'g' && unitaMisuraPeso === 'g') {
+                fattoreConversione = pesoDimensioneUnita;
+              } else if (ing.unita_misura === 'ml' && unitaMisuraPeso === 'litri') {
+                fattoreConversione = pesoDimensioneUnita * 1000;
+              } else if (ing.unita_misura === 'litri' && unitaMisuraPeso === 'litri') {
+                fattoreConversione = pesoDimensioneUnita;
+              } else {
+                fattoreConversione = pesoDimensioneUnita;
+              }
+              
+              storeCostoTeorico += (quantitaTotale / fattoreConversione) * prezzoUnitario;
+            } else {
+              storeCostoTeorico += quantitaTotale * (ing.prezzo_unitario || 0);
+            }
+          });
         }
       });
 
@@ -250,8 +317,41 @@ export default function FoodCost() {
             weeklyData[weekKey] = { date: weekKey, revenue: 0, costoReale: 0, costoTeorico: 0 };
           }
           const ricetta = ricette.find(r => r.nome_prodotto === p.product_name);
-          if (ricetta && ricetta.costo_unitario) {
-            weeklyData[weekKey].costoTeorico += ricetta.costo_unitario * (p.quantity || 0);
+          if (ricetta && ricetta.ingredienti) {
+            ricetta.ingredienti.forEach(ing => {
+              const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
+              const quantitaTotale = (ing.quantita || 0) * (p.quantity || 0);
+              
+              if (materiaPrima) {
+                const pesoDimensioneUnita = materiaPrima.peso_dimensione_unita || 1;
+                const unitaMisuraPeso = materiaPrima.unita_misura_peso || ing.unita_misura;
+                const prezzoUnitario = materiaPrima.prezzo_unitario || ing.prezzo_unitario || 0;
+                
+                let fattoreConversione = 1;
+                
+                if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'kg') {
+                  fattoreConversione = pesoDimensioneUnita * 1000;
+                } else if (ing.unita_misura === 'g' && unitaMisuraPeso === 'kg') {
+                  fattoreConversione = pesoDimensioneUnita * 1000;
+                } else if (ing.unita_misura === 'kg' && unitaMisuraPeso === 'kg') {
+                  fattoreConversione = pesoDimensioneUnita;
+                } else if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'g') {
+                  fattoreConversione = pesoDimensioneUnita;
+                } else if (ing.unita_misura === 'g' && unitaMisuraPeso === 'g') {
+                  fattoreConversione = pesoDimensioneUnita;
+                } else if (ing.unita_misura === 'ml' && unitaMisuraPeso === 'litri') {
+                  fattoreConversione = pesoDimensioneUnita * 1000;
+                } else if (ing.unita_misura === 'litri' && unitaMisuraPeso === 'litri') {
+                  fattoreConversione = pesoDimensioneUnita;
+                } else {
+                  fattoreConversione = pesoDimensioneUnita;
+                }
+                
+                weeklyData[weekKey].costoTeorico += (quantitaTotale / fattoreConversione) * prezzoUnitario;
+              } else {
+                weeklyData[weekKey].costoTeorico += quantitaTotale * (ing.prezzo_unitario || 0);
+              }
+            });
           }
         }
       });
@@ -307,8 +407,41 @@ export default function FoodCost() {
             dailyData[dateKey] = { date: dateKey, revenue: 0, costoReale: 0, costoTeorico: 0 };
           }
           const ricetta = ricette.find(r => r.nome_prodotto === p.product_name);
-          if (ricetta && ricetta.costo_unitario) {
-            dailyData[dateKey].costoTeorico += ricetta.costo_unitario * (p.quantity || 0);
+          if (ricetta && ricetta.ingredienti) {
+            ricetta.ingredienti.forEach(ing => {
+              const materiaPrima = materiePrime.find(m => m.id === ing.materia_prima_id);
+              const quantitaTotale = (ing.quantita || 0) * (p.quantity || 0);
+              
+              if (materiaPrima) {
+                const pesoDimensioneUnita = materiaPrima.peso_dimensione_unita || 1;
+                const unitaMisuraPeso = materiaPrima.unita_misura_peso || ing.unita_misura;
+                const prezzoUnitario = materiaPrima.prezzo_unitario || ing.prezzo_unitario || 0;
+                
+                let fattoreConversione = 1;
+                
+                if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'kg') {
+                  fattoreConversione = pesoDimensioneUnita * 1000;
+                } else if (ing.unita_misura === 'g' && unitaMisuraPeso === 'kg') {
+                  fattoreConversione = pesoDimensioneUnita * 1000;
+                } else if (ing.unita_misura === 'kg' && unitaMisuraPeso === 'kg') {
+                  fattoreConversione = pesoDimensioneUnita;
+                } else if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'g') {
+                  fattoreConversione = pesoDimensioneUnita;
+                } else if (ing.unita_misura === 'g' && unitaMisuraPeso === 'g') {
+                  fattoreConversione = pesoDimensioneUnita;
+                } else if (ing.unita_misura === 'ml' && unitaMisuraPeso === 'litri') {
+                  fattoreConversione = pesoDimensioneUnita * 1000;
+                } else if (ing.unita_misura === 'litri' && unitaMisuraPeso === 'litri') {
+                  fattoreConversione = pesoDimensioneUnita;
+                } else {
+                  fattoreConversione = pesoDimensioneUnita;
+                }
+                
+                dailyData[dateKey].costoTeorico += (quantitaTotale / fattoreConversione) * prezzoUnitario;
+              } else {
+                dailyData[dateKey].costoTeorico += quantitaTotale * (ing.prezzo_unitario || 0);
+              }
+            });
           }
         }
       });
@@ -352,20 +485,22 @@ export default function FoodCost() {
           if (materiaPrima) {
             const pesoDimensioneUnita = materiaPrima.peso_dimensione_unita || 1;
             const unitaMisuraPeso = materiaPrima.unita_misura_peso || ing.unita_misura;
-            const prezzoUnitario = ing.prezzo_unitario || 0;
+            const prezzoUnitario = materiaPrima.prezzo_unitario || ing.prezzo_unitario || 0;
             
-            // Converti tutto in unità base per il calcolo
             let fattoreConversione = 1;
             
-            // Se la ricetta usa grammi ma la materia prima è in kg
             if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'kg') {
-              fattoreConversione = pesoDimensioneUnita * 1000; // es. 1kg = 1000g
+              fattoreConversione = pesoDimensioneUnita * 1000;
+            } else if (ing.unita_misura === 'g' && unitaMisuraPeso === 'kg') {
+              fattoreConversione = pesoDimensioneUnita * 1000;
             } else if (ing.unita_misura === 'kg' && unitaMisuraPeso === 'kg') {
-              fattoreConversione = pesoDimensioneUnita; // es. 25kg
+              fattoreConversione = pesoDimensioneUnita;
             } else if (ing.unita_misura === 'grammi' && unitaMisuraPeso === 'g') {
-              fattoreConversione = pesoDimensioneUnita; // es. 500g
+              fattoreConversione = pesoDimensioneUnita;
+            } else if (ing.unita_misura === 'g' && unitaMisuraPeso === 'g') {
+              fattoreConversione = pesoDimensioneUnita;
             } else if (ing.unita_misura === 'ml' && unitaMisuraPeso === 'litri') {
-              fattoreConversione = pesoDimensioneUnita * 1000; // es. 1L = 1000ml
+              fattoreConversione = pesoDimensioneUnita * 1000;
             } else if (ing.unita_misura === 'litri' && unitaMisuraPeso === 'litri') {
               fattoreConversione = pesoDimensioneUnita;
             } else {
