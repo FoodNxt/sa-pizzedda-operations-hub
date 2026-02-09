@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Package, Calendar, ExternalLink, UserX, Users, FileText, Clock } from "lucide-react";
+import { AlertTriangle, Package, Calendar, ExternalLink, UserX, Users, FileText, Clock, TrendingUp } from "lucide-react";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 import { Link } from 'react-router-dom';
@@ -94,6 +94,19 @@ export default function ToDo() {
   const { data: periodoProvaConfig = [] } = useQuery({
     queryKey: ['periodo-prova-config'],
     queryFn: () => base44.entities.PeriodoProvaConfig.list()
+  });
+
+  const { data: turniRitardi = [] } = useQuery({
+    queryKey: ['turni-ritardi'],
+    queryFn: () => base44.entities.TurnoPlanday.list('-data', 2000)
+  });
+
+  const { data: timbraturaConfig } = useQuery({
+    queryKey: ['timbratura-config'],
+    queryFn: async () => {
+      const configs = await base44.entities.TimbraturaConfig.filter({ is_active: true });
+      return configs[0] || { tolleranza_ritardo_minuti: 0, arrotonda_ritardo: true, arrotondamento_minuti: 15 };
+    }
   });
 
   const safeParseDate = (dateString) => {
@@ -381,6 +394,52 @@ export default function ToDo() {
       .sort((a, b) => b.giorniPassati - a.giorniPassati);
   }, [uscite, allUsers]);
 
+  const topDipendentiRitardi = useMemo(() => {
+    if (!turniRitardi || !allUsers || !timbraturaConfig) return [];
+    const oggi = moment();
+    const trentaGiorniFa = moment().subtract(30, 'days');
+    const stats = {};
+
+    turniRitardi
+      .filter((t) => {
+        if (!t.timbratura_entrata) return false;
+        const turnoDate = moment(t.data);
+        return turnoDate.isBetween(trentaGiorniFa, oggi, 'day', '[]');
+      })
+      .forEach((turno) => {
+        let minutiRitardoReale = turno.minuti_ritardo_reale || 0;
+        
+        if (minutiRitardoReale === 0 && turno.timbratura_entrata && turno.ora_inizio) {
+          try {
+            const clockInTime = new Date(turno.timbratura_entrata);
+            const [oraInizioHH, oraInizioMM] = turno.ora_inizio.split(':').map(Number);
+            const scheduledStart = new Date(clockInTime);
+            scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+            const delayMs = clockInTime - scheduledStart;
+            minutiRitardoReale = Math.max(0, Math.floor(delayMs / 60000));
+          } catch (e) {
+            minutiRitardoReale = 0;
+          }
+        }
+
+        if (minutiRitardoReale > 0) {
+          if (!stats[turno.dipendente_id]) {
+            const user = allUsers.find((u) => u.id === turno.dipendente_id);
+            stats[turno.dipendente_id] = {
+              dipendenteId: turno.dipendente_id,
+              dipendenteNome: turno.dipendente_nome || user?.nome_cognome || user?.full_name || 'Sconosciuto',
+              minutiReali: 0
+            };
+          }
+          stats[turno.dipendente_id].minutiReali += minutiRitardoReale;
+        }
+      });
+
+    return Object.values(stats)
+      .sort((a, b) => b.minutiReali - a.minutiReali)
+      .slice(0, 5);
+  }, [turniRitardi, allUsers, timbraturaConfig]);
+
   return (
     <ProtectedPage pageName="ToDo">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -632,6 +691,32 @@ export default function ToDo() {
                   </div>
                 ) :
                   <p className="text-xs text-slate-400 text-center py-4">Nessuna uscita recente</p>
+                }
+              </div>
+            </div>
+
+            {/* Top Dipendenti per Ritardi (Ultimi 30 giorni) */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <Link to={createPageUrl('Ritardi')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
+                <TrendingUp className="w-4 h-4 text-red-600" />
+                Top Dipendenti per Ritardi (30gg)
+                {topDipendentiRitardi.length > 0 &&
+                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{topDipendentiRitardi.length}</span>
+                }
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {topDipendentiRitardi.length > 0 ? topDipendentiRitardi.map((d, idx) =>
+                  <div key={idx} className="p-2 rounded-lg bg-red-50 border border-red-200">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-xs font-medium text-slate-700">#{idx + 1} {d.dipendenteNome}</p>
+                        <p className="text-[10px] text-red-600 mt-1">Minuti reali: {d.minutiReali}m ({(d.minutiReali / 60).toFixed(1)}h)</p>
+                      </div>
+                    </div>
+                  </div>
+                ) :
+                  <p className="text-xs text-slate-400 text-center py-4">Nessun ritardo registrato</p>
                 }
               </div>
             </div>

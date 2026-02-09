@@ -107,6 +107,7 @@ import GestioneAccessoPagine from './pages/GestioneAccessoPagine';
 import GestioneAssistente from './pages/GestioneAssistente';
 import Google from './pages/Google';
 import HRAdmin from './pages/HRAdmin';
+import HRAdminDashboard from './pages/HRAdminDashboard';
 import Home from './pages/Home';
 import IPraticoBulkImport from './pages/IPraticoBulkImport';
 import IPraticoSetup from './pages/IPraticoSetup';
@@ -173,7 +174,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import HRAdminDashboard from './pages/HRAdminDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -238,6 +238,7 @@ export const PAGES = {
     "GestioneAssistente": GestioneAssistente,
     "Google": Google,
     "HRAdmin": HRAdmin,
+    "HRAdminDashboard": HRAdminDashboard,
     "Home": Home,
     "IPraticoBulkImport": IPraticoBulkImport,
     "IPraticoSetup": IPraticoSetup,
@@ -304,7 +305,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "HRAdminDashboard": HRAdminDashboard,
 }
 
 export const pagesConfig = {
