@@ -13,6 +13,7 @@ export default function PulizieMatch() {
   const [selectedEmployee, setSelectedEmployee] = useState('all');
   const [sortBy, setSortBy] = useState('percentage');
   const [viewMode, setViewMode] = useState('list');
+  const [showOnlyFailed, setShowOnlyFailed] = useState({});
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -414,35 +415,20 @@ export default function PulizieMatch() {
           
           if (equipmentWithRepeatedFailures.length > 0) {
             return (
-              <NeumorphicCard className="p-6 bg-red-50 border-2 border-red-300">
-                <h2 className="text-xl font-bold text-red-700 mb-4 flex items-center gap-2">
-                  ⚠️ Controlli Falliti Ripetutamente (per Attrezzatura)
-                </h2>
-                <div className="space-y-4">
+              <NeumorphicCard className="p-4 bg-red-50 border border-red-300">
+                <h3 className="text-base font-bold text-red-700 mb-3">⚠️ Controlli Falliti Ripetutamente</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   {equipmentWithRepeatedFailures.map((eq, idx) => (
-                    <div key={idx} className="bg-white rounded-lg p-4">
-                      <h3 className="font-bold text-[#6b6b6b] text-lg mb-3 border-b pb-2">
-                        {eq.equipment}
-                      </h3>
-                      <div className="space-y-2">
-                        {eq.employees.sort((a, b) => b.count - a.count).map((emp, empIdx) => (
-                          <div key={empIdx} className="bg-red-50 rounded-lg p-3 border-l-4 border-red-500">
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="font-bold text-[#6b6b6b]">{emp.name}</p>
-                              <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                                {emp.count}x fallito
-                              </span>
-                            </div>
-                            <div className="text-xs text-[#9b9b9b] space-y-1">
-                              {emp.details.map((detail, detailIdx) => (
-                                <div key={detailIdx}>
-                                  • {detail.store_name} - {format(parseISO(detail.data_compilazione), 'dd/MM/yyyy', { locale: it })}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div key={idx} className="bg-white rounded-lg p-2 text-xs">
+                      <div className="font-bold text-[#6b6b6b] text-sm mb-1 border-b pb-1">{eq.equipment}</div>
+                      {eq.employees.sort((a, b) => b.count - a.count).map((emp, empIdx) => (
+                        <div key={empIdx} className="flex items-center justify-between py-1 border-l-2 border-red-500 pl-2 my-1">
+                          <span className="font-medium text-[#6b6b6b]">{emp.name}</span>
+                          <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                            {emp.count}x
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -600,6 +586,30 @@ export default function PulizieMatch() {
                         Vedi dettagli ({employee.details.length})
                       </summary>
                       <div className="mt-3 space-y-3">
+                        {/* Filter Toggle */}
+                        <div className="flex gap-2 mb-2">
+                          <button
+                            onClick={() => setShowOnlyFailed(prev => ({ ...prev, [employee.id]: false }))}
+                            className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
+                              !showOnlyFailed[employee.id] 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-slate-200 text-[#6b6b6b]'
+                            }`}
+                          >
+                            Tutti ({employee.details.length})
+                          </button>
+                          <button
+                            onClick={() => setShowOnlyFailed(prev => ({ ...prev, [employee.id]: true }))}
+                            className={`px-3 py-1 text-xs rounded-lg font-medium transition-colors ${
+                              showOnlyFailed[employee.id] 
+                                ? 'bg-red-600 text-white' 
+                                : 'bg-slate-200 text-[#6b6b6b]'
+                            }`}
+                          >
+                            Solo Non Passati ({employee.details.filter(d => d.stato === 'sporco').length})
+                          </button>
+                        </div>
+
                         {/* Controlli Non Passati Multipli */}
                         {(() => {
                           const failedDetails = employee.details.filter(d => d.stato === 'sporco');
@@ -629,6 +639,7 @@ export default function PulizieMatch() {
                         
                         {/* Tutti i Dettagli */}
                         {employee.details
+                          .filter(detail => !showOnlyFailed[employee.id] || detail.stato === 'sporco')
                           .sort((a, b) => new Date(b.data_compilazione) - new Date(a.data_compilazione))
                           .map((detail, idx) => (
                             <div key={idx} className="neumorphic-flat p-3 rounded-lg text-sm">
