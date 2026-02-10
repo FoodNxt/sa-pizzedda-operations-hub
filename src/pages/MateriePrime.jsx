@@ -22,7 +22,8 @@ import {
   Upload,
   Camera,
   ChefHat,
-  Truck } from
+  Truck,
+  Wheat } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -117,6 +118,13 @@ export default function MateriePrime() {
   const { data: prodottiVenduti = [] } = useQuery({
     queryKey: ['prodotti-venduti'],
     queryFn: () => base44.entities.ProdottiVenduti.list()
+  });
+
+  const { data: ricette = [] } = useQuery({
+    queryKey: ['ricette'],
+    queryFn: () => base44.entities.Ricetta.list(),
+    staleTime: 5 * 60 * 1000,
+    enabled: activeTab === 'allergeni'
   });
 
   const createMutation = useMutation({
@@ -484,11 +492,97 @@ export default function MateriePrime() {
               <Truck className="w-4 h-4" />
               <span className="hidden sm:inline">Fornitori</span>
             </button>
+            <button
+              onClick={() => setActiveTab('allergeni')}
+              className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'allergeni'
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'bg-transparent text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Wheat className="w-4 h-4" />
+              <span className="hidden sm:inline">Allergeni</span>
+            </button>
           </div>
         </NeumorphicCard>
 
         {activeTab === 'ricette' && <RicetteContent />}
         {activeTab === 'fornitori' && <FornitoriContent />}
+        {activeTab === 'allergeni' && (
+          <NeumorphicCard className="p-4 lg:p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Wheat className="w-6 h-6 text-amber-600" />
+              Tabella Allergeni
+            </h2>
+            <p className="text-sm text-slate-600 mb-4">
+              Prodotti venduti con ricetta e relativi allergeni
+            </p>
+
+            {ricette.length === 0 ? (
+              <div className="text-center py-12">
+                <Wheat className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500">Nessuna ricetta disponibile</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b-2 border-amber-600">
+                      <th className="text-left p-3 text-slate-600 font-medium text-sm">Prodotto</th>
+                      <th className="text-left p-3 text-slate-600 font-medium text-sm">Categoria</th>
+                      <th className="text-left p-3 text-slate-600 font-medium text-sm">Allergeni</th>
+                      <th className="text-center p-3 text-slate-600 font-medium text-sm">Venduto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ricette
+                      .filter(r => r.attivo !== false)
+                      .sort((a, b) => (a.nome_prodotto || '').localeCompare(b.nome_prodotto || '', 'it'))
+                      .map((ricetta) => (
+                        <tr key={ricetta.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                          <td className="p-3">
+                            <p className="font-medium text-slate-800">{ricetta.nome_prodotto}</p>
+                          </td>
+                          <td className="p-3">
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                              {ricetta.categoria}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            {ricetta.allergeni && ricetta.allergeni.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {ricetta.allergeni.map((allergene, idx) => (
+                                  <span key={idx} className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                    {allergene}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">Nessun allergene specificato</span>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex flex-col items-center gap-1">
+                              {ricetta.venduto_online && (
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                                  Online
+                                </span>
+                              )}
+                              {ricetta.venduto_offline && (
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">
+                                  Negozio
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </NeumorphicCard>
+        )}
 
         {activeTab === 'materie_prime' && (
           <>
