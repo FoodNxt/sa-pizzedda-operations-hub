@@ -19,26 +19,30 @@ Deno.serve(async (req) => {
 
     const doc = new jsPDF();
     
-    // Mappa codici allergeni con colori
+    // Colori brand Sa Pizzedda
+    const brandRed = [227, 30, 36];
+    const brandBeige = [244, 229, 201];
+    
+    // Mappa codici allergeni con colori rosso/beige alternati
     const allergeniCodes = {
-      'Glutine': { code: 'GL', color: [255, 179, 71] },
-      'Crostacei': { code: 'CR', color: [255, 107, 107] },
-      'Uova': { code: 'UO', color: [255, 234, 167] },
-      'Pesce': { code: 'PE', color: [84, 160, 255] },
-      'Arachidi': { code: 'AR', color: [210, 145, 188] },
-      'Soia': { code: 'SO', color: [162, 155, 254] },
-      'Latte': { code: 'LA', color: [255, 255, 255] },
-      'Frutta a guscio': { code: 'FG', color: [186, 139, 96] },
-      'Sedano': { code: 'SE', color: [130, 204, 130] },
-      'Senape': { code: 'SN', color: [255, 215, 64] },
-      'Semi di sesamo': { code: 'SS', color: [245, 245, 220] },
-      'Anidride solforosa': { code: 'AN', color: [200, 200, 200] },
-      'Lupini': { code: 'LU', color: [255, 183, 77] },
-      'Molluschi': { code: 'MO', color: [255, 138, 101] }
+      'Glutine': { code: 'GL', color: brandRed },
+      'Crostacei': { code: 'CR', color: brandBeige },
+      'Uova': { code: 'UO', color: brandRed },
+      'Pesce': { code: 'PE', color: brandBeige },
+      'Arachidi': { code: 'AR', color: brandRed },
+      'Soia': { code: 'SO', color: brandBeige },
+      'Latte': { code: 'LA', color: brandRed },
+      'Frutta a guscio': { code: 'FG', color: brandBeige },
+      'Sedano': { code: 'SE', color: brandRed },
+      'Senape': { code: 'SN', color: brandBeige },
+      'Semi di sesamo': { code: 'SS', color: brandRed },
+      'Anidride solforosa': { code: 'AN', color: brandBeige },
+      'Lupini': { code: 'LU', color: brandRed },
+      'Molluschi': { code: 'MO', color: brandBeige }
     };
 
     // Header con design accattivante
-    doc.setFillColor(251, 191, 36); // amber-400
+    doc.setFillColor(...brandRed);
     doc.rect(0, 0, 210, 40, 'F');
     
     doc.setFontSize(24);
@@ -81,11 +85,11 @@ Deno.serve(async (req) => {
       const isEven = idx % 2 === 0;
       
       // Box prodotto con sfondo
-      doc.setFillColor(isEven ? 249 : 255, isEven ? 250 : 255, isEven ? 251 : 255);
+      doc.setFillColor(...brandBeige);
       doc.roundedRect(margin, currentY, tableWidth, estimatedHeight, 3, 3, 'F');
       
       // Bordo colorato a sinistra
-      doc.setFillColor(251, 191, 36);
+      doc.setFillColor(...brandRed);
       doc.roundedRect(margin, currentY, 4, estimatedHeight, 2, 2, 'F');
 
       // Nome prodotto
@@ -111,10 +115,11 @@ Deno.serve(async (req) => {
           doc.setLineWidth(0.3);
           doc.roundedRect(allergeniX, allergeniY - 4.5, 10, 6, 1.5, 1.5, 'S');
           
-          // Codice allergene
+          // Codice allergene - bianco su rosso, rosso su beige
           doc.setFontSize(7);
           doc.setFont(undefined, 'bold');
-          doc.setTextColor(30, 30, 30);
+          const isRed = info.color[0] === brandRed[0];
+          doc.setTextColor(isRed ? 255 : brandRed[0], isRed ? 255 : brandRed[1], isRed ? 255 : brandRed[2]);
           doc.text(info.code, allergeniX + 5, allergeniY + 0.5, { align: 'center' });
           
           allergeniX += 11.5;
@@ -139,7 +144,7 @@ Deno.serve(async (req) => {
     if (currentY < 220) {
       currentY = Math.max(currentY + 5, 220);
       
-      doc.setFillColor(251, 191, 36);
+      doc.setFillColor(...brandRed);
       doc.rect(margin, currentY, tableWidth, 4, 'F');
       doc.setFontSize(8);
       doc.setFont(undefined, 'bold');
@@ -164,7 +169,8 @@ Deno.serve(async (req) => {
         // Codice
         doc.setFontSize(5.5);
         doc.setFont(undefined, 'bold');
-        doc.setTextColor(30, 30, 30);
+        const isRed = info.color[0] === brandRed[0];
+        doc.setTextColor(isRed ? 255 : brandRed[0], isRed ? 255 : brandRed[1], isRed ? 255 : brandRed[2]);
         doc.text(info.code, legendX + 3, legendY - 0.2, { align: 'center' });
         
         // Nome allergene
@@ -185,10 +191,10 @@ Deno.serve(async (req) => {
     }
 
     // Footer
-    doc.setFillColor(241, 245, 249);
+    doc.setFillColor(...brandBeige);
     doc.rect(0, 282, 210, 15, 'F');
     doc.setFontSize(8);
-    doc.setTextColor(71, 85, 105);
+    doc.setTextColor(...brandRed);
     doc.setFont(undefined, 'bold');
     doc.text('SA PIZZEDDA', 105, 290, { align: 'center' });
     doc.setFont(undefined, 'normal');
