@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { CheckCircle, XCircle, Users, Calendar, Filter, TrendingUp, TrendingDown } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Calendar, Filter, TrendingUp, TrendingDown, ChevronRight } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { it } from 'date-fns/locale';
 import ProtectedPage from "../components/ProtectedPage";
