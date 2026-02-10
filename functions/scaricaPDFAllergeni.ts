@@ -97,33 +97,34 @@ Deno.serve(async (req) => {
       doc.setTextColor(...brandRed);
       doc.text(ricetta.nome_prodotto, margin + 10, currentY + 10);
 
-      // Allergeni con icone e nomi completi
+      // Allergeni in box stondati
       if (ricetta.allergeni && ricetta.allergeni.length > 0) {
         let allergeniY = currentY + 10;
         let allergeniX = margin + 95;
         let itemsInRow = 0;
         
         ricetta.allergeni.forEach((allergene, aIdx) => {
-          doc.setFontSize(8);
+          // Misura il testo
+          doc.setFontSize(9);
           doc.setFont(undefined, 'normal');
           const textWidth = doc.getTextWidth(allergene);
-          const badgeWidth = textWidth + 6;
-          const badgeHeight = 5;
+          const boxWidth = textWidth + 8;
+          const boxHeight = 6;
           
-          // Riquadro stondato rosa/beige
-          doc.setFillColor(252, 235, 235); // Rosa chiaro
-          doc.roundedRect(allergeniX, allergeniY - 4, badgeWidth, badgeHeight, 2.5, 2.5, 'F');
+          // Box stondato rosa chiaro
+          doc.setFillColor(252, 235, 235);
+          doc.roundedRect(allergeniX, allergeniY - 4.5, boxWidth, boxHeight, 3, 3, 'F');
           
-          // Testo rosso scuro
-          doc.setTextColor(185, 28, 28); // Rosso scuro
-          doc.text(allergene, allergeniX + 3, allergeniY - 0.5);
+          // Testo centrato nel box - rosso scuro
+          doc.setTextColor(185, 28, 28);
+          doc.text(allergene, allergeniX + 4, allergeniY);
           
-          allergeniX += badgeWidth + 3;
+          allergeniX += boxWidth + 4;
           itemsInRow++;
           
-          // Vai a capo dopo 2 allergeni o se non c'è spazio
-          if (itemsInRow >= 2 || allergeniX > margin + tableWidth - 10) {
-            allergeniY += 7;
+          // Vai a capo se necessario
+          if (itemsInRow >= 2 || allergeniX + boxWidth > margin + tableWidth) {
+            allergeniY += 8;
             allergeniX = margin + 95;
             itemsInRow = 0;
           }
