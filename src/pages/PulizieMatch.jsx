@@ -263,7 +263,7 @@ export default function PulizieMatch() {
         const percentB = b.puliti + b.sporchi > 0 ? b.puliti / (b.puliti + b.sporchi) * 100 : 0;
         return percentA - percentB;
       } else {
-        return a.sporchi - b.sporchi;
+        return b.sporchi - a.sporchi;
       }
     });
   }, [filteredResults, sortBy]);
