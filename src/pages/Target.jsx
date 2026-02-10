@@ -1562,9 +1562,38 @@ export default function Target() {
                         {(() => {
                           const splitData = {};
                           
+                          // Calculate actual revenue per store
                           currentData.forEach(item => {
                             const splitKey = item.store_id;
-                            const itemRevenue = item.total_revenue || 0;
+                            let itemRevenue = 0;
+                            if (activeTargetApp) {
+                              const apps = [
+                                { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                                { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                                { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                                { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                                { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                                { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                                { key: 'store', revenue: item.sourceApp_store || 0 }
+                              ];
+                              apps.forEach(app => {
+                                const mappedKey = appMapping[app.key] || app.key;
+                                if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+                              });
+                            } else if (activeTargetChannel) {
+                              const channels = [
+                                { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                                { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                                { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                                { key: 'store', revenue: item.sourceType_store || 0 }
+                              ];
+                              channels.forEach(ch => {
+                                const mappedKey = channelMapping[ch.key] || ch.key;
+                                if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+                              });
+                            } else {
+                              itemRevenue = item.total_revenue || 0;
+                            }
                             
                             if (!splitData[splitKey]) {
                               const storeName = stores.find(s => s.id === splitKey)?.name || splitKey;
@@ -1573,15 +1602,116 @@ export default function Target() {
                             splitData[splitKey].actual += itemRevenue;
                           });
                           
-                          const totalActual = Object.values(splitData).reduce((sum, d) => sum + d.actual, 0);
+                          // Calculate historical data and prediction for each store
+                          Object.keys(splitData).forEach(storeId => {
+                            const storeHistoricalData = historicalData.filter(item => item.store_id === storeId);
+                            const storeDailyTotals = {};
+                            
+                            storeHistoricalData.forEach(item => {
+                              if (!storeDailyTotals[item.order_date]) storeDailyTotals[item.order_date] = 0;
+                              let itemRevenue = 0;
+                              if (activeTargetApp) {
+                                const apps = [
+                                  { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                                  { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                                  { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                                  { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                                  { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                                  { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                                  { key: 'store', revenue: item.sourceApp_store || 0 }
+                                ];
+                                apps.forEach(app => {
+                                  const mappedKey = appMapping[app.key] || app.key;
+                                  if (mappedKey === activeTargetApp) itemRevenue += app.revenue;
+                                });
+                              } else if (activeTargetChannel) {
+                                const channels = [
+                                  { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                                  { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                                  { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                                  { key: 'store', revenue: item.sourceType_store || 0 }
+                                ];
+                                channels.forEach(ch => {
+                                  const mappedKey = channelMapping[ch.key] || ch.key;
+                                  if (mappedKey === activeTargetChannel) itemRevenue += ch.revenue;
+                                });
+                              } else {
+                                itemRevenue = item.total_revenue || 0;
+                              }
+                              storeDailyTotals[item.order_date] += itemRevenue;
+                            });
+                            
+                            const storeDayOfWeekRevenues = {};
+                            Object.entries(storeDailyTotals).forEach(([date, revenue]) => {
+                              const itemDate = new Date(date);
+                              if (itemDate >= seasonalityCutoff) {
+                                const dayOfWeek = itemDate.getDay();
+                                if (!storeDayOfWeekRevenues[dayOfWeek]) storeDayOfWeekRevenues[dayOfWeek] = [];
+                                storeDayOfWeekRevenues[dayOfWeek].push(revenue);
+                              }
+                            });
+                            
+                            const storeAvgByDayOfWeek = {};
+                            Object.keys(storeDayOfWeekRevenues).forEach(dayOfWeek => {
+                              const revenues = storeDayOfWeekRevenues[dayOfWeek];
+                              let avg = 0;
+                              if (activeUseEMA && revenues.length > 0) {
+                                const alpha = 0.2;
+                                avg = revenues[0];
+                                for (let i = 1; i < revenues.length; i++) {
+                                  avg = alpha * revenues[i] + (1 - alpha) * avg;
+                                }
+                              } else {
+                                avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                              }
+                              storeAvgByDayOfWeek[dayOfWeek] = avg;
+                            });
+                            
+                            let storeDailyGrowthRate = 0;
+                            if (effectiveGrowthPeriodDays > 0) {
+                              const growthCutoff = subDays(today, effectiveGrowthPeriodDays);
+                              const growthData = Object.entries(storeDailyTotals)
+                                .filter(([date]) => {
+                                  const d = new Date(date);
+                                  return d >= growthCutoff && d < today;
+                                })
+                                .sort(([a], [b]) => a.localeCompare(b));
+                              
+                              if (growthData.length >= 2) {
+                                const n = growthData.length;
+                                let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                                growthData.forEach(([date, revenue], index) => {
+                                  sumX += index;
+                                  sumY += revenue;
+                                  sumXY += index * revenue;
+                                  sumX2 += index * index;
+                                });
+                                const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                                storeDailyGrowthRate = slope;
+                              }
+                            }
+                            
+                            let storePredictedRevenue = 0;
+                            for (let i = 0; i < daysRemaining; i++) {
+                              const futureDate = new Date(today);
+                              futureDate.setDate(today.getDate() + i);
+                              const dayOfWeek = futureDate.getDay();
+                              const baseRev = storeAvgByDayOfWeek[dayOfWeek] || 0;
+                              const growthAdj = storeDailyGrowthRate * (daysPassed + i);
+                              storePredictedRevenue += baseRev + growthAdj;
+                            }
+                            
+                            splitData[storeId].predicted = storePredictedRevenue;
+                          });
+                          
+                          const totalActualAll = Object.values(splitData).reduce((sum, d) => sum + d.actual, 0);
                           
                           return Object.entries(splitData)
                             .sort(([, a], [, b]) => b.actual - a.actual)
                             .map(([key, data]) => {
-                              const proportion = totalActual > 0 ? data.actual / totalActual : 0;
+                              const proportion = totalActualAll > 0 ? data.actual / totalActualAll : 0;
                               const splitTarget = target * proportion;
-                              const splitPredicted = predictedRevenue * proportion;
-                              const splitTotalProjected = data.actual + splitPredicted;
+                              const splitTotalProjected = data.actual + data.predicted;
                               const splitGap = splitTarget - splitTotalProjected;
                               const splitProgress = splitTarget > 0 ? (splitTotalProjected / splitTarget) * 100 : 0;
                               
@@ -1668,6 +1798,7 @@ export default function Target() {
                         {(() => {
                           const splitData = {};
                           
+                          // Calculate actual revenue per app
                           currentData.forEach(item => {
                             const apps = [
                               { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
@@ -1687,15 +1818,113 @@ export default function Target() {
                             });
                           });
                           
-                          const totalActual = Object.values(splitData).reduce((sum, d) => sum + d.actual, 0);
+                          // Calculate prediction for each app
+                          Object.keys(splitData).forEach(appName => {
+                            const appHistoricalData = historicalData.filter(item => {
+                              const apps = [
+                                { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                                { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                                { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                                { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                                { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                                { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                                { key: 'store', revenue: item.sourceApp_store || 0 }
+                              ];
+                              return apps.some(app => {
+                                const mappedKey = appMapping[app.key] || app.key;
+                                return mappedKey === appName && app.revenue > 0;
+                              });
+                            });
+                            
+                            const appDailyTotals = {};
+                            appHistoricalData.forEach(item => {
+                              if (!appDailyTotals[item.order_date]) appDailyTotals[item.order_date] = 0;
+                              const apps = [
+                                { key: 'glovo', revenue: item.sourceApp_glovo || 0 },
+                                { key: 'deliveroo', revenue: item.sourceApp_deliveroo || 0 },
+                                { key: 'justeat', revenue: item.sourceApp_justeat || 0 },
+                                { key: 'onlineordering', revenue: item.sourceApp_onlineordering || 0 },
+                                { key: 'ordertable', revenue: item.sourceApp_ordertable || 0 },
+                                { key: 'tabesto', revenue: item.sourceApp_tabesto || 0 },
+                                { key: 'store', revenue: item.sourceApp_store || 0 }
+                              ];
+                              apps.forEach(app => {
+                                const mappedKey = appMapping[app.key] || app.key;
+                                if (mappedKey === appName) appDailyTotals[item.order_date] += app.revenue;
+                              });
+                            });
+                            
+                            const appDayOfWeekRevenues = {};
+                            Object.entries(appDailyTotals).forEach(([date, revenue]) => {
+                              const itemDate = new Date(date);
+                              if (itemDate >= seasonalityCutoff) {
+                                const dayOfWeek = itemDate.getDay();
+                                if (!appDayOfWeekRevenues[dayOfWeek]) appDayOfWeekRevenues[dayOfWeek] = [];
+                                appDayOfWeekRevenues[dayOfWeek].push(revenue);
+                              }
+                            });
+                            
+                            const appAvgByDayOfWeek = {};
+                            Object.keys(appDayOfWeekRevenues).forEach(dayOfWeek => {
+                              const revenues = appDayOfWeekRevenues[dayOfWeek];
+                              let avg = 0;
+                              if (activeUseEMA && revenues.length > 0) {
+                                const alpha = 0.2;
+                                avg = revenues[0];
+                                for (let i = 1; i < revenues.length; i++) {
+                                  avg = alpha * revenues[i] + (1 - alpha) * avg;
+                                }
+                              } else {
+                                avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                              }
+                              appAvgByDayOfWeek[dayOfWeek] = avg;
+                            });
+                            
+                            let appDailyGrowthRate = 0;
+                            if (effectiveGrowthPeriodDays > 0) {
+                              const growthCutoff = subDays(today, effectiveGrowthPeriodDays);
+                              const growthData = Object.entries(appDailyTotals)
+                                .filter(([date]) => {
+                                  const d = new Date(date);
+                                  return d >= growthCutoff && d < today;
+                                })
+                                .sort(([a], [b]) => a.localeCompare(b));
+                              
+                              if (growthData.length >= 2) {
+                                const n = growthData.length;
+                                let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                                growthData.forEach(([date, revenue], index) => {
+                                  sumX += index;
+                                  sumY += revenue;
+                                  sumXY += index * revenue;
+                                  sumX2 += index * index;
+                                });
+                                const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                                appDailyGrowthRate = slope;
+                              }
+                            }
+                            
+                            let appPredictedRevenue = 0;
+                            for (let i = 0; i < daysRemaining; i++) {
+                              const futureDate = new Date(today);
+                              futureDate.setDate(today.getDate() + i);
+                              const dayOfWeek = futureDate.getDay();
+                              const baseRev = appAvgByDayOfWeek[dayOfWeek] || 0;
+                              const growthAdj = appDailyGrowthRate * (daysPassed + i);
+                              appPredictedRevenue += baseRev + growthAdj;
+                            }
+                            
+                            splitData[appName].predicted = appPredictedRevenue;
+                          });
+                          
+                          const totalActualAll = Object.values(splitData).reduce((sum, d) => sum + d.actual, 0);
                           
                           return Object.entries(splitData)
                             .sort(([, a], [, b]) => b.actual - a.actual)
                             .map(([key, data]) => {
-                              const proportion = totalActual > 0 ? data.actual / totalActual : 0;
+                              const proportion = totalActualAll > 0 ? data.actual / totalActualAll : 0;
                               const splitTarget = target * proportion;
-                              const splitPredicted = predictedRevenue * proportion;
-                              const splitTotalProjected = data.actual + splitPredicted;
+                              const splitTotalProjected = data.actual + data.predicted;
                               const splitGap = splitTarget - splitTotalProjected;
                               const splitProgress = splitTarget > 0 ? (splitTotalProjected / splitTarget) * 100 : 0;
                               
@@ -1782,6 +2011,7 @@ export default function Target() {
                         {(() => {
                           const splitData = {};
                           
+                          // Calculate actual revenue per channel
                           currentData.forEach(item => {
                             const channels = [
                               { key: 'delivery', revenue: item.sourceType_delivery || 0 },
@@ -1798,15 +2028,107 @@ export default function Target() {
                             });
                           });
                           
-                          const totalActual = Object.values(splitData).reduce((sum, d) => sum + d.actual, 0);
+                          // Calculate prediction for each channel
+                          Object.keys(splitData).forEach(channelName => {
+                            const channelHistoricalData = historicalData.filter(item => {
+                              const channels = [
+                                { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                                { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                                { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                                { key: 'store', revenue: item.sourceType_store || 0 }
+                              ];
+                              return channels.some(ch => {
+                                const mappedKey = channelMapping[ch.key] || ch.key;
+                                return mappedKey === channelName && ch.revenue > 0;
+                              });
+                            });
+                            
+                            const channelDailyTotals = {};
+                            channelHistoricalData.forEach(item => {
+                              if (!channelDailyTotals[item.order_date]) channelDailyTotals[item.order_date] = 0;
+                              const channels = [
+                                { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+                                { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+                                { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+                                { key: 'store', revenue: item.sourceType_store || 0 }
+                              ];
+                              channels.forEach(ch => {
+                                const mappedKey = channelMapping[ch.key] || ch.key;
+                                if (mappedKey === channelName) channelDailyTotals[item.order_date] += ch.revenue;
+                              });
+                            });
+                            
+                            const channelDayOfWeekRevenues = {};
+                            Object.entries(channelDailyTotals).forEach(([date, revenue]) => {
+                              const itemDate = new Date(date);
+                              if (itemDate >= seasonalityCutoff) {
+                                const dayOfWeek = itemDate.getDay();
+                                if (!channelDayOfWeekRevenues[dayOfWeek]) channelDayOfWeekRevenues[dayOfWeek] = [];
+                                channelDayOfWeekRevenues[dayOfWeek].push(revenue);
+                              }
+                            });
+                            
+                            const channelAvgByDayOfWeek = {};
+                            Object.keys(channelDayOfWeekRevenues).forEach(dayOfWeek => {
+                              const revenues = channelDayOfWeekRevenues[dayOfWeek];
+                              let avg = 0;
+                              if (activeUseEMA && revenues.length > 0) {
+                                const alpha = 0.2;
+                                avg = revenues[0];
+                                for (let i = 1; i < revenues.length; i++) {
+                                  avg = alpha * revenues[i] + (1 - alpha) * avg;
+                                }
+                              } else {
+                                avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+                              }
+                              channelAvgByDayOfWeek[dayOfWeek] = avg;
+                            });
+                            
+                            let channelDailyGrowthRate = 0;
+                            if (effectiveGrowthPeriodDays > 0) {
+                              const growthCutoff = subDays(today, effectiveGrowthPeriodDays);
+                              const growthData = Object.entries(channelDailyTotals)
+                                .filter(([date]) => {
+                                  const d = new Date(date);
+                                  return d >= growthCutoff && d < today;
+                                })
+                                .sort(([a], [b]) => a.localeCompare(b));
+                              
+                              if (growthData.length >= 2) {
+                                const n = growthData.length;
+                                let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                                growthData.forEach(([date, revenue], index) => {
+                                  sumX += index;
+                                  sumY += revenue;
+                                  sumXY += index * revenue;
+                                  sumX2 += index * index;
+                                });
+                                const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                                channelDailyGrowthRate = slope;
+                              }
+                            }
+                            
+                            let channelPredictedRevenue = 0;
+                            for (let i = 0; i < daysRemaining; i++) {
+                              const futureDate = new Date(today);
+                              futureDate.setDate(today.getDate() + i);
+                              const dayOfWeek = futureDate.getDay();
+                              const baseRev = channelAvgByDayOfWeek[dayOfWeek] || 0;
+                              const growthAdj = channelDailyGrowthRate * (daysPassed + i);
+                              channelPredictedRevenue += baseRev + growthAdj;
+                            }
+                            
+                            splitData[channelName].predicted = channelPredictedRevenue;
+                          });
+                          
+                          const totalActualAll = Object.values(splitData).reduce((sum, d) => sum + d.actual, 0);
                           
                           return Object.entries(splitData)
                             .sort(([, a], [, b]) => b.actual - a.actual)
                             .map(([key, data]) => {
-                              const proportion = totalActual > 0 ? data.actual / totalActual : 0;
+                              const proportion = totalActualAll > 0 ? data.actual / totalActualAll : 0;
                               const splitTarget = target * proportion;
-                              const splitPredicted = predictedRevenue * proportion;
-                              const splitTotalProjected = data.actual + splitPredicted;
+                              const splitTotalProjected = data.actual + data.predicted;
                               const splitGap = splitTarget - splitTotalProjected;
                               const splitProgress = splitTarget > 0 ? (splitTotalProjected / splitTarget) * 100 : 0;
                               
