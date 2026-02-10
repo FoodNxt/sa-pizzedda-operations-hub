@@ -14,6 +14,7 @@ export default function PulizieMatch() {
   const [sortBy, setSortBy] = useState('percentage');
   const [viewMode, setViewMode] = useState('list');
   const [showOnlyFailed, setShowOnlyFailed] = useState({});
+  const [criticalSectionExpanded, setCriticalSectionExpanded] = useState(true);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -423,11 +424,18 @@ export default function PulizieMatch() {
           if (equipmentWithRepeatedFailures.length > 0) {
             return (
               <NeumorphicCard className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-red-700">⚠️ Attrezzature con Controlli Critici</h3>
+                <div 
+                  className="flex items-center justify-between mb-4 cursor-pointer"
+                  onClick={() => setCriticalSectionExpanded(!criticalSectionExpanded)}
+                >
+                  <div className="flex items-center gap-2">
+                    <ChevronRight className={`w-5 h-5 text-red-700 transition-transform ${criticalSectionExpanded ? 'rotate-90' : ''}`} />
+                    <h3 className="text-lg font-bold text-red-700">⚠️ Attrezzature con Controlli Critici</h3>
+                  </div>
                   <p className="text-sm text-[#9b9b9b]">Dipendenti con più di 2 fallimenti</p>
                 </div>
                 
+                {criticalSectionExpanded && (
                 <div className="space-y-4">
                   {equipmentWithRepeatedFailures.map((eq, idx) => (
                     <div key={idx} className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-4 border-l-4 border-red-500">
@@ -482,6 +490,7 @@ export default function PulizieMatch() {
                     </div>
                   ))}
                 </div>
+                )}
               </NeumorphicCard>
             );
           }
