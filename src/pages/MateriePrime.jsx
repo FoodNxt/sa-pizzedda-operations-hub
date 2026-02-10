@@ -23,7 +23,9 @@ import {
   Camera,
   ChefHat,
   Truck,
-  Wheat } from
+  Wheat,
+  Loader2,
+  RefreshCw } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -93,6 +95,8 @@ export default function MateriePrime() {
     });
     return initial;
   });
+  const [analyzingAllergeni, setAnalyzingAllergeni] = useState(false);
+  const [allergeniProgress, setAllergeniProgress] = useState({ current: 0, total: 0 });
 
   const queryClient = useQueryClient();
 
@@ -390,6 +394,29 @@ export default function MateriePrime() {
     }));
   };
 
+  const analizzaTuttiAllergeni = async () => {
+    if (!confirm('Vuoi analizzare automaticamente gli allergeni di tutte le ricette? Questa operazione può richiedere alcuni minuti.')) {
+      return;
+    }
+
+    setAnalyzingAllergeni(true);
+    const ricetteDaAnalizzare = ricette.filter(r => r.attivo !== false);
+    setAllergeniProgress({ current: 0, total: ricetteDaAnalizzare.length });
+
+    for (let i = 0; i < ricetteDaAnalizzare.length; i++) {
+      try {
+        await base44.functions.invoke('analizzaAllergeni', { ricetta_id: ricetteDaAnalizzare[i].id });
+        setAllergeniProgress({ current: i + 1, total: ricetteDaAnalizzare.length });
+      } catch (error) {
+        console.error('Error analyzing ricetta:', ricetteDaAnalizzare[i].nome_prodotto, error);
+      }
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ['ricette'] });
+    setAnalyzingAllergeni(false);
+    alert('Analisi completata!');
+  };
+
   const sortProducts = (products) => {
     if (!sortConfig.key) return products;
 
@@ -510,13 +537,35 @@ export default function MateriePrime() {
         {activeTab === 'fornitori' && <FornitoriContent />}
         {activeTab === 'allergeni' && (
           <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <Wheat className="w-6 h-6 text-amber-600" />
-              Tabella Allergeni
-            </h2>
-            <p className="text-sm text-slate-600 mb-4">
-              Prodotti venduti con ricetta e relativi allergeni
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Wheat className="w-6 h-6 text-amber-600" />
+                  Tabella Allergeni
+                </h2>
+                <p className="text-sm text-slate-600 mt-1">
+                  Prodotti venduti con ricetta e relativi allergeni
+                </p>
+              </div>
+              <NeumorphicButton
+                onClick={analizzaTuttiAllergeni}
+                disabled={analyzingAllergeni}
+                variant="primary"
+                className="flex items-center gap-2"
+              >
+                {analyzingAllergeni ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {allergeniProgress.current}/{allergeniProgress.total}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Analizza Tutti
+                  </>
+                )}
+              </NeumorphicButton>
+            </div>
 
             {ricette.length === 0 ? (
               <div className="text-center py-12">
