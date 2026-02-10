@@ -107,18 +107,17 @@ Deno.serve(async (req) => {
           const info = allergeniInfo[allergene] || { icon: '●', color: brandRed };
           const textWidth = doc.getTextWidth(allergene);
           
-          // Icona
-          doc.setFontSize(8);
-          doc.setTextColor(...info.color);
-          doc.text(info.icon, allergeniX, allergeniY);
+          // Disegna cerchio rosso come icona
+          doc.setFillColor(...brandRed);
+          doc.circle(allergeniX + 1, allergeniY - 1.5, 1.5, 'F');
           
           // Nome allergene
           doc.setFontSize(8);
           doc.setFont(undefined, 'normal');
           doc.setTextColor(60, 60, 60);
-          doc.text(allergene, allergeniX + 3, allergeniY);
+          doc.text(allergene, allergeniX + 4, allergeniY);
           
-          allergeniX += textWidth + 8;
+          allergeniX += textWidth + 9;
           itemsInRow++;
           
           // Vai a capo dopo 2 allergeni o se non c'è spazio
