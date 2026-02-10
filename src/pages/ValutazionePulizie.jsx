@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Image,
   RefreshCw,
-  Loader2 } from
+  Loader2,
+  Clock } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -588,7 +589,7 @@ export default function ValutazionePulizie() {
                       </div>
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-[#6b6b6b]">{inspection.store_name}</h3>
-                        <div className="flex items-center gap-4 text-sm text-[#9b9b9b] mt-1">
+                        <div className="flex items-center gap-4 text-sm text-[#9b9b9b] mt-1 flex-wrap">
                           <div className="flex items-center gap-1">
                             <User className="w-4 h-4" />
                             {inspection.inspector_name}
@@ -597,6 +598,20 @@ export default function ValutazionePulizie() {
                             <Calendar className="w-4 h-4" />
                             {format(new Date(inspection.inspection_date), "d MMM yyyy 'alle' HH:mm", { locale: it })}
                           </div>
+                          {inspection.completion_time_seconds && (
+                            <div className={`flex items-center gap-1 font-medium ${
+                              inspection.completion_time_seconds < 60 ? 'text-red-600' :
+                              inspection.completion_time_seconds < 120 ? 'text-orange-600' :
+                              'text-green-600'
+                            }`}>
+                              <Clock className="w-4 h-4" />
+                              {inspection.completion_time_seconds < 60 ? (
+                                <span>⚠️ {inspection.completion_time_seconds}s</span>
+                              ) : (
+                                <span>{Math.floor(inspection.completion_time_seconds / 60)}m {inspection.completion_time_seconds % 60}s</span>
+                              )}
+                            </div>
+                          )}
                           {fotoNonValutate.length > 0 &&
                         <div className="flex items-center gap-1">
                               <AlertCircle className="w-4 h-4 text-red-500" />

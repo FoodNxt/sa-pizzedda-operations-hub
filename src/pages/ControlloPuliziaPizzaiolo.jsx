@@ -59,6 +59,7 @@ export default function ControlloPuliziaPizzaiolo() {
   const [uploadProgress, setUploadProgress] = useState('');
   const [error, setError] = useState('');
   const [activeCamera, setActiveCamera] = useState(null);
+  const [formStartTime, setFormStartTime] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -129,6 +130,13 @@ export default function ControlloPuliziaPizzaiolo() {
     },
     enabled: !!selectedStore && attrezzature.length > 0,
   });
+
+  // Start timer when store is selected
+  useEffect(() => {
+    if (selectedStore && !formStartTime) {
+      setFormStartTime(Date.now());
+    }
+  }, [selectedStore]);
 
   const handlePhotoCapture = (questionId, file) => {
     setPhotos(prev => ({ ...prev, [questionId]: file }));
@@ -246,6 +254,9 @@ export default function ControlloPuliziaPizzaiolo() {
         }
       }
 
+      // Calculate completion time
+      const completionTimeSeconds = formStartTime ? Math.round((Date.now() - formStartTime) / 1000) : 0;
+
       const inspectionData = {
         store_name: store?.name || 'Store sconosciuto',
         store_id: selectedStore,
@@ -254,7 +265,8 @@ export default function ControlloPuliziaPizzaiolo() {
         inspector_role: 'Pizzaiolo',
         analysis_status: 'processing',
         inspection_type: 'pizzaiolo',
-        domande_risposte: domandeRisposte
+        domande_risposte: domandeRisposte,
+        completion_time_seconds: completionTimeSeconds
       };
 
       console.log('Creazione ispezione...');

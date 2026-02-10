@@ -27,6 +27,7 @@ export default function ControlloPuliziaStoreManager() {
   const [uploadProgress, setUploadProgress] = useState('');
   const [error, setError] = useState('');
   const [isAfterDeadline, setIsAfterDeadline] = useState(false);
+  const [formStartTime, setFormStartTime] = useState(null);
 
   // Check if current time is after 10:30
   useEffect(() => {
@@ -107,6 +108,13 @@ export default function ControlloPuliziaStoreManager() {
     },
     enabled: !!selectedStore && attrezzature.length > 0,
   });
+
+  // Start timer when store is selected
+  useEffect(() => {
+    if (selectedStore && !formStartTime) {
+      setFormStartTime(Date.now());
+    }
+  }, [selectedStore]);
 
   const handlePhotoChange = (questionId, e) => {
     const file = e.target.files[0];
@@ -224,6 +232,9 @@ export default function ControlloPuliziaStoreManager() {
         }
       }
 
+      // Calculate completion time
+      const completionTimeSeconds = formStartTime ? Math.round((Date.now() - formStartTime) / 1000) : 0;
+
       const inspectionData = {
         store_name: store?.name || 'Store sconosciuto',
         store_id: selectedStore,
@@ -232,7 +243,8 @@ export default function ControlloPuliziaStoreManager() {
         inspector_role: 'Store Manager',
         analysis_status: 'processing',
         inspection_type: 'store_manager',
-        domande_risposte: domandeRisposte
+        domande_risposte: domandeRisposte,
+        completion_time_seconds: completionTimeSeconds
       };
 
       console.log('Creazione ispezione...');
