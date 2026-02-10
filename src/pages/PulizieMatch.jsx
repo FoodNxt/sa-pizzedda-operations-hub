@@ -391,44 +391,88 @@ export default function PulizieMatch() {
           sortedResults.forEach(employee => {
             employee.details.filter(d => d.stato === 'sporco').forEach(detail => {
               if (!failuresByEquipment[detail.attrezzatura]) {
-                failuresByEquipment[detail.attrezzatura] = {};
+                failuresByEquipment[detail.attrezzatura] = {
+                  totalFailures: 0,
+                  employees: {}
+                };
               }
-              if (!failuresByEquipment[detail.attrezzatura][employee.name]) {
-                failuresByEquipment[detail.attrezzatura][employee.name] = {
+              failuresByEquipment[detail.attrezzatura].totalFailures++;
+              
+              if (!failuresByEquipment[detail.attrezzatura].employees[employee.name]) {
+                failuresByEquipment[detail.attrezzatura].employees[employee.name] = {
                   count: 0,
                   details: []
                 };
               }
-              failuresByEquipment[detail.attrezzatura][employee.name].count++;
-              failuresByEquipment[detail.attrezzatura][employee.name].details.push(detail);
+              failuresByEquipment[detail.attrezzatura].employees[employee.name].count++;
+              failuresByEquipment[detail.attrezzatura].employees[employee.name].details.push(detail);
             });
           });
           
           const equipmentWithRepeatedFailures = Object.entries(failuresByEquipment)
-            .map(([equipment, employees]) => ({
+            .map(([equipment, data]) => ({
               equipment,
-              employees: Object.entries(employees)
-                .filter(([_, data]) => data.count >= 2)
-                .map(([name, data]) => ({ name, ...data }))
+              totalFailures: data.totalFailures,
+              employees: Object.entries(data.employees)
+                .filter(([_, empData]) => empData.count > 2)
+                .map(([name, empData]) => ({ name, ...empData }))
+                .sort((a, b) => b.count - a.count)
             }))
-            .filter(eq => eq.employees.length > 0);
+            .filter(eq => eq.employees.length > 0)
+            .sort((a, b) => b.totalFailures - a.totalFailures);
           
           if (equipmentWithRepeatedFailures.length > 0) {
             return (
-              <NeumorphicCard className="p-4 bg-red-50 border border-red-300">
-                <h3 className="text-base font-bold text-red-700 mb-3">⚠️ Controlli Falliti Ripetutamente</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-red-700">⚠️ Attrezzature con Controlli Critici</h3>
+                  <p className="text-sm text-[#9b9b9b]">Dipendenti con più di 2 fallimenti</p>
+                </div>
+                
+                <div className="space-y-4">
                   {equipmentWithRepeatedFailures.map((eq, idx) => (
-                    <div key={idx} className="bg-white rounded-lg p-2 text-xs">
-                      <div className="font-bold text-[#6b6b6b] text-sm mb-1 border-b pb-1">{eq.equipment}</div>
-                      {eq.employees.sort((a, b) => b.count - a.count).map((emp, empIdx) => (
-                        <div key={empIdx} className="flex items-center justify-between py-1 border-l-2 border-red-500 pl-2 my-1">
-                          <span className="font-medium text-[#6b6b6b]">{emp.name}</span>
-                          <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                            {emp.count}x
-                          </span>
+                    <div key={idx} className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-4 border-l-4 border-red-500">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-base font-bold text-[#6b6b6b]">{eq.equipment}</h4>
+                        <div className="bg-red-600 text-white px-4 py-1 rounded-full font-bold">
+                          {eq.totalFailures} fallimenti totali
                         </div>
-                      ))}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {eq.employees.map((emp, empIdx) => (
+                          <div key={empIdx} className="bg-white rounded-lg p-3 shadow-sm">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <p className="font-bold text-[#6b6b6b] text-sm">{emp.name}</p>
+                                <p className="text-xs text-[#9b9b9b] mt-1">
+                                  {emp.details.length} {emp.details.length === 1 ? 'fallimento' : 'fallimenti'}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                  {emp.count}x
+                                </span>
+                                <span className="text-[10px] text-red-600 font-medium">
+                                  {((emp.count / eq.totalFailures) * 100).toFixed(0)}%
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-[#9b9b9b] space-y-0.5 max-h-16 overflow-y-auto">
+                              {emp.details.slice(0, 3).map((detail, detailIdx) => (
+                                <div key={detailIdx}>
+                                  • {format(parseISO(detail.data_compilazione), 'dd/MM', { locale: it })} - {detail.store_name}
+                                </div>
+                              ))}
+                              {emp.details.length > 3 && (
+                                <div className="text-red-600 font-medium">
+                                  +{emp.details.length - 3} altri
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
