@@ -104,25 +104,26 @@ Deno.serve(async (req) => {
         let itemsInRow = 0;
         
         ricetta.allergeni.forEach((allergene, aIdx) => {
-          const info = allergeniInfo[allergene] || { icon: '●', color: brandRed };
-          const textWidth = doc.getTextWidth(allergene);
-          
-          // Disegna cerchio rosso come icona
-          doc.setFillColor(...brandRed);
-          doc.circle(allergeniX + 1, allergeniY - 1.5, 1.5, 'F');
-          
-          // Nome allergene
           doc.setFontSize(8);
           doc.setFont(undefined, 'normal');
-          doc.setTextColor(60, 60, 60);
-          doc.text(allergene, allergeniX + 4, allergeniY);
+          const textWidth = doc.getTextWidth(allergene);
+          const badgeWidth = textWidth + 6;
+          const badgeHeight = 5;
           
-          allergeniX += textWidth + 9;
+          // Riquadro stondato rosa/beige
+          doc.setFillColor(252, 235, 235); // Rosa chiaro
+          doc.roundedRect(allergeniX, allergeniY - 4, badgeWidth, badgeHeight, 2.5, 2.5, 'F');
+          
+          // Testo rosso scuro
+          doc.setTextColor(185, 28, 28); // Rosso scuro
+          doc.text(allergene, allergeniX + 3, allergeniY - 0.5);
+          
+          allergeniX += badgeWidth + 3;
           itemsInRow++;
           
           // Vai a capo dopo 2 allergeni o se non c'è spazio
           if (itemsInRow >= 2 || allergeniX > margin + tableWidth - 10) {
-            allergeniY += 6;
+            allergeniY += 7;
             allergeniX = margin + 95;
             itemsInRow = 0;
           }
