@@ -383,49 +383,63 @@ export default function PulizieMatch() {
           </NeumorphicCard>
         </div>
 
-        {/* Repeated Failures Summary */}
+        {/* Repeated Failures Summary - Grouped by Equipment */}
         {(() => {
-          const allFailures = {};
+          const failuresByEquipment = {};
+          
           sortedResults.forEach(employee => {
             employee.details.filter(d => d.stato === 'sporco').forEach(detail => {
-              const key = `${employee.name}|${detail.attrezzatura}`;
-              if (!allFailures[key]) {
-                allFailures[key] = {
-                  employeeName: employee.name,
-                  attrezzatura: detail.attrezzatura,
+              if (!failuresByEquipment[detail.attrezzatura]) {
+                failuresByEquipment[detail.attrezzatura] = {};
+              }
+              if (!failuresByEquipment[detail.attrezzatura][employee.name]) {
+                failuresByEquipment[detail.attrezzatura][employee.name] = {
                   count: 0,
                   details: []
                 };
               }
-              allFailures[key].count++;
-              allFailures[key].details.push(detail);
+              failuresByEquipment[detail.attrezzatura][employee.name].count++;
+              failuresByEquipment[detail.attrezzatura][employee.name].details.push(detail);
             });
           });
           
-          const repeatedFailures = Object.values(allFailures).filter(f => f.count > 1);
+          const equipmentWithRepeatedFailures = Object.entries(failuresByEquipment)
+            .map(([equipment, employees]) => ({
+              equipment,
+              employees: Object.entries(employees)
+                .filter(([_, data]) => data.count >= 2)
+                .map(([name, data]) => ({ name, ...data }))
+            }))
+            .filter(eq => eq.employees.length > 0);
           
-          if (repeatedFailures.length > 0) {
+          if (equipmentWithRepeatedFailures.length > 0) {
             return (
               <NeumorphicCard className="p-6 bg-red-50 border-2 border-red-300">
                 <h2 className="text-xl font-bold text-red-700 mb-4 flex items-center gap-2">
-                  ⚠️ Controlli Falliti Ripetutamente
+                  ⚠️ Controlli Falliti Ripetutamente (per Attrezzatura)
                 </h2>
-                <div className="space-y-3">
-                  {repeatedFailures.sort((a, b) => b.count - a.count).map((failure, idx) => (
-                    <div key={idx} className="bg-white rounded-lg p-4 border-l-4 border-red-500">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className="font-bold text-[#6b6b6b]">{failure.employeeName}</p>
-                          <p className="text-sm text-[#9b9b9b]">{failure.attrezzatura}</p>
-                        </div>
-                        <span className="bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full">
-                          {failure.count}x fallito
-                        </span>
-                      </div>
-                      <div className="text-xs text-[#9b9b9b] space-y-1">
-                        {failure.details.map((detail, detailIdx) => (
-                          <div key={detailIdx}>
-                            • {detail.store_name} - {format(parseISO(detail.data_compilazione), 'dd/MM/yyyy', { locale: it })}
+                <div className="space-y-4">
+                  {equipmentWithRepeatedFailures.map((eq, idx) => (
+                    <div key={idx} className="bg-white rounded-lg p-4">
+                      <h3 className="font-bold text-[#6b6b6b] text-lg mb-3 border-b pb-2">
+                        {eq.equipment}
+                      </h3>
+                      <div className="space-y-2">
+                        {eq.employees.sort((a, b) => b.count - a.count).map((emp, empIdx) => (
+                          <div key={empIdx} className="bg-red-50 rounded-lg p-3 border-l-4 border-red-500">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="font-bold text-[#6b6b6b]">{emp.name}</p>
+                              <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                {emp.count}x fallito
+                              </span>
+                            </div>
+                            <div className="text-xs text-[#9b9b9b] space-y-1">
+                              {emp.details.map((detail, detailIdx) => (
+                                <div key={detailIdx}>
+                                  • {detail.store_name} - {format(parseISO(detail.data_compilazione), 'dd/MM/yyyy', { locale: it })}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
