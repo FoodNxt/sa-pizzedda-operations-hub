@@ -25,7 +25,9 @@ import {
   Truck,
   Wheat,
   Loader2,
-  RefreshCw } from
+  RefreshCw,
+  Download,
+  Check } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -97,6 +99,8 @@ export default function MateriePrime() {
   });
   const [analyzingAllergeni, setAnalyzingAllergeni] = useState(false);
   const [allergeniProgress, setAllergeniProgress] = useState({ current: 0, total: 0 });
+  const [selectedRicette, setSelectedRicette] = useState([]);
+  const [editingAllergeni, setEditingAllergeni] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -417,6 +421,57 @@ export default function MateriePrime() {
     alert('Analisi completata!');
   };
 
+  const scaricaPDFAllergeni = async () => {
+    if (selectedRicette.length === 0) {
+      alert('Seleziona almeno un prodotto da scaricare');
+      return;
+    }
+
+    try {
+      const response = await base44.functions.invoke('scaricaPDFAllergeni', {
+        ricette_ids: selectedRicette
+      });
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'allergeni.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (error) {
+      alert('Errore nella generazione del PDF: ' + error.message);
+    }
+  };
+
+  const toggleRicettaSelection = (ricettaId) => {
+    setSelectedRicette(prev => 
+      prev.includes(ricettaId) 
+        ? prev.filter(id => id !== ricettaId)
+        : [...prev, ricettaId]
+    );
+  };
+
+  const toggleAllRicette = () => {
+    const ricetteAttive = ricette.filter(r => r.attivo !== false);
+    if (selectedRicette.length === ricetteAttive.length) {
+      setSelectedRicette([]);
+    } else {
+      setSelectedRicette(ricetteAttive.map(r => r.id));
+    }
+  };
+
+  const saveAllergeniMutation = useMutation({
+    mutationFn: ({ ricettaId, allergeni }) => 
+      base44.entities.Ricetta.update(ricettaId, { allergeni }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ricette'] });
+      setEditingAllergeni(null);
+    }
+  });
+
   const sortProducts = (products) => {
     if (!sortConfig.key) return products;
 
@@ -547,24 +602,34 @@ export default function MateriePrime() {
                   Prodotti venduti con ricetta e relativi allergeni
                 </p>
               </div>
-              <NeumorphicButton
-                onClick={analizzaTuttiAllergeni}
-                disabled={analyzingAllergeni}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                {analyzingAllergeni ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {allergeniProgress.current}/{allergeniProgress.total}
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4" />
-                    Analizza Tutti
-                  </>
-                )}
-              </NeumorphicButton>
+              <div className="flex gap-2">
+                <NeumorphicButton
+                  onClick={analizzaTuttiAllergeni}
+                  disabled={analyzingAllergeni}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  {analyzingAllergeni ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {allergeniProgress.current}/{allergeniProgress.total}
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      Analizza
+                    </>
+                  )}
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={scaricaPDFAllergeni}
+                  disabled={selectedRicette.length === 0}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  PDF ({selectedRicette.length})
+                </NeumorphicButton>
+              </div>
             </div>
 
             {ricette.length === 0 ? (
@@ -574,13 +639,22 @@ export default function MateriePrime() {
               </div>
             ) : (
               <div className="overflow-x-auto -mx-4 px-4 lg:mx-0 lg:px-0">
-                <table className="w-full min-w-[600px]">
+                <table className="w-full min-w-[700px]">
                   <thead>
                     <tr className="border-b-2 border-amber-600">
+                      <th className="text-center p-3 text-slate-600 font-medium text-sm w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedRicette.length === ricette.filter(r => r.attivo !== false).length}
+                          onChange={toggleAllRicette}
+                          className="w-4 h-4 cursor-pointer"
+                        />
+                      </th>
                       <th className="text-left p-3 text-slate-600 font-medium text-sm">Prodotto</th>
                       <th className="text-left p-3 text-slate-600 font-medium text-sm">Categoria</th>
                       <th className="text-left p-3 text-slate-600 font-medium text-sm">Allergeni</th>
                       <th className="text-center p-3 text-slate-600 font-medium text-sm">Venduto</th>
+                      <th className="text-center p-3 text-slate-600 font-medium text-sm">Azioni</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -589,6 +663,14 @@ export default function MateriePrime() {
                       .sort((a, b) => (a.nome_prodotto || '').localeCompare(b.nome_prodotto || '', 'it'))
                       .map((ricetta) => (
                         <tr key={ricetta.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                          <td className="p-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedRicette.includes(ricetta.id)}
+                              onChange={() => toggleRicettaSelection(ricetta.id)}
+                              className="w-4 h-4 cursor-pointer"
+                            />
+                          </td>
                           <td className="p-3">
                             <p className="font-medium text-slate-800">{ricetta.nome_prodotto}</p>
                           </td>
@@ -598,16 +680,63 @@ export default function MateriePrime() {
                             </span>
                           </td>
                           <td className="p-3">
-                            {ricetta.allergeni && ricetta.allergeni.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {ricetta.allergeni.map((allergene, idx) => (
-                                  <span key={idx} className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                                    {allergene}
-                                  </span>
-                                ))}
+                            {editingAllergeni?.id === ricetta.id ? (
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-1">
+                                  {['Glutine', 'Crostacei', 'Uova', 'Pesce', 'Arachidi', 'Soia', 'Latte', 'Frutta a guscio', 'Sedano', 'Senape', 'Semi di sesamo', 'Anidride solforosa', 'Lupini', 'Molluschi'].map(allergene => (
+                                    <button
+                                      key={allergene}
+                                      type="button"
+                                      onClick={() => {
+                                        const current = editingAllergeni.allergeni || [];
+                                        const updated = current.includes(allergene)
+                                          ? current.filter(a => a !== allergene)
+                                          : [...current, allergene];
+                                        setEditingAllergeni({ ...editingAllergeni, allergeni: updated });
+                                      }}
+                                      className={`px-2 py-1 rounded-full text-xs font-medium transition-all ${
+                                        (editingAllergeni.allergeni || []).includes(allergene)
+                                          ? 'bg-red-500 text-white'
+                                          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                                      }`}
+                                    >
+                                      {allergene}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => {
+                                      saveAllergeniMutation.mutate({
+                                        ricettaId: ricetta.id,
+                                        allergeni: editingAllergeni.allergeni
+                                      });
+                                    }}
+                                    disabled={saveAllergeniMutation.isPending}
+                                    className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 flex items-center gap-1"
+                                  >
+                                    <Save className="w-3 h-3" /> Salva
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingAllergeni(null)}
+                                    className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-300"
+                                  >
+                                    Annulla
+                                  </button>
+                                </div>
                               </div>
                             ) : (
-                              <span className="text-xs text-slate-400 italic">Nessun allergene specificato</span>
+                              ricetta.allergeni && ricetta.allergeni.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {ricetta.allergeni.map((allergene, idx) => (
+                                    <span key={idx} className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                      {allergene}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400 italic">Nessun allergene specificato</span>
+                              )
                             )}
                           </td>
                           <td className="p-3">
@@ -621,6 +750,19 @@ export default function MateriePrime() {
                                 <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">
                                   Negozio
                                 </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex justify-center">
+                              {editingAllergeni?.id !== ricetta.id && (
+                                <button
+                                  onClick={() => setEditingAllergeni({ id: ricetta.id, allergeni: ricetta.allergeni || [] })}
+                                  className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                                  title="Modifica allergeni"
+                                >
+                                  <Edit className="w-4 h-4 text-blue-600" />
+                                </button>
                               )}
                             </div>
                           </td>
