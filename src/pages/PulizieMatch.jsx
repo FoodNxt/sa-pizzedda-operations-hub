@@ -481,7 +481,14 @@ export default function PulizieMatch() {
               const isGood = percentage >= 80;
 
               return (
-                <div key={employee.id} className="neumorphic-pressed p-5 rounded-xl">
+                <div 
+                  key={employee.id} 
+                  className="neumorphic-pressed p-5 rounded-xl cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => {
+                    setSelectedEmployee(employee.id);
+                    setViewMode('detail');
+                  }}
+                >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
