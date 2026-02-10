@@ -410,15 +410,14 @@ export default function PulizieMatch() {
           });
           
           const equipmentWithRepeatedFailures = Object.entries(failuresByEquipment)
+            .filter(([_, data]) => data.totalFailures >= 2)
             .map(([equipment, data]) => ({
               equipment,
               totalFailures: data.totalFailures,
               employees: Object.entries(data.employees)
-                .filter(([_, empData]) => empData.count > 2)
-                .map(([name, empData]) => ({ name, ...empData }))
+                .map(([name, empData]) => ({ name, ...empData, isRepeated: empData.count > 2 }))
                 .sort((a, b) => b.count - a.count)
             }))
-            .filter(eq => eq.employees.length > 0)
             .sort((a, b) => b.totalFailures - a.totalFailures);
           
           if (equipmentWithRepeatedFailures.length > 0) {
@@ -441,16 +440,23 @@ export default function PulizieMatch() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {eq.employees.map((emp, empIdx) => (
-                          <div key={empIdx} className="bg-white rounded-lg p-3 shadow-sm">
+                          <div key={empIdx} className={`rounded-lg p-3 shadow-sm border-2 ${
+                            emp.isRepeated ? 'bg-red-50 border-red-400' : 'bg-white border-slate-200'
+                          }`}>
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex-1">
-                                <p className="font-bold text-[#6b6b6b] text-sm">{emp.name}</p>
+                                <p className={`font-bold text-sm ${emp.isRepeated ? 'text-red-700' : 'text-[#6b6b6b]'}`}>
+                                  {emp.name}
+                                  {emp.isRepeated && <span className="ml-1 text-red-600">⚠️</span>}
+                                </p>
                                 <p className="text-xs text-[#9b9b9b] mt-1">
                                   {emp.details.length} {emp.details.length === 1 ? 'fallimento' : 'fallimenti'}
                                 </p>
                               </div>
                               <div className="flex flex-col items-end gap-1">
-                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                                  emp.isRepeated ? 'bg-red-600 text-white' : 'bg-orange-400 text-white'
+                                }`}>
                                   {emp.count}x
                                 </span>
                                 <span className="text-[10px] text-red-600 font-medium">
