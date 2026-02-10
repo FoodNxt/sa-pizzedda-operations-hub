@@ -19,22 +19,22 @@ Deno.serve(async (req) => {
 
     const doc = new jsPDF();
     
-    // Mappa emoji allergeni
-    const allergeniIcons = {
-      'Glutine': '🌾',
-      'Crostacei': '🦞',
-      'Uova': '🥚',
-      'Pesce': '🐟',
-      'Arachidi': '🥜',
-      'Soia': '🫘',
-      'Latte': '🥛',
-      'Frutta a guscio': '🌰',
-      'Sedano': '🥬',
-      'Senape': '🟡',
-      'Semi di sesamo': '⚪',
-      'Anidride solforosa': '☁️',
-      'Lupini': '🫘',
-      'Molluschi': '🐚'
+    // Mappa codici allergeni con colori
+    const allergeniCodes = {
+      'Glutine': { code: 'GL', color: [255, 179, 71] },
+      'Crostacei': { code: 'CR', color: [255, 107, 107] },
+      'Uova': { code: 'UO', color: [255, 234, 167] },
+      'Pesce': { code: 'PE', color: [84, 160, 255] },
+      'Arachidi': { code: 'AR', color: [210, 145, 188] },
+      'Soia': { code: 'SO', color: [162, 155, 254] },
+      'Latte': { code: 'LA', color: [255, 255, 255] },
+      'Frutta a guscio': { code: 'FG', color: [186, 139, 96] },
+      'Sedano': { code: 'SE', color: [130, 204, 130] },
+      'Senape': { code: 'SN', color: [255, 215, 64] },
+      'Semi di sesamo': { code: 'SS', color: [245, 245, 220] },
+      'Anidride solforosa': { code: 'AN', color: [200, 200, 200] },
+      'Lupini': { code: 'LU', color: [255, 183, 77] },
+      'Molluschi': { code: 'MO', color: [255, 138, 101] }
     };
 
     // Header con design accattivante
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     doc.setFontSize(24);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(255, 255, 255);
-    doc.text('🌾 ALLERGENI', 105, 20, { align: 'center' });
+    doc.text('ALLERGENI', 105, 20, { align: 'center' });
     
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
@@ -97,27 +97,32 @@ Deno.serve(async (req) => {
       // Allergeni
       if (ricetta.allergeni && ricetta.allergeni.length > 0) {
         let allergeniY = currentY + 7;
-        let allergeniX = margin + 95;
+        let allergeniX = margin + 90;
         
         ricetta.allergeni.forEach((allergene, aIdx) => {
-          const icon = allergeniIcons[allergene] || '⚠️';
+          const info = allergeniCodes[allergene] || { code: '??', color: [200, 200, 200] };
           
-          // Background allergene
-          doc.setFillColor(254, 226, 226); // red-100
-          doc.roundedRect(allergeniX, allergeniY - 4, 22, 5, 1, 1, 'F');
+          // Box colorato per allergene
+          doc.setFillColor(...info.color);
+          doc.roundedRect(allergeniX, allergeniY - 4.5, 10, 6, 1.5, 1.5, 'F');
           
-          // Testo allergene
-          doc.setFontSize(8);
-          doc.setFont(undefined, 'normal');
-          doc.setTextColor(185, 28, 28); // red-700
-          doc.text(`${icon} ${allergene}`, allergeniX + 1, allergeniY);
+          // Bordo nero sottile
+          doc.setDrawColor(50, 50, 50);
+          doc.setLineWidth(0.3);
+          doc.roundedRect(allergeniX, allergeniY - 4.5, 10, 6, 1.5, 1.5, 'S');
           
-          allergeniX += 24;
+          // Codice allergene
+          doc.setFontSize(7);
+          doc.setFont(undefined, 'bold');
+          doc.setTextColor(30, 30, 30);
+          doc.text(info.code, allergeniX + 5, allergeniY + 0.5, { align: 'center' });
           
-          // Vai a capo dopo 4 allergeni
-          if ((aIdx + 1) % 4 === 0) {
-            allergeniY += 6;
-            allergeniX = margin + 95;
+          allergeniX += 11.5;
+          
+          // Vai a capo dopo 8 allergeni
+          if ((aIdx + 1) % 8 === 0) {
+            allergeniY += 7;
+            allergeniX = margin + 90;
           }
         });
       } else {
@@ -129,6 +134,55 @@ Deno.serve(async (req) => {
 
       currentY += estimatedHeight + 3;
     });
+
+    // Legenda allergeni in fondo
+    if (currentY < 220) {
+      currentY = Math.max(currentY + 5, 220);
+      
+      doc.setFillColor(251, 191, 36);
+      doc.rect(margin, currentY, tableWidth, 4, 'F');
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('LEGENDA ALLERGENI', margin + 2, currentY + 3);
+      
+      currentY += 6;
+      const legendCols = 3;
+      const colWidth = tableWidth / legendCols;
+      let legendX = margin;
+      let legendY = currentY;
+      let colIdx = 0;
+      
+      Object.entries(allergeniCodes).forEach(([nome, info]) => {
+        // Box colorato
+        doc.setFillColor(...info.color);
+        doc.roundedRect(legendX, legendY - 3, 6, 4, 1, 1, 'F');
+        doc.setDrawColor(50, 50, 50);
+        doc.setLineWidth(0.2);
+        doc.roundedRect(legendX, legendY - 3, 6, 4, 1, 1, 'S');
+        
+        // Codice
+        doc.setFontSize(5.5);
+        doc.setFont(undefined, 'bold');
+        doc.setTextColor(30, 30, 30);
+        doc.text(info.code, legendX + 3, legendY - 0.2, { align: 'center' });
+        
+        // Nome allergene
+        doc.setFontSize(6);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(60, 60, 60);
+        doc.text(nome, legendX + 7.5, legendY);
+        
+        colIdx++;
+        if (colIdx >= legendCols) {
+          colIdx = 0;
+          legendX = margin;
+          legendY += 5;
+        } else {
+          legendX += colWidth;
+        }
+      });
+    }
 
     // Footer
     doc.setFillColor(241, 245, 249);
