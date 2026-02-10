@@ -481,14 +481,7 @@ export default function PulizieMatch() {
               const isGood = percentage >= 80;
 
               return (
-                <div 
-                  key={employee.id} 
-                  className="neumorphic-pressed p-5 rounded-xl cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => {
-                    setSelectedEmployee(employee.id);
-                    setViewMode('detail');
-                  }}
-                >
+                <div key={employee.id} className="neumorphic-pressed p-5 rounded-xl">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
@@ -537,40 +530,68 @@ export default function PulizieMatch() {
                       <summary className="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-700">
                         Vedi dettagli ({employee.details.length})
                       </summary>
-                      <div className="mt-3 space-y-2">
-                        {employee.details.
-                      sort((a, b) => new Date(b.data_compilazione) - new Date(a.data_compilazione)).
-                      map((detail, idx) =>
-                      <div key={idx} className="neumorphic-flat p-3 rounded-lg text-sm">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <p className="font-medium text-[#6b6b6b]">
-                                  {detail.attrezzatura}
-                                  <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                              detail.stato === 'pulito' ?
-                              'bg-green-100 text-green-700' :
-                              'bg-red-100 text-red-700'}`
-                              }>
-                                    {detail.stato}
-                                  </span>
-                                </p>
-                                <p className="text-xs text-[#9b9b9b] mt-1">
-                                  {detail.store_name} • {detail.ruolo}
-                                </p>
-                                <p className="text-xs text-[#9b9b9b]">
-                                  Turno: {format(parseISO(detail.data_turno), 'dd/MM/yyyy', { locale: it })} fino alle {detail.ora_fine_turno}
-                                </p>
-                                <p className="text-xs text-[#9b9b9b]">
-                                  Rilevato da: <span className="font-medium text-slate-700">{detail.compilato_da}</span>
-                                </p>
+                      <div className="mt-3 space-y-3">
+                        {/* Controlli Non Passati Multipli */}
+                        {(() => {
+                          const failedDetails = employee.details.filter(d => d.stato === 'sporco');
+                          const groupedFailed = {};
+                          failedDetails.forEach(detail => {
+                            if (!groupedFailed[detail.attrezzatura]) {
+                              groupedFailed[detail.attrezzatura] = [];
+                            }
+                            groupedFailed[detail.attrezzatura].push(detail);
+                          });
+                          const multipleFailures = Object.entries(groupedFailed).filter(([_, details]) => details.length > 1);
+                          
+                          if (multipleFailures.length > 0) {
+                            return (
+                              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                                <p className="text-sm font-bold text-red-700 mb-2">⚠️ Controlli Falliti Ripetutamente</p>
+                                {multipleFailures.map(([equipment, details]) => (
+                                  <div key={equipment} className="text-xs text-red-600 mb-1">
+                                    <span className="font-medium">{equipment}</span>: fallito {details.length} volte
+                                  </div>
+                                ))}
                               </div>
-                              <div className="text-right text-xs text-[#9b9b9b]">
-                                Rilevato:<br />
-                                {format(parseISO(detail.data_compilazione), 'dd/MM/yyyy HH:mm', { locale: it })}
+                            );
+                          }
+                          return null;
+                        })()}
+                        
+                        {/* Tutti i Dettagli */}
+                        {employee.details
+                          .sort((a, b) => new Date(b.data_compilazione) - new Date(a.data_compilazione))
+                          .map((detail, idx) => (
+                            <div key={idx} className="neumorphic-flat p-3 rounded-lg text-sm">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="font-medium text-[#6b6b6b]">
+                                    {detail.attrezzatura}
+                                    <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                                      detail.stato === 'pulito' ?
+                                      'bg-green-100 text-green-700' :
+                                      'bg-red-100 text-red-700'
+                                    }`}>
+                                      {detail.stato}
+                                    </span>
+                                  </p>
+                                  <p className="text-xs text-[#9b9b9b] mt-1">
+                                    {detail.store_name} • {detail.ruolo}
+                                  </p>
+                                  <p className="text-xs text-[#9b9b9b]">
+                                    Turno: {format(parseISO(detail.data_turno), 'dd/MM/yyyy', { locale: it })} fino alle {detail.ora_fine_turno}
+                                  </p>
+                                  <p className="text-xs text-[#9b9b9b]">
+                                    Rilevato da: <span className="font-medium text-slate-700">{detail.compilato_da}</span>
+                                  </p>
+                                </div>
+                                <div className="text-right text-xs text-[#9b9b9b]">
+                                  Rilevato:<br />
+                                  {format(parseISO(detail.data_compilazione), 'dd/MM/yyyy HH:mm', { locale: it })}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                      )}
+                          ))}
                       </div>
                     </details>
                   </div>);
