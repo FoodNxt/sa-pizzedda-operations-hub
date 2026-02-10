@@ -23,22 +23,22 @@ Deno.serve(async (req) => {
     const brandRed = [227, 30, 36];
     const brandBeige = [244, 229, 201];
     
-    // Mappa codici allergeni con colori rosso/beige alternati
-    const allergeniCodes = {
-      'Glutine': { code: 'GL', color: brandRed },
-      'Crostacei': { code: 'CR', color: brandBeige },
-      'Uova': { code: 'UO', color: brandRed },
-      'Pesce': { code: 'PE', color: brandBeige },
-      'Arachidi': { code: 'AR', color: brandRed },
-      'Soia': { code: 'SO', color: brandBeige },
-      'Latte': { code: 'LA', color: brandRed },
-      'Frutta a guscio': { code: 'FG', color: brandBeige },
-      'Sedano': { code: 'SE', color: brandRed },
-      'Senape': { code: 'SN', color: brandBeige },
-      'Semi di sesamo': { code: 'SS', color: brandRed },
-      'Anidride solforosa': { code: 'AN', color: brandBeige },
-      'Lupini': { code: 'LU', color: brandRed },
-      'Molluschi': { code: 'MO', color: brandBeige }
+    // Mappa allergeni con icone e colori
+    const allergeniInfo = {
+      'Glutine': { icon: '●', color: brandRed },
+      'Crostacei': { icon: '●', color: brandRed },
+      'Uova': { icon: '●', color: brandRed },
+      'Pesce': { icon: '●', color: brandRed },
+      'Arachidi': { icon: '●', color: brandRed },
+      'Soia': { icon: '●', color: brandRed },
+      'Latte': { icon: '●', color: brandRed },
+      'Frutta a guscio': { icon: '●', color: brandRed },
+      'Sedano': { icon: '●', color: brandRed },
+      'Senape': { icon: '●', color: brandRed },
+      'Semi di sesamo': { icon: '●', color: brandRed },
+      'Anidride solforosa': { icon: '●', color: brandRed },
+      'Lupini': { icon: '●', color: brandRed },
+      'Molluschi': { icon: '●', color: brandRed }
     };
 
     // Header con design accattivante
@@ -75,120 +75,68 @@ Deno.serve(async (req) => {
     ricetteOrdinate.forEach((ricetta, idx) => {
       // Controlla se serve nuova pagina
       const allergeniCount = ricetta.allergeni?.length || 0;
-      const estimatedHeight = rowHeight + (allergeniCount > 4 ? Math.ceil(allergeniCount / 4) * 5 : 0);
+      const allergeniLines = Math.ceil(allergeniCount / 2);
+      const estimatedHeight = 16 + (allergeniLines > 1 ? (allergeniLines - 1) * 6 : 0);
       
       if (currentY + estimatedHeight > 270) {
         doc.addPage();
         currentY = 20;
       }
-
-      const isEven = idx % 2 === 0;
       
-      // Box prodotto con sfondo
+      // Box prodotto con sfondo beige
       doc.setFillColor(...brandBeige);
-      doc.roundedRect(margin, currentY, tableWidth, estimatedHeight, 3, 3, 'F');
+      doc.roundedRect(margin, currentY, tableWidth, estimatedHeight, 4, 4, 'F');
       
-      // Bordo colorato a sinistra
+      // Bordo rosso spesso a sinistra
       doc.setFillColor(...brandRed);
-      doc.roundedRect(margin, currentY, 4, estimatedHeight, 2, 2, 'F');
+      doc.roundedRect(margin, currentY, 5, estimatedHeight, 2, 2, 'F');
 
-      // Nome prodotto
-      doc.setFontSize(11);
+      // Nome prodotto - più grande e bold
+      doc.setFontSize(13);
       doc.setFont(undefined, 'bold');
-      doc.setTextColor(30, 41, 59);
-      doc.text(ricetta.nome_prodotto, margin + 8, currentY + 7);
+      doc.setTextColor(...brandRed);
+      doc.text(ricetta.nome_prodotto, margin + 10, currentY + 10);
 
-      // Allergeni
+      // Allergeni con icone e nomi completi
       if (ricetta.allergeni && ricetta.allergeni.length > 0) {
-        let allergeniY = currentY + 7;
-        let allergeniX = margin + 90;
+        let allergeniY = currentY + 10;
+        let allergeniX = margin + 95;
+        let itemsInRow = 0;
         
         ricetta.allergeni.forEach((allergene, aIdx) => {
-          const info = allergeniCodes[allergene] || { code: '??', color: [200, 200, 200] };
+          const info = allergeniInfo[allergene] || { icon: '●', color: brandRed };
+          const textWidth = doc.getTextWidth(allergene);
           
-          // Box colorato per allergene
-          doc.setFillColor(...info.color);
-          doc.roundedRect(allergeniX, allergeniY - 4.5, 10, 6, 1.5, 1.5, 'F');
+          // Icona
+          doc.setFontSize(8);
+          doc.setTextColor(...info.color);
+          doc.text(info.icon, allergeniX, allergeniY);
           
-          // Bordo nero sottile
-          doc.setDrawColor(50, 50, 50);
-          doc.setLineWidth(0.3);
-          doc.roundedRect(allergeniX, allergeniY - 4.5, 10, 6, 1.5, 1.5, 'S');
+          // Nome allergene
+          doc.setFontSize(8);
+          doc.setFont(undefined, 'normal');
+          doc.setTextColor(60, 60, 60);
+          doc.text(allergene, allergeniX + 3, allergeniY);
           
-          // Codice allergene - bianco su rosso, rosso su beige
-          doc.setFontSize(7);
-          doc.setFont(undefined, 'bold');
-          const isRed = info.color[0] === brandRed[0];
-          doc.setTextColor(isRed ? 255 : brandRed[0], isRed ? 255 : brandRed[1], isRed ? 255 : brandRed[2]);
-          doc.text(info.code, allergeniX + 5, allergeniY + 0.5, { align: 'center' });
+          allergeniX += textWidth + 8;
+          itemsInRow++;
           
-          allergeniX += 11.5;
-          
-          // Vai a capo dopo 8 allergeni
-          if ((aIdx + 1) % 8 === 0) {
-            allergeniY += 7;
-            allergeniX = margin + 90;
+          // Vai a capo dopo 2 allergeni o se non c'è spazio
+          if (itemsInRow >= 2 || allergeniX > margin + tableWidth - 10) {
+            allergeniY += 6;
+            allergeniX = margin + 95;
+            itemsInRow = 0;
           }
         });
       } else {
-        doc.setFontSize(8);
+        doc.setFontSize(9);
         doc.setFont(undefined, 'italic');
-        doc.setTextColor(148, 163, 184);
-        doc.text('Nessun allergene', margin + 95, currentY + 7);
+        doc.setTextColor(120, 120, 120);
+        doc.text('Nessun allergene', margin + 95, currentY + 10);
       }
 
-      currentY += estimatedHeight + 3;
+      currentY += estimatedHeight + 4;
     });
-
-    // Legenda allergeni in fondo
-    if (currentY < 220) {
-      currentY = Math.max(currentY + 5, 220);
-      
-      doc.setFillColor(...brandRed);
-      doc.rect(margin, currentY, tableWidth, 4, 'F');
-      doc.setFontSize(8);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(255, 255, 255);
-      doc.text('LEGENDA ALLERGENI', margin + 2, currentY + 3);
-      
-      currentY += 6;
-      const legendCols = 3;
-      const colWidth = tableWidth / legendCols;
-      let legendX = margin;
-      let legendY = currentY;
-      let colIdx = 0;
-      
-      Object.entries(allergeniCodes).forEach(([nome, info]) => {
-        // Box colorato
-        doc.setFillColor(...info.color);
-        doc.roundedRect(legendX, legendY - 3, 6, 4, 1, 1, 'F');
-        doc.setDrawColor(50, 50, 50);
-        doc.setLineWidth(0.2);
-        doc.roundedRect(legendX, legendY - 3, 6, 4, 1, 1, 'S');
-        
-        // Codice
-        doc.setFontSize(5.5);
-        doc.setFont(undefined, 'bold');
-        const isRed = info.color[0] === brandRed[0];
-        doc.setTextColor(isRed ? 255 : brandRed[0], isRed ? 255 : brandRed[1], isRed ? 255 : brandRed[2]);
-        doc.text(info.code, legendX + 3, legendY - 0.2, { align: 'center' });
-        
-        // Nome allergene
-        doc.setFontSize(6);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(60, 60, 60);
-        doc.text(nome, legendX + 7.5, legendY);
-        
-        colIdx++;
-        if (colIdx >= legendCols) {
-          colIdx = 0;
-          legendX = margin;
-          legendY += 5;
-        } else {
-          legendX += colWidth;
-        }
-      });
-    }
 
     // Footer
     doc.setFillColor(...brandBeige);
