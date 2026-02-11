@@ -1272,7 +1272,35 @@ export default function Layout({ children, currentPageName }) {
     }));
   };
 
-  const processedNavigation = menuStructure ? processMenuStructure(menuStructure) : navigationStructure;
+  const processedNavigation = menuStructure ? enrichNavigationWithAdminSections(processMenuStructure(menuStructure)) : navigationStructure;
+
+  const enrichNavigationWithAdminSections = (nav) => {
+    return nav.map(section => {
+      if (section.type !== 'section') return section;
+
+      // Controlla se ci sono pagine con parent_admin_section = questo section
+      const hasAdminPages = section.items?.some(item => item.parent_admin_section === section.title);
+      
+      if (hasAdminPages) {
+        // Aggiungi il link "Admin [Sezione]" alla fine della sezione
+        const adminPageName = `Admin${section.title}`;
+        const adminItem = {
+          title: `Admin ${section.title}`,
+          page: adminPageName,
+          url: createPageUrl(adminPageName),
+          icon: Settings,
+          requiredUserType: ['admin']
+        };
+        
+        return {
+          ...section,
+          items: [...(section.items || []), adminItem]
+        };
+      }
+      
+      return section;
+    });
+  };
   
   const filteredNavigation = (!isLoadingConfig && !isLoadingUser && currentUser) 
     ? processedNavigation
