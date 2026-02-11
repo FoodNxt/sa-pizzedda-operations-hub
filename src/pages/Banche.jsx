@@ -106,32 +106,43 @@ export default function Banche() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200">
-                      <th className="text-left p-3 font-semibold text-slate-700">Data</th>
-                      <th className="text-left p-3 font-semibold text-slate-700">Descrizione</th>
-                      <th className="text-left p-3 font-semibold text-slate-700">Tipo</th>
-                      <th className="text-left p-3 font-semibold text-slate-700">Categoria</th>
-                      <th className="text-right p-3 font-semibold text-slate-700">Importo</th>
-                      <th className="text-left p-3 font-semibold text-slate-700">Conto</th>
-                      <th className="text-left p-3 font-semibold text-slate-700">Stato</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Transaction ID</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Status</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Made On</th>
+                      <th className="text-right p-3 font-semibold text-slate-700 whitespace-nowrap">Amount</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Currency</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Description</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Additional</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Category</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Duplicated</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Created At</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Updated At</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Account Name</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Account Nature</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Account Provider</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Account UUID</th>
+                      <th className="text-right p-3 font-semibold text-slate-700 whitespace-nowrap">Balance Snapshot</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">End to End ID</th>
+                      <th className="text-right p-3 font-semibold text-slate-700 whitespace-nowrap">Exchange Rate</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Information</th>
+                      <th className="text-right p-3 font-semibold text-slate-700 whitespace-nowrap">Original Amount</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Original Currency</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Payee</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Payee Info</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Payer</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Payer Info</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Posting Date</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Posting Time</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Time</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Type</th>
                     </tr>
                   </thead>
                   <tbody>
                     {transactions.map((tx) => (
                       <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="p-3 text-slate-700">
-                          {tx.madeOn || tx.posting_date || 'N/A'}
-                        </td>
-                        <td className="p-3 text-slate-700">{tx.description || 'N/A'}</td>
-                        <td className="p-3 text-slate-700">{tx.type || 'N/A'}</td>
-                        <td className="p-3 text-slate-700">{tx.category || 'N/A'}</td>
-                        <td className={`p-3 text-right font-medium ${
-                          tx.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {formatEuro(tx.amount)}
-                        </td>
-                        <td className="p-3 text-slate-700">{tx.account_name || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.transactionId || 'N/A'}</td>
                         <td className="p-3">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
                             tx.status === 'BOOKED' 
                               ? 'bg-green-100 text-green-700'
                               : 'bg-yellow-100 text-yellow-700'
@@ -139,6 +150,37 @@ export default function Banche() {
                             {tx.status || 'N/A'}
                           </span>
                         </td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.madeOn || 'N/A'}</td>
+                        <td className={`p-3 text-right font-medium whitespace-nowrap ${
+                          tx.amount >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {formatEuro(tx.amount)}
+                        </td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.currencyCode || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 max-w-xs truncate">{tx.description || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 max-w-xs truncate">{tx.additional || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.category || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.duplicated ? 'Yes' : 'No'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.created_date ? new Date(tx.created_date).toLocaleString('it-IT') : 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.updated_date ? new Date(tx.updated_date).toLocaleString('it-IT') : 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.account_name || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.account_nature || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.account_provider_name || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap font-mono text-xs">{tx.account_uuid || 'N/A'}</td>
+                        <td className="p-3 text-right text-slate-700 whitespace-nowrap">{tx.account_balance_snapshot ? formatEuro(tx.account_balance_snapshot) : 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap font-mono text-xs">{tx.end_to_end_id || 'N/A'}</td>
+                        <td className="p-3 text-right text-slate-700 whitespace-nowrap">{tx.exchange_rate || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 max-w-xs truncate">{tx.information || 'N/A'}</td>
+                        <td className="p-3 text-right text-slate-700 whitespace-nowrap">{tx.original_amount ? formatEuro(tx.original_amount) : 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.original_currency_code || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.payee || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 max-w-xs truncate">{tx.payee_information || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.payer || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 max-w-xs truncate">{tx.payer_information || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.posting_date || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.posting_time || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.time || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.type || 'N/A'}</td>
                       </tr>
                     ))}
                   </tbody>
