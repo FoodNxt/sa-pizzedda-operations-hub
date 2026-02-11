@@ -191,6 +191,11 @@ export default function Dashboard() {
     queryFn: () => base44.entities.WrongOrder.list()
   });
 
+  const { data: sconti = [] } = useQuery({
+    queryKey: ['sconti'],
+    queryFn: () => base44.entities.Sconto.list('-order_date', 1000)
+  });
+
   const safeParseDate = (dateString) => {
     if (!dateString) return null;
     try {
@@ -1092,6 +1097,80 @@ export default function Dashboard() {
     return { top3, bottom3 };
   }, [prodottiVenduti, dateRange, startDate, endDate]);
 
+  // Sconti Stats
+  const scontiStats = useMemo(() => {
+    let cutoffDate, endFilterDate;
+    if (startDate || endDate) {
+      cutoffDate = startDate ? safeParseDate(startDate) : new Date(0);
+      endFilterDate = endDate ? safeParseDate(endDate) : new Date();
+    } else {
+      const days = parseInt(dateRange);
+      cutoffDate = subDays(new Date(), days);
+      endFilterDate = new Date();
+    }
+
+    const filteredSconti = sconti.filter((s) => {
+      if (!s.order_date) return false;
+      const itemDate = safeParseDate(s.order_date);
+      if (!itemDate) return false;
+      if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
+      if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
+      return true;
+    });
+
+    // Total discounts
+    const totalSconti = filteredSconti.reduce((sum, s) => sum + (s.total_discount_price || 0), 0);
+
+    // By Store
+    const byStore = {};
+    filteredSconti.forEach((s) => {
+      const storeName = s.store_name || s.channel || 'N/A';
+      if (!byStore[storeName]) {
+        byStore[storeName] = 0;
+      }
+      byStore[storeName] += s.total_discount_price || 0;
+    });
+
+    const storeArray = Object.keys(byStore).map(name => ({
+      name,
+      total: byStore[name]
+    })).sort((a, b) => b.total - a.total);
+
+    // By SourceApp
+    const bySourceApp = {
+      'Glovo': 0,
+      'Deliveroo': 0,
+      'JustEat': 0,
+      'Online Ordering': 0,
+      'OrderTable': 0,
+      'Tabesto': 0,
+      'Deliverect': 0,
+      'Store': 0
+    };
+
+    filteredSconti.forEach((s) => {
+      bySourceApp['Glovo'] += s.sourceApp_glovo || 0;
+      bySourceApp['Deliveroo'] += s.sourceApp_deliveroo || 0;
+      bySourceApp['JustEat'] += s.sourceApp_justeat || 0;
+      bySourceApp['Online Ordering'] += s.sourceApp_onlineordering || 0;
+      bySourceApp['OrderTable'] += s.sourceApp_ordertable || 0;
+      bySourceApp['Tabesto'] += s.sourceApp_tabesto || 0;
+      bySourceApp['Deliverect'] += s.sourceApp_deliverect || 0;
+      bySourceApp['Store'] += s.sourceApp_store || 0;
+    });
+
+    const sourceAppArray = Object.keys(bySourceApp)
+      .map(name => ({ name, total: bySourceApp[name] }))
+      .filter(s => s.total > 0)
+      .sort((a, b) => b.total - a.total);
+
+    return {
+      totalSconti,
+      byStore: storeArray,
+      bySourceApp: sourceAppArray
+    };
+  }, [sconti, dateRange, startDate, endDate]);
+
   // Active Targets (ongoing: start date in past, end date in future)
   const activeTargets = useMemo(() => {
     const today = new Date();
@@ -1765,6 +1844,64 @@ export default function Dashboard() {
                 </div>
                 </NeumorphicCard>
                 )}
+
+        {/* Sconti Summary */}
+        <NeumorphicCard className="p-4 lg:p-6">
+          <Link to={createPageUrl('Sconti')} className="text-base lg:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 hover:text-blue-600 transition-colors">
+            <TrendingUp className="w-5 h-5 text-orange-600" />
+            Sconti
+            <ExternalLink className="w-4 h-4 ml-auto" />
+          </Link>
+
+          {/* Total Sconti */}
+          <div className="neumorphic-pressed p-4 rounded-xl mb-4 bg-orange-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-600 mb-1">Sconti Totali</p>
+                <p className="text-2xl font-bold text-orange-600">{formatEuro(scontiStats.totalSconti)}</p>
+              </div>
+              <DollarSign className="w-12 h-12 text-orange-400 opacity-30" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* By Store */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                <Store className="w-4 h-4" />
+                Per Store
+              </h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {scontiStats.byStore.length > 0 ? scontiStats.byStore.map((store, idx) =>
+                  <div key={idx} className="p-2 rounded-lg bg-orange-50 border border-orange-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-slate-700">{store.name}</span>
+                      <span className="text-xs font-bold text-orange-600">{formatEuro(store.total)}</span>
+                    </div>
+                  </div>
+                ) : <p className="text-xs text-slate-400 text-center py-4">Nessun dato</p>}
+              </div>
+            </div>
+
+            {/* By SourceApp */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <h3 className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Per Piattaforma
+              </h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {scontiStats.bySourceApp.length > 0 ? scontiStats.bySourceApp.map((app, idx) =>
+                  <div key={idx} className="p-2 rounded-lg bg-blue-50 border border-blue-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-medium text-slate-700">{app.name}</span>
+                      <span className="text-xs font-bold text-blue-600">{formatEuro(app.total)}</span>
+                    </div>
+                  </div>
+                ) : <p className="text-xs text-slate-400 text-center py-4">Nessun dato</p>}
+              </div>
+            </div>
+          </div>
+        </NeumorphicCard>
 
         {/* Metriche Operative */}
         <NeumorphicCard className="p-6">
