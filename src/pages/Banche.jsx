@@ -329,6 +329,25 @@ export default function Banche() {
   const existingCategories = [...new Set(transactions.map(t => t.category).filter(Boolean))];
   const existingSubcategories = [...new Set(transactions.map(t => t.subcategory).filter(Boolean))];
 
+  // Gerarchia categorie/sottocategorie costruita dai dati (DOPO che rules è definito)
+  const categoryHierarchy = (() => {
+    const hierarchy = {};
+    (rules || []).forEach(rule => {
+      if (!rule.category) return;
+      if (!hierarchy[rule.category]) {
+        hierarchy[rule.category] = new Set();
+      }
+      if (rule.subcategory) {
+        hierarchy[rule.category].add(rule.subcategory);
+      }
+    });
+    Object.keys(hierarchy).forEach(cat => {
+      hierarchy[cat] = Array.from(hierarchy[cat]).sort();
+    });
+    return hierarchy;
+  })();
+  const categories = Object.keys(categoryHierarchy).sort();
+
   return (
     <ProtectedPage pageName="Banche">
       <div className="max-w-7xl mx-auto space-y-6">
