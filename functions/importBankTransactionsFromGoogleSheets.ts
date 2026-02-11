@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Map all columns
+        // Map all columns (0-indexed)
         const transactionData = {
           transactionId: row[0] || '',
           status: row[1] || '',
@@ -74,24 +74,24 @@ Deno.serve(async (req) => {
           additional: row[6] || '',
           category: row[7] || '',
           duplicated: row[8]?.toLowerCase() === 'true',
-          account_name: row[12] || '',
-          account_nature: row[13] || '',
-          account_provider_name: row[14] || '',
-          account_uuid: row[15] || '',
-          account_balance_snapshot: parseFloat(row[16]) || 0,
-          end_to_end_id: row[17] || '',
-          exchange_rate: parseFloat(row[18]) || 0,
-          information: row[20] || '',
-          original_amount: parseFloat(row[21]) || 0,
-          original_currency_code: row[22] || '',
-          payee: row[23] || '',
-          payee_information: row[24] || '',
-          payer: row[25] || '',
-          payer_information: row[26] || '',
-          posting_date: row[27] || '',
-          posting_time: row[28] || '',
-          time: row[29] || '',
-          type: row[30] || ''
+          account_name: row[11] || '',
+          account_nature: row[12] || '',
+          account_provider_name: row[13] || '',
+          account_uuid: row[14] || '',
+          account_balance_snapshot: parseFloat(row[15]) || 0,
+          end_to_end_id: row[16] || '',
+          exchange_rate: parseFloat(row[17]) || 0,
+          information: row[19] || '',
+          original_amount: parseFloat(row[20]) || 0,
+          original_currency_code: row[21] || '',
+          payee: row[22] || '',
+          payee_information: row[23] || '',
+          payer: row[24] || '',
+          payer_information: row[25] || '',
+          posting_date: row[26] || '',
+          posting_time: row[27] || '',
+          time: row[28] || '',
+          type: row[29] || ''
         };
 
         await base44.asServiceRole.entities.BankTransaction.create(transactionData);
