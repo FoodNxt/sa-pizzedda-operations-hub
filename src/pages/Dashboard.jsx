@@ -1121,6 +1121,11 @@ export default function Dashboard() {
     // Total discounts
     const totalSconti = filteredSconti.reduce((sum, s) => sum + (s.total_discount_price || 0), 0);
 
+    // Calculate discount percentage on gross sales (same period as processedData.totalRevenue)
+    const discountPercentage = processedData.totalRevenue > 0 
+      ? (totalSconti / processedData.totalRevenue) * 100 
+      : 0;
+
     // By Store
     const byStore = {};
     filteredSconti.forEach((s) => {
@@ -1166,10 +1171,11 @@ export default function Dashboard() {
 
     return {
       totalSconti,
+      discountPercentage,
       byStore: storeArray,
       bySourceApp: sourceAppArray
     };
-  }, [sconti, dateRange, startDate, endDate]);
+  }, [sconti, dateRange, startDate, endDate, processedData.totalRevenue]);
 
   // Active Targets (ongoing: start date in past, end date in future)
   const activeTargets = useMemo(() => {
@@ -1856,9 +1862,12 @@ export default function Dashboard() {
           {/* Total Sconti */}
           <div className="neumorphic-pressed p-4 rounded-xl mb-4 bg-orange-50">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="text-xs text-slate-600 mb-1">Sconti Totali</p>
                 <p className="text-2xl font-bold text-orange-600">{formatEuro(scontiStats.totalSconti)}</p>
+                <p className="text-sm text-slate-700 mt-1">
+                  {scontiStats.discountPercentage.toFixed(2)}% delle Gross Sales
+                </p>
               </div>
               <DollarSign className="w-12 h-12 text-orange-400 opacity-30" />
             </div>
