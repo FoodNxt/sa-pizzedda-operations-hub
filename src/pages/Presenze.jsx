@@ -186,6 +186,7 @@ export default function Presenze() {
     const turniAttivi = getTurniAttiviPerStore(store.id);
     const turniProssimi = getTurniProssimiPerStore(store.id);
     const turniCompletati = getTurniCompletatiPerStore(store.id);
+    console.log(`Store ${store.name}: attivi=${turniAttivi.length}, prossimi=${turniProssimi.length}, completati=${turniCompletati.length}`);
     const timbrati = turniAttivi.filter((t) => t.timbratura_entrata).length;
     const nonTimbrati = turniAttivi.filter((t) => !t.timbratura_entrata).length;
 
