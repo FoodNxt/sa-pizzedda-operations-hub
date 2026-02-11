@@ -63,7 +63,10 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Map all columns (0-indexed) - row[8] è Subcategory nel foglio, ma viene popolata dai matching rules
+        // Map all columns (0-indexed)
+        // row[8] = Subcategory (skip, calcolata dai matching)
+        // row[10] = created_date (skip, built-in)
+        // row[11] = updated_date (skip, built-in)
         const transactionData = {
           transactionId: row[0] || '',
           status: row[1] || '',
@@ -73,26 +76,25 @@ Deno.serve(async (req) => {
           description: row[5] || '',
           additional: row[6] || '',
           category: row[7] || '',
-          // row[8] = Subcategory (skip, calcolata dai matching)
           duplicated: row[9]?.toLowerCase() === 'true',
-          account_name: row[10] || '',
-          account_nature: row[11] || '',
-          account_provider_name: row[12] || '',
-          account_uuid: row[13] || '',
-          account_balance_snapshot: parseFloat(row[14]) || 0,
-          end_to_end_id: row[15] || '',
-          exchange_rate: parseFloat(row[16]) || 0,
-          information: row[17] || '',
-          original_amount: parseFloat(row[18]) || 0,
-          original_currency_code: row[19] || '',
-          payee: row[20] || '',
-          payee_information: row[21] || '',
-          payer: row[22] || '',
-          payer_information: row[23] || '',
-          posting_date: row[24] || '',
-          posting_time: row[25] || '',
-          time: row[26] || '',
-          type: row[27] || ''
+          account_name: row[12] || '',
+          account_nature: row[13] || '',
+          account_provider_name: row[14] || '',
+          account_uuid: row[15] || '',
+          account_balance_snapshot: parseFloat(row[16]) || 0,
+          end_to_end_id: row[17] || '',
+          exchange_rate: parseFloat(row[18]) || 0,
+          information: row[19] || '',
+          original_amount: parseFloat(row[20]) || 0,
+          original_currency_code: row[21] || '',
+          payee: row[22] || '',
+          payee_information: row[23] || '',
+          payer: row[24] || '',
+          payer_information: row[25] || '',
+          posting_date: row[26] || '',
+          posting_time: row[27] || '',
+          time: row[28] || '',
+          type: row[29] || ''
         };
 
         await base44.asServiceRole.entities.BankTransaction.create(transactionData);
