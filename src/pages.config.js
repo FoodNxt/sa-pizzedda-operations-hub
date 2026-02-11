@@ -51,6 +51,7 @@ import ATS from './pages/ATS';
 import Academy from './pages/Academy';
 import AcademyAdmin from './pages/AcademyAdmin';
 import Activation from './pages/Activation';
+import AdminHR from './pages/AdminHR';
 import AnalisiSprechi from './pages/AnalisiSprechi';
 import Assenze from './pages/Assenze';
 import AssignReviews from './pages/AssignReviews';
@@ -160,8 +161,8 @@ import StoreReviews from './pages/StoreReviews';
 import StoricoCassa from './pages/StoricoCassa';
 import StoricoImpasti from './pages/StoricoImpasti';
 import strutturamen from './pages/StrutturaMenù';
-import Target from './pages/Target';
 import StrutturaTurno from './pages/StrutturaTurno';
+import Target from './pages/Target';
 import TeglieButtate from './pages/TeglieButtate';
 import ToDo from './pages/ToDo';
 import TurniDipendente from './pages/TurniDipendente';
@@ -175,7 +176,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import AdminHR from './pages/AdminHR';
 import __Layout from './Layout.jsx';
 
 
@@ -184,6 +184,7 @@ export const PAGES = {
     "Academy": Academy,
     "AcademyAdmin": AcademyAdmin,
     "Activation": Activation,
+    "AdminHR": AdminHR,
     "AnalisiSprechi": AnalisiSprechi,
     "Assenze": Assenze,
     "AssignReviews": AssignReviews,
@@ -293,8 +294,8 @@ export const PAGES = {
     "StoricoCassa": StoricoCassa,
     "StoricoImpasti": StoricoImpasti,
     "StrutturaMenù": strutturamen,
-    "Target": Target,
     "StrutturaTurno": StrutturaTurno,
+    "Target": Target,
     "TeglieButtate": TeglieButtate,
     "ToDo": ToDo,
     "TurniDipendente": TurniDipendente,
@@ -308,7 +309,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "AdminHR": AdminHR,
 }
 
 export const pagesConfig = {

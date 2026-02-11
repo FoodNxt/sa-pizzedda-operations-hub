@@ -645,15 +645,19 @@ export default function Dashboard() {
       }
     });
 
-    // Filter reviews by date and employee_assigned_name
+    // Filter reviews by date and employee_assigned_name (with valid dates only)
     const filteredReviews = reviews.filter((r) => {
       if (!r.employee_assigned_name) return false;
       if (!r.review_date) return false;
-      const itemDate = safeParseDate(r.review_date);
-      if (!itemDate) return false;
-      if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
-      if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
-      return true;
+      try {
+        const itemDate = parseISO(r.review_date);
+        if (!isValid(itemDate)) return false;
+        if (cutoffDate && isBefore(itemDate, cutoffDate)) return false;
+        if (endFilterDate && isAfter(itemDate, endFilterDate)) return false;
+        return true;
+      } catch (e) {
+        return false;
+      }
     });
 
     // Group by employee - ONLY valid users with Planday shifts
