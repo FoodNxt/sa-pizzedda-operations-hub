@@ -321,13 +321,7 @@ const navigationStructure = [
         icon: AlertTriangle,
         requiredUserType: ["admin", "manager"]
       },
-      {
-        title: "Straordinari",
-        page: "Straordinari",
-        url: createPageUrl("Straordinari"),
-        icon: Clock,
-        requiredUserType: ["admin"]
-      },
+
       {
         title: "Pagamento Straordinari",
         page: "PagamentoStraordinari",
