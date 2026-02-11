@@ -2188,7 +2188,241 @@ export default function Financials() {
           </div>
           {!filtersCollapsed &&
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-200">
-        </NeumorphicCard>
+              {/* Locale */}
+              <div>
+                <label className="text-xs text-slate-600 mb-1.5 block font-medium">Locale</label>
+                <select
+                    value={selectedStore}
+                    onChange={(e) => setSelectedStore(e.target.value)}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm">
+
+                  <option value="all">Tutti i Locali</option>
+                  {stores.map((store) =>
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                    )}
+                </select>
+              </div>
+
+              {/* Periodo */}
+              <div>
+                <label className="text-xs text-slate-600 mb-1.5 block font-medium">Periodo</label>
+                <select
+                    value={dateRange}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setDateRange(value);
+                      setSelectedMonth('');
+                      if (value !== 'custom') {
+                        setStartDate('');
+                        setEndDate('');
+                      }
+                      if (value === 'today') {
+                        const today = format(new Date(), 'yyyy-MM-dd');
+                        setStartDate(today);
+                        setEndDate(today);
+                      } else if (value === 'yesterday') {
+                        const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+                        setStartDate(yesterday);
+                        setEndDate(yesterday);
+                      }
+                    }}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm">
+
+                  <option value="today">Oggi</option>
+                  <option value="yesterday">Ieri</option>
+                  <option value="7">Ultimi 7 giorni</option>
+                  <option value="currentweek">Settimana in corso</option>
+                  <option value="30">Ultimi 30 giorni</option>
+                  <option value="90">Ultimi 90 giorni</option>
+                  <option value="365">Ultimo anno</option>
+                  <option value="month">Mese Specifico</option>
+                  <option value="custom">Personalizzato</option>
+                </select>
+              </div>
+
+              {dateRange === 'month' &&
+                <div className="md:col-span-2">
+                  <label className="text-xs text-slate-600 mb-1.5 block font-medium">Seleziona Mese</label>
+                  <input
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => {
+                      setSelectedMonth(e.target.value);
+                      if (e.target.value) {
+                        const [year, month] = e.target.value.split('-');
+                        const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1);
+                        const lastDay = new Date(parseInt(year), parseInt(month), 0);
+                        setStartDate(format(firstDay, 'yyyy-MM-dd'));
+                        setEndDate(format(lastDay, 'yyyy-MM-dd'));
+                      }
+                    }}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+                </div>
+                }
+
+              {dateRange === 'custom' &&
+                <div className="md:col-span-2 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-600 mb-1.5 block font-medium">Inizio</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-600 mb-1.5 block font-medium">Fine</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+                  </div>
+                </div>
+                }
+
+              {/* Confronto */}
+              <div>
+                <label className="text-xs text-slate-600 mb-1.5 block font-medium">Confronta con</label>
+                <select
+                    value={compareMode}
+                    onChange={(e) => setCompareMode(e.target.value)}
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm">
+
+                  <option value="none">Nessun confronto</option>
+                  <option value="previous">Periodo Precedente</option>
+                  <option value="lastyear">Anno Scorso</option>
+                  <option value="custom">Personalizzato</option>
+                </select>
+              </div>
+
+              {compareMode === 'custom' &&
+                <div className="md:col-span-2 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-600 mb-1.5 block font-medium">Confronta Da</label>
+                    <input
+                      type="date"
+                      value={compareStartDate}
+                      onChange={(e) => setCompareStartDate(e.target.value)}
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-slate-600 mb-1.5 block font-medium">Confronta A</label>
+                    <input
+                      type="date"
+                      value={compareEndDate}
+                      onChange={(e) => setCompareEndDate(e.target.value)}
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+                  </div>
+                </div>
+                }
+
+              {/* Canali */}
+              <div className="md:col-span-2">
+                <label className="text-xs text-slate-600 mb-1.5 block font-medium">Canali</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {allChannels.map((channel) =>
+                    <button
+                      key={channel}
+                      onClick={() => {
+                        setSelectedChannels((prev) =>
+                        prev.includes(channel) ?
+                        prev.filter((c) => c !== channel) :
+                        [...prev, channel]
+                        );
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      selectedChannels.length === 0 || selectedChannels.includes(channel) ?
+                      'bg-blue-500 text-white' :
+                      'bg-slate-200 text-slate-600'}`
+                      }>
+
+                      {channel.charAt(0).toUpperCase() + channel.slice(1)}
+                    </button>
+                    )}
+                  {selectedChannels.length > 0 &&
+                    <button
+                      onClick={() => setSelectedChannels([])}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1">
+
+                      <X className="w-3 h-3" /> Reset
+                    </button>
+                    }
+                </div>
+              </div>
+
+              {/* App */}
+              <div className="md:col-span-2">
+                <label className="text-xs text-slate-600 mb-1.5 block font-medium">App Delivery</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {allApps.map((app) =>
+                    <button
+                      key={app}
+                      onClick={() => {
+                        setSelectedApps((prev) =>
+                        prev.includes(app) ?
+                        prev.filter((a) => a !== app) :
+                        [...prev, app]
+                        );
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      selectedApps.length === 0 || selectedApps.includes(app) ?
+                      'bg-green-500 text-white' :
+                      'bg-slate-200 text-slate-600'}`
+                      }>
+
+                      {app.charAt(0).toUpperCase() + app.slice(1)}
+                    </button>
+                    )}
+                  {selectedApps.length > 0 &&
+                    <button
+                      onClick={() => setSelectedApps([])}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1">
+
+                      <X className="w-3 h-3" /> Reset
+                    </button>
+                    }
+                </div>
+              </div>
+
+              {/* Metodi di Pagamento */}
+              <div className="md:col-span-2">
+                <label className="text-xs text-slate-600 mb-1.5 block font-medium">Metodi di Pagamento</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Bancomat', 'Contanti', 'Online', 'Satispay', 'Carta di Credito', 'Punti Fidelity'].map((method) =>
+                    <button
+                      key={method}
+                      onClick={() => {
+                        setSelectedPaymentMethods((prev) =>
+                        prev.includes(method) ?
+                        prev.filter((m) => m !== method) :
+                        [...prev, method]
+                        );
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      selectedPaymentMethods.length === 0 || selectedPaymentMethods.includes(method) ?
+                      'bg-purple-500 text-white' :
+                      'bg-slate-200 text-slate-600'}`
+                      }>
+
+                      {method}
+                    </button>
+                    )}
+                  {selectedPaymentMethods.length > 0 &&
+                    <button
+                      onClick={() => setSelectedPaymentMethods([])}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1">
+
+                      <X className="w-3 h-3" /> Reset
+                    </button>
+                    }
+                </div>
+              </div>
+            </div>
+            }
+          </NeumorphicCard>
 
         {/* Comparison Stats */}
         {processedData.comparisonData &&
