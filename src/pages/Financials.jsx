@@ -44,7 +44,7 @@ export default function Financials() {
   const [selectedChannels, setSelectedChannels] = useState([]);
   const [selectedApps, setSelectedApps] = useState([]);
   const [selectedPaymentMethods, setSelectedPaymentMethods] = useState([]);
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [weeklySelectedChannels, setWeeklySelectedChannels] = useState([]);
   const [weeklySelectedApps, setWeeklySelectedApps] = useState([]);
@@ -2062,288 +2062,132 @@ export default function Financials() {
 
         {activeTab === 'overview' &&
         <>
-        <NeumorphicCard className={`p-4 lg:p-6 sticky top-4 z-10 transition-all ${filtersCollapsed ? 'bg-opacity-95 backdrop-blur-sm' : ''}`}>
-          <div className="flex items-center justify-between mb-4">
+        <NeumorphicCard className={`p-3 lg:p-4 sticky top-4 z-10 transition-all bg-opacity-95 backdrop-blur-sm`}>
+          <div className="flex items-center justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <Filter className="w-5 h-5 text-blue-600" />
-                <h2 className="text-base lg:text-lg font-bold text-slate-800">Filtri</h2>
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-blue-600" />
+                <h2 className="text-sm font-bold text-slate-800">Filtri</h2>
               </div>
-              {(() => {
-                  let periodText = '';
-                  if (dateRange === 'custom' && (startDate || endDate)) {
-                    periodText = `${startDate || '...'} → ${endDate || '...'}`;
-                  } else if (dateRange === 'currentweek') {
-                    const now = new Date();
-                    const dayOfWeek = now.getDay();
-                    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-                    const monday = new Date(now);
-                    monday.setDate(now.getDate() + diffToMonday);
-                    periodText = isValid(monday) && isValid(now) ? `${format(monday, 'dd/MM/yyyy')} → ${format(now, 'dd/MM/yyyy')}` : 'Settimana corrente';
-                  } else {
-                    const days = parseInt(dateRange, 10);
-                    const from = subDays(new Date(), days);
-                    periodText = isValid(from) ? `${format(from, 'dd/MM/yyyy')} → ${format(new Date(), 'dd/MM/yyyy')}` : 'Periodo non valido';
-                  }
-
-                  let compareText = '';
-                  if (compareMode === 'custom' && compareStartDate && compareEndDate) {
-                    compareText = ` vs ${compareStartDate} → ${compareEndDate}`;
-                  } else if (compareMode === 'previous') {
-                    compareText = ' vs Periodo Precedente';
-                  } else if (compareMode === 'lastyear') {
-                    compareText = ' vs Anno Scorso';
-                  }
-
-                  return (
-                    <p className="text-xs text-slate-500">
-                    📅 {periodText}{compareText}
-                  </p>);
-
-                })()}
+              {filtersCollapsed && (
+                <div className="mt-1 flex flex-wrap gap-1.5 items-center">
+                  {(() => {
+                    let periodText = '';
+                    if (dateRange === 'today') periodText = 'Oggi';
+                    else if (dateRange === 'yesterday') periodText = 'Ieri';
+                    else if (dateRange === 'currentweek') periodText = 'Settimana';
+                    else if (dateRange === 'custom' && startDate && endDate) periodText = `${startDate} → ${endDate}`;
+                    else if (dateRange === 'month') periodText = selectedMonth || 'Mese';
+                    else periodText = `${dateRange}gg`;
+                    
+                    return <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded">{periodText}</span>;
+                  })()}
+                  
+                  {selectedStore !== 'all' && (
+                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                      {stores.find(s => s.id === selectedStore)?.name || 'Store'}
+                    </span>
+                  )}
+                  
+                  {selectedChannels.length > 0 && (
+                    <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                      {selectedChannels.length} canali
+                    </span>
+                  )}
+                  
+                  {selectedApps.length > 0 && (
+                    <span className="text-xs px-2 py-0.5 bg-pink-100 text-pink-700 rounded">
+                      {selectedApps.length} app
+                    </span>
+                  )}
+                  
+                  {selectedPaymentMethods.length > 0 && (
+                    <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded">
+                      {selectedPaymentMethods.length} metodi
+                    </span>
+                  )}
+                  
+                  {compareMode !== 'none' && (
+                    <span className="text-xs px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded">
+                      {compareMode === 'previous' ? 'vs Prec' : compareMode === 'lastyear' ? 'vs YoY' : 'vs Custom'}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <button
                 onClick={() => setFiltersCollapsed(!filtersCollapsed)}
-                className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
 
-              {filtersCollapsed ? <ChevronDown className="w-5 h-5 text-slate-600" /> : <ChevronUp className="w-5 h-5 text-slate-600" />}
+              {filtersCollapsed ? <ChevronDown className="w-4 h-4 text-slate-600" /> : <ChevronUp className="w-4 h-4 text-slate-600" />}
             </button>
           </div>
           {!filtersCollapsed &&
-            <div className="grid grid-cols-1 gap-3">
-            <div>
-              <label className="text-sm text-slate-600 mb-2 block">Locale</label>
-              <select
-                  value={selectedStore}
-                  onChange={(e) => setSelectedStore(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
-
-                <option value="all">Tutti i Locali</option>
-                {stores.map((store) =>
-                  <option key={store.id} value={store.id}>{store.name}</option>
+            <div className="grid grid-cols-1 gap-2 mt-3 pt-3 border-t border-slate-200">
+        {activeTab === 'overview' &&
+        <>
+        <NeumorphicCard className={`p-3 sticky top-4 z-10 transition-all bg-opacity-95 backdrop-blur-sm`}>
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <Filter className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <h2 className="text-sm font-bold text-slate-800">Filtri</h2>
+              </div>
+              {filtersCollapsed && (
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  {(() => {
+                    let periodText = '';
+                    if (dateRange === 'today') periodText = 'Oggi';
+                    else if (dateRange === 'yesterday') periodText = 'Ieri';
+                    else if (dateRange === 'currentweek') periodText = 'Settimana';
+                    else if (dateRange === 'custom' && startDate && endDate) periodText = `${format(new Date(startDate), 'dd/MM')} → ${format(new Date(endDate), 'dd/MM')}`;
+                    else if (dateRange === 'month') periodText = selectedMonth || 'Mese';
+                    else periodText = `${dateRange}gg`;
+                    
+                    return <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-medium whitespace-nowrap">{periodText}</span>;
+                  })()}
+                  
+                  {selectedStore !== 'all' && (
+                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded font-medium whitespace-nowrap">
+                      {stores.find(s => s.id === selectedStore)?.name || 'Store'}
+                    </span>
                   )}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-600 mb-2 block">Periodo</label>
-              <select
-                  value={dateRange}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setDateRange(value);
-                    setSelectedMonth('');
-                    if (value !== 'custom') {
-                      setStartDate('');
-                      setEndDate('');
-                    }
-                    if (value === 'today') {
-                      const today = format(new Date(), 'yyyy-MM-dd');
-                      setStartDate(today);
-                      setEndDate(today);
-                    } else if (value === 'yesterday') {
-                      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-                      setStartDate(yesterday);
-                      setEndDate(yesterday);
-                    }
-                  }}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
-
-                <option value="today">Oggi</option>
-                <option value="yesterday">Ieri</option>
-                <option value="7">Ultimi 7 giorni</option>
-                <option value="currentweek">Settimana in corso</option>
-                <option value="30">Ultimi 30 giorni</option>
-                <option value="90">Ultimi 90 giorni</option>
-                <option value="365">Ultimo anno</option>
-                <option value="month">Mese Specifico</option>
-                <option value="custom">Personalizzato</option>
-              </select>
-            </div>
-
-            {dateRange === 'month' &&
-              <div>
-                <label className="text-sm text-slate-600 mb-2 block">Seleziona Mese</label>
-                <input
-                  type="month"
-                  value={selectedMonth}
-                  onChange={(e) => {
-                    setSelectedMonth(e.target.value);
-                    if (e.target.value) {
-                      const [year, month] = e.target.value.split('-');
-                      const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1);
-                      const lastDay = new Date(parseInt(year), parseInt(month), 0);
-                      setStartDate(format(firstDay, 'yyyy-MM-dd'));
-                      setEndDate(format(lastDay, 'yyyy-MM-dd'));
-                    }
-                  }}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
-
-              </div>
-              }
-
-            {dateRange === 'custom' &&
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Inizio</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
-
-                </div>
-
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Fine</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
-
-                </div>
-              </div>
-              }
-
-            <div>
-              <label className="text-sm text-slate-600 mb-2 block">Confronta con</label>
-              <select
-                  value={compareMode}
-                  onChange={(e) => setCompareMode(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
-
-                <option value="none">Nessun confronto</option>
-                <option value="previous">Periodo Precedente</option>
-                <option value="lastyear">Anno Scorso</option>
-                <option value="custom">Personalizzato</option>
-              </select>
-            </div>
-
-            {compareMode === 'custom' &&
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Confronta Da</label>
-                  <input
-                    type="date"
-                    value={compareStartDate}
-                    onChange={(e) => setCompareStartDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
-
-                </div>
-
-                <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Confronta A</label>
-                  <input
-                    type="date"
-                    value={compareEndDate}
-                    onChange={(e) => setCompareEndDate(e.target.value)}
-                    className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
-
-                </div>
-              </div>
-              }
-
-            <div>
-              <label className="text-sm text-slate-600 mb-2 block">Canali (Selezione Multipla)</label>
-              <div className="flex flex-wrap gap-2">
-                {allChannels.map((channel) =>
-                  <button
-                    key={channel}
-                    onClick={() => {
-                      setSelectedChannels((prev) =>
-                      prev.includes(channel) ?
-                      prev.filter((c) => c !== channel) :
-                      [...prev, channel]
-                      );
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    selectedChannels.length === 0 || selectedChannels.includes(channel) ?
-                    'bg-blue-500 text-white' :
-                    'bg-slate-200 text-slate-600'}`
-                    }>
-
-                    {channel.charAt(0).toUpperCase() + channel.slice(1)}
-                  </button>
+                  
+                  {selectedChannels.length > 0 && (
+                    <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded font-medium whitespace-nowrap">
+                      {selectedChannels.length} {selectedChannels.length === 1 ? 'canale' : 'canali'}
+                    </span>
                   )}
-                {selectedChannels.length > 0 &&
-                  <button
-                    onClick={() => setSelectedChannels([])}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1">
-
-                    <X className="w-3 h-3" /> Tutti
-                  </button>
-                  }
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-600 mb-2 block">App Delivery (Selezione Multipla)</label>
-              <div className="flex flex-wrap gap-2">
-                {allApps.map((app) =>
-                  <button
-                    key={app}
-                    onClick={() => {
-                      setSelectedApps((prev) =>
-                      prev.includes(app) ?
-                      prev.filter((a) => a !== app) :
-                      [...prev, app]
-                      );
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    selectedApps.length === 0 || selectedApps.includes(app) ?
-                    'bg-green-500 text-white' :
-                    'bg-slate-200 text-slate-600'}`
-                    }>
-
-                    {app.charAt(0).toUpperCase() + app.slice(1)}
-                  </button>
+                  
+                  {selectedApps.length > 0 && (
+                    <span className="text-xs px-2 py-0.5 bg-pink-100 text-pink-700 rounded font-medium whitespace-nowrap">
+                      {selectedApps.length} app
+                    </span>
                   )}
-                {selectedApps.length > 0 &&
-                  <button
-                    onClick={() => setSelectedApps([])}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1">
-
-                    <X className="w-3 h-3" /> Tutti
-                  </button>
-                  }
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-600 mb-2 block">Metodi di Pagamento (Selezione Multipla)</label>
-              <div className="flex flex-wrap gap-2">
-                {['Bancomat', 'Contanti', 'Online', 'Satispay', 'Carta di Credito', 'Punti Fidelity'].map((method) =>
-                  <button
-                    key={method}
-                    onClick={() => {
-                      setSelectedPaymentMethods((prev) =>
-                      prev.includes(method) ?
-                      prev.filter((m) => m !== method) :
-                      [...prev, method]
-                      );
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    selectedPaymentMethods.length === 0 || selectedPaymentMethods.includes(method) ?
-                    'bg-purple-500 text-white' :
-                    'bg-slate-200 text-slate-600'}`
-                    }>
-
-                    {method}
-                  </button>
+                  
+                  {selectedPaymentMethods.length > 0 && (
+                    <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-medium whitespace-nowrap">
+                      {selectedPaymentMethods.length} {selectedPaymentMethods.length === 1 ? 'metodo' : 'metodi'}
+                    </span>
                   )}
-                {selectedPaymentMethods.length > 0 &&
-                  <button
-                    onClick={() => setSelectedPaymentMethods([])}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500 text-white flex items-center gap-1">
-
-                    <X className="w-3 h-3" /> Tutti
-                  </button>
-                  }
-              </div>
+                  
+                  {compareMode !== 'none' && (
+                    <span className="text-xs px-2 py-0.5 bg-cyan-100 text-cyan-700 rounded font-medium whitespace-nowrap">
+                      {compareMode === 'previous' ? 'vs Prec' : compareMode === 'lastyear' ? 'vs YoY' : 'vs Custom'}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
+            <button
+                onClick={() => setFiltersCollapsed(!filtersCollapsed)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex-shrink-0">
+
+              {filtersCollapsed ? <ChevronDown className="w-4 h-4 text-slate-600" /> : <ChevronUp className="w-4 h-4 text-slate-600" />}
+            </button>
           </div>
-            }
+          {!filtersCollapsed &&
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-200">
         </NeumorphicCard>
 
         {/* Comparison Stats */}
@@ -6915,7 +6759,7 @@ export default function Financials() {
                     <select
                     value={periodo1Store}
                     onChange={(e) => setPeriodo1Store(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm">
 
                       <option value="all">Tutti i Locali</option>
                       {stores.map((store) =>
@@ -6931,7 +6775,7 @@ export default function Financials() {
                       type="date"
                       value={periodo1Start}
                       onChange={(e) => setPeriodo1Start(e.target.value)}
-                      className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
 
                     </div>
                     <div>
@@ -6940,7 +6784,7 @@ export default function Financials() {
                       type="date"
                       value={periodo1End}
                       onChange={(e) => setPeriodo1End(e.target.value)}
-                      className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
 
                     </div>
                   </div>
@@ -7006,7 +6850,7 @@ export default function Financials() {
                     <select
                     value={periodo2Store}
                     onChange={(e) => setPeriodo2Store(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+                    className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm">
 
                       <option value="all">Tutti i Locali</option>
                       {stores.map((store) =>
@@ -7022,7 +6866,7 @@ export default function Financials() {
                       type="date"
                       value={periodo2Start}
                       onChange={(e) => setPeriodo2Start(e.target.value)}
-                      className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
 
                     </div>
                     <div>
@@ -7031,7 +6875,7 @@ export default function Financials() {
                       type="date"
                       value={periodo2End}
                       onChange={(e) => setPeriodo2End(e.target.value)}
-                      className="w-full neumorphic-pressed px-3 py-2.5 rounded-xl text-slate-700 outline-none text-sm" />
+                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
 
                     </div>
                   </div>
