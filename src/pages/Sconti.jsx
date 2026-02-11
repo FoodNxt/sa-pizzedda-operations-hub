@@ -558,7 +558,7 @@ export default function Sconti() {
                   <TrendingDown className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                   <p className="text-slate-400">Nessuno sconto trovato</p>
                   <p className="text-sm text-slate-500 mt-2">
-                    Carica i dati tramite Zapier seguendo la guida in "Zapier Sconti"
+                    I dati vengono importati automaticamente da Google Sheets ogni ora
                   </p>
                 </div> :
 
