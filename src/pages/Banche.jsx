@@ -5,6 +5,7 @@ import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
 import NeumorphicButton from '../components/neumorphic/NeumorphicButton';
 import ProtectedPage from '../components/ProtectedPage';
 import { RefreshCw, Download, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { base44 as base44Client } from '@/api/base44Client';
 import { formatEuro } from '../components/utils/formatCurrency';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -152,19 +153,38 @@ export default function Banche() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-slate-800">Banche</h1>
-          <NeumorphicButton
-            onClick={() => importMutation.mutate()}
-            disabled={importMutation.isPending}
-            variant="primary"
-            className="flex items-center gap-2"
-          >
-            {importMutation.isPending ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            Importa da Google Sheets
-          </NeumorphicButton>
+          <div className="flex gap-2">
+            <NeumorphicButton
+              onClick={async () => {
+                if (confirm('Eliminare TUTTE le transazioni? Questa azione non può essere annullata.')) {
+                  try {
+                    await base44Client.functions.invoke('deleteAllBankTransactions');
+                    queryClient.invalidateQueries({ queryKey: ['bank-transactions'] });
+                    alert('Transazioni eliminate con successo');
+                  } catch (error) {
+                    alert(`Errore: ${error.message}`);
+                  }
+                }
+              }}
+              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white"
+            >
+              <Trash2 className="w-4 h-4" />
+              Elimina Tutto
+            </NeumorphicButton>
+            <NeumorphicButton
+              onClick={() => importMutation.mutate()}
+              disabled={importMutation.isPending}
+              variant="primary"
+              className="flex items-center gap-2"
+            >
+              {importMutation.isPending ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              Importa da Google Sheets
+            </NeumorphicButton>
+          </div>
         </div>
 
         {/* View Tabs */}
