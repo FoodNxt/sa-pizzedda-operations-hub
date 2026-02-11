@@ -13,7 +13,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 export default function Banche() {
   const [activeView, setActiveView] = useState('overview');
   const [editingRule, setEditingRule] = useState(null);
-  const [newRule, setNewRule] = useState({ pattern: '', category: '', subcategory: '', match_type: 'contains', priority: 0 });
+  const [newRule, setNewRule] = useState({ pattern: '', category: '', subcategory: '', match_type: 'contains', priority: 0, is_giroconto: false });
   const [selectedProvider, setSelectedProvider] = useState('all');
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [trendView, setTrendView] = useState('daily'); // daily, weekly, monthly
@@ -161,11 +161,18 @@ export default function Banche() {
 
   const { startDate: trendStart, endDate: trendEnd } = getTrendDateRange();
 
-  // Filter transactions by date range
+  // Get categories marked as giroconto
+  const girocontoCategories = new Set(
+    rules.filter(r => r.is_giroconto).map(r => r.category)
+  );
+
+  // Filter transactions by date range and exclude giroconti
   const dateFilteredTransactions = filteredTransactions.filter(tx => {
     if (!trendStart || !trendEnd || !tx.madeOn) return true;
     const txDate = new Date(tx.madeOn);
-    return txDate >= trendStart && txDate <= trendEnd;
+    const inDateRange = txDate >= trendStart && txDate <= trendEnd;
+    const isGiroconto = tx.category && girocontoCategories.has(tx.category);
+    return inDateRange && !isGiroconto;
   });
 
   // Group by period (daily, weekly, monthly)
@@ -774,7 +781,7 @@ export default function Banche() {
               {/* Add New Rule */}
               <div className="bg-slate-50 p-4 rounded-lg mb-4">
                 <h3 className="font-semibold text-slate-700 mb-3">Nuova Regola</h3>
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3">
                   <Input
                     placeholder="Pattern da cercare..."
                     value={newRule.pattern}
@@ -817,6 +824,18 @@ export default function Banche() {
                     Aggiungi
                   </NeumorphicButton>
                 </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_giroconto"
+                    checked={newRule.is_giroconto}
+                    onChange={(e) => setNewRule({ ...newRule, is_giroconto: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300"
+                  />
+                  <label htmlFor="is_giroconto" className="text-sm text-slate-600">
+                    È un giroconto (escludi dal trend entrate/uscite)
+                  </label>
+                </div>
               </div>
 
               {/* Rules List */}
@@ -824,52 +843,66 @@ export default function Banche() {
                 {rules.map((rule) => (
                   <div key={rule.id} className="bg-white border border-slate-200 rounded-lg p-4">
                     {editingRule?.id === rule.id ? (
-                      <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                        <Input
-                          value={editingRule.pattern}
-                          onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
-                          placeholder="Pattern"
-                        />
-                        <Input
-                          value={editingRule.category}
-                          onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
-                          placeholder="Categoria"
-                        />
-                        <Input
-                          value={editingRule.subcategory || ''}
-                          onChange={(e) => setEditingRule({ ...editingRule, subcategory: e.target.value })}
-                          placeholder="Sottocategoria"
-                        />
-                        <Select value={editingRule.match_type} onValueChange={(v) => setEditingRule({ ...editingRule, match_type: v })}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="contains">Contiene</SelectItem>
-                            <SelectItem value="starts_with">Inizia con</SelectItem>
-                            <SelectItem value="ends_with">Finisce con</SelectItem>
-                            <SelectItem value="exact">Esatto</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Input
-                          type="number"
-                          value={editingRule.priority}
-                          onChange={(e) => setEditingRule({ ...editingRule, priority: parseInt(e.target.value) || 0 })}
-                          placeholder="Priorità"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => updateRuleMutation.mutate({ id: rule.id, data: editingRule })}
-                            className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700"
-                          >
-                            <Check className="w-4 h-4 mx-auto" />
-                          </button>
-                          <button
-                            onClick={() => setEditingRule(null)}
-                            className="flex-1 bg-slate-300 text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-400"
-                          >
-                            <X className="w-4 h-4 mx-auto" />
-                          </button>
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                          <Input
+                            value={editingRule.pattern}
+                            onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
+                            placeholder="Pattern"
+                          />
+                          <Input
+                            value={editingRule.category}
+                            onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
+                            placeholder="Categoria"
+                          />
+                          <Input
+                            value={editingRule.subcategory || ''}
+                            onChange={(e) => setEditingRule({ ...editingRule, subcategory: e.target.value })}
+                            placeholder="Sottocategoria"
+                          />
+                          <Select value={editingRule.match_type} onValueChange={(v) => setEditingRule({ ...editingRule, match_type: v })}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">Contiene</SelectItem>
+                              <SelectItem value="starts_with">Inizia con</SelectItem>
+                              <SelectItem value="ends_with">Finisce con</SelectItem>
+                              <SelectItem value="exact">Esatto</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            type="number"
+                            value={editingRule.priority}
+                            onChange={(e) => setEditingRule({ ...editingRule, priority: parseInt(e.target.value) || 0 })}
+                            placeholder="Priorità"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => updateRuleMutation.mutate({ id: rule.id, data: editingRule })}
+                              className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700"
+                            >
+                              <Check className="w-4 h-4 mx-auto" />
+                            </button>
+                            <button
+                              onClick={() => setEditingRule(null)}
+                              className="flex-1 bg-slate-300 text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-400"
+                            >
+                              <X className="w-4 h-4 mx-auto" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`edit_giroconto_${rule.id}`}
+                            checked={editingRule.is_giroconto || false}
+                            onChange={(e) => setEditingRule({ ...editingRule, is_giroconto: e.target.checked })}
+                            className="w-4 h-4 rounded border-slate-300"
+                          />
+                          <label htmlFor={`edit_giroconto_${rule.id}`} className="text-sm text-slate-600">
+                            È un giroconto (escludi dal trend entrate/uscite)
+                          </label>
                         </div>
                       </div>
                     ) : (
@@ -897,6 +930,11 @@ export default function Banche() {
                             {rule.priority > 0 && (
                               <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
                                 Priorità: {rule.priority}
+                              </span>
+                            )}
+                            {rule.is_giroconto && (
+                              <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
+                                Giroconto
                               </span>
                             )}
                           </div>
