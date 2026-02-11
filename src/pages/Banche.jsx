@@ -16,6 +16,10 @@ export default function Banche() {
   const [newRule, setNewRule] = useState({ pattern: '', category: '', subcategory: '', match_type: 'contains', priority: 0 });
   const [selectedProvider, setSelectedProvider] = useState('all');
   const [selectedAccount, setSelectedAccount] = useState('all');
+  const [trendView, setTrendView] = useState('daily'); // daily, weekly, monthly
+  const [trendDateRange, setTrendDateRange] = useState('last30');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
@@ -127,19 +131,65 @@ export default function Banche() {
     return true;
   });
 
-  // Group by date for trend
-  const trendData = filteredTransactions.reduce((acc, tx) => {
-    const date = tx.madeOn;
-    if (!date) return acc;
+  // Calculate date range for trend
+  const getTrendDateRange = () => {
+    const today = new Date();
+    let startDate, endDate = today;
+
+    if (trendDateRange === 'custom') {
+      if (!customStartDate || !customEndDate) return { startDate: null, endDate: null };
+      startDate = new Date(customStartDate);
+      endDate = new Date(customEndDate);
+    } else if (trendDateRange === 'currentMonth') {
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else if (trendDateRange === 'lastMonth') {
+      startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+    } else if (trendDateRange === 'last30') {
+      startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (trendDateRange === 'last60') {
+      startDate = new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000);
+    } else if (trendDateRange === 'last90') {
+      startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+    }
+
+    return { startDate, endDate };
+  };
+
+  const { startDate: trendStart, endDate: trendEnd } = getTrendDateRange();
+
+  // Filter transactions by date range
+  const dateFilteredTransactions = filteredTransactions.filter(tx => {
+    if (!trendStart || !trendEnd || !tx.madeOn) return true;
+    const txDate = new Date(tx.madeOn);
+    return txDate >= trendStart && txDate <= trendEnd;
+  });
+
+  // Group by period (daily, weekly, monthly)
+  const trendData = dateFilteredTransactions.reduce((acc, tx) => {
+    if (!tx.madeOn) return acc;
     
-    if (!acc[date]) {
-      acc[date] = { date, entrate: 0, uscite: 0 };
+    const date = new Date(tx.madeOn);
+    let key;
+
+    if (trendView === 'daily') {
+      key = tx.madeOn;
+    } else if (trendView === 'weekly') {
+      const weekStart = new Date(date);
+      weekStart.setDate(date.getDate() - date.getDay());
+      key = weekStart.toISOString().split('T')[0];
+    } else if (trendView === 'monthly') {
+      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }
+    
+    if (!acc[key]) {
+      acc[key] = { date: key, entrate: 0, uscite: 0 };
     }
     
     if (tx.amount > 0) {
-      acc[date].entrate += tx.amount;
+      acc[key].entrate += tx.amount;
     } else {
-      acc[date].uscite += Math.abs(tx.amount);
+      acc[key].uscite += Math.abs(tx.amount);
     }
     
     return acc;
@@ -208,7 +258,19 @@ export default function Banche() {
           <div className="space-y-6">
             {/* Balance Table */}
             <NeumorphicCard className="p-6">
-              <h2 className="text-xl font-bold text-slate-800 mb-4">Balance</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Balance</h2>
+                <div className="text-right">
+                  <p className="text-sm text-slate-500">Totale</p>
+                  <p className={`text-2xl font-bold ${
+                    balanceData.reduce((sum, b) => sum + b.balance, 0) >= 0 
+                      ? 'text-green-600' 
+                      : 'text-red-600'
+                  }`}>
+                    {formatEuro(balanceData.reduce((sum, b) => sum + b.balance, 0))}
+                  </p>
+                </div>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -249,7 +311,131 @@ export default function Banche() {
             <NeumorphicCard className="p-6">
               <h2 className="text-xl font-bold text-slate-800 mb-4">Trend Entrate/Uscite</h2>
               
-              {/* Filters */}
+              {/* View Toggle */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setTrendView('daily')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    trendView === 'daily'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Giornaliero
+                </button>
+                <button
+                  onClick={() => setTrendView('weekly')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    trendView === 'weekly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Settimanale
+                </button>
+                <button
+                  onClick={() => setTrendView('monthly')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    trendView === 'monthly'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Mensile
+                </button>
+              </div>
+
+              {/* Date Range Filters */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                <button
+                  onClick={() => setTrendDateRange('currentMonth')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    trendDateRange === 'currentMonth'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Mese Corrente
+                </button>
+                <button
+                  onClick={() => setTrendDateRange('lastMonth')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    trendDateRange === 'lastMonth'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Mese Scorso
+                </button>
+                <button
+                  onClick={() => setTrendDateRange('last30')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    trendDateRange === 'last30'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Ultimi 30gg
+                </button>
+                <button
+                  onClick={() => setTrendDateRange('last60')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    trendDateRange === 'last60'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Ultimi 60gg
+                </button>
+                <button
+                  onClick={() => setTrendDateRange('last90')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    trendDateRange === 'last90'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Ultimi 90gg
+                </button>
+                <button
+                  onClick={() => setTrendDateRange('custom')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    trendDateRange === 'custom'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Custom
+                </button>
+              </div>
+
+              {/* Custom Date Range */}
+              {trendDateRange === 'custom' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Data Inizio
+                    </label>
+                    <Input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Data Fine
+                    </label>
+                    <Input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Provider and Account Filters */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
