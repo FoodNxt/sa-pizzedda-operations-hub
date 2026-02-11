@@ -105,12 +105,6 @@ const navigationStructure = [
         icon: Euro,
       },
       {
-        title: "Channel Comparison",
-        page: "ChannelComparison",
-        url: createPageUrl("ChannelComparison"),
-        icon: BarChart3,
-      },
-      {
         title: "Storico Cassa",
         page: "StoricoCassa",
         url: createPageUrl("StoricoCassa"),
@@ -601,6 +595,12 @@ const navigationStructure = [
     type: "section",
     requiredUserType: ["admin", "manager"],
     items: [
+      {
+        title: "Channel Comparison",
+        page: "ChannelComparison",
+        url: createPageUrl("ChannelComparison"),
+        icon: BarChart3,
+      },
       {
         title: "Meteo",
         page: "Meteo",
