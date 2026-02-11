@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
 import NeumorphicButton from '../components/neumorphic/NeumorphicButton';
 import ProtectedPage from '../components/ProtectedPage';
-import { RefreshCw, Download, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { RefreshCw, Download, Plus, Trash2, Edit2, Check, X, ChevronRight } from 'lucide-react';
 import { formatEuro } from '../components/utils/formatCurrency';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
