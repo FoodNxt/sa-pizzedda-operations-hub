@@ -1266,6 +1266,10 @@ export default function Dashboard() {
         periodEnd.setHours(0, 0, 0, 0);
       }
       
+      const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+      const daysPassed = Math.max(0, Math.ceil((today - periodStart) / (1000 * 60 * 60 * 24)));
+      const daysRemaining = Math.max(0, totalDays - daysPassed);
+      
       const currentData = iPraticoData.filter(item => {
         if (!item.order_date) return false;
         const itemDate = new Date(item.order_date);
@@ -1277,14 +1281,89 @@ export default function Dashboard() {
       });
       
       const currentRevenue = currentData.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
-       const progressPercent = target.target_revenue > 0 ? (currentRevenue / target.target_revenue) * 100 : 0;
+      const progressPercent = target.target_revenue > 0 ? (currentRevenue / target.target_revenue) * 100 : 0;
 
-       // Calculate forecast and gap
-       const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
-       const daysPassed = Math.ceil((today - periodStart) / (1000 * 60 * 60 * 24)) + 1;
-       const velocity = daysPassed > 0 ? currentRevenue / daysPassed : 0;
-       const forecastRevenue = velocity * totalDays;
-       const gap = target.target_revenue - forecastRevenue;
+      // Historical data for seasonality
+      const historicalDays = target.historical_days || 30;
+      const historicalCutoff = subDays(today, historicalDays);
+      const historicalData = iPraticoData.filter(item => {
+        if (!item.order_date) return false;
+        const itemDate = new Date(item.order_date);
+        itemDate.setHours(0, 0, 0, 0);
+        if (itemDate < historicalCutoff || itemDate >= today) return false;
+        if (target.store_id !== 'all' && item.store_id !== target.store_id) return false;
+        return true;
+      });
+
+      // Calculate day-of-week averages
+      const dailyTotals = {};
+      historicalData.forEach(item => {
+        if (!dailyTotals[item.order_date]) dailyTotals[item.order_date] = 0;
+        dailyTotals[item.order_date] += item.total_revenue || 0;
+      });
+
+      const dayOfWeekRevenues = {};
+      Object.entries(dailyTotals).forEach(([date, revenue]) => {
+        const itemDate = new Date(date);
+        const dayOfWeek = itemDate.getDay();
+        if (!dayOfWeekRevenues[dayOfWeek]) dayOfWeekRevenues[dayOfWeek] = [];
+        dayOfWeekRevenues[dayOfWeek].push(revenue);
+      });
+
+      const avgByDayOfWeek = {};
+      Object.keys(dayOfWeekRevenues).forEach(dayOfWeek => {
+        const revenues = dayOfWeekRevenues[dayOfWeek];
+        let avg = 0;
+        if (target.use_ema && revenues.length > 0) {
+          const alpha = 0.2;
+          avg = revenues[0];
+          for (let i = 1; i < revenues.length; i++) {
+            avg = alpha * revenues[i] + (1 - alpha) * avg;
+          }
+        } else {
+          avg = revenues.length > 0 ? revenues.reduce((sum, r) => sum + r, 0) / revenues.length : 0;
+        }
+        avgByDayOfWeek[dayOfWeek] = avg;
+      });
+
+      // Calculate growth rate if configured
+      let dailyGrowthRate = 0;
+      if (target.growth_rate_period_days > 0) {
+        const growthCutoff = subDays(today, target.growth_rate_period_days);
+        const growthData = Object.entries(dailyTotals)
+          .filter(([date]) => {
+            const d = new Date(date);
+            return d >= growthCutoff && d < today;
+          })
+          .sort(([a], [b]) => a.localeCompare(b));
+        
+        if (growthData.length >= 2) {
+          const n = growthData.length;
+          let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+          growthData.forEach(([date, revenue], index) => {
+            sumX += index;
+            sumY += revenue;
+            sumXY += index * revenue;
+            sumX2 += index * index;
+          });
+          const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+          dailyGrowthRate = slope;
+        }
+      }
+
+      // Predict remaining revenue
+      let predictedRevenue = 0;
+      for (let i = 0; i < daysRemaining; i++) {
+        const futureDate = new Date(today);
+        futureDate.setDate(today.getDate() + i);
+        const dayOfWeek = futureDate.getDay();
+        const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
+        const growthAdjustment = dailyGrowthRate * (daysPassed + i);
+        predictedRevenue += baseRevenue + growthAdjustment;
+      }
+
+      const forecastRevenue = currentRevenue + predictedRevenue;
+      const gap = target.target_revenue - forecastRevenue;
       
       return {
         ...target,
