@@ -15,6 +15,7 @@ const DEFAULT_MENU_STRUCTURE = [
     items: [
       { title: "Dashboard", page: "Dashboard", icon: "LayoutDashboard" },
       { title: "Presenze", page: "Presenze", icon: "Users" },
+      { title: "To-Do", page: "ToDo", icon: "CheckSquare" },
       { title: "Summary AI", page: "SummaryAI", icon: "Zap" },
       { title: "Form Tracker", page: "FormTracker", icon: "ClipboardCheck" },
       { title: "Meteo", page: "Meteo", icon: "Cloud" }
