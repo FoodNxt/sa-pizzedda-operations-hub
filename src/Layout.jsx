@@ -538,6 +538,12 @@ const navigationStructure = [
         page: "AssignReviews",
         url: createPageUrl("AssignReviews"),
         icon: UserCheck,
+      },
+      {
+        title: "HR Admin",
+        page: "HRAdmin",
+        url: createPageUrl("HRAdmin"),
+        icon: Users,
       }
     ]
   },
