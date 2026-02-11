@@ -63,10 +63,10 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Map all columns (0-indexed)
-        // row[8] = Subcategory (non importata, popolata dai matching rules)
-        // row[10] = Created At (dal file, non importata)
-        // row[11] = Updated At (dal file, non importata)
+        // Map all columns (0-indexed) - Mapping completo dal Google Sheet
+        // row[9] = createdAt (skip, non nel schema)
+        // row[10] = updatedAt (skip, non nel schema)
+        // row[18] = id (skip, gestito da Base44)
         const transactionData = {
           transactionId: row[0] || '',
           status: row[1] || '',
@@ -76,14 +76,14 @@ Deno.serve(async (req) => {
           description: row[5] || '',
           additional: row[6] || '',
           category: row[7] || '',
-          duplicated: row[9]?.toLowerCase() === 'true',
-          account_name: row[12] || '',
-          account_nature: row[13] || '',
-          account_provider_name: row[14] || '',
-          account_uuid: row[15] || '',
-          account_balance_snapshot: parseFloat(row[16]) || 0,
-          end_to_end_id: row[17] || '',
-          exchange_rate: parseFloat(row[18]) || 0,
+          duplicated: row[8]?.toLowerCase() === 'true',
+          account_name: row[11] || '',
+          account_nature: row[12] || '',
+          account_provider_name: row[13] || '',
+          account_uuid: row[14] || '',
+          account_balance_snapshot: parseFloat(row[15]) || 0,
+          end_to_end_id: row[16] || '',
+          exchange_rate: parseFloat(row[17]) || 0,
           information: row[19] || '',
           original_amount: parseFloat(row[20]) || 0,
           original_currency_code: row[21] || '',
