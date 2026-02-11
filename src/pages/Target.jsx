@@ -204,7 +204,8 @@ export default function Target() {
                     if (!item.order_date) return false;
                     const itemDate = new Date(item.order_date);
                     itemDate.setHours(0, 0, 0, 0);
-                    if (itemDate < periodStart || itemDate > today) return false;
+                    const maxDate = today < periodEnd ? today : periodEnd;
+                    if (itemDate < periodStart || itemDate > maxDate) return false;
                     if (target.store_id !== 'all' && item.store_id !== target.store_id) return false;
                     return true;
                   });
