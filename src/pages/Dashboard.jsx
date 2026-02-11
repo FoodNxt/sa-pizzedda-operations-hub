@@ -1136,10 +1136,15 @@ export default function Dashboard() {
       byStore[storeName] += s.total_discount_price || 0;
     });
 
-    const storeArray = Object.keys(byStore).map(name => ({
-      name,
-      total: byStore[name]
-    })).sort((a, b) => b.total - a.total);
+    const storeArray = Object.keys(byStore).map(name => {
+      const storeRevenue = processedData.revenueByStore[stores.find(s => s.name === name)?.id] || processedData.totalRevenue;
+      const percentage = storeRevenue > 0 ? (byStore[name] / storeRevenue) * 100 : 0;
+      return {
+        name,
+        total: byStore[name],
+        percentage
+      };
+    }).sort((a, b) => b.total - a.total);
 
     // By SourceApp
     const bySourceApp = {
@@ -1165,7 +1170,14 @@ export default function Dashboard() {
     });
 
     const sourceAppArray = Object.keys(bySourceApp)
-      .map(name => ({ name, total: bySourceApp[name] }))
+      .map(name => {
+        const percentage = processedData.totalRevenue > 0 ? (bySourceApp[name] / processedData.totalRevenue) * 100 : 0;
+        return { 
+          name, 
+          total: bySourceApp[name],
+          percentage
+        };
+      })
       .filter(s => s.total > 0)
       .sort((a, b) => b.total - a.total);
 
@@ -1883,9 +1895,12 @@ export default function Dashboard() {
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {scontiStats.byStore.length > 0 ? scontiStats.byStore.map((store, idx) =>
                   <div key={idx} className="p-2 rounded-lg bg-orange-50 border border-orange-200">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-start">
                       <span className="text-xs font-medium text-slate-700">{store.name}</span>
-                      <span className="text-xs font-bold text-orange-600">{formatEuro(store.total)}</span>
+                      <div className="text-right">
+                        <div className="text-xs font-bold text-orange-600">{formatEuro(store.total)}</div>
+                        <div className="text-[10px] text-slate-500">{store.percentage.toFixed(2)}%</div>
+                      </div>
                     </div>
                   </div>
                 ) : <p className="text-xs text-slate-400 text-center py-4">Nessun dato</p>}
@@ -1901,9 +1916,12 @@ export default function Dashboard() {
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {scontiStats.bySourceApp.length > 0 ? scontiStats.bySourceApp.map((app, idx) =>
                   <div key={idx} className="p-2 rounded-lg bg-blue-50 border border-blue-200">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-start">
                       <span className="text-xs font-medium text-slate-700">{app.name}</span>
-                      <span className="text-xs font-bold text-blue-600">{formatEuro(app.total)}</span>
+                      <div className="text-right">
+                        <div className="text-xs font-bold text-blue-600">{formatEuro(app.total)}</div>
+                        <div className="text-[10px] text-slate-500">{app.percentage.toFixed(2)}%</div>
+                      </div>
                     </div>
                   </div>
                 ) : <p className="text-xs text-slate-400 text-center py-4">Nessun dato</p>}
