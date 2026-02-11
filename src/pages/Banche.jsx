@@ -541,6 +541,7 @@ export default function Banche() {
                       <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Description</th>
                       <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Additional</th>
                       <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Category</th>
+                      <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Subcategory</th>
                       <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Duplicated</th>
                       <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Created At</th>
                       <th className="text-left p-3 font-semibold text-slate-700 whitespace-nowrap">Updated At</th>
@@ -587,6 +588,7 @@ export default function Banche() {
                         <td className="p-3 text-slate-700 max-w-xs truncate">{tx.description || 'N/A'}</td>
                         <td className="p-3 text-slate-700 max-w-xs truncate">{tx.additional || 'N/A'}</td>
                         <td className="p-3 text-slate-700 whitespace-nowrap">{tx.category || 'N/A'}</td>
+                        <td className="p-3 text-slate-700 whitespace-nowrap">{tx.subcategory || 'N/A'}</td>
                         <td className="p-3 text-slate-700 whitespace-nowrap">{tx.duplicated ? 'Yes' : 'No'}</td>
                         <td className="p-3 text-slate-700 whitespace-nowrap">{tx.created_date ? new Date(tx.created_date).toLocaleString('it-IT') : 'N/A'}</td>
                         <td className="p-3 text-slate-700 whitespace-nowrap">{tx.updated_date ? new Date(tx.updated_date).toLocaleString('it-IT') : 'N/A'}</td>
