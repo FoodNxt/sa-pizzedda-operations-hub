@@ -1109,6 +1109,17 @@ export default function Dashboard() {
       endFilterDate = new Date();
     }
 
+    // Filter iPratico data for same period
+    const filteredData = iPraticoData.filter((item) => {
+      if (!item.order_date) return false;
+      const itemDateStart = safeParseDate(item.order_date + 'T00:00:00');
+      const itemDateEnd = safeParseDate(item.order_date + 'T23:59:59');
+      if (!itemDateStart || !itemDateEnd) return false;
+      if (cutoffDate && isBefore(itemDateEnd, cutoffDate)) return false;
+      if (endFilterDate && isAfter(itemDateStart, endFilterDate)) return false;
+      return true;
+    });
+
     const filteredSconti = sconti.filter((s) => {
       if (!s.order_date) return false;
       const itemDate = safeParseDate(s.order_date);
@@ -1121,10 +1132,33 @@ export default function Dashboard() {
     // Total discounts
     const totalSconti = filteredSconti.reduce((sum, s) => sum + (s.total_discount_price || 0), 0);
 
-    // Calculate discount percentage on gross sales (same period as processedData.totalRevenue)
+    // Calculate discount percentage on gross sales
     const discountPercentage = processedData.totalRevenue > 0 
       ? (totalSconti / processedData.totalRevenue) * 100 
       : 0;
+
+    // Calculate revenue by SourceApp
+    const revenueBySourceApp = {
+      'Glovo': 0,
+      'Deliveroo': 0,
+      'JustEat': 0,
+      'Online Ordering': 0,
+      'OrderTable': 0,
+      'Tabesto': 0,
+      'Deliverect': 0,
+      'Store': 0
+    };
+
+    filteredData.forEach((item) => {
+      revenueBySourceApp['Glovo'] += item.sourceApp_glovo || 0;
+      revenueBySourceApp['Deliveroo'] += item.sourceApp_deliveroo || 0;
+      revenueBySourceApp['JustEat'] += item.sourceApp_justeat || 0;
+      revenueBySourceApp['Online Ordering'] += item.sourceApp_onlineordering || 0;
+      revenueBySourceApp['OrderTable'] += item.sourceApp_ordertable || 0;
+      revenueBySourceApp['Tabesto'] += item.sourceApp_tabesto || 0;
+      revenueBySourceApp['Deliverect'] += item.sourceApp_deliverect || 0;
+      revenueBySourceApp['Store'] += item.sourceApp_store || 0;
+    });
 
     // By Store
     const byStore = {};
@@ -1137,7 +1171,7 @@ export default function Dashboard() {
     });
 
     const storeArray = Object.keys(byStore).map(name => {
-      const storeRevenue = processedData.revenueByStore[stores.find(s => s.name === name)?.id] || processedData.totalRevenue;
+      const storeRevenue = processedData.revenueByStore[stores.find(s => s.name === name)?.id] || 0;
       const percentage = storeRevenue > 0 ? (byStore[name] / storeRevenue) * 100 : 0;
       return {
         name,
@@ -1171,7 +1205,8 @@ export default function Dashboard() {
 
     const sourceAppArray = Object.keys(bySourceApp)
       .map(name => {
-        const percentage = processedData.totalRevenue > 0 ? (bySourceApp[name] / processedData.totalRevenue) * 100 : 0;
+        const appRevenue = revenueBySourceApp[name] || 0;
+        const percentage = appRevenue > 0 ? (bySourceApp[name] / appRevenue) * 100 : 0;
         return { 
           name, 
           total: bySourceApp[name],
@@ -1187,7 +1222,7 @@ export default function Dashboard() {
       byStore: storeArray,
       bySourceApp: sourceAppArray
     };
-  }, [sconti, dateRange, startDate, endDate, processedData.totalRevenue]);
+  }, [sconti, dateRange, startDate, endDate, processedData.totalRevenue, processedData.revenueByStore, stores, iPraticoData]);
 
   // Active Targets (ongoing: start date in past, end date in future)
   const activeTargets = useMemo(() => {
