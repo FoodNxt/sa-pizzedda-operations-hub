@@ -175,6 +175,7 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
+import AdminHR from './pages/AdminHR';
 import __Layout from './Layout.jsx';
 
 
@@ -307,6 +308,7 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
+    "AdminHR": AdminHR,
 }
 
 export const pagesConfig = {
