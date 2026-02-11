@@ -93,7 +93,7 @@ const navigationStructure = [
     ]
   },
   {
-    title: "Analisi Ricavi",
+    title: "Financials",
     icon: Euro,
     type: "section",
     requiredUserType: ["admin", "manager"],
@@ -145,6 +145,12 @@ const navigationStructure = [
         page: "Produttivita",
         url: createPageUrl("Produttivita"),
         icon: Clock,
+      },
+      {
+        title: "Banche",
+        page: "Banche",
+        url: createPageUrl("Banche"),
+        icon: DollarSign,
       }
       ]
       },
