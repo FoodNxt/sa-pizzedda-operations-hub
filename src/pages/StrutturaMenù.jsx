@@ -68,7 +68,6 @@ const DEFAULT_MENU_STRUCTURE = [
     items: [
       { title: "Performance Dipendenti", page: "Employees", icon: "Users" },
       { title: "Payroll", page: "Payroll", icon: "DollarSign" },
-      { title: "Alerts", page: "Alerts", icon: "AlertTriangle" },
       { title: "Overview Contratti", page: "OverviewContratti", icon: "FileText" },
       { title: "Academy", page: "AcademyAdmin", icon: "GraduationCap" },
       { title: "Documenti", page: "Documenti", icon: "FileText" },
