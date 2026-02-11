@@ -1580,43 +1580,46 @@ export default function Layout({ children, currentPageName }) {
                       const isActive = isActiveLink(section.url);
                       return (
                         <Link
-                          key={item.title}
-                          to={item.url}
+                          key={section.title}
+                          to={section.url}
                           onClick={() => setSidebarOpen(false)}
                           className={`
                             flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} gap-3 px-3 py-2 rounded-lg text-sm
                             transition-all duration-200
                             ${isActive ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 font-medium text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-100'}
                           `}
-                          title={sidebarCollapsed ? item.title : ''}
+                          title={sidebarCollapsed ? section.title : ''}
                         >
                           <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
-                            <item.icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-400'}`} />
-                            {!sidebarCollapsed && <span>{item.title}</span>}
+                            <section.icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : 'text-slate-400'}`} />
+                            {!sidebarCollapsed && <span>{section.title}</span>}
                           </div>
                           {!sidebarCollapsed && <ChevronRight className="w-4 h-4 text-slate-400" />}
                         </Link>
                       );
                     }
 
-                    if (item.type === 'section') {
-                      const isExpanded = expandedSections[item.title];
-                      const sectionActive = isSectionActive(item);
+                    if (section.type === 'section') {
+                      const isExpanded = expandedSections[section.title];
+                      const sectionActive = isSectionActive(section);
+                      
+                      // Filter items: show only those without parent_admin_section
+                      const visibleItems = section.items.filter(item => !item.parent_admin_section);
 
                       return (
-                        <div key={item.title}>
+                        <div key={section.title}>
                           <button
-                            onClick={() => toggleSection(item.title)}
+                            onClick={() => toggleSection(section.title)}
                             className={`
                               w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'} gap-3 px-3 py-2 rounded-lg text-sm
                               transition-all duration-200
                               ${sectionActive ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 font-medium text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-100'}
                             `}
-                            title={sidebarCollapsed ? item.title : ''}
+                            title={sidebarCollapsed ? section.title : ''}
                           >
                             <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
-                              <item.icon className={`w-4 h-4 ${sectionActive ? 'text-blue-400' : 'text-slate-400'}`} />
-                              {!sidebarCollapsed && <span>{item.title}</span>}
+                              <section.icon className={`w-4 h-4 ${sectionActive ? 'text-blue-400' : 'text-slate-400'}`} />
+                              {!sidebarCollapsed && <span>{section.title}</span>}
                             </div>
                             {!sidebarCollapsed && (
                               isExpanded ? (
@@ -1629,7 +1632,7 @@ export default function Layout({ children, currentPageName }) {
 
                           {isExpanded && !sidebarCollapsed && (
                             <div className="ml-0 mt-1 space-y-0">
-                              {item.items.map((subItem) => {
+                              {visibleItems.map((subItem) => {
                                 const isActive = isActiveLink(subItem.url);
                                 return (
                                   <Link
