@@ -20,6 +20,9 @@ export default function Banche() {
   const [trendDateRange, setTrendDateRange] = useState('last30');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [spendingView, setSpendingView] = useState('category'); // category, subcategory
+  const [spendingDateRange, setSpendingDateRange] = useState('currentMonth');
+  const [uncategorizedExpanded, setUncategorizedExpanded] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
@@ -196,6 +199,57 @@ export default function Banche() {
   }, {});
 
   const trendChartData = Object.values(trendData).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // Calculate spending date range
+  const getSpendingDateRange = () => {
+    const today = new Date();
+    let startDate, endDate = today;
+
+    if (spendingDateRange === 'currentMonth') {
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else if (spendingDateRange === 'lastMonth') {
+      startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+    } else if (spendingDateRange === 'last30') {
+      startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (spendingDateRange === 'last60') {
+      startDate = new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000);
+    } else if (spendingDateRange === 'last90') {
+      startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+    }
+
+    return { startDate, endDate };
+  };
+
+  const { startDate: spendingStart, endDate: spendingEnd } = getSpendingDateRange();
+
+  // Filter spending transactions (only negative amounts)
+  const spendingTransactions = transactions.filter(tx => {
+    if (tx.amount >= 0) return false;
+    if (!spendingStart || !spendingEnd || !tx.madeOn) return false;
+    const txDate = new Date(tx.madeOn);
+    return txDate >= spendingStart && txDate <= spendingEnd;
+  });
+
+  // Group by category or subcategory
+  const spendingData = spendingTransactions.reduce((acc, tx) => {
+    const key = spendingView === 'category' ? tx.category : tx.subcategory;
+    if (!key) return acc;
+    
+    if (!acc[key]) {
+      acc[key] = { name: key, total: 0, count: 0 };
+    }
+    
+    acc[key].total += Math.abs(tx.amount);
+    acc[key].count += 1;
+    
+    return acc;
+  }, {});
+
+  const spendingTableData = Object.values(spendingData).sort((a, b) => b.total - a.total);
+
+  // Uncategorized transactions
+  const uncategorizedTransactions = transactions.filter(tx => !tx.category || tx.category === '');
 
   return (
     <ProtectedPage pageName="Banche">
@@ -518,12 +572,187 @@ export default function Banche() {
                 </ResponsiveContainer>
               )}
             </NeumorphicCard>
+
+            {/* Spending by Category/Subcategory */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-4">Spesa per {spendingView === 'category' ? 'Categoria' : 'Sottocategoria'}</h2>
+              
+              {/* View Toggle */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setSpendingView('category')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    spendingView === 'category'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Per Categoria
+                </button>
+                <button
+                  onClick={() => setSpendingView('subcategory')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    spendingView === 'subcategory'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Per Sottocategoria
+                </button>
+              </div>
+
+              {/* Date Range Filters */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-6">
+                <button
+                  onClick={() => setSpendingDateRange('currentMonth')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    spendingDateRange === 'currentMonth'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Mese Corrente
+                </button>
+                <button
+                  onClick={() => setSpendingDateRange('lastMonth')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    spendingDateRange === 'lastMonth'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Mese Scorso
+                </button>
+                <button
+                  onClick={() => setSpendingDateRange('last30')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    spendingDateRange === 'last30'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Ultimi 30gg
+                </button>
+                <button
+                  onClick={() => setSpendingDateRange('last60')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    spendingDateRange === 'last60'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Ultimi 60gg
+                </button>
+                <button
+                  onClick={() => setSpendingDateRange('last90')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    spendingDateRange === 'last90'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Ultimi 90gg
+                </button>
+              </div>
+
+              {/* Spending Table */}
+              {spendingTableData.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  Nessuna spesa nel periodo selezionato
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200">
+                        <th className="text-left p-3 font-semibold text-slate-700">
+                          {spendingView === 'category' ? 'Categoria' : 'Sottocategoria'}
+                        </th>
+                        <th className="text-right p-3 font-semibold text-slate-700">Totale</th>
+                        <th className="text-right p-3 font-semibold text-slate-700">Transazioni</th>
+                        <th className="text-right p-3 font-semibold text-slate-700">Media</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {spendingTableData.map((item, idx) => (
+                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="p-3 text-slate-700 font-medium">{item.name}</td>
+                          <td className="p-3 text-right text-red-600 font-medium">
+                            {formatEuro(item.total)}
+                          </td>
+                          <td className="p-3 text-right text-slate-700">{item.count}</td>
+                          <td className="p-3 text-right text-slate-600">
+                            {formatEuro(item.total / item.count)}
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="border-t-2 border-slate-300 font-bold">
+                        <td className="p-3 text-slate-800">Totale</td>
+                        <td className="p-3 text-right text-red-600">
+                          {formatEuro(spendingTableData.reduce((sum, item) => sum + item.total, 0))}
+                        </td>
+                        <td className="p-3 text-right text-slate-800">
+                          {spendingTableData.reduce((sum, item) => sum + item.count, 0)}
+                        </td>
+                        <td className="p-3"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </NeumorphicCard>
           </div>
         )}
 
         {/* Matching View */}
         {activeView === 'matching' && (
           <div className="space-y-6">
+            {/* Uncategorized Transactions */}
+            <NeumorphicCard className="p-6">
+              <button
+                onClick={() => setUncategorizedExpanded(!uncategorizedExpanded)}
+                className="w-full flex items-center justify-between"
+              >
+                <h2 className="text-xl font-bold text-slate-800">
+                  Transazioni Senza Categoria ({uncategorizedTransactions.length})
+                </h2>
+                <ChevronRight className={`w-5 h-5 text-slate-600 transition-transform ${uncategorizedExpanded ? 'rotate-90' : ''}`} />
+              </button>
+
+              {uncategorizedExpanded && (
+                <div className="mt-4 overflow-x-auto">
+                  {uncategorizedTransactions.length === 0 ? (
+                    <p className="text-center py-8 text-slate-500">
+                      Tutte le transazioni sono categorizzate
+                    </p>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left p-3 font-semibold text-slate-700">Data</th>
+                          <th className="text-left p-3 font-semibold text-slate-700">Description</th>
+                          <th className="text-right p-3 font-semibold text-slate-700">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {uncategorizedTransactions.map((tx) => (
+                          <tr key={tx.id} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="p-3 text-slate-700 whitespace-nowrap">{tx.madeOn}</td>
+                            <td className="p-3 text-slate-700">{tx.description}</td>
+                            <td className={`p-3 text-right font-medium ${
+                              tx.amount >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {formatEuro(tx.amount)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )}
+            </NeumorphicCard>
+
             <NeumorphicCard className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-slate-800">Regole di Matching</h2>
