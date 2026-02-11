@@ -30,48 +30,53 @@ Deno.serve(async (req) => {
     const allUsers = await base44.asServiceRole.entities.User.list();
     const dipendentiUsers = allUsers.filter(u => u.user_type === 'dipendente');
 
-    // Combina Employee e User
+    // Combina Employee e User usando User.id come source of truth
     const userMap = new Map();
     
-    // Prima passa: aggiungi tutti gli Employee
+    // Crea mappa Employee per riferimento (ma NON usiamo l'ID)
+    const employeeMap = new Map();
     activeEmployees.forEach(emp => {
-      const key = emp.full_name.toLowerCase().trim();
-      userMap.set(key, {
-        id: emp.id,
-        nome_cognome: emp.full_name,
-        full_name: emp.full_name,
-        email: emp.email,
-        ruoli_dipendente: emp.function_name ? [emp.function_name] : [],
-        assigned_stores: emp.assigned_stores || [],
-        source: 'employee'
-      });
+      const key = (emp.full_name || '').toLowerCase().trim();
+      employeeMap.set(key, emp);
     });
     
-    // Seconda passa: aggiungi/unisci User
+    // Principale: aggiungi tutti gli User dipendenti con il LORO ID
     dipendentiUsers.forEach(user => {
       const key = (user.nome_cognome || user.full_name || '').toLowerCase().trim();
       if (!key) return;
       
-      const existing = userMap.get(key);
-      if (existing) {
-        // Se esiste già, unisci i ruoli
-        const userRuoli = user.ruoli_dipendente || [];
-        const combinedRuoli = [...new Set([...existing.ruoli_dipendente, ...userRuoli])];
+      const matchingEmployee = employeeMap.get(key);
+      const userRuoli = user.ruoli_dipendente || [];
+      
+      // Unisci i ruoli dell'Employee se esiste
+      let combinedRuoli = [...userRuoli];
+      if (matchingEmployee?.function_name && !userRuoli.includes(matchingEmployee.function_name)) {
+        combinedRuoli.push(matchingEmployee.function_name);
+      }
+      
+      userMap.set(key, {
+        id: user.id, // SEMPRE User.id, mai Employee.id
+        nome_cognome: user.nome_cognome || user.full_name || matchingEmployee?.full_name,
+        full_name: user.full_name || user.nome_cognome || matchingEmployee?.full_name,
+        email: user.email,
+        ruoli_dipendente: combinedRuoli,
+        assigned_stores: user.assigned_stores || matchingEmployee?.assigned_stores || [],
+        source: 'user'
+      });
+    });
+    
+    // Se ci sono Employee senza User corrispondente, aggiungili (fallback)
+    activeEmployees.forEach(emp => {
+      const key = (emp.full_name || '').toLowerCase().trim();
+      if (!userMap.has(key)) {
         userMap.set(key, {
-          ...existing,
-          ruoli_dipendente: combinedRuoli,
-          assigned_stores: user.assigned_stores || existing.assigned_stores
-        });
-      } else {
-        // Se non esiste, aggiungilo
-        userMap.set(key, {
-          id: user.id,
-          nome_cognome: user.nome_cognome || user.full_name,
-          full_name: user.full_name || user.nome_cognome,
-          email: user.email,
-          ruoli_dipendente: user.ruoli_dipendente || [],
-          assigned_stores: user.assigned_stores || [],
-          source: 'user'
+          id: emp.id,
+          nome_cognome: emp.full_name,
+          full_name: emp.full_name,
+          email: emp.email,
+          ruoli_dipendente: emp.function_name ? [emp.function_name] : [],
+          assigned_stores: emp.assigned_stores || [],
+          source: 'employee'
         });
       }
     });
