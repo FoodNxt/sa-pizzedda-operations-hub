@@ -22,8 +22,11 @@ export default function Banche() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [spendingView, setSpendingView] = useState('category'); // category, subcategory
   const [spendingDateRange, setSpendingDateRange] = useState('currentMonth');
+  const [incomeView, setIncomeView] = useState('category'); // category, subcategory
+  const [incomeDateRange, setIncomeDateRange] = useState('currentMonth');
   const [uncategorizedExpanded, setUncategorizedExpanded] = useState(false);
   const [expandedSpendingRows, setExpandedSpendingRows] = useState({});
+  const [expandedIncomeRows, setExpandedIncomeRows] = useState({});
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
@@ -267,6 +270,57 @@ export default function Banche() {
   }, {});
 
   const spendingTableData = Object.values(spendingData).sort((a, b) => b.total - a.total);
+
+  // Income by category/subcategory
+  const getIncomeDateRange = () => {
+    const today = new Date();
+    let startDate, endDate = today;
+
+    if (incomeDateRange === 'currentMonth') {
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else if (incomeDateRange === 'lastMonth') {
+      startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+    } else if (incomeDateRange === 'last30') {
+      startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (incomeDateRange === 'last60') {
+      startDate = new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000);
+    } else if (incomeDateRange === 'last90') {
+      startDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+    }
+
+    return { startDate, endDate };
+  };
+
+  const { startDate: incomeStart, endDate: incomeEnd } = getIncomeDateRange();
+
+  // Filter income transactions (only positive amounts)
+  const incomeTransactions = transactions.filter(tx => {
+    if (tx.amount <= 0) return false;
+    if (!incomeStart || !incomeEnd || !tx.madeOn) return false;
+    const txDate = new Date(tx.madeOn);
+    return txDate >= incomeStart && txDate <= incomeEnd;
+  });
+
+  // Group by category or subcategory
+  const incomeData = incomeTransactions.reduce((acc, tx) => {
+    let key = incomeView === 'category' ? tx.category : tx.subcategory;
+    if (!key || key === '') {
+      key = incomeView === 'category' ? 'Non categorizzato' : 'Senza sottocategoria';
+    }
+    
+    if (!acc[key]) {
+      acc[key] = { name: key, total: 0, count: 0, transactions: [] };
+    }
+    
+    acc[key].total += tx.amount;
+    acc[key].count += 1;
+    acc[key].transactions.push(tx);
+    
+    return acc;
+  }, {});
+
+  const incomeTableData = Object.values(incomeData).sort((a, b) => b.total - a.total);
 
   // Uncategorized transactions
   const uncategorizedTransactions = transactions.filter(tx => !tx.category || tx.category === '' || tx.category === 'uncategorized');
@@ -603,10 +657,20 @@ export default function Banche() {
               
               {/* View Toggle */}
               <div className="flex gap-2 mb-4">
+...
+              )}
+            </NeumorphicCard>
+
+            {/* Income by Category/Subcategory */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-4">Entrate per {incomeView === 'category' ? 'Categoria' : 'Sottocategoria'}</h2>
+              
+              {/* View Toggle */}
+              <div className="flex gap-2 mb-4">
                 <button
-                  onClick={() => setSpendingView('category')}
+                  onClick={() => setIncomeView('category')}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    spendingView === 'category'
+                    incomeView === 'category'
                       ? 'bg-blue-600 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -614,9 +678,9 @@ export default function Banche() {
                   Per Categoria
                 </button>
                 <button
-                  onClick={() => setSpendingView('subcategory')}
+                  onClick={() => setIncomeView('subcategory')}
                   className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    spendingView === 'subcategory'
+                    incomeView === 'subcategory'
                       ? 'bg-blue-600 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -628,9 +692,9 @@ export default function Banche() {
               {/* Date Range Filters */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-6">
                 <button
-                  onClick={() => setSpendingDateRange('currentMonth')}
+                  onClick={() => setIncomeDateRange('currentMonth')}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    spendingDateRange === 'currentMonth'
+                    incomeDateRange === 'currentMonth'
                       ? 'bg-blue-600 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -638,9 +702,9 @@ export default function Banche() {
                   Mese Corrente
                 </button>
                 <button
-                  onClick={() => setSpendingDateRange('lastMonth')}
+                  onClick={() => setIncomeDateRange('lastMonth')}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    spendingDateRange === 'lastMonth'
+                    incomeDateRange === 'lastMonth'
                       ? 'bg-blue-600 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -648,9 +712,9 @@ export default function Banche() {
                   Mese Scorso
                 </button>
                 <button
-                  onClick={() => setSpendingDateRange('last30')}
+                  onClick={() => setIncomeDateRange('last30')}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    spendingDateRange === 'last30'
+                    incomeDateRange === 'last30'
                       ? 'bg-blue-600 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -658,9 +722,9 @@ export default function Banche() {
                   Ultimi 30gg
                 </button>
                 <button
-                  onClick={() => setSpendingDateRange('last60')}
+                  onClick={() => setIncomeDateRange('last60')}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    spendingDateRange === 'last60'
+                    incomeDateRange === 'last60'
                       ? 'bg-blue-600 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -668,9 +732,9 @@ export default function Banche() {
                   Ultimi 60gg
                 </button>
                 <button
-                  onClick={() => setSpendingDateRange('last90')}
+                  onClick={() => setIncomeDateRange('last90')}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    spendingDateRange === 'last90'
+                    incomeDateRange === 'last90'
                       ? 'bg-blue-600 text-white'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -679,10 +743,10 @@ export default function Banche() {
                 </button>
               </div>
 
-              {/* Spending Table */}
-              {spendingTableData.length === 0 ? (
+              {/* Income Table */}
+              {incomeTableData.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
-                  Nessuna spesa nel periodo selezionato
+                  Nessuna entrata nel periodo selezionato
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -690,7 +754,7 @@ export default function Banche() {
                     <thead>
                       <tr className="border-b border-slate-200">
                         <th className="text-left p-3 font-semibold text-slate-700">
-                          {spendingView === 'category' ? 'Categoria' : 'Sottocategoria'}
+                          {incomeView === 'category' ? 'Categoria' : 'Sottocategoria'}
                         </th>
                         <th className="text-right p-3 font-semibold text-slate-700">Totale</th>
                         <th className="text-right p-3 font-semibold text-slate-700">Transazioni</th>
@@ -698,20 +762,20 @@ export default function Banche() {
                       </tr>
                     </thead>
                     <tbody>
-                      {spendingTableData.map((item, idx) => (
+                      {incomeTableData.map((item, idx) => (
                         <>
                           <tr 
                             key={idx} 
                             className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
-                            onClick={() => setExpandedSpendingRows(prev => ({...prev, [item.name]: !prev[item.name]}))}
+                            onClick={() => setExpandedIncomeRows(prev => ({...prev, [item.name]: !prev[item.name]}))}
                           >
                             <td className="p-3 text-slate-700 font-medium">
                               <div className="flex items-center gap-2">
-                                <ChevronRight className={`w-4 h-4 transition-transform ${expandedSpendingRows[item.name] ? 'rotate-90' : ''}`} />
+                                <ChevronRight className={`w-4 h-4 transition-transform ${expandedIncomeRows[item.name] ? 'rotate-90' : ''}`} />
                                 {item.name}
                               </div>
                             </td>
-                            <td className="p-3 text-right text-red-600 font-medium">
+                            <td className="p-3 text-right text-green-600 font-medium">
                               {formatEuro(item.total)}
                             </td>
                             <td className="p-3 text-right text-slate-700">{item.count}</td>
@@ -719,7 +783,7 @@ export default function Banche() {
                               {formatEuro(item.total / item.count)}
                             </td>
                           </tr>
-                          {expandedSpendingRows[item.name] && (
+                          {expandedIncomeRows[item.name] && (
                             <tr key={`${idx}-details`}>
                               <td colSpan="4" className="p-0 bg-slate-50">
                                 <div className="p-4">
@@ -736,8 +800,8 @@ export default function Banche() {
                                         <tr key={txIdx} className="border-b border-slate-100">
                                           <td className="p-2 text-slate-700">{tx.madeOn}</td>
                                           <td className="p-2 text-slate-700">{tx.description}</td>
-                                          <td className="p-2 text-right text-red-600">
-                                            {formatEuro(Math.abs(tx.amount))}
+                                          <td className="p-2 text-right text-green-600">
+                                            {formatEuro(tx.amount)}
                                           </td>
                                         </tr>
                                       ))}
@@ -751,11 +815,11 @@ export default function Banche() {
                       ))}
                       <tr className="border-t-2 border-slate-300 font-bold">
                         <td className="p-3 text-slate-800">Totale</td>
-                        <td className="p-3 text-right text-red-600">
-                          {formatEuro(spendingTableData.reduce((sum, item) => sum + item.total, 0))}
+                        <td className="p-3 text-right text-green-600">
+                          {formatEuro(incomeTableData.reduce((sum, item) => sum + item.total, 0))}
                         </td>
                         <td className="p-3 text-right text-slate-800">
-                          {spendingTableData.reduce((sum, item) => sum + item.count, 0)}
+                          {incomeTableData.reduce((sum, item) => sum + item.count, 0)}
                         </td>
                         <td className="p-3"></td>
                       </tr>
