@@ -327,20 +327,23 @@ export default function StrutturaMenù() {
                                               <div className="font-medium text-slate-800">{item.title}</div>
                                               <div className="text-xs text-slate-500">Pagina: {item.page}</div>
                                             </div>
-                                            <label className="flex items-center gap-2 cursor-pointer ml-auto">
-                                              <input
-                                                type="checkbox"
-                                                checked={item.admin_section || false}
-                                                onChange={(e) => {
-                                                  const newStructure = [...menuStructure];
-                                                  newStructure[sectionIndex].items[itemIndex].admin_section = e.target.checked;
-                                                  setMenuStructure(newStructure);
-                                                  setHasChanges(true);
-                                                }}
-                                                className="w-4 h-4"
-                                              />
-                                              <span className="text-xs text-slate-600 whitespace-nowrap">Admin {section.title}</span>
-                                            </label>
+                                            <select
+                                              value={item.parent_admin_section || ''}
+                                              onChange={(e) => {
+                                                const newStructure = [...menuStructure];
+                                                const newItem = { ...newStructure[sectionIndex].items[itemIndex] };
+                                                newItem.parent_admin_section = e.target.value || null;
+                                                newStructure[sectionIndex].items[itemIndex] = newItem;
+                                                setMenuStructure(newStructure);
+                                                setHasChanges(true);
+                                              }}
+                                              className="text-xs px-2 py-1 rounded border border-slate-300 bg-white"
+                                            >
+                                              <option value="">Menu principale</option>
+                                              {['HR', 'Inventory', 'Financials', 'Marketing', 'Sistema'].map(section => (
+                                                <option key={section} value={section}>Admin {section}</option>
+                                              ))}
+                                            </select>
                                           </div>
                                         )}
                                       </Draggable>
