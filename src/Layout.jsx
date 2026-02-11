@@ -308,30 +308,6 @@ const navigationStructure = [
         icon: AlertTriangle,
       },
       {
-        title: "Assegnazione Locali",
-        page: "HRAdmin",
-        url: createPageUrl("HRAdmin"),
-        icon: MapPin,
-      },
-      {
-        title: "Disponibilità",
-        page: "Disponibilita",
-        url: createPageUrl("Disponibilita"),
-        icon: Clock,
-      },
-      {
-        title: "Store Manager",
-        page: "StoreManagerAdmin",
-        url: createPageUrl("StoreManagerAdmin"),
-        icon: Users,
-      },
-      {
-        title: "Compliance",
-        page: "Compliance",
-        url: createPageUrl("Compliance"),
-        icon: CheckSquare,
-      },
-      {
         title: "ATS",
         page: "ATS",
         url: createPageUrl("ATS"),
@@ -365,6 +341,12 @@ const navigationStructure = [
         url: createPageUrl("Uscite"),
         icon: AlertTriangle,
         requiredUserType: ["admin"]
+      },
+      {
+        title: "Admin HR",
+        page: "AdminHR",
+        url: createPageUrl("AdminHR"),
+        icon: Settings,
       }
        ]
        },
