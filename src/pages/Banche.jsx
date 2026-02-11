@@ -14,6 +14,28 @@ export default function Banche() {
   const [activeView, setActiveView] = useState('overview');
   const [editingRule, setEditingRule] = useState(null);
   const [newRule, setNewRule] = useState({ pattern: '', category: '', subcategory: '', match_type: 'contains', search_in: 'description', priority: 0, is_giroconto: false });
+
+  // Gerarchia categorie/sottocategorie costruita dai dati
+  const getCategoryHierarchy = () => {
+    const hierarchy = {};
+    rules.forEach(rule => {
+      if (!rule.category) return;
+      if (!hierarchy[rule.category]) {
+        hierarchy[rule.category] = new Set();
+      }
+      if (rule.subcategory) {
+        hierarchy[rule.category].add(rule.subcategory);
+      }
+    });
+    // Converti Set a Array ordinati
+    Object.keys(hierarchy).forEach(cat => {
+      hierarchy[cat] = Array.from(hierarchy[cat]).sort();
+    });
+    return hierarchy;
+  };
+
+  const categoryHierarchy = getCategoryHierarchy();
+  const categories = Object.keys(categoryHierarchy).sort();
   const [selectedProvider, setSelectedProvider] = useState('all');
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [trendView, setTrendView] = useState('daily'); // daily, weekly, monthly
@@ -1058,39 +1080,33 @@ export default function Banche() {
 
               {/* Add New Rule */}
               <div className="bg-slate-50 p-4 rounded-lg mb-4">
-                <h3 className="font-semibold text-slate-700 mb-3">Nuova Regola</h3>
-                <div className="grid grid-cols-1 md:grid-cols-7 gap-3 mb-3">
-                  <Input
-                    placeholder="Pattern da cercare..."
-                    value={newRule.pattern}
-                    onChange={(e) => setNewRule({ ...newRule, pattern: e.target.value })}
-                  />
-                  <div>
-                    <Input
-                      placeholder="Categoria..."
-                      list="categories-list"
-                      value={newRule.category}
-                      onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}
-                    />
-                    <datalist id="categories-list">
-                      {existingCategories.map((cat, idx) => (
-                        <option key={idx} value={cat} />
-                      ))}
-                    </datalist>
-                  </div>
-                  <div>
-                    <Input
-                      placeholder="Sottocategoria..."
-                      list="subcategories-list"
-                      value={newRule.subcategory}
-                      onChange={(e) => setNewRule({ ...newRule, subcategory: e.target.value })}
-                    />
-                    <datalist id="subcategories-list">
-                      {existingSubcategories.map((sub, idx) => (
-                        <option key={idx} value={sub} />
-                      ))}
-                    </datalist>
-                  </div>
+               <h3 className="font-semibold text-slate-700 mb-3">Nuova Regola</h3>
+               <div className="grid grid-cols-1 md:grid-cols-7 gap-3 mb-3">
+                 <Input
+                   placeholder="Pattern da cercare..."
+                   value={newRule.pattern}
+                   onChange={(e) => setNewRule({ ...newRule, pattern: e.target.value })}
+                 />
+                 <Select value={newRule.category} onValueChange={(v) => setNewRule({ ...newRule, category: v, subcategory: '' })}>
+                   <SelectTrigger>
+                     <SelectValue placeholder="Categoria..." />
+                   </SelectTrigger>
+                   <SelectContent>
+                     {categories.map((cat) => (
+                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+                 <Select value={newRule.subcategory} onValueChange={(v) => setNewRule({ ...newRule, subcategory: v })} disabled={!newRule.category}>
+                   <SelectTrigger>
+                     <SelectValue placeholder="Sottocategoria..." />
+                   </SelectTrigger>
+                   <SelectContent>
+                     {newRule.category && categoryHierarchy[newRule.category] && categoryHierarchy[newRule.category].map((sub) => (
+                       <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
                   <Select value={newRule.match_type} onValueChange={(v) => setNewRule({ ...newRule, match_type: v })}>
                     <SelectTrigger>
                       <SelectValue />
@@ -1149,27 +1165,31 @@ export default function Banche() {
                     {editingRule?.id === rule.id ? (
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
-                          <Input
-                            value={editingRule.pattern}
-                            onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
-                            placeholder="Pattern"
-                          />
-                          <div>
                             <Input
-                              value={editingRule.category}
-                              list="categories-list"
-                              onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
-                              placeholder="Categoria"
+                              value={editingRule.pattern}
+                              onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
+                              placeholder="Pattern"
                             />
-                          </div>
-                          <div>
-                            <Input
-                              value={editingRule.subcategory || ''}
-                              list="subcategories-list"
-                              onChange={(e) => setEditingRule({ ...editingRule, subcategory: e.target.value })}
-                              placeholder="Sottocategoria"
-                            />
-                          </div>
+                            <Select value={editingRule.category} onValueChange={(v) => setEditingRule({ ...editingRule, category: v, subcategory: '' })}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map((cat) => (
+                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Select value={editingRule.subcategory || ''} onValueChange={(v) => setEditingRule({ ...editingRule, subcategory: v })} disabled={!editingRule.category}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {editingRule.category && categoryHierarchy[editingRule.category] && categoryHierarchy[editingRule.category].map((sub) => (
+                                  <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           <Select value={editingRule.match_type} onValueChange={(v) => setEditingRule({ ...editingRule, match_type: v })}>
                             <SelectTrigger>
                               <SelectValue />
