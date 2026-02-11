@@ -64,9 +64,9 @@ Deno.serve(async (req) => {
         }
 
         // Map all columns (0-indexed)
-        // row[8] = Subcategory (skip, calcolata dai matching)
-        // row[10] = created_date (skip, built-in)
-        // row[11] = updated_date (skip, built-in)
+        // row[8] = Subcategory (non importata, popolata dai matching rules)
+        // row[10] = Created At (dal file, non importata)
+        // row[11] = Updated At (dal file, non importata)
         const transactionData = {
           transactionId: row[0] || '',
           status: row[1] || '',
