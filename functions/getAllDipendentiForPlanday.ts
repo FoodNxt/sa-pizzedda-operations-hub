@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
     
     const filterData = body?.filter_data || body?.data || null;
     const excludeUserId = body?.exclude_user_id || null;
+    const filterDataRange = body?.filter_data_range || null;
 
     // Carica tutti gli Employee attivi usando service role
     const allEmployees = await base44.asServiceRole.entities.Employee.list();
@@ -83,11 +84,15 @@ Deno.serve(async (req) => {
       dipendenti = dipendenti.filter(d => d.id !== excludeUserId);
     }
 
-    // Se è richiesta anche la lista turni per una data specifica
+    // Se è richiesta anche la lista turni per una data specifica o range
     let turni = [];
     if (filterData) {
       turni = await base44.asServiceRole.entities.TurnoPlanday.filter({
         data: filterData
+      });
+    } else if (filterDataRange) {
+      turni = await base44.asServiceRole.entities.TurnoPlanday.filter({
+        data: { $gte: filterDataRange.start, $lte: filterDataRange.end }
       });
     }
 
