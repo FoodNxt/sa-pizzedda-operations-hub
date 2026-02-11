@@ -78,11 +78,13 @@ const DEFAULT_MENU_STRUCTURE = [
       { title: "Planday", page: "Planday", icon: "Calendar" },
       { title: "Richieste", page: "Assenze", icon: "Calendar" },
       { title: "Pause", page: "Pause", icon: "Clock" },
-      { title: "Assegnazione Locali", page: "HRAdmin", icon: "MapPin" },
-      { title: "Store Manager", page: "StoreManagerAdmin", icon: "Users" },
-      { title: "Compliance", page: "Compliance", icon: "CheckSquare" },
+      { title: "Ritardi", page: "Ritardi", icon: "AlertTriangle" },
       { title: "ATS", page: "ATS", icon: "Users" },
-      { title: "Segnalazioni", page: "Segnalazioni", icon: "AlertTriangle" }
+      { title: "Segnalazioni", page: "Segnalazioni", icon: "AlertTriangle" },
+      { title: "Straordinari", page: "Straordinari", icon: "Clock" },
+      { title: "Pagamento Straordinari", page: "PagamentoStraordinari", icon: "DollarSign" },
+      { title: "Uscite", page: "Uscite", icon: "AlertTriangle" },
+      { title: "Admin HR", page: "AdminHR", icon: "Settings", admin_section: true }
     ]
   },
   {
