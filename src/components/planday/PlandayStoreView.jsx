@@ -167,13 +167,23 @@ export default function PlandayStoreView({
       }
       const dipendente = users.find(u => u.id === quickForm.dipendente_id);
       const candidato = candidati.find(c => c.id === quickForm.candidato_id);
+      
+      // Determina il nome del dipendente
+      let dipendenteNome = '';
+      if (quickForm.is_prova && candidato) {
+        dipendenteNome = `${candidato.nome} ${candidato.cognome} (PROVA)`;
+      } else if (dipendente) {
+        dipendenteNome = dipendente.nome_cognome || dipendente.full_name || '';
+      } else if (selectedTurno?.dipendente_nome) {
+        // Se sto editando e il dipendente non è trovato nella lista, preserva il nome originale
+        dipendenteNome = selectedTurno.dipendente_nome;
+      }
+      
       onSaveTurno({
         store_id: quickForm.store_id,
         data: quickAddPopup.day,
         dipendente_id: quickForm.dipendente_id || '',
-        dipendente_nome: quickForm.is_prova && candidato 
-          ? `${candidato.nome} ${candidato.cognome} (PROVA)`
-          : (dipendente?.nome_cognome || dipendente?.full_name || ''),
+        dipendente_nome: dipendenteNome,
         ruolo: quickForm.ruolo,
         ora_inizio: quickForm.ora_inizio,
         ora_fine: quickForm.ora_fine,
