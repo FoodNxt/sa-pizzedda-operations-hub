@@ -23,20 +23,32 @@ Deno.serve(async (req) => {
     let updated = 0;
 
     for (const tx of transactions) {
-      if (!tx.description) continue;
-
       // Find first matching rule
       const matchedRule = rules.find(rule => {
-        const desc = tx.description.toLowerCase();
         const pattern = rule.pattern.toLowerCase();
+        const searchIn = rule.search_in || 'description';
         
-        switch (rule.match_type) {
-          case 'contains': return desc.includes(pattern);
-          case 'starts_with': return desc.startsWith(pattern);
-          case 'ends_with': return desc.endsWith(pattern);
-          case 'exact': return desc === pattern;
-          default: return false;
+        // Determine which fields to check
+        const fieldsToCheck = [];
+        if (searchIn === 'description' || searchIn === 'both') {
+          if (tx.description) fieldsToCheck.push(tx.description.toLowerCase());
         }
+        if (searchIn === 'additional' || searchIn === 'both') {
+          if (tx.additional) fieldsToCheck.push(tx.additional.toLowerCase());
+        }
+        
+        if (fieldsToCheck.length === 0) return false;
+        
+        // Check if any field matches
+        return fieldsToCheck.some(text => {
+          switch (rule.match_type) {
+            case 'contains': return text.includes(pattern);
+            case 'starts_with': return text.startsWith(pattern);
+            case 'ends_with': return text.endsWith(pattern);
+            case 'exact': return text === pattern;
+            default: return false;
+          }
+        });
       });
 
       if (matchedRule && (tx.category !== matchedRule.category || tx.subcategory !== matchedRule.subcategory)) {
