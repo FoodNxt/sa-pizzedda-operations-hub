@@ -256,7 +256,7 @@ export default function Banche() {
   const spendingTableData = Object.values(spendingData).sort((a, b) => b.total - a.total);
 
   // Uncategorized transactions
-  const uncategorizedTransactions = transactions.filter(tx => !tx.category || tx.category === '');
+  const uncategorizedTransactions = transactions.filter(tx => !tx.category || tx.category === '' || tx.category === 'uncategorized');
 
   // Get unique existing categories and subcategories
   const existingCategories = [...new Set(transactions.map(t => t.category).filter(Boolean))];
