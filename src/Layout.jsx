@@ -1575,9 +1575,9 @@ export default function Layout({ children, currentPageName }) {
                     ))}
                   </div>
                 ) : (
-                  finalNavigation.map((item) => {
-                    if (item.type === 'link') {
-                      const isActive = isActiveLink(item.url);
+                  finalNavigation.map((section) => {
+                    if (section.type === 'link') {
+                      const isActive = isActiveLink(section.url);
                       return (
                         <Link
                           key={item.title}
