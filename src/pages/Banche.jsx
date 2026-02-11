@@ -16,9 +16,9 @@ export default function Banche() {
   const [newRule, setNewRule] = useState({ pattern: '', category: '', subcategory: '', match_type: 'contains', search_in: 'description', priority: 0, is_giroconto: false });
 
   // Gerarchia categorie/sottocategorie costruita dai dati
-  const getCategoryHierarchy = () => {
+  const categoryHierarchy = (() => {
     const hierarchy = {};
-    rules.forEach(rule => {
+    (rules || []).forEach(rule => {
       if (!rule.category) return;
       if (!hierarchy[rule.category]) {
         hierarchy[rule.category] = new Set();
@@ -27,14 +27,11 @@ export default function Banche() {
         hierarchy[rule.category].add(rule.subcategory);
       }
     });
-    // Converti Set a Array ordinati
     Object.keys(hierarchy).forEach(cat => {
       hierarchy[cat] = Array.from(hierarchy[cat]).sort();
     });
     return hierarchy;
-  };
-
-  const categoryHierarchy = getCategoryHierarchy();
+  })();
   const categories = Object.keys(categoryHierarchy).sort();
   const [selectedProvider, setSelectedProvider] = useState('all');
   const [selectedAccount, setSelectedAccount] = useState('all');
