@@ -258,6 +258,10 @@ export default function Banche() {
   // Uncategorized transactions
   const uncategorizedTransactions = transactions.filter(tx => !tx.category || tx.category === '');
 
+  // Get unique existing categories and subcategories
+  const existingCategories = [...new Set(transactions.map(t => t.category).filter(Boolean))];
+  const existingSubcategories = [...new Set(transactions.map(t => t.subcategory).filter(Boolean))];
+
   return (
     <ProtectedPage pageName="Banche">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -787,16 +791,32 @@ export default function Banche() {
                     value={newRule.pattern}
                     onChange={(e) => setNewRule({ ...newRule, pattern: e.target.value })}
                   />
-                  <Input
-                    placeholder="Categoria..."
-                    value={newRule.category}
-                    onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}
-                  />
-                  <Input
-                    placeholder="Sottocategoria..."
-                    value={newRule.subcategory}
-                    onChange={(e) => setNewRule({ ...newRule, subcategory: e.target.value })}
-                  />
+                  <div>
+                    <Input
+                      placeholder="Categoria..."
+                      list="categories-list"
+                      value={newRule.category}
+                      onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}
+                    />
+                    <datalist id="categories-list">
+                      {existingCategories.map((cat, idx) => (
+                        <option key={idx} value={cat} />
+                      ))}
+                    </datalist>
+                  </div>
+                  <div>
+                    <Input
+                      placeholder="Sottocategoria..."
+                      list="subcategories-list"
+                      value={newRule.subcategory}
+                      onChange={(e) => setNewRule({ ...newRule, subcategory: e.target.value })}
+                    />
+                    <datalist id="subcategories-list">
+                      {existingSubcategories.map((sub, idx) => (
+                        <option key={idx} value={sub} />
+                      ))}
+                    </datalist>
+                  </div>
                   <Select value={newRule.match_type} onValueChange={(v) => setNewRule({ ...newRule, match_type: v })}>
                     <SelectTrigger>
                       <SelectValue />
@@ -850,16 +870,22 @@ export default function Banche() {
                             onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
                             placeholder="Pattern"
                           />
-                          <Input
-                            value={editingRule.category}
-                            onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
-                            placeholder="Categoria"
-                          />
-                          <Input
-                            value={editingRule.subcategory || ''}
-                            onChange={(e) => setEditingRule({ ...editingRule, subcategory: e.target.value })}
-                            placeholder="Sottocategoria"
-                          />
+                          <div>
+                            <Input
+                              value={editingRule.category}
+                              list="categories-list"
+                              onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
+                              placeholder="Categoria"
+                            />
+                          </div>
+                          <div>
+                            <Input
+                              value={editingRule.subcategory || ''}
+                              list="subcategories-list"
+                              onChange={(e) => setEditingRule({ ...editingRule, subcategory: e.target.value })}
+                              placeholder="Sottocategoria"
+                            />
+                          </div>
                           <Select value={editingRule.match_type} onValueChange={(v) => setEditingRule({ ...editingRule, match_type: v })}>
                             <SelectTrigger>
                               <SelectValue />
