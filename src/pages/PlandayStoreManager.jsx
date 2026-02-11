@@ -77,19 +77,18 @@ export default function PlandayStoreManager() {
     }
   });
 
-  // Carica TUTTI i turni della settimana (non filtrati per store)
+  // Carica TUTTI i turni della settimana usando service role
   const { data: allTurniWeek = [], isLoading } = useQuery({
     queryKey: ['turni-store-manager-all', weekStart.format('YYYY-MM-DD')],
     queryFn: async () => {
       const startDate = weekStart.format('YYYY-MM-DD');
       const endDate = weekStart.clone().add(6, 'days').format('YYYY-MM-DD');
 
-      const allTurni = await base44.entities.TurnoPlanday.list();
+      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {
+        filter_data_range: { start: startDate, end: endDate }
+      });
 
-      return allTurni.filter((t) =>
-      t.data >= startDate &&
-      t.data <= endDate
-      );
+      return response.data.turni || [];
     }
   });
 
