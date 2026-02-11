@@ -23,6 +23,7 @@ export default function Banche() {
   const [spendingView, setSpendingView] = useState('category'); // category, subcategory
   const [spendingDateRange, setSpendingDateRange] = useState('currentMonth');
   const [uncategorizedExpanded, setUncategorizedExpanded] = useState(false);
+  const [expandedSpendingRows, setExpandedSpendingRows] = useState({});
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
@@ -240,15 +241,18 @@ export default function Banche() {
 
   // Group by category or subcategory
   const spendingData = spendingTransactions.reduce((acc, tx) => {
-    const key = spendingView === 'category' ? tx.category : tx.subcategory;
-    if (!key) return acc;
+    let key = spendingView === 'category' ? tx.category : tx.subcategory;
+    if (!key || key === '') {
+      key = spendingView === 'category' ? 'Non categorizzato' : 'Senza sottocategoria';
+    }
     
     if (!acc[key]) {
-      acc[key] = { name: key, total: 0, count: 0 };
+      acc[key] = { name: key, total: 0, count: 0, transactions: [] };
     }
     
     acc[key].total += Math.abs(tx.amount);
     acc[key].count += 1;
+    acc[key].transactions.push(tx);
     
     return acc;
   }, {});
@@ -686,16 +690,55 @@ export default function Banche() {
                     </thead>
                     <tbody>
                       {spendingTableData.map((item, idx) => (
-                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="p-3 text-slate-700 font-medium">{item.name}</td>
-                          <td className="p-3 text-right text-red-600 font-medium">
-                            {formatEuro(item.total)}
-                          </td>
-                          <td className="p-3 text-right text-slate-700">{item.count}</td>
-                          <td className="p-3 text-right text-slate-600">
-                            {formatEuro(item.total / item.count)}
-                          </td>
-                        </tr>
+                        <>
+                          <tr 
+                            key={idx} 
+                            className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
+                            onClick={() => setExpandedSpendingRows(prev => ({...prev, [item.name]: !prev[item.name]}))}
+                          >
+                            <td className="p-3 text-slate-700 font-medium">
+                              <div className="flex items-center gap-2">
+                                <ChevronRight className={`w-4 h-4 transition-transform ${expandedSpendingRows[item.name] ? 'rotate-90' : ''}`} />
+                                {item.name}
+                              </div>
+                            </td>
+                            <td className="p-3 text-right text-red-600 font-medium">
+                              {formatEuro(item.total)}
+                            </td>
+                            <td className="p-3 text-right text-slate-700">{item.count}</td>
+                            <td className="p-3 text-right text-slate-600">
+                              {formatEuro(item.total / item.count)}
+                            </td>
+                          </tr>
+                          {expandedSpendingRows[item.name] && (
+                            <tr key={`${idx}-details`}>
+                              <td colSpan="4" className="p-0 bg-slate-50">
+                                <div className="p-4">
+                                  <table className="w-full text-xs">
+                                    <thead>
+                                      <tr className="border-b border-slate-200">
+                                        <th className="text-left p-2 text-slate-600">Data</th>
+                                        <th className="text-left p-2 text-slate-600">Descrizione</th>
+                                        <th className="text-right p-2 text-slate-600">Importo</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.transactions.map((tx, txIdx) => (
+                                        <tr key={txIdx} className="border-b border-slate-100">
+                                          <td className="p-2 text-slate-700">{tx.madeOn}</td>
+                                          <td className="p-2 text-slate-700">{tx.description}</td>
+                                          <td className="p-2 text-right text-red-600">
+                                            {formatEuro(Math.abs(tx.amount))}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
                       ))}
                       <tr className="border-t-2 border-slate-300 font-bold">
                         <td className="p-3 text-slate-800">Totale</td>
