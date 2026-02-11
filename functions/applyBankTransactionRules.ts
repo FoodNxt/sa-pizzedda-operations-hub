@@ -39,9 +39,10 @@ Deno.serve(async (req) => {
         }
       });
 
-      if (matchedRule && tx.category !== matchedRule.category) {
+      if (matchedRule && (tx.category !== matchedRule.category || tx.subcategory !== matchedRule.subcategory)) {
         await base44.asServiceRole.entities.BankTransaction.update(tx.id, {
-          category: matchedRule.category
+          category: matchedRule.category,
+          subcategory: matchedRule.subcategory || ''
         });
         updated++;
       }

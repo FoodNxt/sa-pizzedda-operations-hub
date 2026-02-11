@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export default function Banche() {
   const [activeView, setActiveView] = useState('overview');
   const [editingRule, setEditingRule] = useState(null);
-  const [newRule, setNewRule] = useState({ pattern: '', category: '', match_type: 'contains', priority: 0 });
+  const [newRule, setNewRule] = useState({ pattern: '', category: '', subcategory: '', match_type: 'contains', priority: 0 });
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
@@ -43,7 +43,7 @@ export default function Banche() {
     mutationFn: (ruleData) => base44.entities.BankTransactionRule.create(ruleData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-transaction-rules'] });
-      setNewRule({ pattern: '', category: '', match_type: 'contains', priority: 0 });
+      setNewRule({ pattern: '', category: '', subcategory: '', match_type: 'contains', priority: 0 });
     }
   });
 
@@ -180,7 +180,7 @@ export default function Banche() {
               {/* Add New Rule */}
               <div className="bg-slate-50 p-4 rounded-lg mb-4">
                 <h3 className="font-semibold text-slate-700 mb-3">Nuova Regola</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                   <Input
                     placeholder="Pattern da cercare..."
                     value={newRule.pattern}
@@ -190,6 +190,11 @@ export default function Banche() {
                     placeholder="Categoria..."
                     value={newRule.category}
                     onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Sottocategoria..."
+                    value={newRule.subcategory}
+                    onChange={(e) => setNewRule({ ...newRule, subcategory: e.target.value })}
                   />
                   <Select value={newRule.match_type} onValueChange={(v) => setNewRule({ ...newRule, match_type: v })}>
                     <SelectTrigger>
@@ -202,6 +207,12 @@ export default function Banche() {
                       <SelectItem value="exact">Esatto</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Input
+                    type="number"
+                    placeholder="Priorità"
+                    value={newRule.priority}
+                    onChange={(e) => setNewRule({ ...newRule, priority: parseInt(e.target.value) || 0 })}
+                  />
                   <NeumorphicButton
                     onClick={() => createRuleMutation.mutate(newRule)}
                     disabled={!newRule.pattern || !newRule.category || createRuleMutation.isPending}
@@ -219,14 +230,21 @@ export default function Banche() {
                 {rules.map((rule) => (
                   <div key={rule.id} className="bg-white border border-slate-200 rounded-lg p-4">
                     {editingRule?.id === rule.id ? (
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                         <Input
                           value={editingRule.pattern}
                           onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
+                          placeholder="Pattern"
                         />
                         <Input
                           value={editingRule.category}
                           onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
+                          placeholder="Categoria"
+                        />
+                        <Input
+                          value={editingRule.subcategory || ''}
+                          onChange={(e) => setEditingRule({ ...editingRule, subcategory: e.target.value })}
+                          placeholder="Sottocategoria"
                         />
                         <Select value={editingRule.match_type} onValueChange={(v) => setEditingRule({ ...editingRule, match_type: v })}>
                           <SelectTrigger>
@@ -263,12 +281,20 @@ export default function Banche() {
                     ) : (
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-4 flex-wrap">
                             <span className="font-mono text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
                               {rule.pattern}
                             </span>
                             <span className="text-sm text-slate-500">→</span>
-                            <span className="font-semibold text-slate-700">{rule.category}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-700">{rule.category}</span>
+                              {rule.subcategory && (
+                                <>
+                                  <span className="text-sm text-slate-400">/</span>
+                                  <span className="font-medium text-slate-600">{rule.subcategory}</span>
+                                </>
+                              )}
+                            </div>
                             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
                               {rule.match_type === 'contains' ? 'Contiene' :
                                rule.match_type === 'starts_with' ? 'Inizia con' :

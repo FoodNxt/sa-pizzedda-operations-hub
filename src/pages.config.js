@@ -56,6 +56,7 @@ import Assenze from './pages/Assenze';
 import AssignReviews from './pages/AssignReviews';
 import AssistenteDipendente from './pages/AssistenteDipendente';
 import Attrezzature from './pages/Attrezzature';
+import Banche from './pages/Banche';
 import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
 import BulkImportProduttivita from './pages/BulkImportProduttivita';
 import BulkImportSconti from './pages/BulkImportSconti';
@@ -159,8 +160,8 @@ import StoreReviews from './pages/StoreReviews';
 import StoricoCassa from './pages/StoricoCassa';
 import StoricoImpasti from './pages/StoricoImpasti';
 import strutturamen from './pages/StrutturaMenù';
-import StrutturaTurno from './pages/StrutturaTurno';
 import Target from './pages/Target';
+import StrutturaTurno from './pages/StrutturaTurno';
 import TeglieButtate from './pages/TeglieButtate';
 import ToDo from './pages/ToDo';
 import TurniDipendente from './pages/TurniDipendente';
@@ -174,7 +175,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import Banche from './pages/Banche';
 import __Layout from './Layout.jsx';
 
 
@@ -188,6 +188,7 @@ export const PAGES = {
     "AssignReviews": AssignReviews,
     "AssistenteDipendente": AssistenteDipendente,
     "Attrezzature": Attrezzature,
+    "Banche": Banche,
     "BulkImportProdottiVenduti": BulkImportProdottiVenduti,
     "BulkImportProduttivita": BulkImportProduttivita,
     "BulkImportSconti": BulkImportSconti,
@@ -291,8 +292,8 @@ export const PAGES = {
     "StoricoCassa": StoricoCassa,
     "StoricoImpasti": StoricoImpasti,
     "StrutturaMenù": strutturamen,
-    "StrutturaTurno": StrutturaTurno,
     "Target": Target,
+    "StrutturaTurno": StrutturaTurno,
     "TeglieButtate": TeglieButtate,
     "ToDo": ToDo,
     "TurniDipendente": TurniDipendente,
@@ -306,7 +307,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "Banche": Banche,
 }
 
 export const pagesConfig = {
