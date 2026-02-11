@@ -54,6 +54,11 @@ export default function AdminHR() {
     loadAdminPages();
   }, []);
 
+  const getIcon = (iconName) => {
+    const icons = { MapPin, Users, Settings, TrendingUp, ChevronRight };
+    return icons[iconName] || Settings;
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="mb-8">
@@ -64,28 +69,33 @@ export default function AdminHR() {
         <p className="text-slate-600">Accedi agli strumenti amministrativi della sezione HR</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {adminPages.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NeumorphicCard
-              key={item.page}
-              className="p-0 overflow-hidden hover:shadow-lg transition-all cursor-pointer"
-              onClick={() => navigate(createPageUrl(item.page))}
-            >
-              <div className={`h-2 bg-gradient-to-r ${item.color}`} />
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <Icon className="w-8 h-8 text-slate-600" />
-                  <ChevronRight className="w-5 h-5 text-slate-400" />
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {adminPages.map((item) => {
+            const Icon = getIcon(item.icon);
+            return (
+              <NeumorphicCard
+                key={item.page}
+                className="p-0 overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+                onClick={() => navigate(createPageUrl(item.page))}
+              >
+                <div className={`h-2 bg-gradient-to-r ${item.color}`} />
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <Icon className="w-8 h-8 text-slate-600" />
+                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <h3 className="font-bold text-slate-800 mb-2">{item.title}</h3>
                 </div>
-                <h3 className="font-bold text-slate-800 mb-2">{item.title}</h3>
-                <p className="text-sm text-slate-600">{item.description}</p>
-              </div>
-            </NeumorphicCard>
-          );
-        })}
-      </div>
+              </NeumorphicCard>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
