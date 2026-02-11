@@ -277,20 +277,16 @@ export default function Presenze() {
                 </div>
               </div>
 
-              {turniAttivi.length === 0 ?
-            <div className="neumorphic-pressed p-8 rounded-xl text-center">
-                  <Clock className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-                  <p className="text-slate-500">Nessuno in turno in questo momento</p>
-                </div> :
-
-            <div className="space-y-2">
+              {/* Turni Attivi Ora */}
+              {turniAttivi.length > 0 ? (
+                <div className="space-y-2">
                   {turniAttivi.map((turno) =>
-              <div
-                key={turno.id}
-                className={`neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${
-                !turno.timbrata_entrata ? 'border-l-4 border-orange-500' : ''}`
-                }>
-
+                    <div
+                      key={turno.id}
+                      className={`neumorphic-pressed p-4 rounded-xl flex items-center justify-between ${
+                        !turno.timbratura_entrata ? 'border-l-4 border-orange-500' : ''
+                      }`}
+                    >
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-1">
                           <p className="font-bold text-slate-800">{turno.dipendente_nome}</p>
@@ -304,14 +300,14 @@ export default function Presenze() {
                             <span>{turno.ora_inizio} - {turno.ora_fine}</span>
                           </div>
                           {turno.tipo_turno && turno.tipo_turno !== 'Normale' &&
-                    <span className="text-xs text-slate-500">({turno.tipo_turno})</span>
-                    }
+                            <span className="text-xs text-slate-500">({turno.tipo_turno})</span>
+                          }
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
                         {turno.timbratura_entrata ?
-                  <div className="flex items-center gap-2 text-green-600">
+                          <div className="flex items-center gap-2 text-green-600">
                             <CheckCircle className="w-5 h-5" />
                             <div className="text-right">
                               <p className="text-xs font-medium">Entrata Timbrata</p>
@@ -320,30 +316,34 @@ export default function Presenze() {
                               </p>
                             </div>
                           </div> :
-
-                  <div className="flex items-center gap-2 text-orange-600">
+                          <div className="flex items-center gap-2 text-orange-600">
                             <AlertCircle className="w-5 h-5" />
                             <p className="text-xs font-medium">Non Timbrata</p>
                           </div>
-                  }
+                        }
                       </div>
                     </div>
-              )}
-                </div>
-            }
+                  )}
 
-              {totale > 0 &&
-            <div className="mt-3 flex gap-2 text-xs">
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="text-slate-600">{timbrati} timbrati</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                    <span className="text-slate-600">{nonTimbrati} non timbrati</span>
-                  </div>
+                  {totale > 0 &&
+                    <div className="mt-3 flex gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span className="text-slate-600">{timbrati} timbrati</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                        <span className="text-slate-600">{nonTimbrati} non timbrati</span>
+                      </div>
+                    </div>
+                  }
                 </div>
-            }
+              ) : (
+                <div className="neumorphic-pressed p-8 rounded-xl text-center">
+                  <Clock className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                  <p className="text-slate-500">Nessuno in turno in questo momento</p>
+                </div>
+              )}
 
               {/* Turni Completati Oggi */}
               {turniCompletati.length > 0 &&
