@@ -246,10 +246,11 @@ export default function Banche() {
 
   const { startDate: spendingStart, endDate: spendingEnd } = getSpendingDateRange();
 
-  // Filter spending transactions (only negative amounts)
+  // Filter spending transactions (only negative amounts, exclude giroconti)
   const spendingTransactions = transactions.filter(tx => {
     if (tx.amount >= 0) return false;
     if (!spendingStart || !spendingEnd || !tx.madeOn) return false;
+    if (tx.category && girocontoCategories.has(tx.category)) return false;
     const txDate = new Date(tx.madeOn);
     return txDate >= spendingStart && txDate <= spendingEnd;
   });
@@ -312,33 +313,48 @@ export default function Banche() {
 
   const { startDate: incomeStart, endDate: incomeEnd } = getIncomeDateRange();
 
-  // Filter income transactions (only positive amounts)
+  // Filter income transactions (only positive amounts, exclude giroconti)
   const incomeTransactions = transactions.filter(tx => {
     if (tx.amount <= 0) return false;
     if (!incomeStart || !incomeEnd || !tx.madeOn) return false;
+    if (tx.category && girocontoCategories.has(tx.category)) return false;
     const txDate = new Date(tx.madeOn);
     return txDate >= incomeStart && txDate <= incomeEnd;
   });
 
-  // Group by category or subcategory
-  const incomeData = incomeTransactions.reduce((acc, tx) => {
-    let key = incomeView === 'category' ? tx.category : tx.subcategory;
-    if (!key || key === '') {
-      key = incomeView === 'category' ? 'Non categorizzato' : 'Senza sottocategoria';
+  // Group by category with subcategories hierarchy (same as spending)
+  const incomeDataByCategory = incomeTransactions.reduce((acc, tx) => {
+    const category = tx.category || 'Non categorizzato';
+    const subcategory = tx.subcategory || 'Senza sottocategoria';
+    
+    if (!acc[category]) {
+      acc[category] = { 
+        name: category, 
+        total: 0, 
+        count: 0, 
+        subcategories: {} 
+      };
     }
     
-    if (!acc[key]) {
-      acc[key] = { name: key, total: 0, count: 0, transactions: [] };
+    if (!acc[category].subcategories[subcategory]) {
+      acc[category].subcategories[subcategory] = {
+        name: subcategory,
+        total: 0,
+        count: 0,
+        transactions: []
+      };
     }
     
-    acc[key].total += tx.amount;
-    acc[key].count += 1;
-    acc[key].transactions.push(tx);
+    acc[category].total += tx.amount;
+    acc[category].count += 1;
+    acc[category].subcategories[subcategory].total += tx.amount;
+    acc[category].subcategories[subcategory].count += 1;
+    acc[category].subcategories[subcategory].transactions.push(tx);
     
     return acc;
   }, {});
 
-  const incomeTableData = Object.values(incomeData).sort((a, b) => b.total - a.total);
+  const incomeTableData = Object.values(incomeDataByCategory).sort((a, b) => b.total - a.total);
 
   // Uncategorized transactions
   const uncategorizedTransactions = transactions.filter(tx => !tx.category || tx.category === '' || tx.category === 'uncategorized');
@@ -859,33 +875,9 @@ export default function Banche() {
               )}
             </NeumorphicCard>
 
-            {/* Income by Category/Subcategory */}
+            {/* Income by Category */}
             <NeumorphicCard className="p-6">
-              <h2 className="text-xl font-bold text-slate-800 mb-4">Entrate per {incomeView === 'category' ? 'Categoria' : 'Sottocategoria'}</h2>
-              
-              {/* View Toggle */}
-              <div className="flex gap-2 mb-4">
-                <button
-                  onClick={() => setIncomeView('category')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    incomeView === 'category'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Per Categoria
-                </button>
-                <button
-                  onClick={() => setIncomeView('subcategory')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    incomeView === 'subcategory'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  Per Sottocategoria
-                </button>
-              </div>
+              <h2 className="text-xl font-bold text-slate-800 mb-4">Entrate per Categoria</h2>
 
               {/* Date Range Filters */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-6">
@@ -941,7 +933,7 @@ export default function Banche() {
                 </button>
               </div>
 
-              {/* Income Table */}
+              {/* Income Table with Hierarchical View */}
               {incomeTableData.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
                   Nessuna entrata nel periodo selezionato
@@ -951,75 +943,101 @@ export default function Banche() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-slate-200">
-                        <th className="text-left p-3 font-semibold text-slate-700">
-                          {incomeView === 'category' ? 'Categoria' : 'Sottocategoria'}
-                        </th>
+                        <th className="text-left p-3 font-semibold text-slate-700">Categoria</th>
                         <th className="text-right p-3 font-semibold text-slate-700">Totale</th>
                         <th className="text-right p-3 font-semibold text-slate-700">Transazioni</th>
-                        <th className="text-right p-3 font-semibold text-slate-700">Media</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {incomeTableData.map((item, idx) => (
-                        <>
-                          <tr 
-                            key={idx} 
-                            className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
-                            onClick={() => setExpandedIncomeRows(prev => ({...prev, [item.name]: !prev[item.name]}))}
-                          >
-                            <td className="p-3 text-slate-700 font-medium">
-                              <div className="flex items-center gap-2">
-                                <ChevronRight className={`w-4 h-4 transition-transform ${expandedIncomeRows[item.name] ? 'rotate-90' : ''}`} />
-                                {item.name}
-                              </div>
-                            </td>
-                            <td className="p-3 text-right text-green-600 font-medium">
-                              {formatEuro(item.total)}
-                            </td>
-                            <td className="p-3 text-right text-slate-700">{item.count}</td>
-                            <td className="p-3 text-right text-slate-600">
-                              {formatEuro(item.total / item.count)}
-                            </td>
-                          </tr>
-                          {expandedIncomeRows[item.name] && (
-                            <tr key={`${idx}-details`}>
-                              <td colSpan="4" className="p-0 bg-slate-50">
-                                <div className="p-4">
-                                  <table className="w-full text-xs">
-                                    <thead>
-                                      <tr className="border-b border-slate-200">
-                                        <th className="text-left p-2 text-slate-600">Data</th>
-                                        <th className="text-left p-2 text-slate-600">Descrizione</th>
-                                        <th className="text-right p-2 text-slate-600">Importo</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {item.transactions.map((tx, txIdx) => (
-                                        <tr key={txIdx} className="border-b border-slate-100">
-                                          <td className="p-2 text-slate-700">{tx.madeOn}</td>
-                                          <td className="p-2 text-slate-700">{tx.description}</td>
-                                          <td className="p-2 text-right text-green-600">
-                                            {formatEuro(tx.amount)}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                      {incomeTableData.map((category, catIdx) => {
+                        const subcategoriesArray = Object.values(category.subcategories).sort((a, b) => b.total - a.total);
+                        const totalIncome = incomeTableData.reduce((sum, item) => sum + item.total, 0);
+                        const categoryPercentage = ((category.total / totalIncome) * 100).toFixed(1);
+
+                        return (
+                          <React.Fragment key={catIdx}>
+                            {/* Category Row */}
+                            <tr 
+                              className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer bg-slate-50"
+                              onClick={() => setExpandedIncomeRows(prev => ({...prev, [category.name]: !prev[category.name]}))}
+                            >
+                              <td className="p-3 text-slate-800 font-bold">
+                                <div className="flex items-center gap-2">
+                                  <ChevronRight className={`w-4 h-4 transition-transform ${expandedIncomeRows[category.name] ? 'rotate-90' : ''}`} />
+                                  {category.name}
                                 </div>
                               </td>
+                              <td className="p-3 text-right text-green-600 font-bold">
+                                {formatEuro(category.total)} <span className="text-slate-600 text-sm">({categoryPercentage}%)</span>
+                              </td>
+                              <td className="p-3 text-right text-slate-800 font-bold">{category.count}</td>
                             </tr>
-                          )}
-                        </>
-                      ))}
+
+                            {/* Subcategories */}
+                            {expandedIncomeRows[category.name] && subcategoriesArray.map((subcategory, subIdx) => (
+                              <React.Fragment key={`${catIdx}-${subIdx}`}>
+                                <tr 
+                                  className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer bg-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const key = `${category.name}|${subcategory.name}`;
+                                    setExpandedIncomeRows(prev => ({...prev, [key]: !prev[key]}));
+                                  }}
+                                >
+                                  <td className="p-3 text-slate-700 font-medium pl-10">
+                                    <div className="flex items-center gap-2">
+                                      <ChevronRight className={`w-3 h-3 transition-transform ${expandedIncomeRows[`${category.name}|${subcategory.name}`] ? 'rotate-90' : ''}`} />
+                                      {subcategory.name}
+                                    </div>
+                                  </td>
+                                  <td className="p-3 text-right text-green-600 font-medium">
+                                    {formatEuro(subcategory.total)}
+                                  </td>
+                                  <td className="p-3 text-right text-slate-700">{subcategory.count}</td>
+                                </tr>
+
+                                {/* Transactions */}
+                                {expandedIncomeRows[`${category.name}|${subcategory.name}`] && (
+                                  <tr>
+                                    <td colSpan="3" className="p-0 bg-slate-100">
+                                      <div className="p-4 pl-16">
+                                        <table className="w-full text-xs">
+                                          <thead>
+                                            <tr className="border-b border-slate-200">
+                                              <th className="text-left p-2 text-slate-600">Data</th>
+                                              <th className="text-left p-2 text-slate-600">Descrizione</th>
+                                              <th className="text-right p-2 text-slate-600">Importo</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {subcategory.transactions.map((tx, txIdx) => (
+                                              <tr key={txIdx} className="border-b border-slate-100">
+                                                <td className="p-2 text-slate-700">{tx.madeOn}</td>
+                                                <td className="p-2 text-slate-700">{tx.description}</td>
+                                                <td className="p-2 text-right text-green-600">
+                                                  {formatEuro(tx.amount)}
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </React.Fragment>
+                        );
+                      })}
                       <tr className="border-t-2 border-slate-300 font-bold">
                         <td className="p-3 text-slate-800">Totale</td>
                         <td className="p-3 text-right text-green-600">
-                          {formatEuro(incomeTableData.reduce((sum, item) => sum + item.total, 0))}
+                          {formatEuro(incomeTableData.reduce((sum, item) => sum + item.total, 0))} <span className="text-slate-600">(100%)</span>
                         </td>
                         <td className="p-3 text-right text-slate-800">
                           {incomeTableData.reduce((sum, item) => sum + item.count, 0)}
                         </td>
-                        <td className="p-3"></td>
                       </tr>
                     </tbody>
                   </table>
