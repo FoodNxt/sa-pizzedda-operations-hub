@@ -22,6 +22,8 @@ export default function Banche() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [spendingDateRange, setSpendingDateRange] = useState('currentMonth');
   const [expandedSpendingSubcategories, setExpandedSpendingSubcategories] = useState({});
+  const [newSubcategoryInput, setNewSubcategoryInput] = useState('');
+  const [editingSubcategoryInput, setEditingSubcategoryInput] = useState('');
   const [incomeView, setIncomeView] = useState('category'); // category, subcategory
   const [incomeDateRange, setIncomeDateRange] = useState('currentMonth');
   const [uncategorizedExpanded, setUncategorizedExpanded] = useState(false);
@@ -196,14 +198,15 @@ export default function Banche() {
     let key;
 
     if (trendView === 'daily') {
-      key = tx.madeOn;
-    } else if (trendView === 'weekly') {
-      const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay());
-      key = weekStart.toISOString().split('T')[0];
-    } else if (trendView === 'monthly') {
-      key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    }
+       key = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+     } else if (trendView === 'weekly') {
+       const weekStart = new Date(date);
+       weekStart.setDate(date.getDate() - date.getDay());
+       const weekDate = new Date(weekStart);
+       key = `${String(weekDate.getDate()).padStart(2, '0')}/${String(weekDate.getMonth() + 1).padStart(2, '0')}`;
+     } else if (trendView === 'monthly') {
+       key = `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getFullYear()).slice(-2)}`;
+     }
     
     if (!acc[key]) {
       acc[key] = { date: key, entrate: 0, uscite: 0 };
@@ -1097,31 +1100,41 @@ export default function Banche() {
               <div className="bg-slate-50 p-4 rounded-lg mb-4">
                <h3 className="font-semibold text-slate-700 mb-3">Nuova Regola</h3>
                <div className="grid grid-cols-1 md:grid-cols-7 gap-3 mb-3">
-                 <Input
-                   placeholder="Pattern da cercare..."
-                   value={newRule.pattern}
-                   onChange={(e) => setNewRule({ ...newRule, pattern: e.target.value })}
-                 />
-                 <Select value={newRule.category} onValueChange={(v) => setNewRule({ ...newRule, category: v, subcategory: '' })}>
-                   <SelectTrigger>
-                     <SelectValue placeholder="Categoria..." />
-                   </SelectTrigger>
-                   <SelectContent>
-                     {categories.map((cat) => (
-                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
-                 <Select value={newRule.subcategory} onValueChange={(v) => setNewRule({ ...newRule, subcategory: v })} disabled={!newRule.category}>
-                   <SelectTrigger>
-                     <SelectValue placeholder="Sottocategoria..." />
-                   </SelectTrigger>
-                   <SelectContent>
-                     {newRule.category && categoryHierarchy[newRule.category] && categoryHierarchy[newRule.category].map((sub) => (
-                       <SelectItem key={sub} value={sub}>{sub}</SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
+                <Input
+                  placeholder="Pattern da cercare..."
+                  value={newRule.pattern}
+                  onChange={(e) => setNewRule({ ...newRule, pattern: e.target.value })}
+                />
+                <Select value={newRule.category} onValueChange={(v) => setNewRule({ ...newRule, category: v, subcategory: '' })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Categoria..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-2">
+                  <Select value={newRule.subcategory} onValueChange={(v) => setNewRule({ ...newRule, subcategory: v })} disabled={!newRule.category}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sottocategoria..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {newRule.category && categoryHierarchy[newRule.category] && categoryHierarchy[newRule.category].map((sub) => (
+                        <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <button
+                    onClick={() => setNewSubcategoryInput(newSubcategoryInput ? '' : 'input')}
+                    disabled={!newRule.category}
+                    className="px-2 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-slate-300"
+                    title="Crea nuova sottocategoria"
+                  >
+                    +
+                  </button>
+                </div>
                   <Select value={newRule.match_type} onValueChange={(v) => setNewRule({ ...newRule, match_type: v })}>
                     <SelectTrigger>
                       <SelectValue />
@@ -1195,16 +1208,26 @@ export default function Banche() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Select value={editingRule.subcategory || ''} onValueChange={(v) => setEditingRule({ ...editingRule, subcategory: v })} disabled={!editingRule.category}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {editingRule.category && categoryHierarchy[editingRule.category] && categoryHierarchy[editingRule.category].map((sub) => (
-                                  <SelectItem key={sub} value={sub}>{sub}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <div className="flex gap-2">
+                             <Select value={editingRule.subcategory || ''} onValueChange={(v) => setEditingRule({ ...editingRule, subcategory: v })} disabled={!editingRule.category}>
+                               <SelectTrigger>
+                                 <SelectValue />
+                               </SelectTrigger>
+                               <SelectContent>
+                                 {editingRule.category && categoryHierarchy[editingRule.category] && categoryHierarchy[editingRule.category].map((sub) => (
+                                   <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                                 ))}
+                               </SelectContent>
+                             </Select>
+                             <button
+                               onClick={() => setEditingSubcategoryInput(editingSubcategoryInput ? '' : 'input')}
+                               disabled={!editingRule.category}
+                               className="px-2 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-slate-300"
+                               title="Crea nuova sottocategoria"
+                             >
+                               +
+                             </button>
+                            </div>
                           <Select value={editingRule.match_type} onValueChange={(v) => setEditingRule({ ...editingRule, match_type: v })}>
                             <SelectTrigger>
                               <SelectValue />
