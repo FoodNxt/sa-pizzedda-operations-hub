@@ -1270,7 +1270,7 @@ export default function Layout({ children, currentPageName }) {
       BarChart3, AlertTriangle, Package, Upload, Camera, ClipboardCheck, User, 
       ClipboardList, ChefHat, CheckSquare, Truck, LinkIcon, ShoppingCart, GraduationCap, 
       FileText, BookOpen, Settings, Home, Edit, LogOut, Calendar, Bell, Cloud, TrendingUp, Menu,
-      DollarSign: Euro
+      DollarSign, MessageCircle
     };
     return iconMap[iconName] || User;
   };
