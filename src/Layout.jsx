@@ -1272,8 +1272,6 @@ export default function Layout({ children, currentPageName }) {
     }));
   };
 
-  const processedNavigation = menuStructure ? enrichNavigationWithAdminSections(processMenuStructure(menuStructure)) : navigationStructure;
-
   const enrichNavigationWithAdminSections = (nav) => {
     return nav.map(section => {
       if (section.type !== 'section') return section;
@@ -1301,6 +1299,8 @@ export default function Layout({ children, currentPageName }) {
       return section;
     });
   };
+
+  const processedNavigation = menuStructure ? enrichNavigationWithAdminSections(processMenuStructure(menuStructure)) : navigationStructure;
   
   const filteredNavigation = (!isLoadingConfig && !isLoadingUser && currentUser) 
     ? processedNavigation
