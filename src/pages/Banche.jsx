@@ -650,14 +650,15 @@ export default function Banche() {
               ) : (
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart data={trendChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="date" 
-                      tick={{ fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
+                     <CartesianGrid strokeDasharray="3 3" />
+                     <XAxis 
+                       dataKey="date" 
+                       tick={{ fontSize: 11 }}
+                       angle={-90}
+                       textAnchor="end"
+                       height={120}
+                       interval={Math.ceil(trendChartData.length / 8) - 1}
+                     />
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip 
                       formatter={(value) => formatEuro(value)}
@@ -756,12 +757,13 @@ export default function Banche() {
                         <th className="text-left p-3 font-semibold text-slate-700">Categoria</th>
                         <th className="text-right p-3 font-semibold text-slate-700">Totale</th>
                         <th className="text-right p-3 font-semibold text-slate-700">Transazioni</th>
-                        <th className="text-right p-3 font-semibold text-slate-700">Media</th>
                       </tr>
                     </thead>
                     <tbody>
                       {spendingTableData.map((category, catIdx) => {
                         const subcategoriesArray = Object.values(category.subcategories).sort((a, b) => b.total - a.total);
+                        const totalSpending = spendingTableData.reduce((sum, item) => sum + item.total, 0);
+                        const categoryPercentage = ((category.total / totalSpending) * 100).toFixed(1);
                         
                         return (
                           <React.Fragment key={catIdx}>
@@ -777,12 +779,9 @@ export default function Banche() {
                                 </div>
                               </td>
                               <td className="p-3 text-right text-red-600 font-bold">
-                                {formatEuro(category.total)}
+                                {formatEuro(category.total)} <span className="text-slate-600 text-sm">({categoryPercentage}%)</span>
                               </td>
                               <td className="p-3 text-right text-slate-800 font-bold">{category.count}</td>
-                              <td className="p-3 text-right text-slate-600 font-bold">
-                                {formatEuro(category.total / category.count)}
-                              </td>
                             </tr>
                             
                             {/* Subcategories */}
@@ -806,9 +805,6 @@ export default function Banche() {
                                     {formatEuro(subcategory.total)}
                                   </td>
                                   <td className="p-3 text-right text-slate-700">{subcategory.count}</td>
-                                  <td className="p-3 text-right text-slate-600">
-                                    {formatEuro(subcategory.total / subcategory.count)}
-                                  </td>
                                 </tr>
                                 
                                 {/* Transactions */}
@@ -848,12 +844,11 @@ export default function Banche() {
                       <tr className="border-t-2 border-slate-300 font-bold">
                         <td className="p-3 text-slate-800">Totale</td>
                         <td className="p-3 text-right text-red-600">
-                          {formatEuro(spendingTableData.reduce((sum, item) => sum + item.total, 0))}
+                          {formatEuro(spendingTableData.reduce((sum, item) => sum + item.total, 0))} <span className="text-slate-600">(100%)</span>
                         </td>
                         <td className="p-3 text-right text-slate-800">
                           {spendingTableData.reduce((sum, item) => sum + item.count, 0)}
                         </td>
-                        <td className="p-3"></td>
                       </tr>
                     </tbody>
                   </table>
