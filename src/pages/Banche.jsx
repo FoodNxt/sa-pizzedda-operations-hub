@@ -8,11 +8,14 @@ import { RefreshCw, Download, Plus, Trash2, Edit2, Check, X } from 'lucide-react
 import { formatEuro } from '../components/utils/formatCurrency';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Banche() {
   const [activeView, setActiveView] = useState('overview');
   const [editingRule, setEditingRule] = useState(null);
   const [newRule, setNewRule] = useState({ pattern: '', category: '', subcategory: '', match_type: 'contains', priority: 0 });
+  const [selectedProvider, setSelectedProvider] = useState('all');
+  const [selectedAccount, setSelectedAccount] = useState('all');
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
@@ -91,6 +94,59 @@ export default function Banche() {
     return transactions.filter(tx => matchTransaction(tx.description, rule));
   };
 
+  // Get latest balance for each account
+  const accountBalances = transactions.reduce((acc, tx) => {
+    if (!tx.account_name || tx.account_balance_snapshot === null || tx.account_balance_snapshot === undefined) return acc;
+    
+    const key = `${tx.account_provider_name || 'N/A'}_${tx.account_name}`;
+    
+    if (!acc[key] || new Date(tx.madeOn) > new Date(acc[key].date)) {
+      acc[key] = {
+        account_name: tx.account_name,
+        account_provider: tx.account_provider_name || 'N/A',
+        balance: tx.account_balance_snapshot,
+        date: tx.madeOn
+      };
+    }
+    
+    return acc;
+  }, {});
+
+  const balanceData = Object.values(accountBalances);
+
+  // Get unique providers and accounts
+  const providers = ['all', ...new Set(transactions.map(t => t.account_provider_name).filter(Boolean))];
+  const accounts = selectedProvider === 'all' 
+    ? ['all', ...new Set(transactions.map(t => t.account_name).filter(Boolean))]
+    : ['all', ...new Set(transactions.filter(t => t.account_provider_name === selectedProvider).map(t => t.account_name).filter(Boolean))];
+
+  // Filter transactions for trend
+  const filteredTransactions = transactions.filter(tx => {
+    if (selectedProvider !== 'all' && tx.account_provider_name !== selectedProvider) return false;
+    if (selectedAccount !== 'all' && tx.account_name !== selectedAccount) return false;
+    return true;
+  });
+
+  // Group by date for trend
+  const trendData = filteredTransactions.reduce((acc, tx) => {
+    const date = tx.madeOn;
+    if (!date) return acc;
+    
+    if (!acc[date]) {
+      acc[date] = { date, entrate: 0, uscite: 0 };
+    }
+    
+    if (tx.amount > 0) {
+      acc[date].entrate += tx.amount;
+    } else {
+      acc[date].uscite += Math.abs(tx.amount);
+    }
+    
+    return acc;
+  }, {});
+
+  const trendChartData = Object.values(trendData).sort((a, b) => new Date(a.date) - new Date(b.date));
+
   return (
     <ProtectedPage pageName="Banche">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -149,11 +205,134 @@ export default function Banche() {
 
         {/* Overview View */}
         {activeView === 'overview' && (
-          <NeumorphicCard className="p-6">
-            <div className="text-center py-12">
-              <p className="text-slate-500">Overview in arrivo...</p>
-            </div>
-          </NeumorphicCard>
+          <div className="space-y-6">
+            {/* Balance Table */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-4">Balance</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left p-3 font-semibold text-slate-700">Account Provider</th>
+                      <th className="text-left p-3 font-semibold text-slate-700">Account Name</th>
+                      <th className="text-right p-3 font-semibold text-slate-700">Balance</th>
+                      <th className="text-left p-3 font-semibold text-slate-700">Last Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {balanceData.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="text-center py-8 text-slate-500">
+                          Nessun dato disponibile
+                        </td>
+                      </tr>
+                    ) : (
+                      balanceData.map((item, idx) => (
+                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="p-3 text-slate-700">{item.account_provider}</td>
+                          <td className="p-3 text-slate-700">{item.account_name}</td>
+                          <td className={`p-3 text-right font-medium ${
+                            item.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {formatEuro(item.balance)}
+                          </td>
+                          <td className="p-3 text-slate-700">{item.date}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </NeumorphicCard>
+
+            {/* Trend Chart */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-xl font-bold text-slate-800 mb-4">Trend Entrate/Uscite</h2>
+              
+              {/* Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Account Provider
+                  </label>
+                  <Select value={selectedProvider} onValueChange={(v) => {
+                    setSelectedProvider(v);
+                    setSelectedAccount('all');
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {providers.map(p => (
+                        <SelectItem key={p} value={p}>
+                          {p === 'all' ? 'Tutti' : p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Account Name
+                  </label>
+                  <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.map(a => (
+                        <SelectItem key={a} value={a}>
+                          {a === 'all' ? 'Tutti' : a}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Chart */}
+              {trendChartData.length === 0 ? (
+                <div className="text-center py-12 text-slate-500">
+                  Nessun dato disponibile per i filtri selezionati
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={trendChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip 
+                      formatter={(value) => formatEuro(value)}
+                      contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0' }}
+                    />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="entrate" 
+                      stroke="#10b981" 
+                      strokeWidth={2}
+                      name="Entrate"
+                      dot={{ r: 3 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="uscite" 
+                      stroke="#ef4444" 
+                      strokeWidth={2}
+                      name="Uscite"
+                      dot={{ r: 3 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </NeumorphicCard>
+          </div>
         )}
 
         {/* Matching View */}
