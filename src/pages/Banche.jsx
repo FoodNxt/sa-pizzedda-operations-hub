@@ -13,7 +13,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 export default function Banche() {
   const [activeView, setActiveView] = useState('overview');
   const [editingRule, setEditingRule] = useState(null);
-  const [newRule, setNewRule] = useState({ pattern: '', category: '', subcategory: '', match_type: 'contains', priority: 0, is_giroconto: false });
+  const [newRule, setNewRule] = useState({ pattern: '', category: '', subcategory: '', match_type: 'contains', search_in: 'description', priority: 0, is_giroconto: false });
   const [selectedProvider, setSelectedProvider] = useState('all');
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [trendView, setTrendView] = useState('daily'); // daily, weekly, monthly
@@ -53,8 +53,8 @@ export default function Banche() {
   const createRuleMutation = useMutation({
     mutationFn: (ruleData) => base44.entities.BankTransactionRule.create(ruleData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bank-transaction-rules'] });
-      setNewRule({ pattern: '', category: '', subcategory: '', match_type: 'contains', priority: 0 });
+    queryClient.invalidateQueries({ queryKey: ['bank-transaction-rules'] });
+    setNewRule({ pattern: '', category: '', subcategory: '', match_type: 'contains', search_in: 'description', priority: 0, is_giroconto: false });
     }
   });
 
@@ -84,22 +84,31 @@ export default function Banche() {
     }
   });
 
-  const matchTransaction = (description, rule) => {
-    if (!description) return false;
-    const desc = description.toLowerCase();
+  const matchTransaction = (tx, rule) => {
     const pattern = rule.pattern.toLowerCase();
+    const searchIn = rule.search_in || 'description';
     
-    switch (rule.match_type) {
-      case 'contains': return desc.includes(pattern);
-      case 'starts_with': return desc.startsWith(pattern);
-      case 'ends_with': return desc.endsWith(pattern);
-      case 'exact': return desc === pattern;
-      default: return false;
+    const fieldsToCheck = [];
+    if (searchIn === 'description' || searchIn === 'both') {
+      if (tx.description) fieldsToCheck.push(tx.description.toLowerCase());
     }
+    if (searchIn === 'additional' || searchIn === 'both') {
+      if (tx.additional) fieldsToCheck.push(tx.additional.toLowerCase());
+    }
+    
+    return fieldsToCheck.some(text => {
+      switch (rule.match_type) {
+        case 'contains': return text.includes(pattern);
+        case 'starts_with': return text.startsWith(pattern);
+        case 'ends_with': return text.endsWith(pattern);
+        case 'exact': return text === pattern;
+        default: return false;
+      }
+    });
   };
 
   const getMatchedTransactions = (rule) => {
-    return transactions.filter(tx => matchTransaction(tx.description, rule));
+    return transactions.filter(tx => matchTransaction(tx, rule));
   };
 
   // Get latest balance for each account
@@ -828,7 +837,7 @@ export default function Banche() {
               {/* Add New Rule */}
               <div className="bg-slate-50 p-4 rounded-lg mb-4">
                 <h3 className="font-semibold text-slate-700 mb-3">Nuova Regola</h3>
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3">
+                <div className="grid grid-cols-1 md:grid-cols-7 gap-3 mb-3">
                   <Input
                     placeholder="Pattern da cercare..."
                     value={newRule.pattern}
@@ -871,6 +880,16 @@ export default function Banche() {
                       <SelectItem value="exact">Esatto</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Select value={newRule.search_in} onValueChange={(v) => setNewRule({ ...newRule, search_in: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="description">Description</SelectItem>
+                      <SelectItem value="additional">Additional</SelectItem>
+                      <SelectItem value="both">Entrambi</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Input
                     type="number"
                     placeholder="Priorità"
@@ -907,7 +926,7 @@ export default function Banche() {
                   <div key={rule.id} className="bg-white border border-slate-200 rounded-lg p-4">
                     {editingRule?.id === rule.id ? (
                       <div className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
                           <Input
                             value={editingRule.pattern}
                             onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
@@ -938,6 +957,16 @@ export default function Banche() {
                               <SelectItem value="starts_with">Inizia con</SelectItem>
                               <SelectItem value="ends_with">Finisce con</SelectItem>
                               <SelectItem value="exact">Esatto</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select value={editingRule.search_in || 'description'} onValueChange={(v) => setEditingRule({ ...editingRule, search_in: v })}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="description">Description</SelectItem>
+                              <SelectItem value="additional">Additional</SelectItem>
+                              <SelectItem value="both">Entrambi</SelectItem>
                             </SelectContent>
                           </Select>
                           <Input
@@ -995,6 +1024,11 @@ export default function Banche() {
                               {rule.match_type === 'contains' ? 'Contiene' :
                                rule.match_type === 'starts_with' ? 'Inizia con' :
                                rule.match_type === 'ends_with' ? 'Finisce con' : 'Esatto'}
+                            </span>
+                            <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-1 rounded">
+                              {rule.search_in === 'description' ? 'Description' :
+                               rule.search_in === 'additional' ? 'Additional' : 
+                               rule.search_in === 'both' ? 'Entrambi' : 'Description'}
                             </span>
                             {rule.priority > 0 && (
                               <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
