@@ -1,42 +1,58 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ChevronRight, Settings, Users, MapPin, TrendingUp } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { ChevronRight, Settings, Users, MapPin, TrendingUp, Loader2 } from 'lucide-react';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
 
-const adminPages = [
-  {
-    title: 'Assegnazione Locali',
-    page: 'HRAdmin',
-    description: 'Gestisci assegnazione dipendenti ai locali, GPS, Store Manager',
-    icon: MapPin,
-    color: 'from-blue-500 to-blue-600'
-  },
-  {
-    title: 'Store Manager Admin',
-    page: 'StoreManagerAdmin',
-    description: 'Visualizza e gestisci i dati dei Store Manager',
-    icon: Users,
-    color: 'from-purple-500 to-purple-600'
-  },
-  {
-    title: 'Compliance',
-    page: 'Compliance',
-    description: 'Monitoraggio compliance e verifiche',
-    icon: Settings,
-    color: 'from-amber-500 to-amber-600'
-  },
-  {
-    title: 'Target Store Manager',
-    page: 'StoreManagerTarget',
-    description: 'Gestisci target e metriche',
-    icon: TrendingUp,
-    color: 'from-green-500 to-green-600'
-  }
-];
+const sectionAdminPages = {
+  'HR': [
+    { title: 'Assegnazione Locali', page: 'HRAdmin', icon: MapPin, color: 'from-blue-500 to-blue-600' },
+    { title: 'Store Manager Admin', page: 'StoreManagerAdmin', icon: Users, color: 'from-purple-500 to-purple-600' },
+    { title: 'Compliance', page: 'Compliance', icon: Settings, color: 'from-amber-500 to-amber-600' }
+  ]
+};
 
 export default function AdminHR() {
   const navigate = useNavigate();
+  const [adminPages, setAdminPages] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAdminPages = async () => {
+      try {
+        const configs = await base44.entities.MenuStructureConfig.list();
+        const activeConfig = configs.find(c => c.is_active);
+        
+        if (activeConfig?.menu_structure) {
+          const pages = [];
+          activeConfig.menu_structure.forEach(section => {
+            section.items?.forEach(item => {
+              if (item.parent_admin_section === 'HR') {
+                const pageInfo = {
+                  title: item.title,
+                  page: item.page,
+                  icon: item.icon,
+                  color: 'from-blue-500 to-blue-600'
+                };
+                pages.push(pageInfo);
+              }
+            });
+          });
+          setAdminPages([...sectionAdminPages['HR'], ...pages]);
+        } else {
+          setAdminPages(sectionAdminPages['HR']);
+        }
+      } catch (error) {
+        console.error('Error loading admin pages:', error);
+        setAdminPages(sectionAdminPages['HR']);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAdminPages();
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
