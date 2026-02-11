@@ -1172,10 +1172,13 @@ export default function Dashboard() {
 
     const storeArray = Object.keys(byStore).map(name => {
       const storeRevenue = processedData.revenueByStore[stores.find(s => s.name === name)?.id] || 0;
-      const percentage = storeRevenue > 0 ? (byStore[name] / storeRevenue) * 100 : 0;
+      const storeDiscount = byStore[name] || 0;
+      // Calculate gross sales: revenue + discount
+      const grossSales = storeRevenue + storeDiscount;
+      const percentage = grossSales > 0 ? (storeDiscount / grossSales) * 100 : 0;
       return {
         name,
-        total: byStore[name],
+        total: storeDiscount,
         percentage
       };
     }).sort((a, b) => b.total - a.total);
@@ -1206,10 +1209,13 @@ export default function Dashboard() {
     const sourceAppArray = Object.keys(bySourceApp)
       .map(name => {
         const appRevenue = revenueBySourceApp[name] || 0;
-        const percentage = appRevenue > 0 ? (bySourceApp[name] / appRevenue) * 100 : 0;
+        const appDiscount = bySourceApp[name] || 0;
+        // Calculate gross sales: revenue + discount
+        const grossSales = appRevenue + appDiscount;
+        const percentage = grossSales > 0 ? (appDiscount / grossSales) * 100 : 0;
         return { 
           name, 
-          total: bySourceApp[name],
+          total: appDiscount,
           percentage
         };
       })
