@@ -4,16 +4,25 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
 import NeumorphicButton from '../components/neumorphic/NeumorphicButton';
 import ProtectedPage from '../components/ProtectedPage';
-import { RefreshCw, Download } from 'lucide-react';
+import { RefreshCw, Download, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
 import { formatEuro } from '../components/utils/formatCurrency';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Banche() {
   const [activeView, setActiveView] = useState('overview');
+  const [editingRule, setEditingRule] = useState(null);
+  const [newRule, setNewRule] = useState({ pattern: '', category: '', match_type: 'contains', priority: 0 });
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['bank-transactions'],
     queryFn: () => base44.entities.BankTransaction.list('-madeOn', 1000)
+  });
+
+  const { data: rules = [] } = useQuery({
+    queryKey: ['bank-transaction-rules'],
+    queryFn: () => base44.entities.BankTransactionRule.list('-priority')
   });
 
   const importMutation = useMutation({
@@ -29,6 +38,58 @@ export default function Banche() {
       alert(`Errore: ${error.message}`);
     }
   });
+
+  const createRuleMutation = useMutation({
+    mutationFn: (ruleData) => base44.entities.BankTransactionRule.create(ruleData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-transaction-rules'] });
+      setNewRule({ pattern: '', category: '', match_type: 'contains', priority: 0 });
+    }
+  });
+
+  const updateRuleMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.BankTransactionRule.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-transaction-rules'] });
+      setEditingRule(null);
+    }
+  });
+
+  const deleteRuleMutation = useMutation({
+    mutationFn: (id) => base44.entities.BankTransactionRule.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-transaction-rules'] });
+    }
+  });
+
+  const applyRulesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await base44.functions.invoke('applyBankTransactionRules');
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['bank-transactions'] });
+      alert(`Applicate regole a ${data.updated} transazioni`);
+    }
+  });
+
+  const matchTransaction = (description, rule) => {
+    if (!description) return false;
+    const desc = description.toLowerCase();
+    const pattern = rule.pattern.toLowerCase();
+    
+    switch (rule.match_type) {
+      case 'contains': return desc.includes(pattern);
+      case 'starts_with': return desc.startsWith(pattern);
+      case 'ends_with': return desc.endsWith(pattern);
+      case 'exact': return desc === pattern;
+      default: return false;
+    }
+  };
+
+  const getMatchedTransactions = (rule) => {
+    return transactions.filter(tx => matchTransaction(tx.description, rule));
+  };
 
   return (
     <ProtectedPage pageName="Banche">
@@ -64,6 +125,16 @@ export default function Banche() {
               Overview
             </button>
             <button
+              onClick={() => setActiveView('matching')}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                activeView === 'matching'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Matching
+            </button>
+            <button
               onClick={() => setActiveView('raw')}
               className={`px-4 py-2 rounded-lg font-medium transition-all ${
                 activeView === 'raw'
@@ -83,6 +154,157 @@ export default function Banche() {
               <p className="text-slate-500">Overview in arrivo...</p>
             </div>
           </NeumorphicCard>
+        )}
+
+        {/* Matching View */}
+        {activeView === 'matching' && (
+          <div className="space-y-6">
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Regole di Matching</h2>
+                <NeumorphicButton
+                  onClick={() => applyRulesMutation.mutate()}
+                  disabled={applyRulesMutation.isPending}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  {applyRulesMutation.isPending ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  Applica Regole
+                </NeumorphicButton>
+              </div>
+
+              {/* Add New Rule */}
+              <div className="bg-slate-50 p-4 rounded-lg mb-4">
+                <h3 className="font-semibold text-slate-700 mb-3">Nuova Regola</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <Input
+                    placeholder="Pattern da cercare..."
+                    value={newRule.pattern}
+                    onChange={(e) => setNewRule({ ...newRule, pattern: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Categoria..."
+                    value={newRule.category}
+                    onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}
+                  />
+                  <Select value={newRule.match_type} onValueChange={(v) => setNewRule({ ...newRule, match_type: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contains">Contiene</SelectItem>
+                      <SelectItem value="starts_with">Inizia con</SelectItem>
+                      <SelectItem value="ends_with">Finisce con</SelectItem>
+                      <SelectItem value="exact">Esatto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <NeumorphicButton
+                    onClick={() => createRuleMutation.mutate(newRule)}
+                    disabled={!newRule.pattern || !newRule.category || createRuleMutation.isPending}
+                    variant="primary"
+                    className="flex items-center gap-2 justify-center"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Aggiungi
+                  </NeumorphicButton>
+                </div>
+              </div>
+
+              {/* Rules List */}
+              <div className="space-y-2">
+                {rules.map((rule) => (
+                  <div key={rule.id} className="bg-white border border-slate-200 rounded-lg p-4">
+                    {editingRule?.id === rule.id ? (
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <Input
+                          value={editingRule.pattern}
+                          onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
+                        />
+                        <Input
+                          value={editingRule.category}
+                          onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
+                        />
+                        <Select value={editingRule.match_type} onValueChange={(v) => setEditingRule({ ...editingRule, match_type: v })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="contains">Contiene</SelectItem>
+                            <SelectItem value="starts_with">Inizia con</SelectItem>
+                            <SelectItem value="ends_with">Finisce con</SelectItem>
+                            <SelectItem value="exact">Esatto</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          value={editingRule.priority}
+                          onChange={(e) => setEditingRule({ ...editingRule, priority: parseInt(e.target.value) || 0 })}
+                          placeholder="Priorità"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => updateRuleMutation.mutate({ id: rule.id, data: editingRule })}
+                            className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700"
+                          >
+                            <Check className="w-4 h-4 mx-auto" />
+                          </button>
+                          <button
+                            onClick={() => setEditingRule(null)}
+                            className="flex-1 bg-slate-300 text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-400"
+                          >
+                            <X className="w-4 h-4 mx-auto" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4">
+                            <span className="font-mono text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              {rule.pattern}
+                            </span>
+                            <span className="text-sm text-slate-500">→</span>
+                            <span className="font-semibold text-slate-700">{rule.category}</span>
+                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
+                              {rule.match_type === 'contains' ? 'Contiene' :
+                               rule.match_type === 'starts_with' ? 'Inizia con' :
+                               rule.match_type === 'ends_with' ? 'Finisce con' : 'Esatto'}
+                            </span>
+                            {rule.priority > 0 && (
+                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                                Priorità: {rule.priority}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-2">
+                            {getMatchedTransactions(rule).length} transazioni matchate
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setEditingRule(rule)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteRuleMutation.mutate(rule.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </NeumorphicCard>
+          </div>
         )}
 
         {/* Raw Data View */}
