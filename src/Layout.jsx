@@ -553,11 +553,6 @@ const navigationStructure = [
         icon: Users,
       },
       {
-        title: "ToDo",
-        url: createPageUrl("ToDo"),
-        icon: CheckSquare,
-      },
-      {
         title: "Form Debug",
         url: createPageUrl("FormDebug"),
         icon: ClipboardCheck,
