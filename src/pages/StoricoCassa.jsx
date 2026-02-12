@@ -1117,14 +1117,23 @@ export default function StoricoCassa() {
            </div>
           }
 
-        {showCassaModal &&
+        {showCassaModal && (
            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <NeumorphicCard className="max-w-md w-full p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-slate-800">Imposta Cassa Teorica Inizio</h2>
-                  <button onClick={() => setShowCassaModal(false)} className="p-2 rounded-lg hover:bg-slate-100">
+                  <button 
+                    type="button" 
+                    onClick={() => setShowCassaModal(false)} 
+                    className="p-2 rounded-lg hover:bg-slate-100">
                     <X className="w-5 h-5" />
                   </button>
+                </div>
+
+                <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mb-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>ℹ️ Info:</strong> Questo valore diventerà la "Cassa Teorica Inizio" per questo locale in questa data, sostituendo il valore calcolato automaticamente.
+                  </p>
                 </div>
 
                 <form onSubmit={(e) => {
@@ -1137,6 +1146,7 @@ export default function StoricoCassa() {
                     impostato_da: currentUser?.email || '',
                     impostato_il: new Date().toISOString()
                   });
+                  setShowCassaModal(false);
                 }} className="space-y-4">
                   <div>
                     <label className="text-sm text-slate-600 mb-2 block">Locale</label>
@@ -1151,7 +1161,7 @@ export default function StoricoCassa() {
                     <label className="text-sm text-slate-600 mb-2 block">Data</label>
                     <input
                       type="text"
-                      value={format(parseISO(cassaModalData.date), 'dd/MM/yyyy', { locale: it })}
+                      value={cassaModalData.date ? format(parseISO(cassaModalData.date), 'dd/MM/yyyy', { locale: it }) : ''}
                       disabled
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm opacity-60" />
                   </div>
@@ -1164,6 +1174,7 @@ export default function StoricoCassa() {
                       value={cassaModalData.valore}
                       onChange={(e) => setCassaModalData({ ...cassaModalData, valore: parseFloat(e.target.value) || 0 })}
                       required
+                      autoFocus
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
                   </div>
 
@@ -1183,7 +1194,7 @@ export default function StoricoCassa() {
                 </form>
               </NeumorphicCard>
            </div>
-           }
+        )}
 
         {showAlertConfig &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
