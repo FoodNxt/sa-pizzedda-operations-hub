@@ -32,7 +32,6 @@ export default function StoricoCassa() {
   const [selectedStoresForTrend, setSelectedStoresForTrend] = useState([]);
   const [showAlertConfig, setShowAlertConfig] = useState(false);
   const [editingAlert, setEditingAlert] = useState(null);
-  const [verificaDate, setVerificaDate] = useState(new Date().toISOString().split('T')[0]);
   const [editingSaldo, setEditingSaldo] = useState(null);
   const [showSaldoConfig, setShowSaldoConfig] = useState(false);
   const [newManualSaldo, setNewManualSaldo] = useState({ dipendente: '', importo: 0 });
@@ -112,6 +111,7 @@ export default function StoricoCassa() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saldi-manuali'] });
       setEditingCassaEntry(null);
+      setShowCassaModal(false);
     }
   });
 
@@ -271,116 +271,6 @@ export default function StoricoCassa() {
     });
     return alerts;
   }, [stores, alertConfigs, conteggi]);
-
-  const verificaCassa = useMemo(() => {
-    const verifiche = [];
-
-    stores.forEach((store) => {
-      // Get all conteggi for this store on the selected date
-      const conteggiGiorno = conteggi.
-      filter((c) =>
-      c.store_id === store.id &&
-      c.data_conteggio &&
-      c.data_conteggio.split('T')[0] === verificaDate
-      ).
-      sort((a, b) => new Date(a.data_conteggio) - new Date(b.data_conteggio));
-
-      if (conteggiGiorno.length < 2) {
-        verifiche.push({
-          store_name: store.name,
-          store_id: store.id,
-          status: 'insufficiente',
-          message: `Solo ${conteggiGiorno.length} conteggio/i nella giornata`
-        });
-        return;
-      }
-
-      const primoConteggio = conteggiGiorno[0];
-      const ultimoConteggio = conteggiGiorno[conteggiGiorno.length - 1];
-
-      // Get saldo manuale if exists for this store for this date or earlier
-      const saldoManuale = saldiManuali.
-      filter((s) => s.store_id === store.id && s.data <= verificaDate).
-      sort((a, b) => new Date(b.data) - new Date(a.data))[0];
-
-      // Saldo base: primo conteggio oppure saldo manuale se esiste
-      const saldoBase = saldoManuale ? saldoManuale.saldo_iniziale : primoConteggio.valore_conteggio;
-
-      // Get cash payments for this store on this date
-      const iPraticoGiorno = iPraticoData.filter((i) =>
-      i.store_id === store.id && i.order_date === verificaDate
-      );
-
-      // Somma tutti i contanti dalla colonna moneyType_cash
-      const pagamentiContantiIpratico = iPraticoGiorno.reduce((sum, record) => {
-        const contanti = parseFloat(record.moneyType_cash) || 0;
-        return sum + contanti;
-      }, 0);
-
-      // Get pagamenti contanti dal form PagamentoContanti
-      const pagamentiContantiForm = pagamentiContanti.
-      filter((p) =>
-      p.store_id === store.id &&
-      p.data_pagamento &&
-      p.data_pagamento.split('T')[0] === verificaDate
-      ).
-      reduce((sum, p) => sum + (p.importo || 0), 0);
-
-      const totalePagamentiContanti = pagamentiContantiIpratico + pagamentiContantiForm;
-
-      // Get prelievi for this store on this date
-      const prelieviGiorno = prelievi.
-      filter((p) =>
-      p.store_id === store.id &&
-      p.data_prelievo &&
-      p.data_prelievo.split('T')[0] === verificaDate
-      ).
-      reduce((sum, p) => sum + (p.importo || 0), 0);
-
-      // Get pagamenti straordinari (attività completate con importo_pagato) for this store on this date
-      const pagamentiStraordinari = attivitaCompletate.
-      filter((ac) =>
-      ac.store_id === store.id &&
-      ac.turno_data === verificaDate &&
-      ac.attivita_nome?.includes('Pagamento straordinari') &&
-      ac.importo_pagato
-      ).
-      reduce((sum, ac) => sum + (ac.importo_pagato || 0), 0);
-
-      // Calculate expected final amount
-      const cassaAttesa = saldoBase + totalePagamentiContanti - prelieviGiorno - pagamentiStraordinari;
-      const cassaEffettiva = ultimoConteggio.valore_conteggio;
-      const delta = cassaEffettiva - cassaAttesa;
-
-      const status = Math.abs(delta) < 1 ? 'ok' : Math.abs(delta) < 10 ? 'warning' : 'error';
-
-      verifiche.push({
-        store_name: store.name,
-        store_id: store.id,
-        primo_conteggio: saldoBase,
-        pagamenti_contanti: totalePagamentiContanti,
-        pagamenti_contanti_form: pagamentiContantiForm,
-        prelievi: prelieviGiorno,
-        pagamenti_straordinari: pagamentiStraordinari,
-        ultimo_conteggio: ultimoConteggio.valore_conteggio,
-        cassa_attesa: cassaAttesa,
-        delta,
-        status,
-        primo_conteggio_ora: primoConteggio.data_conteggio,
-        ultimo_conteggio_ora: ultimoConteggio.data_conteggio,
-        num_conteggi: conteggiGiorno.length,
-        ha_saldo_manuale: !!saldoManuale
-      });
-    });
-
-    return verifiche.sort((a, b) => {
-      if (a.status === 'error' && b.status !== 'error') return -1;
-      if (a.status !== 'error' && b.status === 'error') return 1;
-      if (a.status === 'warning' && b.status === 'ok') return -1;
-      if (a.status === 'ok' && b.status === 'warning') return 1;
-      return Math.abs(b.delta || 0) - Math.abs(a.delta || 0);
-    });
-  }, [stores, conteggi, iPraticoData, prelievi, verificaDate, attivitaCompletate, pagamentiContanti, saldiManuali]);
 
   const rollingData = useMemo(() => {
     const data = [];
@@ -600,17 +490,6 @@ export default function StoricoCassa() {
 
              <TrendingUp className="w-4 h-4" />
              Rolling
-           </button>
-           <button
-             onClick={() => setActiveTab('verifica')}
-             className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-             activeTab === 'verifica' ?
-             'neumorphic-pressed bg-blue-50 text-blue-700' :
-             'neumorphic-flat text-slate-600 hover:text-slate-800'}`
-             }>
-
-             <CheckCircle className="w-4 h-4" />
-             Verifica Cassa
            </button>
           <button
             onClick={() => setActiveTab('saldo')}
@@ -1521,154 +1400,7 @@ export default function StoricoCassa() {
         </>
         }
 
-        {/* Verifica Cassa Tab */}
-        {activeTab === 'verifica' &&
-        <>
-            <NeumorphicCard className="p-4 lg:p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                <h2 className="text-base lg:text-lg font-bold text-slate-800">Seleziona Data</h2>
-              </div>
-              <div>
-                <label className="text-sm text-slate-600 mb-2 block">Data Verifica</label>
-                <input
-                type="date"
-                value={verificaDate}
-                onChange={(e) => setVerificaDate(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
 
-              </div>
-            </NeumorphicCard>
-
-            {/* Info Card */}
-            <NeumorphicCard className="p-4 bg-blue-50">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                <div className="text-sm text-blue-700">
-                  <p className="font-bold mb-1">📌 Come funziona la verifica</p>
-                  <p>
-                    Formula: <strong>Primo Conteggio + Contanti iPratico - Prelievi = Ultimo Conteggio</strong>
-                  </p>
-                  <p className="text-xs mt-1 text-blue-600">
-                    ✅ Delta {'<'} €1 = OK | ⚠️ Delta {'<'} €10 = Warning | ❌ Delta {'≥'} €10 = Errore
-                  </p>
-                </div>
-              </div>
-            </NeumorphicCard>
-
-            {/* Verifica Results */}
-            <div className="space-y-3">
-              {verificaCassa.map((verifica) => {
-              if (verifica.status === 'insufficiente') {
-                return (
-                  <NeumorphicCard key={verifica.store_id} className="p-6 bg-slate-50">
-                      <div className="flex items-center gap-3">
-                        <AlertTriangle className="w-6 h-6 text-slate-400" />
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-700">{verifica.store_name}</h3>
-                          <p className="text-sm text-slate-500">{verifica.message}</p>
-                        </div>
-                      </div>
-                    </NeumorphicCard>);
-
-              }
-
-              return (
-                <NeumorphicCard
-                  key={verifica.store_id}
-                  className={`p-6 ${
-                  verifica.status === 'error' ? 'border-2 border-red-500 bg-red-50' :
-                  verifica.status === 'warning' ? 'border-2 border-orange-500 bg-orange-50' :
-                  'border-2 border-green-500 bg-green-50'}`
-                  }>
-
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        {verifica.status === 'ok' ?
-                      <CheckCircle className="w-8 h-8 text-green-600" /> :
-                      verifica.status === 'warning' ?
-                      <AlertTriangle className="w-8 h-8 text-orange-600" /> :
-
-                      <XCircle className="w-8 h-8 text-red-600" />
-                      }
-                        <div>
-                          <h3 className="text-xl font-bold text-slate-800">{verifica.store_name}</h3>
-                          <p className="text-xs text-slate-500">{verifica.num_conteggi} conteggi nella giornata</p>
-                        </div>
-                      </div>
-                      <div className={`text-right ${
-                    verifica.status === 'error' ? 'text-red-600' :
-                    verifica.status === 'warning' ? 'text-orange-600' :
-                    'text-green-600'}`
-                    }>
-                        <p className="text-3xl font-bold">
-                          {verifica.delta >= 0 ? '+' : ''}€{verifica.delta.toFixed(2)}
-                        </p>
-                        <p className="text-xs">Delta</p>
-                      </div>
-                    </div>
-
-                    {/* Breakdown */}
-                    <div className="space-y-2">
-                      <div className="neumorphic-pressed p-3 rounded-xl bg-white">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-slate-600">Primo Conteggio</span>
-                          <span className="text-sm font-bold text-slate-800">€{verifica.primo_conteggio.toFixed(2)}</span>
-                        </div>
-                        <p className="text-xs text-slate-400">
-                          {format(parseISO(verifica.primo_conteggio_ora), 'HH:mm', { locale: it })}
-                        </p>
-                      </div>
-
-                      <div className="neumorphic-pressed p-3 rounded-xl bg-white">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-slate-600">+ Contanti (iPratico + Form)</span>
-                          <span className="text-sm font-bold text-green-600">+€{verifica.pagamenti_contanti.toFixed(2)}</span>
-                        </div>
-                        {verifica.pagamenti_contanti_form > 0 &&
-                      <p className="text-xs text-slate-400 mt-1">Form: €{verifica.pagamenti_contanti_form.toFixed(2)}</p>
-                      }
-                      </div>
-
-                      <div className="neumorphic-pressed p-3 rounded-xl bg-white">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-slate-600">- Prelievi</span>
-                          <span className="text-sm font-bold text-red-600">-€{verifica.prelievi.toFixed(2)}</span>
-                        </div>
-                      </div>
-
-                      {verifica.pagamenti_straordinari > 0 &&
-                    <div className="neumorphic-pressed p-3 rounded-xl bg-white">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-600">- Straordinari</span>
-                            <span className="text-sm font-bold text-red-600">-€{verifica.pagamenti_straordinari.toFixed(2)}</span>
-                          </div>
-                        </div>
-                    }
-
-                      <div className="neumorphic-pressed p-3 rounded-xl bg-blue-50 border-2 border-blue-300">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-bold text-blue-800">= Cassa Attesa</span>
-                          <span className="text-lg font-bold text-blue-700">€{verifica.cassa_attesa.toFixed(2)}</span>
-                        </div>
-                      </div>
-
-                      <div className="neumorphic-pressed p-3 rounded-xl bg-white">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-slate-600">Ultimo Conteggio</span>
-                          <span className="text-sm font-bold text-slate-800">€{verifica.ultimo_conteggio.toFixed(2)}</span>
-                        </div>
-                        <p className="text-xs text-slate-400">
-                          {format(parseISO(verifica.ultimo_conteggio_ora), 'HH:mm', { locale: it })}
-                        </p>
-                      </div>
-                    </div>
-                  </NeumorphicCard>);
-
-            })}
-            </div>
-          </>
-        }
 
         {/* Saldo Personale Tab */}
         {activeTab === 'saldo' &&
