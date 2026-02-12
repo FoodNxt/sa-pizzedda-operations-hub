@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { ChevronRight, TrendingUp, BarChart3, Settings, Loader2, Zap, Users } from 'lucide-react';
+import { ChevronRight, Settings, Users, CheckSquare, Menu, BookOpen, Loader2, UserCheck, Cloud } from 'lucide-react';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
 
 const sectionAdminPages = {
-  'Marketing': []
+  'Sistema': []
 };
 
-export default function AdminMarketing() {
+export default function AdminSistema() {
   const navigate = useNavigate();
   const [adminPages, setAdminPages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,7 +24,7 @@ export default function AdminMarketing() {
           const pages = [];
           activeConfig.menu_structure.forEach(section => {
             section.items?.forEach(item => {
-              if (item.parent_admin_section === 'Marketing') {
+              if (item.parent_admin_section === 'Sistema') {
                 const pageInfo = {
                   title: item.title,
                   page: item.page,
@@ -36,13 +36,13 @@ export default function AdminMarketing() {
               }
             });
           });
-          setAdminPages([...sectionAdminPages['Marketing'], ...pages]);
+          setAdminPages([...sectionAdminPages['Sistema'], ...pages]);
         } else {
-          setAdminPages(sectionAdminPages['Marketing']);
+          setAdminPages(sectionAdminPages['Sistema']);
         }
       } catch (error) {
         console.error('Error loading admin pages:', error);
-        setAdminPages(sectionAdminPages['Marketing']);
+        setAdminPages(sectionAdminPages['Sistema']);
       } finally {
         setIsLoading(false);
       }
@@ -52,7 +52,7 @@ export default function AdminMarketing() {
   }, []);
 
   const getIcon = (iconName) => {
-    const icons = { BarChart3, Settings, TrendingUp, Zap, Users };
+    const icons = { Users, CheckSquare, Menu, BookOpen, Settings, UserCheck, Cloud };
     return icons[iconName] || Settings;
   };
 
@@ -60,12 +60,12 @@ export default function AdminMarketing() {
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg">
-            <TrendingUp className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center shadow-lg">
+            <Settings className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#000000' }}>Admin Marketing</h1>
-            <p className="text-sm text-slate-600">Gestione e configurazione Marketing</p>
+            <h1 className="text-2xl font-bold" style={{ color: '#000000' }}>Admin Sistema</h1>
+            <p className="text-sm text-slate-600">Gestione e configurazione Sistema</p>
           </div>
         </div>
       </div>
@@ -74,6 +74,10 @@ export default function AdminMarketing() {
         <div className="flex justify-center py-12">
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
         </div>
+      ) : adminPages.length === 0 ? (
+        <NeumorphicCard className="p-8 text-center">
+          <p className="text-slate-600">Nessuna pagina admin configurata per questa sezione</p>
+        </NeumorphicCard>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {adminPages.map((item) => {

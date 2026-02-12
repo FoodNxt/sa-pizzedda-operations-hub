@@ -51,7 +51,10 @@ import ATS from './pages/ATS';
 import Academy from './pages/Academy';
 import AcademyAdmin from './pages/AcademyAdmin';
 import Activation from './pages/Activation';
+import AdminFinancials from './pages/AdminFinancials';
 import AdminHR from './pages/AdminHR';
+import AdminInventory from './pages/AdminInventory';
+import AdminMarketing from './pages/AdminMarketing';
 import AnalisiSprechi from './pages/AnalisiSprechi';
 import Assenze from './pages/Assenze';
 import AssignReviews from './pages/AssignReviews';
@@ -176,9 +179,7 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import AdminFinancials from './pages/AdminFinancials';
-import AdminInventory from './pages/AdminInventory';
-import AdminMarketing from './pages/AdminMarketing';
+import AdminSistema from './pages/AdminSistema';
 import __Layout from './Layout.jsx';
 
 
@@ -187,7 +188,10 @@ export const PAGES = {
     "Academy": Academy,
     "AcademyAdmin": AcademyAdmin,
     "Activation": Activation,
+    "AdminFinancials": AdminFinancials,
     "AdminHR": AdminHR,
+    "AdminInventory": AdminInventory,
+    "AdminMarketing": AdminMarketing,
     "AnalisiSprechi": AnalisiSprechi,
     "Assenze": Assenze,
     "AssignReviews": AssignReviews,
@@ -312,9 +316,7 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "AdminFinancials": AdminFinancials,
-    "AdminInventory": AdminInventory,
-    "AdminMarketing": AdminMarketing,
+    "AdminSistema": AdminSistema,
 }
 
 export const pagesConfig = {
