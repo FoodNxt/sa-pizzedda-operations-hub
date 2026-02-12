@@ -7,13 +7,7 @@ export default function RollingTableRow({ entry, dayDate, saldiManuali, onEditCl
   const diffInizio = entry.conteggiInizio ? entry.conteggiInizio - entry.cassaTeoricaInitial : null;
   const diffFinale = entry.conteggiFinale ? entry.conteggiFinale - entry.cassaTeoricaFinale : null;
 
-  const handleEditClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.nativeEvent.stopImmediatePropagation();
-    console.log('Edit button clicked!', { entry, dayDate });
-    onEditClick();
-  };
+
 
   const handleDeleteClick = (e) => {
     e.preventDefault();
@@ -31,13 +25,6 @@ export default function RollingTableRow({ entry, dayDate, saldiManuali, onEditCl
             <span className={`text-sm font-bold ${entry.cassaTeoricaInitialManual ? 'text-orange-600' : 'text-blue-600'}`}>
               €{entry.cassaTeoricaInitial.toFixed(2)}
             </span>
-            <button
-              type="button"
-              onClick={handleEditClick}
-              className="px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 text-xs font-medium cursor-pointer select-none active:scale-95">
-              <Edit className="w-4 h-4" />
-              ✏️ MODIFICA
-            </button>
             {entry.cassaTeoricaInitialManual && (
               <div className="flex items-center gap-1">
                 <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Manuale</span>

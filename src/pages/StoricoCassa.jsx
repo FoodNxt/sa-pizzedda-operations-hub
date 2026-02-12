@@ -542,9 +542,17 @@ export default function StoricoCassa() {
         {activeTab === 'rolling' &&
         <>
           <NeumorphicCard className="p-4 lg:p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Filter className="w-5 h-5 text-blue-600" />
-              <h2 className="text-base lg:text-lg font-bold text-slate-800">Selezione Locali</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Filter className="w-5 h-5 text-blue-600" />
+                <h2 className="text-base lg:text-lg font-bold text-slate-800">Selezione Locali</h2>
+              </div>
+              <button
+                onClick={() => setEditingCassaData({ store_id: '', store_name: '', date: '', valore: 0 })}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium hover:shadow-lg">
+                <Plus className="w-4 h-4" />
+                Imposta Cassa Manuale
+              </button>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -622,14 +630,6 @@ export default function StoricoCassa() {
                         entry={entry}
                         dayDate={dayData.date}
                         saldiManuali={saldiManuali}
-                        onEditClick={() => {
-                          setEditingCassaData({ 
-                            store_id: entry.store_id, 
-                            store_name: entry.store_name, 
-                            date: dayData.date, 
-                            valore: entry.cassaTeoricaInitial 
-                          });
-                        }}
                         onDeleteClick={() => {
                           const saldoRecord = saldiManuali.find(s => s.store_id === entry.store_id && s.data === dayData.date);
                           if (saldoRecord && confirm('Rimuovere il saldo manuale?')) {
@@ -1055,9 +1055,10 @@ export default function StoricoCassa() {
 
                 <form onSubmit={(e) => {
                   e.preventDefault();
+                  const store = stores.find(s => s.id === editingCassaData.store_id);
                   saveCassaTeoricaMutation.mutate({
                     store_id: editingCassaData.store_id,
-                    store_name: editingCassaData.store_name,
+                    store_name: store?.name || '',
                     data: editingCassaData.date,
                     saldo_iniziale: parseFloat(editingCassaData.valore) || 0,
                     impostato_da: currentUser?.email || '',
@@ -1066,20 +1067,26 @@ export default function StoricoCassa() {
                 }} className="space-y-4">
                   <div>
                     <label className="text-sm text-slate-600 mb-2 block">Locale</label>
-                    <input
-                      type="text"
-                      value={editingCassaData.store_name}
-                      disabled
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm opacity-60" />
+                    <select
+                      value={editingCassaData.store_id}
+                      onChange={(e) => setEditingCassaData({ ...editingCassaData, store_id: e.target.value })}
+                      required
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+                      <option value="">Seleziona locale...</option>
+                      {stores.map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
                     <label className="text-sm text-slate-600 mb-2 block">Data</label>
                     <input
-                      type="text"
-                      value={editingCassaData.date ? format(parseISO(editingCassaData.date), 'dd/MM/yyyy', { locale: it }) : ''}
-                      disabled
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm opacity-60" />
+                      type="date"
+                      value={editingCassaData.date}
+                      onChange={(e) => setEditingCassaData({ ...editingCassaData, date: e.target.value })}
+                      required
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
                   </div>
 
                   <div>
