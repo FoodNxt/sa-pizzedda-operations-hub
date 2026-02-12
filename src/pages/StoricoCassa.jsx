@@ -1056,7 +1056,6 @@ export default function StoricoCassa() {
                     impostato_da: currentUser?.email || '',
                     impostato_il: new Date().toISOString()
                   });
-                  setShowCassaModal(false);
                 }} className="space-y-4">
                   <div>
                     <label className="text-sm text-slate-600 mb-2 block">Locale</label>
