@@ -44,6 +44,14 @@ export default function StoricoCassa() {
 
   const queryClient = useQueryClient();
 
+  // Debug: log quando showCassaModal cambia
+  React.useEffect(() => {
+    console.log('showCassaModal changed to:', showCassaModal);
+    if (showCassaModal) {
+      console.log('Modal data:', cassaModalData);
+    }
+  }, [showCassaModal, cassaModalData]);
+
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list()
@@ -623,14 +631,19 @@ export default function StoricoCassa() {
                         saldiManuali={saldiManuali}
                         onEditClick={() => {
                           console.log('onEditClick handler called', entry);
-                          setCassaModalData({ 
+                          const modalData = { 
                             store_id: entry.store_id, 
                             store_name: entry.store_name, 
                             date: dayData.date, 
                             valore: entry.cassaTeoricaInitial 
-                          });
+                          };
+                          console.log('Modal data to set:', modalData);
+                          setCassaModalData(modalData);
                           console.log('Setting showCassaModal to true');
-                          setShowCassaModal(true);
+                          setTimeout(() => {
+                            setShowCassaModal(true);
+                            console.log('showCassaModal should now be true');
+                          }, 0);
                         }}
                         onDeleteClick={() => {
                           const saldoRecord = saldiManuali.find(s => s.store_id === entry.store_id && s.data === dayData.date);
@@ -1030,17 +1043,28 @@ export default function StoricoCassa() {
           }
 
         {showCassaModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" onClick={() => setShowCassaModal(false)}>
-             <NeumorphicCard className="max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-slate-800">Imposta Cassa Teorica Inizio</h2>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowCassaModal(false)} 
-                    className="p-2 rounded-lg hover:bg-slate-100">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
+            style={{ zIndex: 9999 }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowCassaModal(false);
+              }
+            }}>
+             <NeumorphicCard className="max-w-md w-full p-6">
+               <div className="flex items-center justify-between mb-4">
+                 <h2 className="text-lg font-bold text-slate-800">Imposta Cassa Teorica Inizio</h2>
+                 <button 
+                   type="button" 
+                   onClick={(e) => {
+                     e.preventDefault();
+                     e.stopPropagation();
+                     setShowCassaModal(false);
+                   }} 
+                   className="p-2 rounded-lg hover:bg-slate-100">
+                   <X className="w-5 h-5" />
+                 </button>
+               </div>
 
                 <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mb-4">
                   <p className="text-sm text-blue-800">
