@@ -640,10 +640,11 @@ export default function StoricoCassa() {
                           console.log('Modal data to set:', modalData);
                           setCassaModalData(modalData);
                           console.log('Setting showCassaModal to true');
+                          // Delay più lungo per evitare conflitti con event bubbling
                           setTimeout(() => {
                             setShowCassaModal(true);
                             console.log('showCassaModal should now be true');
-                          }, 0);
+                          }, 100);
                         }}
                         onDeleteClick={() => {
                           const saldoRecord = saldiManuali.find(s => s.store_id === entry.store_id && s.data === dayData.date);
@@ -1046,8 +1047,10 @@ export default function StoricoCassa() {
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
             style={{ zIndex: 9999 }}
-            onClick={(e) => {
+            onMouseDown={(e) => {
               if (e.target === e.currentTarget) {
+                e.preventDefault();
+                e.stopPropagation();
                 setShowCassaModal(false);
               }
             }}>

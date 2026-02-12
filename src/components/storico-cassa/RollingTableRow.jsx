@@ -10,6 +10,7 @@ export default function RollingTableRow({ entry, dayDate, saldiManuali, onEditCl
   const handleEditClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
     console.log('Edit button clicked!', { entry, dayDate });
     onEditClick();
   };
