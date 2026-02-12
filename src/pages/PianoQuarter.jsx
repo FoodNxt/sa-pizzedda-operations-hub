@@ -608,8 +608,14 @@ export default function PianoQuarter() {
         const budgetGiornaliero = budgetTotale / pDays;
         const budgetPeriodo = budgetGiornaliero * overlapDays;
 
+        // Dividi il budget proporzionalmente per numero di locali
+        let budgetForStore = budgetPeriodo;
+        if (selectedContoStore !== 'all' && p.stores_ids && p.stores_ids.length > 0) {
+          budgetForStore = budgetPeriodo / p.stores_ids.length;
+        }
+
         // Applica cofinanziamento
-        const costoEffettivo = budgetPeriodo * (1 - percentualeCofinanziamento / 100);
+        const costoEffettivo = budgetForStore * (1 - percentualeCofinanziamento / 100);
 
         adsBudget += costoEffettivo;
       }
