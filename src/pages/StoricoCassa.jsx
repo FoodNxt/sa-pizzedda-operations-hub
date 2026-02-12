@@ -1041,8 +1041,10 @@ export default function StoricoCassa() {
           isOpen={showCassaInizialeModal}
           onClose={() => setShowCassaInizialeModal(false)}
           stores={stores}
-          onSave={(data) => saveCassaTeoricaMutation.mutate(data)}
-          initialData={{ store_id: '', date: '', valore: 0 }}
+          onSave={(data) => {
+            console.log('onSave called with:', data);
+            saveCassaTeoricaMutation.mutate(data);
+          }}
         />
 
         {showAlertConfig &&
