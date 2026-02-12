@@ -2126,6 +2126,15 @@ export default function OrdiniSbagliati() {
                       status: 'inviata'
                     });
 
+                    // Mark wrong orders as having letter sent
+                    for (const order of selectedEmployee.orders) {
+                      await base44.entities.WrongOrder.update(order.id, {
+                        lettera_richiamo_inviata: true,
+                        lettera_richiamo_data: new Date().toISOString(),
+                        lettera_richiamo_id: letteraRichiamo.id
+                      });
+                    }
+
                     // Send email notification to employee
                     try {
                       const emailTemplates = await base44.entities.EmailNotificationTemplate.filter({
@@ -2190,6 +2199,7 @@ export default function OrdiniSbagliati() {
                     }
 
                     alert('✅ Lettera di richiamo creata con successo! Email di notifica inviata al dipendente.');
+                    queryClient.invalidateQueries({ queryKey: ['wrong-orders'] });
                     setShowLetterModal(false);
                     setSelectedEmployee(null);
                     setSelectedTemplate('');

@@ -18,6 +18,16 @@ export default function ToDo() {
     refetchOnWindowFocus: false
   });
 
+  const { data: wrongOrders = [] } = useQuery({
+    queryKey: ['wrong-orders'],
+    queryFn: () => base44.entities.WrongOrder.list('-order_date', 1000)
+  });
+
+  const { data: wrongOrderMatches = [] } = useQuery({
+    queryKey: ['wrong-order-matches'],
+    queryFn: () => base44.entities.WrongOrderMatch.list()
+  });
+
   const { data: materiePrime = [] } = useQuery({
     queryKey: ['materie-prime'],
     queryFn: () => base44.entities.MateriePrime.list(),
@@ -440,6 +450,47 @@ export default function ToDo() {
       .slice(0, 5);
   }, [turniRitardi, allUsers, timbraturaConfig]);
 
+  const ordiniSbagliatiSenzaLettera = useMemo(() => {
+    if (!wrongOrders || !wrongOrderMatches) return [];
+    
+    const trentaGiorniFa = moment().subtract(30, 'days');
+    const oggi = moment();
+
+    // Get matched orders without letter
+    const ordersWithoutLetter = wrongOrderMatches.filter((match) => {
+      const order = wrongOrders.find((o) => o.id === match.wrong_order_id);
+      if (!order) return false;
+      
+      const orderDate = moment(order.order_date);
+      if (!orderDate.isBetween(trentaGiorniFa, oggi, 'day', '[]')) return false;
+      
+      return !order.lettera_richiamo_inviata;
+    });
+
+    // Group by employee
+    const byEmployee = {};
+    ordersWithoutLetter.forEach((match) => {
+      if (!match.matched_employee_name) return;
+      
+      const order = wrongOrders.find((o) => o.id === match.wrong_order_id);
+      if (!order) return;
+
+      const employeeKey = match.matched_employee_name;
+      if (!byEmployee[employeeKey]) {
+        byEmployee[employeeKey] = {
+          dipendente: match.matched_employee_name,
+          count: 0,
+          totalRefunds: 0
+        };
+      }
+      
+      byEmployee[employeeKey].count++;
+      byEmployee[employeeKey].totalRefunds += order.refund_value || 0;
+    });
+
+    return Object.values(byEmployee).sort((a, b) => b.count - a.count);
+  }, [wrongOrders, wrongOrderMatches]);
+
   return (
     <ProtectedPage pageName="ToDo">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -717,6 +768,32 @@ export default function ToDo() {
                   </div>
                 ) :
                   <p className="text-xs text-slate-400 text-center py-4">Nessun ritardo registrato</p>
+                }
+              </div>
+            </div>
+
+            {/* Ordini Sbagliati Senza Lettera */}
+            <div className="neumorphic-pressed p-4 rounded-xl">
+              <Link to={createPageUrl('OrdiniSbagliati')} className="font-bold text-slate-700 mb-3 text-sm flex items-center gap-2 hover:text-blue-600 transition-colors">
+                <AlertTriangle className="w-4 h-4 text-orange-600" />
+                Ordini Sbagliati Senza Lettera (30gg)
+                {ordiniSbagliatiSenzaLettera.length > 0 &&
+                  <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">{ordiniSbagliatiSenzaLettera.length}</span>
+                }
+                <ExternalLink className="w-3 h-3 ml-auto" />
+              </Link>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {ordiniSbagliatiSenzaLettera.length > 0 ? ordiniSbagliatiSenzaLettera.map((d, idx) =>
+                  <div key={idx} className="p-2 rounded-lg bg-orange-50 border border-orange-200">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-xs font-medium text-slate-700">{d.dipendente}</p>
+                        <p className="text-[10px] text-orange-600 mt-1">{d.count} ordini • {formatEuro(d.totalRefunds)} rimborsi</p>
+                      </div>
+                    </div>
+                  </div>
+                ) :
+                  <p className="text-xs text-slate-400 text-center py-4">Nessun ordine senza lettera</p>
                 }
               </div>
             </div>
