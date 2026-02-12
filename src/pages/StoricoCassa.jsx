@@ -630,26 +630,30 @@ export default function StoricoCassa() {
                               </span>
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setCassaModalData({ store_id: entry.store_id, store_name: entry.store_name, date: dayData.date, valore: entry.cassaTeoricaInitial });
+                                onClick={() => {
+                                  setCassaModalData({ 
+                                    store_id: entry.store_id, 
+                                    store_name: entry.store_name, 
+                                    date: dayData.date, 
+                                    valore: entry.cassaTeoricaInitial 
+                                  });
                                   setShowCassaModal(true);
                                 }}
-                                className="p-2 bg-blue-100 hover:bg-blue-200 rounded border border-blue-600 transition-colors cursor-pointer">
+                                className="p-2 bg-blue-100 hover:bg-blue-200 rounded border border-blue-600 transition-colors cursor-pointer z-10 relative">
                                 <Edit className="w-5 h-5 text-blue-600" />
                               </button>
                               {entry.cassaTeoricaInitialManual && (
                                 <div className="flex items-center gap-1">
                                   <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Manual</span>
                                   <button
+                                    type="button"
                                     onClick={() => {
                                       const saldoRecord = saldiManuali.find(s => s.store_id === entry.store_id && s.data === dayData.date);
                                       if (saldoRecord) {
                                         deleteCassaTeoricaMutation.mutate(saldoRecord.id);
                                       }
                                     }}
-                                    className="p-1 hover:bg-red-100 rounded transition-colors">
+                                    className="p-1 hover:bg-red-100 rounded transition-colors cursor-pointer">
                                     <X className="w-3 h-3 text-red-600" />
                                   </button>
                                 </div>
