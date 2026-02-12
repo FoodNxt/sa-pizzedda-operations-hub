@@ -629,8 +629,8 @@ export default function StoricoCassa() {
                                 €{entry.cassaTeoricaInitial.toFixed(2)}
                               </span>
                               <button
-                                type="button"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setCassaModalData({ 
                                     store_id: entry.store_id, 
                                     store_name: entry.store_name, 
@@ -639,8 +639,9 @@ export default function StoricoCassa() {
                                   });
                                   setShowCassaModal(true);
                                 }}
-                                className="p-2 bg-blue-100 hover:bg-blue-200 rounded border border-blue-600 transition-colors cursor-pointer z-10 relative">
-                                <Edit className="w-5 h-5 text-blue-600" />
+                                className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 text-xs font-medium">
+                                <Edit className="w-4 h-4" />
+                                Modifica
                               </button>
                               {entry.cassaTeoricaInitialManual && (
                                 <div className="flex items-center gap-1">
