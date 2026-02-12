@@ -302,7 +302,7 @@ export default function StoricoCassa() {
           });
     });
 
-    const sortedDates = Array.from(allDatesSet).sort().reverse();
+    const sortedDates = Array.from(allDatesSet).sort();
 
     sortedDates.forEach((dateStr, dateIdx) => {
       const dayData = {
@@ -312,13 +312,12 @@ export default function StoricoCassa() {
 
       applicableStores.forEach(storeId => {
         const store = stores.find(s => s.id === storeId);
-        const prevDayData = dateIdx > 0 ? data[data.length - 1] : null;
+        const prevDayEntry = dateIdx > 0 ? data[dateIdx - 1]?.entries.find(e => e.store_id === storeId) : null;
 
         let cassaTeoricaInitial = 0;
         let cassaTeoricaInitialManual = false;
 
         const manualSaldoForDate = saldiManuali.find(s => s.store_id === storeId && s.data === dateStr);
-        const prevDayEntry = prevDayData?.entries.find(e => e.store_id === storeId);
 
         if (manualSaldoForDate) {
           cassaTeoricaInitial = manualSaldoForDate.saldo_iniziale;
@@ -369,7 +368,7 @@ export default function StoricoCassa() {
       data.push(dayData);
     });
 
-    return data;
+    return data.reverse();
   }, [conteggi, iPraticoData, prelievi, saldiManuali, stores, selectedStoresRolling, startDate, endDate, dateRange]);
 
   const saldoDipendenti = useMemo(() => {
