@@ -115,18 +115,21 @@ const navigationStructure = [
         page: "Costi",
         url: createPageUrl("Costi"),
         icon: TrendingUp,
+        parent_admin_section: "Financials"
       },
       {
         title: "Food Cost",
         page: "FoodCost",
         url: createPageUrl("FoodCost"),
         icon: ChefHat,
+        parent_admin_section: "Financials"
       },
       {
         title: "Sconti",
         page: "Sconti",
         url: createPageUrl("Sconti"),
         icon: TrendingUp,
+        parent_admin_section: "Financials"
       },
       {
         title: "Forms",
@@ -139,6 +142,7 @@ const navigationStructure = [
         page: "Target",
         url: createPageUrl("Target"),
         icon: TrendingUp,
+        parent_admin_section: "Financials"
       },
       {
         title: "Produttività",
@@ -151,6 +155,7 @@ const navigationStructure = [
         page: "Banche",
         url: createPageUrl("Banche"),
         icon: DollarSign,
+        parent_admin_section: "Financials"
       }
       ]
       },
