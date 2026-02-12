@@ -622,12 +622,14 @@ export default function StoricoCassa() {
                         dayDate={dayData.date}
                         saldiManuali={saldiManuali}
                         onEditClick={() => {
+                          console.log('onEditClick handler called', entry);
                           setCassaModalData({ 
                             store_id: entry.store_id, 
                             store_name: entry.store_name, 
                             date: dayData.date, 
                             valore: entry.cassaTeoricaInitial 
                           });
+                          console.log('Setting showCassaModal to true');
                           setShowCassaModal(true);
                         }}
                         onDeleteClick={() => {
@@ -1028,8 +1030,8 @@ export default function StoricoCassa() {
           }
 
         {showCassaModal && (
-           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <NeumorphicCard className="max-w-md w-full p-6">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" onClick={() => setShowCassaModal(false)}>
+             <NeumorphicCard className="max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-slate-800">Imposta Cassa Teorica Inizio</h2>
                   <button 

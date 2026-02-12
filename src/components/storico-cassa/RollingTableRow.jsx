@@ -7,6 +7,20 @@ export default function RollingTableRow({ entry, dayDate, saldiManuali, onEditCl
   const diffInizio = entry.conteggiInizio ? entry.conteggiInizio - entry.cassaTeoricaInitial : null;
   const diffFinale = entry.conteggiFinale ? entry.conteggiFinale - entry.cassaTeoricaFinale : null;
 
+  const handleEditClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Edit button clicked!', { entry, dayDate });
+    onEditClick();
+  };
+
+  const handleDeleteClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Delete button clicked!');
+    onDeleteClick();
+  };
+
   return (
     <>
       <tr className="border-b border-slate-200 hover:bg-slate-50">
@@ -18,11 +32,7 @@ export default function RollingTableRow({ entry, dayDate, saldiManuali, onEditCl
             </span>
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onEditClick();
-              }}
+              onClick={handleEditClick}
               className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 text-xs font-medium cursor-pointer select-none active:scale-95">
               <Edit className="w-4 h-4" />
               Modifica
@@ -32,11 +42,7 @@ export default function RollingTableRow({ entry, dayDate, saldiManuali, onEditCl
                 <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Manuale</span>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onDeleteClick();
-                  }}
+                  onClick={handleDeleteClick}
                   className="p-1 hover:bg-red-100 rounded transition-colors cursor-pointer">
                   <X className="w-3 h-3 text-red-600" />
                 </button>
