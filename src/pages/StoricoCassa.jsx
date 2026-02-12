@@ -558,7 +558,13 @@ export default function StoricoCassa() {
                 <h2 className="text-base lg:text-lg font-bold text-slate-800">Selezione Locali</h2>
               </div>
               <button
-                onClick={() => setShowCassaInizialeModal(true)}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Button clicked, opening modal');
+                  setShowCassaInizialeModal(true);
+                }}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium hover:shadow-lg">
                 <Plus className="w-4 h-4" />
                 Imposta Cassa Manuale
@@ -1037,15 +1043,20 @@ export default function StoricoCassa() {
            </div>
           }
 
-        <CassaInizialeModal
-          isOpen={showCassaInizialeModal}
-          onClose={() => setShowCassaInizialeModal(false)}
-          stores={stores}
-          onSave={(data) => {
-            console.log('onSave called with:', data);
-            saveCassaTeoricaMutation.mutate(data);
-          }}
-        />
+        {showCassaInizialeModal && (
+          <CassaInizialeModal
+            isOpen={showCassaInizialeModal}
+            onClose={() => {
+              console.log('Closing modal');
+              setShowCassaInizialeModal(false);
+            }}
+            stores={stores}
+            onSave={(data) => {
+              console.log('onSave called with:', data);
+              saveCassaTeoricaMutation.mutate(data);
+            }}
+          />
+        )}
 
         {showAlertConfig &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
