@@ -25,13 +25,6 @@ const inventoryAdminPages = [
     icon: BarChart3,
     description: "Analisi consumi e sprechi",
     gradient: "from-purple-500 to-pink-600"
-  },
-  {
-    title: "Inventory Admin",
-    page: "InventarioAdmin",
-    icon: Settings,
-    description: "Configurazioni inventario",
-    gradient: "from-slate-500 to-slate-700"
   }
 ];
 
