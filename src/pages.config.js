@@ -178,6 +178,7 @@ import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
 import AdminFinancials from './pages/AdminFinancials';
 import AdminInventory from './pages/AdminInventory';
+import AdminMarketing from './pages/AdminMarketing';
 import __Layout from './Layout.jsx';
 
 
@@ -313,6 +314,7 @@ export const PAGES = {
     "ZapierSetup": ZapierSetup,
     "AdminFinancials": AdminFinancials,
     "AdminInventory": AdminInventory,
+    "AdminMarketing": AdminMarketing,
 }
 
 export const pagesConfig = {
