@@ -615,13 +615,13 @@ export default function StoricoCassa() {
                     </tr>
                   </thead>
                   <tbody>
-                    {dayData.entries.map((entry) => {
+                    {dayData.entries.map((entry, entryIdx) => {
                       const diffInizio = entry.conteggiInizio ? entry.conteggiInizio - entry.cassaTeoricaInitial : null;
                       const diffFinale = entry.conteggiFinale ? entry.conteggiFinale - entry.cassaTeoricaFinale : null;
 
                       return (
-                      <React.Fragment key={entry.store_id}>
-                        <tr className="border-b border-slate-200 hover:bg-slate-50">
+                      <>
+                        <tr key={`${dayData.date}-${entry.store_id}`} className="border-b border-slate-200 hover:bg-slate-50">
                           <td className="p-3 font-bold text-slate-800">{entry.store_name}</td>
                           <td className="p-3 text-right">
                             <div className="flex flex-col items-end gap-2">
@@ -713,7 +713,7 @@ export default function StoricoCassa() {
                         </tr>
 
                         {entry.conteggiInizio && entry.differenciaInizio !== null && entry.differenciaInizio > 0.5 && (
-                          <tr className="bg-orange-50 border-b border-orange-200">
+                          <tr key={`${dayData.date}-${entry.store_id}-diff-inizio`} className="bg-orange-50 border-b border-orange-200">
                             <td colSpan="7" className="p-3 text-xs text-orange-800">
                               ⚠️ <strong>Differenza inizio giornata:</strong> €{entry.differenciaInizio.toFixed(2)}
                             </td>
@@ -721,7 +721,7 @@ export default function StoricoCassa() {
                         )}
 
                         {entry.conteggiFinale && entry.differenciaFinale !== null && entry.differenciaFinale > 0.5 && (
-                          <tr className="bg-red-50 border-b border-red-200">
+                          <tr key={`${dayData.date}-${entry.store_id}-diff-finale`} className="bg-red-50 border-b border-red-200">
                             <td colSpan="7" className="p-3 text-xs text-red-800">
                               ❌ <strong>Differenza fine giornata:</strong> €{entry.differenciaFinale.toFixed(2)}
                             </td>
