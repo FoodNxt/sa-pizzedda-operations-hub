@@ -33,7 +33,8 @@ export default function AdminHR() {
                   title: item.title,
                   page: item.page,
                   icon: item.icon,
-                  color: 'from-blue-500 to-blue-600'
+                  description: 'Configurazione ' + item.title,
+                  gradient: 'from-blue-500 to-indigo-600'
                 };
                 pages.push(pageInfo);
               }
