@@ -14,17 +14,18 @@ export default function CassaInizialeModal({ isOpen, onClose, stores, onSave }) 
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Modal submit:', { storeId, date, valore });
     onSave({ store_id: storeId, date: date, valore: parseFloat(valore) || 0 });
   };
 
+  if (!isOpen) return null;
+
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[999999]"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+      style={{ zIndex: 999999 }}
       onClick={onClose}>
       <div 
         className="max-w-md w-full p-6 bg-white rounded-xl shadow-2xl"
