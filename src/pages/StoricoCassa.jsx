@@ -41,6 +41,7 @@ export default function StoricoCassa() {
   const [editingCassaEntry, setEditingCassaEntry] = useState(null);
   const [showCassaModal, setShowCassaModal] = useState(false);
   const [cassaModalData, setCassaModalData] = useState({ store_id: '', store_name: '', date: '', valore: 0 });
+  const modalOpeningRef = React.useRef(false);
 
   const queryClient = useQueryClient();
 
@@ -631,6 +632,7 @@ export default function StoricoCassa() {
                         saldiManuali={saldiManuali}
                         onEditClick={() => {
                           console.log('onEditClick handler called', entry);
+                          modalOpeningRef.current = true;
                           const modalData = { 
                             store_id: entry.store_id, 
                             store_name: entry.store_name, 
@@ -640,11 +642,10 @@ export default function StoricoCassa() {
                           console.log('Modal data to set:', modalData);
                           setCassaModalData(modalData);
                           console.log('Setting showCassaModal to true');
-                          // Delay più lungo per evitare conflitti con event bubbling
+                          setShowCassaModal(true);
                           setTimeout(() => {
-                            setShowCassaModal(true);
-                            console.log('showCassaModal should now be true');
-                          }, 100);
+                            modalOpeningRef.current = false;
+                          }, 500);
                         }}
                         onDeleteClick={() => {
                           const saldoRecord = saldiManuali.find(s => s.store_id === entry.store_id && s.data === dayData.date);
@@ -1048,7 +1049,7 @@ export default function StoricoCassa() {
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
             style={{ zIndex: 9999 }}
             onMouseDown={(e) => {
-              if (e.target === e.currentTarget) {
+              if (e.target === e.currentTarget && !modalOpeningRef.current) {
                 e.preventDefault();
                 e.stopPropagation();
                 setShowCassaModal(false);
