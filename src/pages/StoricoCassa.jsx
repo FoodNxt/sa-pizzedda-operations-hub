@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -21,6 +20,7 @@ import {
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 import RollingTableRow from "../components/storico-cassa/RollingTableRow";
+import CassaInizialeModal from "../components/storico-cassa/CassaInizialeModal";
 import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -40,7 +40,7 @@ export default function StoricoCassa() {
   const [expandedDipendente, setExpandedDipendente] = useState(null);
   const [selectedStoresRolling, setSelectedStoresRolling] = useState([]);
   const [editingCassaEntry, setEditingCassaEntry] = useState(null);
-  const [editingCassaData, setEditingCassaData] = useState(null);
+  const [showCassaInizialeModal, setShowCassaInizialeModal] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -110,10 +110,20 @@ export default function StoricoCassa() {
   });
 
   const saveCassaTeoricaMutation = useMutation({
-    mutationFn: (data) => base44.entities.SaldoManualeCassa.create(data),
+    mutationFn: (data) => {
+      const store = stores.find(s => s.id === data.store_id);
+      return base44.entities.SaldoManualeCassa.create({
+        store_id: data.store_id,
+        store_name: store?.name || '',
+        data: data.date,
+        saldo_iniziale: parseFloat(data.valore) || 0,
+        impostato_da: currentUser?.email || '',
+        impostato_il: new Date().toISOString()
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saldi-manuali'] });
-      setEditingCassaData(null);
+      setShowCassaInizialeModal(false);
     }
   });
 
@@ -548,7 +558,7 @@ export default function StoricoCassa() {
                 <h2 className="text-base lg:text-lg font-bold text-slate-800">Selezione Locali</h2>
               </div>
               <button
-                onClick={() => setEditingCassaData({ store_id: '', store_name: '', date: '', valore: 0 })}
+                onClick={() => setShowCassaInizialeModal(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium hover:shadow-lg">
                 <Plus className="w-4 h-4" />
                 Imposta Cassa Manuale
@@ -1027,97 +1037,13 @@ export default function StoricoCassa() {
            </div>
           }
 
-        {editingCassaData && (
-           <div 
-             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
-             style={{ zIndex: 999999 }}
-             onClick={(e) => {
-               if (e.target === e.currentTarget) {
-                 setEditingCassaData(null);
-               }
-             }}>
-              <div className="max-w-md w-full p-6 bg-white rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-slate-800">Imposta Cassa Teorica Inizio</h2>
-                  <button 
-                    type="button" 
-                    onClick={() => setEditingCassaData(null)} 
-                    className="p-2 rounded-lg hover:bg-slate-100">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mb-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>ℹ️ Info:</strong> Questo valore diventerà la "Cassa Teorica Inizio" per questo locale in questa data, sostituendo il valore calcolato automaticamente.
-                  </p>
-                </div>
-
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  const store = stores.find(s => s.id === editingCassaData.store_id);
-                  saveCassaTeoricaMutation.mutate({
-                    store_id: editingCassaData.store_id,
-                    store_name: store?.name || '',
-                    data: editingCassaData.date,
-                    saldo_iniziale: parseFloat(editingCassaData.valore) || 0,
-                    impostato_da: currentUser?.email || '',
-                    impostato_il: new Date().toISOString()
-                  });
-                }} className="space-y-4">
-                  <div>
-                    <label className="text-sm text-slate-600 mb-2 block">Locale</label>
-                    <select
-                      value={editingCassaData.store_id}
-                      onChange={(e) => setEditingCassaData({ ...editingCassaData, store_id: e.target.value })}
-                      required
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
-                      <option value="">Seleziona locale...</option>
-                      {stores.map(store => (
-                        <option key={store.id} value={store.id}>{store.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-slate-600 mb-2 block">Data</label>
-                    <input
-                      type="date"
-                      value={editingCassaData.date}
-                      onChange={(e) => setEditingCassaData({ ...editingCassaData, date: e.target.value })}
-                      required
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-slate-600 mb-2 block">Cassa Teorica Inizio (€)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editingCassaData.valore}
-                      onChange={(e) => setEditingCassaData({ ...editingCassaData, valore: parseFloat(e.target.value) || 0 })}
-                      required
-                      autoFocus
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setEditingCassaData(null)}
-                      className="flex-1 px-4 py-3 rounded-xl neumorphic-flat text-slate-700 font-medium">
-                      Annulla
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium">
-                      Salva
-                    </button>
-                  </div>
-                </form>
-                </div>
-                </div>
-                )}
+        <CassaInizialeModal
+          isOpen={showCassaInizialeModal}
+          onClose={() => setShowCassaInizialeModal(false)}
+          stores={stores}
+          onSave={(data) => saveCassaTeoricaMutation.mutate(data)}
+          initialData={{ store_id: '', date: '', valore: 0 }}
+        />
 
         {showAlertConfig &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
