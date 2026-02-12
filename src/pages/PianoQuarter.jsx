@@ -51,6 +51,7 @@ export default function PianoQuarter() {
   const [activeTab, setActiveTab] = useState('ads');
   const [adsView, setAdsView] = useState('budget'); // budget | consuntivo
   const [roasView, setRoasView] = useState('budget'); // budget | consuntivo
+  const [contoView, setContoView] = useState('budget'); // budget | consuntivo
   const [roasCampaigns, setRoasCampaigns] = useState({});
   const [showAggiustamentoForm, setShowAggiustamentoForm] = useState(false);
   const [selectedPianoForAggiustamento, setSelectedPianoForAggiustamento] = useState(null);
@@ -67,6 +68,7 @@ export default function PianoQuarter() {
   const [selectedQuarter, setSelectedQuarter] = useState(getQuarter(new Date()));
   const [promoCalendarMonth, setPromoCalendarMonth] = useState(new Date());
   const [selectedDeliveryApp, setSelectedDeliveryApp] = useState('Glovo');
+  const [selectedContoStore, setSelectedContoStore] = useState('all');
   const [contoEconomicoDateRange, setContoEconomicoDateRange] = useState({
     start: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'),
     end: format(new Date(), 'yyyy-MM-dd')
@@ -520,7 +522,8 @@ export default function PianoQuarter() {
     const revenue = iPraticoData.
     filter((d) => {
       const dDate = new Date(d.order_date);
-      return dDate >= startDate && dDate <= endDate;
+      const storeMatch = selectedContoStore === 'all' || d.store_id === selectedContoStore;
+      return dDate >= startDate && dDate <= endDate && storeMatch;
     }).
     reduce((sum, d) => {
       if (selectedDeliveryApp === 'Glovo' && (d.sourceApp_glovo || 0) > 0) {
@@ -535,7 +538,8 @@ export default function PianoQuarter() {
     const totalDiscounts = scontiData.
     filter((d) => {
       const dDate = new Date(d.order_date);
-      return dDate >= startDate && dDate <= endDate;
+      const storeMatch = selectedContoStore === 'all' || d.store_id === selectedContoStore;
+      return dDate >= startDate && dDate <= endDate && storeMatch;
     }).
     reduce((sum, d) => {
       // Count which apps have this discount
@@ -579,10 +583,20 @@ export default function PianoQuarter() {
 
     let adsBudget = 0;
     pianiAds.
-    filter((p) => p.piattaforma === selectedDeliveryApp).
+    filter((p) => {
+      const platformMatch = p.piattaforma === selectedDeliveryApp;
+      const storeMatch = selectedContoStore === 'all' || !p.stores_ids || p.stores_ids.length === 0 || p.stores_ids.includes(selectedContoStore);
+      return platformMatch && storeMatch;
+    }).
     forEach((p) => {
       const pStart = new Date(p.data_inizio);
       const pEnd = new Date(p.data_fine);
+      
+      // Usa budget o consuntivo in base alla vista selezionata
+      const consuntivo = calcolaBudgetConsuntivo(p);
+      const budgetTotale = contoView === 'consuntivo' ? consuntivo.budgetTotale : p.budget;
+      const percentualeCofinanziamento = p.percentuale_cofinanziamento || 0;
+      
       const pDays = Math.floor((pEnd - pStart) / (1000 * 60 * 60 * 24)) + 1;
 
       // Giorni di overlap
@@ -591,11 +605,10 @@ export default function PianoQuarter() {
 
       if (overlapStart <= overlapEnd) {
         const overlapDays = Math.floor((overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
-        const budgetGiornaliero = p.budget / pDays;
+        const budgetGiornaliero = budgetTotale / pDays;
         const budgetPeriodo = budgetGiornaliero * overlapDays;
 
         // Applica cofinanziamento
-        const percentualeCofinanziamento = p.percentuale_cofinanziamento || 0;
         const costoEffettivo = budgetPeriodo * (1 - percentualeCofinanziamento / 100);
 
         adsBudget += costoEffettivo;
@@ -610,7 +623,7 @@ export default function PianoQuarter() {
       adsBudget: -adsBudget,
       total: revenue - foodCost - platformFees - adsBudget
     };
-  }, [pianiAds, contoEconomicoDateRange, selectedDeliveryApp, iPraticoData, scontiData, foodCostPercentage, platformFeesPercentage]);
+  }, [pianiAds, contoEconomicoDateRange, selectedDeliveryApp, selectedContoStore, contoView, iPraticoData, scontiData, foodCostPercentage, platformFeesPercentage, aggiustamentiConsuntivo]);
 
   const promoCalendarDays = useMemo(() => {
     const monthStart = startOfMonth(promoCalendarMonth);
@@ -1566,7 +1579,7 @@ export default function PianoQuarter() {
         {/* Sezione Conto Economico */}
         {activeTab === 'conto' &&
         <>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">App Delivery</label>
                 <select
@@ -1578,6 +1591,47 @@ export default function PianoQuarter() {
                   <option value="Deliveroo">Deliveroo</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Locale</label>
+                <select
+                value={selectedContoStore}
+                onChange={(e) => setSelectedContoStore(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-2 rounded-lg">
+
+                  <option value="all">Tutti i Locali</option>
+                  {stores.map(store => (
+                    <option key={store.id} value={store.id}>{store.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Vista Ads</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setContoView('budget')}
+                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      contoView === 'budget' 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Budget
+                  </button>
+                  <button
+                    onClick={() => setContoView('consuntivo')}
+                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      contoView === 'consuntivo' 
+                        ? 'bg-blue-500 text-white' 
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Consuntivo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Food Cost %</label>
                 <input
