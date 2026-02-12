@@ -55,6 +55,7 @@ import AdminFinancials from './pages/AdminFinancials';
 import AdminHR from './pages/AdminHR';
 import AdminInventory from './pages/AdminInventory';
 import AdminMarketing from './pages/AdminMarketing';
+import AdminSistema from './pages/AdminSistema';
 import AnalisiSprechi from './pages/AnalisiSprechi';
 import Assenze from './pages/Assenze';
 import AssignReviews from './pages/AssignReviews';
@@ -179,7 +180,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import AdminSistema from './pages/AdminSistema';
 import __Layout from './Layout.jsx';
 
 
@@ -192,6 +192,7 @@ export const PAGES = {
     "AdminHR": AdminHR,
     "AdminInventory": AdminInventory,
     "AdminMarketing": AdminMarketing,
+    "AdminSistema": AdminSistema,
     "AnalisiSprechi": AnalisiSprechi,
     "Assenze": Assenze,
     "AssignReviews": AssignReviews,
@@ -316,7 +317,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "AdminSistema": AdminSistema,
 }
 
 export const pagesConfig = {
