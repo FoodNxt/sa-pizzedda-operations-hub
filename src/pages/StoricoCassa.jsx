@@ -823,43 +823,7 @@ export default function StoricoCassa() {
           </div>
         </NeumorphicCard>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
-          <NeumorphicCard className="p-4">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mb-2 lg:mb-3 shadow-lg">
-                <DollarSign className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">
-                €{stats.totale.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
-              </h3>
-              <p className="text-xs text-slate-500">Totale</p>
-            </div>
-          </NeumorphicCard>
 
-          <NeumorphicCard className="p-4">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mb-2 lg:mb-3 flex items-center justify-center shadow-lg">
-                <TrendingUp className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-blue-600 mb-1">
-                €{stats.media.toFixed(2)}
-              </h3>
-              <p className="text-xs text-slate-500">Media</p>
-            </div>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-4">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mb-2 lg:mb-3 shadow-lg">
-                <Calendar className="w-6 h-6 lg:w-7 lg:h-7 text-white" />
-              </div>
-              <h3 className="text-xl lg:text-2xl font-bold text-purple-600 mb-1">
-                {stats.count}
-              </h3>
-              <p className="text-xs text-slate-500">Conteggi</p>
-            </div>
-          </NeumorphicCard>
-        </div>
 
         {activeAlerts.length > 0 &&
           <NeumorphicCard className="p-4 lg:p-6 border-2 border-red-500 bg-red-50">
@@ -933,102 +897,7 @@ export default function StoricoCassa() {
           </div>
         </NeumorphicCard>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          <NeumorphicCard className="p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base lg:text-lg font-bold text-slate-800">Trend Giornaliero</h2>
-              <div className="text-xs text-slate-500">
-                {selectedStoresForTrend.length > 0 ?
-                  `${selectedStoresForTrend.length} locale/i selezionato/i` :
-                  'Tutti i locali'}
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap gap-2 mb-4">
-              {stores.map((store) =>
-                <button
-                  key={store.id}
-                  onClick={() => handleToggleStoreForTrend(store.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  selectedStoresForTrend.includes(store.id) ?
-                  'bg-blue-500 text-white' :
-                  'neumorphic-flat text-slate-600'}`
-                  }>
 
-                  {store.name}
-                </button>
-                )}
-              {selectedStoresForTrend.length > 0 &&
-                <button
-                  onClick={() => setSelectedStoresForTrend([])}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700">
-
-                  Reset
-                </button>
-                }
-            </div>
-            <div className="w-full overflow-x-auto">
-              <div style={{ minWidth: '300px' }}>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={stats.dailyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 9 }} angle={-45} textAnchor="end" height={60} />
-                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
-                    <Tooltip
-                        contentStyle={{
-                          background: 'rgba(248, 250, 252, 0.95)',
-                          border: 'none',
-                          borderRadius: '12px',
-                          fontSize: '11px'
-                        }}
-                        formatter={(value, name) => {
-                          if (name === 'Valore €') return `€${value.toFixed(2)}`;
-                          return value;
-                        }}
-                        labelFormatter={(label, payload) => {
-                          if (payload && payload[0]) {
-                            return `${payload[0].payload.store} - ${label}`;
-                          }
-                          return label;
-                        }} />
-
-                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <Line type="monotone" dataKey="valore" stroke="#3b82f6" strokeWidth={2} name="Valore €" dot={{ r: 3 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Per Locale (Media)</h2>
-            <div className="w-full overflow-x-auto">
-              <div style={{ minWidth: '300px' }}>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={stats.storeData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                    <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 11 }} />
-                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
-                    <Tooltip
-                        contentStyle={{
-                          background: 'rgba(248, 250, 252, 0.95)',
-                          border: 'none',
-                          borderRadius: '12px',
-                          fontSize: '11px'
-                        }}
-                        formatter={(value, name, props) => {
-                          if (name === 'Media €') return [`€${value.toFixed(2)}`, `Media (${props.payload.conteggi} conteggi)`];
-                          return value;
-                        }} />
-
-                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <Bar dataKey="valore" fill="#3b82f6" name="Media €" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </NeumorphicCard>
-        </div>
 
         <NeumorphicCard className="p-4 lg:p-6">
           <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Ultimo Conteggio per Locale</h2>
