@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -39,19 +40,11 @@ export default function StoricoCassa() {
   const [expandedDipendente, setExpandedDipendente] = useState(null);
   const [selectedStoresRolling, setSelectedStoresRolling] = useState([]);
   const [editingCassaEntry, setEditingCassaEntry] = useState(null);
-  const [showCassaModal, setShowCassaModal] = useState(false);
-  const [cassaModalData, setCassaModalData] = useState({ store_id: '', store_name: '', date: '', valore: 0 });
-  const modalOpeningRef = React.useRef(false);
+  const [editingCassaData, setEditingCassaData] = useState(null);
 
   const queryClient = useQueryClient();
 
-  // Debug: log quando showCassaModal cambia
-  React.useEffect(() => {
-    console.log('showCassaModal changed to:', showCassaModal);
-    if (showCassaModal) {
-      console.log('Modal data:', cassaModalData);
-    }
-  }, [showCassaModal, cassaModalData]);
+
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -120,8 +113,7 @@ export default function StoricoCassa() {
     mutationFn: (data) => base44.entities.SaldoManualeCassa.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['saldi-manuali'] });
-      setEditingCassaEntry(null);
-      setShowCassaModal(false);
+      setEditingCassaData(null);
     }
   });
 
@@ -631,21 +623,12 @@ export default function StoricoCassa() {
                         dayDate={dayData.date}
                         saldiManuali={saldiManuali}
                         onEditClick={() => {
-                          console.log('onEditClick handler called', entry);
-                          modalOpeningRef.current = true;
-                          const modalData = { 
+                          setEditingCassaData({ 
                             store_id: entry.store_id, 
                             store_name: entry.store_name, 
                             date: dayData.date, 
                             valore: entry.cassaTeoricaInitial 
-                          };
-                          console.log('Modal data to set:', modalData);
-                          setCassaModalData(modalData);
-                          console.log('Setting showCassaModal to true');
-                          setShowCassaModal(true);
-                          setTimeout(() => {
-                            modalOpeningRef.current = false;
-                          }, 500);
+                          });
                         }}
                         onDeleteClick={() => {
                           const saldoRecord = saldiManuali.find(s => s.store_id === entry.store_id && s.data === dayData.date);
@@ -1044,31 +1027,25 @@ export default function StoricoCassa() {
            </div>
           }
 
-        {showCassaModal && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
-            style={{ zIndex: 9999 }}
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget && !modalOpeningRef.current) {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowCassaModal(false);
-              }
-            }}>
-             <NeumorphicCard className="max-w-md w-full p-6">
-               <div className="flex items-center justify-between mb-4">
-                 <h2 className="text-lg font-bold text-slate-800">Imposta Cassa Teorica Inizio</h2>
-                 <button 
-                   type="button" 
-                   onClick={(e) => {
-                     e.preventDefault();
-                     e.stopPropagation();
-                     setShowCassaModal(false);
-                   }} 
-                   className="p-2 rounded-lg hover:bg-slate-100">
-                   <X className="w-5 h-5" />
-                 </button>
-               </div>
+        {editingCassaData && createPortal(
+           <div 
+             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
+             style={{ zIndex: 99999 }}
+             onClick={(e) => {
+               if (e.target === e.currentTarget) {
+                 setEditingCassaData(null);
+               }
+             }}>
+              <NeumorphicCard className="max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-slate-800">Imposta Cassa Teorica Inizio</h2>
+                  <button 
+                    type="button" 
+                    onClick={() => setEditingCassaData(null)} 
+                    className="p-2 rounded-lg hover:bg-slate-100">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
                 <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mb-4">
                   <p className="text-sm text-blue-800">
@@ -1079,10 +1056,10 @@ export default function StoricoCassa() {
                 <form onSubmit={(e) => {
                   e.preventDefault();
                   saveCassaTeoricaMutation.mutate({
-                    store_id: cassaModalData.store_id,
-                    store_name: cassaModalData.store_name,
-                    data: cassaModalData.date,
-                    saldo_iniziale: parseFloat(cassaModalData.valore) || 0,
+                    store_id: editingCassaData.store_id,
+                    store_name: editingCassaData.store_name,
+                    data: editingCassaData.date,
+                    saldo_iniziale: parseFloat(editingCassaData.valore) || 0,
                     impostato_da: currentUser?.email || '',
                     impostato_il: new Date().toISOString()
                   });
@@ -1091,7 +1068,7 @@ export default function StoricoCassa() {
                     <label className="text-sm text-slate-600 mb-2 block">Locale</label>
                     <input
                       type="text"
-                      value={cassaModalData.store_name}
+                      value={editingCassaData.store_name}
                       disabled
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm opacity-60" />
                   </div>
@@ -1100,7 +1077,7 @@ export default function StoricoCassa() {
                     <label className="text-sm text-slate-600 mb-2 block">Data</label>
                     <input
                       type="text"
-                      value={cassaModalData.date ? format(parseISO(cassaModalData.date), 'dd/MM/yyyy', { locale: it }) : ''}
+                      value={editingCassaData.date ? format(parseISO(editingCassaData.date), 'dd/MM/yyyy', { locale: it }) : ''}
                       disabled
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm opacity-60" />
                   </div>
@@ -1110,8 +1087,8 @@ export default function StoricoCassa() {
                     <input
                       type="number"
                       step="0.01"
-                      value={cassaModalData.valore}
-                      onChange={(e) => setCassaModalData({ ...cassaModalData, valore: parseFloat(e.target.value) || 0 })}
+                      value={editingCassaData.valore}
+                      onChange={(e) => setEditingCassaData({ ...editingCassaData, valore: parseFloat(e.target.value) || 0 })}
                       required
                       autoFocus
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
@@ -1120,7 +1097,7 @@ export default function StoricoCassa() {
                   <div className="flex gap-3 pt-4">
                     <button
                       type="button"
-                      onClick={() => setShowCassaModal(false)}
+                      onClick={() => setEditingCassaData(null)}
                       className="flex-1 px-4 py-3 rounded-xl neumorphic-flat text-slate-700 font-medium">
                       Annulla
                     </button>
@@ -1132,7 +1109,8 @@ export default function StoricoCassa() {
                   </div>
                 </form>
               </NeumorphicCard>
-           </div>
+           </div>,
+           document.body
         )}
 
         {showAlertConfig &&
