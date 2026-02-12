@@ -61,13 +61,17 @@ export default function AdminHR() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <Settings className="w-10 h-10 text-slate-600" />
-          <h1 className="text-3xl font-bold text-slate-800">Admin HR</h1>
+    <div className="max-w-5xl mx-auto">
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
+            <Settings className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: '#000000' }}>Admin HR</h1>
+            <p className="text-sm text-slate-600">Gestione e configurazione HR</p>
+          </div>
         </div>
-        <p className="text-slate-600">Accedi agli strumenti amministrativi della sezione HR</p>
       </div>
 
       {isLoading ? (
@@ -75,22 +79,23 @@ export default function AdminHR() {
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {adminPages.map((item) => {
             const Icon = getIcon(item.icon);
             return (
               <NeumorphicCard
                 key={item.page}
-                className="p-0 overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+                className="p-6 cursor-pointer hover:shadow-xl transition-all group"
                 onClick={() => navigate(createPageUrl(item.page))}
               >
-                <div className={`h-2 bg-gradient-to-r ${item.color}`} />
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <Icon className="w-8 h-8 text-slate-600" />
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                <div className="flex items-start gap-4">
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                    <Icon className="w-7 h-7 text-white" />
                   </div>
-                  <h3 className="font-bold text-slate-800 mb-2">{item.title}</h3>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-slate-800 mb-1">{item.title}</h3>
+                    <p className="text-sm text-slate-600">{item.description}</p>
+                  </div>
                 </div>
               </NeumorphicCard>
             );
