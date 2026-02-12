@@ -1237,16 +1237,16 @@ export default function StoricoCassa() {
                   onClick={(e) => {
                     e.preventDefault();
                     console.log('Salva saldo clicked:', newManualSaldo);
-                    if (newManualSaldo.dipendente && newManualSaldo.importo !== 0) {
+                    if (newManualSaldo.dipendente) {
                       updateSaldoPersonaleMutation.mutate({
                         dipendente: newManualSaldo.dipendente,
                         importo: newManualSaldo.importo
                       });
                     } else {
-                      alert('Seleziona un dipendente e inserisci un importo diverso da 0');
+                      alert('Seleziona un dipendente');
                     }
                   }}
-                  disabled={!newManualSaldo.dipendente || newManualSaldo.importo === 0}
+                  disabled={!newManualSaldo.dipendente}
                   className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed">
 
                     Salva
@@ -1341,7 +1341,7 @@ export default function StoricoCassa() {
                     </thead>
                     <tbody>
                       {saldoDipendenti.map((dipendente, idx) => (
-                        <React.Fragment key={idx}>
+                        <React.Fragment key={`dipendente-${idx}`}>
                           <tr 
                             className="border-b border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
                             onClick={() => setExpandedDipendente(expandedDipendente === dipendente.nome ? null : dipendente.nome)}>
