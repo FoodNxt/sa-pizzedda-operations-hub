@@ -7,9 +7,9 @@ import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
 
 const sectionAdminPages = {
   'HR': [
-    { title: 'Assegnazione Locali', page: 'HRAdmin', icon: MapPin, color: 'from-blue-500 to-blue-600' },
-    { title: 'Store Manager Admin', page: 'StoreManagerAdmin', icon: Users, color: 'from-purple-500 to-purple-600' },
-    { title: 'Compliance', page: 'Compliance', icon: Settings, color: 'from-amber-500 to-amber-600' }
+    { title: 'Assegnazione Locali', page: 'HRAdmin', icon: MapPin, description: 'Assegna dipendenti ai locali', gradient: 'from-blue-500 to-indigo-600' },
+    { title: 'Store Manager Admin', page: 'StoreManagerAdmin', icon: Users, description: 'Gestisci target Store Manager', gradient: 'from-purple-500 to-pink-600' },
+    { title: 'Compliance', page: 'Compliance', icon: Settings, description: 'Requisiti compliance dipendenti', gradient: 'from-amber-500 to-orange-600' }
   ]
 };
 
