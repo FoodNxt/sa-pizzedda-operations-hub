@@ -623,14 +623,15 @@ export default function StoricoCassa() {
                       <React.Fragment key={entry.store_id}>
                         <tr className="border-b border-slate-200 hover:bg-slate-50">
                           <td className="p-3 font-bold text-slate-800">{entry.store_name}</td>
-                          <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <td className="p-3 text-right">
                             <div className="flex flex-col items-end gap-2">
                               <span className={`text-sm font-bold ${entry.cassaTeoricaInitialManual ? 'text-orange-600' : 'text-blue-600'}`}>
                                 €{entry.cassaTeoricaInitial.toFixed(2)}
                               </span>
-                              <div
-                                onClick={() => {
-                                  console.log('Opening modal for', entry.store_name, dayData.date);
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setCassaModalData({ 
                                     store_id: entry.store_id, 
                                     store_name: entry.store_name, 
@@ -642,15 +643,16 @@ export default function StoricoCassa() {
                                 className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 text-xs font-medium cursor-pointer select-none active:scale-95">
                                 <Edit className="w-4 h-4" />
                                 Modifica
-                              </div>
+                              </button>
                               {entry.cassaTeoricaInitialManual && (
                                 <div className="flex items-center gap-1">
-                                  <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Manual</span>
+                                  <span className="text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded">Manuale</span>
                                   <button
                                     type="button"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       const saldoRecord = saldiManuali.find(s => s.store_id === entry.store_id && s.data === dayData.date);
-                                      if (saldoRecord) {
+                                      if (saldoRecord && confirm('Rimuovere il saldo manuale?')) {
                                         deleteCassaTeoricaMutation.mutate(saldoRecord.id);
                                       }
                                     }}
