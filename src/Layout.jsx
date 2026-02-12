@@ -1299,7 +1299,7 @@ export default function Layout({ children, currentPageName }) {
     });
   };
 
-  const processedNavigation = menuStructure ? enrichNavigationWithAdminSections(processMenuStructure(menuStructure)) : navigationStructure;
+  const processedNavigation = menuStructure ? enrichNavigationWithAdminSections(processMenuStructure(menuStructure)) : enrichNavigationWithAdminSections(navigationStructure);
   
   const filteredNavigation = (!isLoadingConfig && !isLoadingUser && currentUser) 
     ? processedNavigation
