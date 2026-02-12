@@ -34,9 +34,9 @@ export default function RollingTableRow({ entry, dayDate, saldiManuali, onEditCl
             <button
               type="button"
               onClick={handleEditClick}
-              className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 text-xs font-medium cursor-pointer select-none active:scale-95">
+              className="px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 text-xs font-medium cursor-pointer select-none active:scale-95">
               <Edit className="w-4 h-4" />
-              Modifica
+              ✏️ MODIFICA
             </button>
             {entry.cassaTeoricaInitialManual && (
               <div className="flex items-center gap-1">

@@ -1027,16 +1027,16 @@ export default function StoricoCassa() {
            </div>
           }
 
-        {editingCassaData && createPortal(
+        {editingCassaData && (
            <div 
              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" 
-             style={{ zIndex: 99999 }}
+             style={{ zIndex: 999999 }}
              onClick={(e) => {
                if (e.target === e.currentTarget) {
                  setEditingCassaData(null);
                }
              }}>
-              <NeumorphicCard className="max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="max-w-md w-full p-6 bg-white rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold text-slate-800">Imposta Cassa Teorica Inizio</h2>
                   <button 
@@ -1108,10 +1108,9 @@ export default function StoricoCassa() {
                     </button>
                   </div>
                 </form>
-              </NeumorphicCard>
-           </div>,
-           document.body
-        )}
+                </div>
+                </div>
+                )}
 
         {showAlertConfig &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
