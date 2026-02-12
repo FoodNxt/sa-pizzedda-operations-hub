@@ -41,6 +41,7 @@ export default function StoricoCassa() {
   const [selectedStoresRolling, setSelectedStoresRolling] = useState([]);
   const [editingCassaEntry, setEditingCassaEntry] = useState(null);
   const [showCassaInizialeModal, setShowCassaInizialeModal] = useState(false);
+  const [cassaInizialeForm, setCassaInizialeForm] = useState({ store_id: '', date: '', valore: '' });
 
   const queryClient = useQueryClient();
 
@@ -551,20 +552,78 @@ export default function StoricoCassa() {
         {/* Rolling Tab */}
         {activeTab === 'rolling' &&
         <>
-          <div className="flex justify-end mb-4">
-            <button
-              type="button"
-              onClick={(e) => {
+          <NeumorphicCard className="p-4 lg:p-6 bg-orange-50 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold text-orange-800">Imposta Cassa Teorica Manuale</h3>
+              <button
+                type="button"
+                onClick={() => setShowCassaInizialeModal(!showCassaInizialeModal)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium hover:shadow-lg">
+                {showCassaInizialeModal ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {showCassaInizialeModal ? 'Chiudi' : 'Nuovo'}
+              </button>
+            </div>
+            
+            {showCassaInizialeModal && (
+              <form onSubmit={(e) => {
                 e.preventDefault();
-                e.stopPropagation();
-                console.log('Button clicked, opening modal');
-                setShowCassaInizialeModal(true);
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium hover:shadow-lg">
-              <Plus className="w-4 h-4" />
-              Imposta Cassa Manuale
-            </button>
-          </div>
+                saveCassaTeoricaMutation.mutate({
+                  store_id: cassaInizialeForm.store_id,
+                  date: cassaInizialeForm.date,
+                  valore: cassaInizialeForm.valore
+                });
+                setCassaInizialeForm({ store_id: '', date: '', valore: '' });
+                setShowCassaInizialeModal(false);
+              }} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-sm text-orange-800 mb-2 block font-medium">Locale</label>
+                  <select
+                    value={cassaInizialeForm.store_id}
+                    onChange={(e) => setCassaInizialeForm({ ...cassaInizialeForm, store_id: e.target.value })}
+                    required
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+                    <option value="">Seleziona...</option>
+                    {stores.map((store) => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="text-sm text-orange-800 mb-2 block font-medium">Data</label>
+                  <input
+                    type="date"
+                    value={cassaInizialeForm.date}
+                    onChange={(e) => setCassaInizialeForm({ ...cassaInizialeForm, date: e.target.value })}
+                    required
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm text-orange-800 mb-2 block font-medium">Importo (€)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={cassaInizialeForm.valore}
+                    onChange={(e) => setCassaInizialeForm({ ...cassaInizialeForm, valore: e.target.value })}
+                    required
+                    placeholder="0.00"
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+                  />
+                </div>
+                
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-green-600 text-white font-medium hover:shadow-lg flex items-center justify-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Salva
+                  </button>
+                </div>
+              </form>
+            )}
+          </NeumorphicCard>
 
           <NeumorphicCard className="p-4 lg:p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -1044,18 +1103,7 @@ export default function StoricoCassa() {
            </div>
           }
 
-        <CassaInizialeModal
-          isOpen={showCassaInizialeModal}
-          onClose={() => {
-            console.log('Closing modal');
-            setShowCassaInizialeModal(false);
-          }}
-          stores={stores}
-          onSave={(data) => {
-            console.log('onSave called with:', data);
-            saveCassaTeoricaMutation.mutate(data);
-          }}
-        />
+
 
         {showAlertConfig &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
