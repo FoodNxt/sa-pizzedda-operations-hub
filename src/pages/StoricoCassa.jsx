@@ -1233,12 +1233,17 @@ export default function StoricoCassa() {
                 </div>
                 <div className="flex items-end">
                   <button
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    console.log('Salva saldo clicked:', newManualSaldo);
                     if (newManualSaldo.dipendente && newManualSaldo.importo !== 0) {
                       updateSaldoPersonaleMutation.mutate({
                         dipendente: newManualSaldo.dipendente,
                         importo: newManualSaldo.importo
                       });
+                    } else {
+                      alert('Seleziona un dipendente e inserisci un importo diverso da 0');
                     }
                   }}
                   disabled={!newManualSaldo.dipendente || newManualSaldo.importo === 0}
