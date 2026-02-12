@@ -551,24 +551,25 @@ export default function StoricoCassa() {
         {/* Rolling Tab */}
         {activeTab === 'rolling' &&
         <>
+          <div className="flex justify-end mb-4">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Button clicked, opening modal');
+                setShowCassaInizialeModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium hover:shadow-lg">
+              <Plus className="w-4 h-4" />
+              Imposta Cassa Manuale
+            </button>
+          </div>
+
           <NeumorphicCard className="p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-blue-600" />
-                <h2 className="text-base lg:text-lg font-bold text-slate-800">Selezione Locali</h2>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('Button clicked, opening modal');
-                  setShowCassaInizialeModal(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-medium hover:shadow-lg">
-                <Plus className="w-4 h-4" />
-                Imposta Cassa Manuale
-              </button>
+            <div className="flex items-center gap-2 mb-4">
+              <Filter className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base lg:text-lg font-bold text-slate-800">Selezione Locali</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
