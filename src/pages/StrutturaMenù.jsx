@@ -40,7 +40,12 @@ const DEFAULT_MENU_STRUCTURE = [
       { title: "Channel Comparison", page: "ChannelComparison", icon: "BarChart3" },
       { title: "Storico Cassa", page: "StoricoCassa", icon: "DollarSign" },
       { title: "Forms", page: "FinancialForms", icon: "FileText" },
-      { title: "Produttività", page: "Produttivita", icon: "Clock" }
+      { title: "Produttività", page: "Produttivita", icon: "Clock" },
+      { title: "Target", page: "Target", icon: "Target", parent_admin_section: "Financials" },
+      { title: "Costi", page: "Costi", icon: "DollarSign", parent_admin_section: "Financials" },
+      { title: "Food Cost", page: "FoodCost", icon: "TrendingUp", parent_admin_section: "Financials" },
+      { title: "Sconti", page: "Sconti", icon: "TrendingUp", parent_admin_section: "Financials" },
+      { title: "Banche", page: "Banche", icon: "DollarSign", parent_admin_section: "Financials" }
     ]
   },
   {
