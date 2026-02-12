@@ -1656,6 +1656,12 @@ export default function PianoQuarter() {
                     <span className="text-slate-700">Budget Ads</span>
                     <span className="text-lg font-bold text-red-600">{contoEconomico.adsBudget.toFixed(2)} €</span>
                   </div>
+                  <div className="flex justify-between items-center pb-3 border-b bg-purple-50 px-3 py-2 rounded-lg">
+                    <span className="font-bold text-purple-800">Expected Payout</span>
+                    <span className="text-xl font-bold text-purple-600">
+                      €{(contoEconomico.revenue - Math.abs(contoEconomico.platformFees) - Math.abs(contoEconomico.adsBudget)).toFixed(2)}
+                    </span>
+                  </div>
                   <div className="flex justify-between items-center pt-2">
                     <span className="font-bold text-slate-800">Totale Netto</span>
                     <span className={`text-2xl font-bold ${contoEconomico.total >= 0 ? 'text-green-600' : 'text-red-600'}`}>
