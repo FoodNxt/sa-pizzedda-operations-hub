@@ -152,7 +152,8 @@ export default function Contatti() {
   const categorieStats = {
     'Food influencers': contatti.filter((c) => c.categoria === 'Food influencers').length,
     'PR': contatti.filter((c) => c.categoria === 'PR').length,
-    'Adv': contatti.filter((c) => c.categoria === 'Adv').length
+    'Adv': contatti.filter((c) => c.categoria === 'Adv').length,
+    'Partners': contatti.filter((c) => c.categoria === 'Partners').length
   };
 
   const contattiByCategoria = contatti.filter((c) => c.categoria === activeTab);
@@ -162,6 +163,7 @@ export default function Contatti() {
       case 'Food influencers':return 'bg-purple-100 text-purple-700';
       case 'PR':return 'bg-blue-100 text-blue-700';
       case 'Adv':return 'bg-green-100 text-green-700';
+      case 'Partners':return 'bg-orange-100 text-orange-700';
       default:return 'bg-gray-100 text-gray-700';
     }
   };
@@ -171,6 +173,7 @@ export default function Contatti() {
       case 'Food influencers':return '👨‍🍳';
       case 'PR':return '📢';
       case 'Adv':return '📺';
+      case 'Partners':return '🤝';
       default:return '📋';
     }
   };
@@ -198,7 +201,7 @@ export default function Contatti() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <NeumorphicCard className="p-6 text-center">
             <div className="text-4xl mb-2">👨‍🍳</div>
             <h3 className="text-3xl font-bold text-purple-600 mb-1">{categorieStats['Food influencers']}</h3>
@@ -216,12 +219,18 @@ export default function Contatti() {
             <h3 className="text-3xl font-bold text-green-600 mb-1">{categorieStats['Adv']}</h3>
             <p className="text-sm text-slate-500">Advertising</p>
           </NeumorphicCard>
+
+          <NeumorphicCard className="p-6 text-center">
+            <div className="text-4xl mb-2">🤝</div>
+            <h3 className="text-3xl font-bold text-orange-600 mb-1">{categorieStats['Partners']}</h3>
+            <p className="text-sm text-slate-500">Partners</p>
+          </NeumorphicCard>
         </div>
 
         {/* Category Tabs */}
         <NeumorphicCard className="p-6">
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {['Food influencers', 'PR', 'Adv'].map((categoria) =>
+            {['Food influencers', 'PR', 'Adv', 'Partners'].map((categoria) =>
             <NeumorphicButton
               key={categoria}
               onClick={() => setActiveTab(categoria)}
@@ -400,6 +409,7 @@ export default function Contatti() {
                       <option value="Food influencers">👨‍🍳 Food influencers</option>
                       <option value="PR">📢 PR</option>
                       <option value="Adv">📺 Adv</option>
+                      <option value="Partners">🤝 Partners</option>
                     </select>
                   </div>
 
