@@ -1134,24 +1134,46 @@ export default function Banche() {
                   </SelectContent>
                 </Select>
                 <div className="flex gap-2">
-                  <Select value={newRule.subcategory} onValueChange={(v) => setNewRule({ ...newRule, subcategory: v })} disabled={!newRule.category}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sottocategoria..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {newRule.category && categoryHierarchy[newRule.category] && categoryHierarchy[newRule.category].map((sub) => (
-                        <SelectItem key={sub} value={sub}>{sub}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <button
-                    onClick={() => setNewSubcategoryInput(newSubcategoryInput ? '' : 'input')}
-                    disabled={!newRule.category}
-                    className="px-2 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-slate-300"
-                    title="Crea nuova sottocategoria"
-                  >
-                    +
-                  </button>
+                  {!newSubcategoryInput ? (
+                    <>
+                      <Select value={newRule.subcategory} onValueChange={(v) => setNewRule({ ...newRule, subcategory: v })} disabled={!newRule.category}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sottocategoria..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {newRule.category && categoryHierarchy[newRule.category] && categoryHierarchy[newRule.category].map((sub) => (
+                            <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <button
+                        onClick={() => setNewSubcategoryInput('input')}
+                        disabled={!newRule.category}
+                        className="px-2 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-slate-300"
+                        title="Crea nuova sottocategoria"
+                      >
+                        +
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Input
+                        placeholder="Nuova sottocategoria..."
+                        value={newRule.subcategory}
+                        onChange={(e) => setNewRule({ ...newRule, subcategory: e.target.value })}
+                        className="flex-1"
+                      />
+                      <button
+                        onClick={() => {
+                          setNewSubcategoryInput('');
+                        }}
+                        className="px-2 py-1 bg-slate-400 text-white rounded-lg text-sm hover:bg-slate-500"
+                        title="Annulla"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
                   <Select value={newRule.match_type} onValueChange={(v) => setNewRule({ ...newRule, match_type: v })}>
                     <SelectTrigger>
@@ -1227,24 +1249,46 @@ export default function Banche() {
                               </SelectContent>
                             </Select>
                             <div className="flex gap-2">
-                             <Select value={editingRule.subcategory || ''} onValueChange={(v) => setEditingRule({ ...editingRule, subcategory: v })} disabled={!editingRule.category}>
-                               <SelectTrigger>
-                                 <SelectValue />
-                               </SelectTrigger>
-                               <SelectContent>
-                                 {editingRule.category && categoryHierarchy[editingRule.category] && categoryHierarchy[editingRule.category].map((sub) => (
-                                   <SelectItem key={sub} value={sub}>{sub}</SelectItem>
-                                 ))}
-                               </SelectContent>
-                             </Select>
-                             <button
-                               onClick={() => setEditingSubcategoryInput(editingSubcategoryInput ? '' : 'input')}
-                               disabled={!editingRule.category}
-                               className="px-2 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-slate-300"
-                               title="Crea nuova sottocategoria"
-                             >
-                               +
-                             </button>
+                              {!editingSubcategoryInput ? (
+                                <>
+                                  <Select value={editingRule.subcategory || ''} onValueChange={(v) => setEditingRule({ ...editingRule, subcategory: v })} disabled={!editingRule.category}>
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {editingRule.category && categoryHierarchy[editingRule.category] && categoryHierarchy[editingRule.category].map((sub) => (
+                                        <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <button
+                                    onClick={() => setEditingSubcategoryInput('input')}
+                                    disabled={!editingRule.category}
+                                    className="px-2 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-slate-300"
+                                    title="Crea nuova sottocategoria"
+                                  >
+                                    +
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <Input
+                                    placeholder="Nuova sottocategoria..."
+                                    value={editingRule.subcategory || ''}
+                                    onChange={(e) => setEditingRule({ ...editingRule, subcategory: e.target.value })}
+                                    className="flex-1"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      setEditingSubcategoryInput('');
+                                    }}
+                                    className="px-2 py-1 bg-slate-400 text-white rounded-lg text-sm hover:bg-slate-500"
+                                    title="Annulla"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           <Select value={editingRule.match_type} onValueChange={(v) => setEditingRule({ ...editingRule, match_type: v })}>
                             <SelectTrigger>
