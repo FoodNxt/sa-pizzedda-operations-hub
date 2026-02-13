@@ -12,7 +12,7 @@ import {
   Search } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, ScatterChart, Scatter, Cell, ReferenceLine } from 'recharts';
 
 export default function ProdottiVenduti() {
   const [selectedStore, setSelectedStore] = useState('all');
@@ -28,6 +28,7 @@ export default function ProdottiVenduti() {
   const [compareStartDate, setCompareStartDate] = useState('');
   const [compareEndDate, setCompareEndDate] = useState('');
   const [performersPeriod, setPerformersPeriod] = useState(30);
+  const [activeView, setActiveView] = useState('summary'); // 'summary' or 'bcg'
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -37,6 +38,11 @@ export default function ProdottiVenduti() {
   const { data: prodottiVenduti = [], isLoading } = useQuery({
     queryKey: ['prodotti-venduti'],
     queryFn: () => base44.entities.ProdottiVenduti.list('-data_vendita', 10000)
+  });
+
+  const { data: ricette = [] } = useQuery({
+    queryKey: ['ricette'],
+    queryFn: () => base44.entities.Ricetta.list()
   });
 
   // Filter data
@@ -412,6 +418,177 @@ export default function ProdottiVenduti() {
         <p style={{ color: '#000000' }}>Analisi vendite per prodotto</p>
       </div>
 
+      {/* View Toggle */}
+      <NeumorphicCard className="p-4">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveView('summary')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              activeView === 'summary' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Riepilogo
+          </button>
+          <button
+            onClick={() => setActiveView('bcg')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              activeView === 'bcg' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Matrice BCG
+          </button>
+        </div>
+      </NeumorphicCard>
+
+      {/* BCG Matrix View */}
+      {activeView === 'bcg' && (
+        <NeumorphicCard className="p-6">
+          <h2 className="text-xl font-bold text-slate-800 mb-4">Matrice BCG - Popolarità vs Food Cost</h2>
+          <p className="text-sm text-slate-600 mb-6">
+            Analisi dei prodotti per volumi di vendita e marginalità (food cost teorico)
+          </p>
+
+          {(() => {
+            // Map ricette by nome_prodotto for quick lookup
+            const ricetteMap = ricette.reduce((acc, r) => {
+              acc[r.nome_prodotto] = r;
+              return acc;
+            }, {});
+
+            // Calculate BCG data
+            const bcgData = productTotals
+              .map(p => {
+                const ricetta = ricetteMap[p.name];
+                const foodCost = ricetta?.food_cost_online || ricetta?.food_cost_offline || null;
+                return {
+                  product: p.name,
+                  volume: p.total,
+                  foodCost: foodCost,
+                  category: p.category
+                };
+              })
+              .filter(p => p.foodCost !== null);
+
+            if (bcgData.length === 0) {
+              return (
+                <div className="text-center py-12 text-slate-500">
+                  Nessun dato disponibile per la matrice BCG. Assicurati che i prodotti abbiano ricette con food cost calcolato.
+                </div>
+              );
+            }
+
+            // Calculate medians for quadrants
+            const volumes = bcgData.map(d => d.volume).sort((a, b) => a - b);
+            const foodCosts = bcgData.map(d => d.foodCost).sort((a, b) => a - b);
+            const medianVolume = volumes[Math.floor(volumes.length / 2)];
+            const medianFoodCost = foodCosts[Math.floor(foodCosts.length / 2)];
+
+            // Add quadrant info
+            const bcgDataWithQuadrant = bcgData.map(d => ({
+              ...d,
+              quadrant: d.volume >= medianVolume
+                ? (d.foodCost <= medianFoodCost ? 'Star' : 'Question Mark')
+                : (d.foodCost <= medianFoodCost ? 'Cash Cow' : 'Dog')
+            }));
+
+            // Quadrant colors
+            const quadrantColors = {
+              'Star': '#10b981',        // Green - high volume, low food cost (high margin)
+              'Question Mark': '#f59e0b', // Orange - high volume, high food cost (low margin)
+              'Cash Cow': '#3b82f6',    // Blue - low volume, low food cost (high margin)
+              'Dog': '#ef4444'          // Red - low volume, high food cost (low margin)
+            };
+
+            const maxVolume = Math.max(...volumes);
+            const maxFoodCost = Math.max(...foodCosts);
+
+            return (
+              <>
+                <ResponsiveContainer width="100%" height={500}>
+                  <ScatterChart margin={{ top: 20, right: 30, bottom: 60, left: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      type="number"
+                      dataKey="foodCost"
+                      name="Food Cost %"
+                      label={{ value: 'Food Cost Teorico (%)', position: 'bottom', offset: 40 }}
+                      domain={[0, maxFoodCost * 1.1]}
+                    />
+                    <YAxis
+                      type="number"
+                      dataKey="volume"
+                      name="Unità Vendute"
+                      label={{ value: 'Unità Vendute', angle: -90, position: 'insideLeft', offset: 40 }}
+                      domain={[0, maxVolume * 1.1]}
+                    />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-white p-4 rounded-lg shadow-lg border border-slate-200">
+                              <p className="font-bold text-slate-800 mb-2">{data.product}</p>
+                              <p className="text-sm text-slate-600">Unità: {data.volume}</p>
+                              <p className="text-sm text-slate-600">Food Cost: {data.foodCost.toFixed(1)}%</p>
+                              <p className="text-sm font-bold mt-2" style={{ color: quadrantColors[data.quadrant] }}>
+                                {data.quadrant}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Scatter name="Prodotti" data={bcgDataWithQuadrant}>
+                      {bcgDataWithQuadrant.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={quadrantColors[entry.quadrant]} />
+                      ))}
+                    </Scatter>
+                    <ReferenceLine x={medianFoodCost} stroke="#94a3b8" strokeDasharray="5 5" strokeWidth={2} />
+                    <ReferenceLine y={medianVolume} stroke="#94a3b8" strokeDasharray="5 5" strokeWidth={2} />
+                  </ScatterChart>
+                </ResponsiveContainer>
+
+                {/* Legend */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: `${quadrantColors['Star']}20`, borderLeft: `4px solid ${quadrantColors['Star']}` }}>
+                    <h3 className="font-bold text-sm mb-1" style={{ color: quadrantColors['Star'] }}>⭐ Star</h3>
+                    <p className="text-xs text-slate-600">Alto volume, basso food cost</p>
+                    <p className="text-xs font-bold mt-2">
+                      {bcgDataWithQuadrant.filter(d => d.quadrant === 'Star').length} prodotti
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: `${quadrantColors['Question Mark']}20`, borderLeft: `4px solid ${quadrantColors['Question Mark']}` }}>
+                    <h3 className="font-bold text-sm mb-1" style={{ color: quadrantColors['Question Mark'] }}>❓ Question Mark</h3>
+                    <p className="text-xs text-slate-600">Alto volume, alto food cost</p>
+                    <p className="text-xs font-bold mt-2">
+                      {bcgDataWithQuadrant.filter(d => d.quadrant === 'Question Mark').length} prodotti
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: `${quadrantColors['Cash Cow']}20`, borderLeft: `4px solid ${quadrantColors['Cash Cow']}` }}>
+                    <h3 className="font-bold text-sm mb-1" style={{ color: quadrantColors['Cash Cow'] }}>💰 Cash Cow</h3>
+                    <p className="text-xs text-slate-600">Basso volume, basso food cost</p>
+                    <p className="text-xs font-bold mt-2">
+                      {bcgDataWithQuadrant.filter(d => d.quadrant === 'Cash Cow').length} prodotti
+                    </p>
+                  </div>
+                  <div className="p-4 rounded-lg" style={{ backgroundColor: `${quadrantColors['Dog']}20`, borderLeft: `4px solid ${quadrantColors['Dog']}` }}>
+                    <h3 className="font-bold text-sm mb-1" style={{ color: quadrantColors['Dog'] }}>🐕 Dog</h3>
+                    <p className="text-xs text-slate-600">Basso volume, alto food cost</p>
+                    <p className="text-xs font-bold mt-2">
+                      {bcgDataWithQuadrant.filter(d => d.quadrant === 'Dog').length} prodotti
+                    </p>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </NeumorphicCard>
+      )}
+
+      {/* Summary View */}
+      {activeView === 'summary' && (
+        <>
       {/* Filters */}
       <NeumorphicCard className="p-4">
         <div className="flex flex-wrap gap-3 mb-4">
@@ -996,6 +1173,8 @@ export default function ProdottiVenduti() {
           </table>
         </div>
       </NeumorphicCard>
+        </>
+      )}
     </div>);
 
 }
