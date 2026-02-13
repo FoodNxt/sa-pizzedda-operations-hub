@@ -29,6 +29,7 @@ export default function ProdottiVenduti() {
   const [compareEndDate, setCompareEndDate] = useState('');
   const [performersPeriod, setPerformersPeriod] = useState(30);
   const [activeView, setActiveView] = useState('summary'); // 'summary' or 'bcg'
+  const [expandedQuadrants, setExpandedQuadrants] = useState({});
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -551,34 +552,49 @@ export default function ProdottiVenduti() {
 
                 {/* Legend */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                  <div className="p-4 rounded-lg" style={{ backgroundColor: `${quadrantColors['Star']}20`, borderLeft: `4px solid ${quadrantColors['Star']}` }}>
-                    <h3 className="font-bold text-sm mb-1" style={{ color: quadrantColors['Star'] }}>⭐ Star</h3>
-                    <p className="text-xs text-slate-600">Alto volume, basso food cost</p>
-                    <p className="text-xs font-bold mt-2">
-                      {bcgDataWithQuadrant.filter(d => d.quadrant === 'Star').length} prodotti
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-lg" style={{ backgroundColor: `${quadrantColors['Question Mark']}20`, borderLeft: `4px solid ${quadrantColors['Question Mark']}` }}>
-                    <h3 className="font-bold text-sm mb-1" style={{ color: quadrantColors['Question Mark'] }}>❓ Question Mark</h3>
-                    <p className="text-xs text-slate-600">Alto volume, alto food cost</p>
-                    <p className="text-xs font-bold mt-2">
-                      {bcgDataWithQuadrant.filter(d => d.quadrant === 'Question Mark').length} prodotti
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-lg" style={{ backgroundColor: `${quadrantColors['Cash Cow']}20`, borderLeft: `4px solid ${quadrantColors['Cash Cow']}` }}>
-                    <h3 className="font-bold text-sm mb-1" style={{ color: quadrantColors['Cash Cow'] }}>💰 Cash Cow</h3>
-                    <p className="text-xs text-slate-600">Basso volume, basso food cost</p>
-                    <p className="text-xs font-bold mt-2">
-                      {bcgDataWithQuadrant.filter(d => d.quadrant === 'Cash Cow').length} prodotti
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-lg" style={{ backgroundColor: `${quadrantColors['Dog']}20`, borderLeft: `4px solid ${quadrantColors['Dog']}` }}>
-                    <h3 className="font-bold text-sm mb-1" style={{ color: quadrantColors['Dog'] }}>🐕 Dog</h3>
-                    <p className="text-xs text-slate-600">Basso volume, alto food cost</p>
-                    <p className="text-xs font-bold mt-2">
-                      {bcgDataWithQuadrant.filter(d => d.quadrant === 'Dog').length} prodotti
-                    </p>
-                  </div>
+                  {['Star', 'Question Mark', 'Cash Cow', 'Dog'].map(quadrant => {
+                    const productsInQuadrant = bcgDataWithQuadrant.filter(d => d.quadrant === quadrant).sort((a, b) => b.volume - a.volume);
+                    const isExpanded = expandedQuadrants[quadrant];
+                    
+                    return (
+                      <div key={quadrant} className="p-4 rounded-lg cursor-pointer hover:shadow-lg transition-all" style={{ backgroundColor: `${quadrantColors[quadrant]}20`, borderLeft: `4px solid ${quadrantColors[quadrant]}` }} onClick={() => setExpandedQuadrants(prev => ({...prev, [quadrant]: !prev[quadrant]}))}>
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="font-bold text-sm" style={{ color: quadrantColors[quadrant] }}>
+                            {quadrant === 'Star' && '⭐ Star'}
+                            {quadrant === 'Question Mark' && '❓ Question Mark'}
+                            {quadrant === 'Cash Cow' && '💰 Cash Cow'}
+                            {quadrant === 'Dog' && '🐕 Dog'}
+                          </h3>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} style={{ color: quadrantColors[quadrant] }} />
+                        </div>
+                        <p className="text-xs text-slate-600">
+                          {quadrant === 'Star' && 'Alto volume, basso food cost'}
+                          {quadrant === 'Question Mark' && 'Alto volume, alto food cost'}
+                          {quadrant === 'Cash Cow' && 'Basso volume, basso food cost'}
+                          {quadrant === 'Dog' && 'Basso volume, alto food cost'}
+                        </p>
+                        <p className="text-xs font-bold mt-2">
+                          {productsInQuadrant.length} prodotti
+                        </p>
+
+                        {isExpanded && productsInQuadrant.length > 0 && (
+                          <div className="mt-3 pt-3 border-t" style={{ borderColor: quadrantColors[quadrant] + '40' }} onClick={(e) => e.stopPropagation()}>
+                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                              {productsInQuadrant.map((prod, idx) => (
+                                <div key={idx} className="bg-white/80 p-2 rounded text-xs">
+                                  <p className="font-bold text-slate-800">{prod.product}</p>
+                                  <div className="flex justify-between mt-1 text-slate-600">
+                                    <span>Vol: <strong>{prod.volume}</strong></span>
+                                    <span>FC: <strong>{prod.foodCost.toFixed(1)}%</strong></span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             );
