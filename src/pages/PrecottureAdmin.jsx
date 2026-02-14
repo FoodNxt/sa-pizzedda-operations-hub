@@ -93,7 +93,21 @@ export default function PrecottureAdmin() {
         }
       });
     },
-    enabled: activeTab === 'teglie-vendute' || activeTab === 'configurazione'
+    enabled: activeTab === 'teglie-vendute' || activeTab === 'configurazione' || activeTab === 'delta-teglie'
+  });
+
+  // Prodotti venduti per Delta (con range personalizzato)
+  const { data: prodottiVendutiDelta = [] } = useQuery({
+    queryKey: ['prodotti-venduti-delta', deltaStartDate, deltaEndDate],
+    queryFn: () => {
+      return base44.entities.ProdottiVenduti.filter({
+        data_vendita: {
+          $gte: deltaStartDate,
+          $lte: deltaEndDate
+        }
+      });
+    },
+    enabled: activeTab === 'delta-teglie'
   });
 
   const createMutation = useMutation({
