@@ -18,34 +18,12 @@ Deno.serve(async (req) => {
     });
 
     const doc = new jsPDF();
-    
-    // Colori brand Sa Pizzedda
-    const brandRed = [227, 30, 36];
-    const brandBeige = [244, 229, 201];
-    
-    // Mappa allergeni con icone e colori
-    const allergeniInfo = {
-      'Glutine': { icon: '●', color: brandRed },
-      'Crostacei': { icon: '●', color: brandRed },
-      'Uova': { icon: '●', color: brandRed },
-      'Pesce': { icon: '●', color: brandRed },
-      'Arachidi': { icon: '●', color: brandRed },
-      'Soia': { icon: '●', color: brandRed },
-      'Latte': { icon: '●', color: brandRed },
-      'Frutta a guscio': { icon: '●', color: brandRed },
-      'Sedano': { icon: '●', color: brandRed },
-      'Senape': { icon: '●', color: brandRed },
-      'Semi di sesamo': { icon: '●', color: brandRed },
-      'Anidride solforosa': { icon: '●', color: brandRed },
-      'Lupini': { icon: '●', color: brandRed },
-      'Molluschi': { icon: '●', color: brandRed }
-    };
 
-    // Header con design accattivante
-    doc.setFillColor(...brandRed);
-    doc.rect(0, 0, 210, 40, 'F');
+    // Header con logo (sfondo bianco per leggibilità)
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, 210, 50, 'F');
     
-    // Add logo if provided
+    // Add logo if provided (posizione alta)
     if (logo_url) {
       try {
         const logoResponse = await fetch(logo_url);
@@ -55,28 +33,39 @@ Deno.serve(async (req) => {
           reader.onloadend = () => resolve(reader.result);
           reader.readAsDataURL(logoBlob);
         });
-        doc.addImage(logoBase64, 'PNG', 15, 10, 30, 20, undefined, 'FAST');
+        doc.addImage(logoBase64, 'PNG', 85, 8, 40, 25, undefined, 'FAST');
       } catch (error) {
         console.error('Error loading logo:', error);
       }
     }
     
-    doc.setFontSize(24);
+    // Titolo in nero per contrasto alto
+    doc.setFontSize(28);
     doc.setFont(undefined, 'bold');
-    doc.setTextColor(255, 255, 255);
-    doc.text('ALLERGENI', logo_url ? 125 : 105, 20, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+    doc.text('ALLERGENI', 105, logo_url ? 42 : 25, { align: 'center' });
+    
+    // Linea separatrice
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(15, 48, 195, 48);
+
+    // Avviso importante (minimo 12pt, alto contrasto)
+    doc.setFillColor(255, 250, 205);
+    doc.roundedRect(15, 52, 180, 18, 3, 3, 'F');
+    doc.setDrawColor(255, 140, 0);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(15, 52, 180, 18, 3, 3, 'S');
+    
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(200, 80, 0);
+    doc.text('⚠️ ATTENZIONE', 20, 59);
     
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
-    doc.text('Informazioni sugli allergeni presenti nei nostri prodotti', 105, 28, { align: 'center' });
-    
-    doc.setFontSize(8);
-    doc.text(`Aggiornato: ${new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })}`, 105, 35, { align: 'center' });
-
-    // Info normativa
-    doc.setFontSize(7);
-    doc.setTextColor(255, 255, 255);
-    doc.text('Regolamento UE 1169/2011', 105, 38, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+    doc.text('Per allergici gravi o intolleranze non elencate, contattare il personale prima di ordinare.', 20, 66);
 
     // Ordina ricette alfabeticamente
     const ricetteOrdinate = ricette
@@ -84,7 +73,7 @@ Deno.serve(async (req) => {
       .sort((a, b) => (a.nome_prodotto || '').localeCompare(b.nome_prodotto || '', 'it'));
 
     const rowHeight = 12;
-    let currentY = 50;
+    let currentY = 75;
     const margin = 15;
     const tableWidth = 180;
 
@@ -92,79 +81,85 @@ Deno.serve(async (req) => {
       // Controlla se serve nuova pagina
       const allergeniCount = ricetta.allergeni?.length || 0;
       const allergeniLines = Math.ceil(allergeniCount / 2);
-      const estimatedHeight = 16 + (allergeniLines > 1 ? (allergeniLines - 1) * 6 : 0);
+      const estimatedHeight = 18 + (allergeniLines > 0 ? allergeniLines * 7 : 0);
       
-      if (currentY + estimatedHeight > 270) {
+      if (currentY + estimatedHeight > 265) {
         doc.addPage();
         currentY = 20;
       }
       
-      // Box prodotto con sfondo beige
-      doc.setFillColor(...brandBeige);
-      doc.roundedRect(margin, currentY, tableWidth, estimatedHeight, 4, 4, 'F');
-      
-      // Bordo rosso spesso a sinistra
-      doc.setFillColor(...brandRed);
-      doc.roundedRect(margin, currentY, 5, estimatedHeight, 2, 2, 'F');
+      // Box prodotto con sfondo bianco e bordo nero (alto contrasto)
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(margin, currentY, tableWidth, estimatedHeight, 4, 4, 'FD');
 
-      // Nome prodotto - più grande e bold
-      doc.setFontSize(13);
+      // Nome prodotto - leggibile (minimo 12pt), nero su bianco
+      doc.setFontSize(14);
       doc.setFont(undefined, 'bold');
-      doc.setTextColor(...brandRed);
-      doc.text(ricetta.nome_prodotto, margin + 10, currentY + 10);
+      doc.setTextColor(0, 0, 0);
+      doc.text(ricetta.nome_prodotto, margin + 8, currentY + 10);
 
-      // Allergeni in box stondati
+      // Allergeni in box azzurri stondati (come screenshot)
       if (ricetta.allergeni && ricetta.allergeni.length > 0) {
         let allergeniY = currentY + 10;
-        let allergeniX = margin + 95;
+        let allergeniX = margin + 100;
         let itemsInRow = 0;
         
-        ricetta.allergeni.forEach((allergene, aIdx) => {
-          // Misura il testo
-          doc.setFontSize(9);
+        ricetta.allergeni.forEach((allergene) => {
+          // Misura il testo - minimo 12pt per leggibilità
+          doc.setFontSize(11);
           doc.setFont(undefined, 'normal');
           const textWidth = doc.getTextWidth(allergene);
-          const boxWidth = textWidth + 8;
-          const boxHeight = 6;
+          const boxWidth = textWidth + 10;
+          const boxHeight = 7;
           
-          // Box stondato rosa chiaro
-          doc.setFillColor(252, 235, 235);
-          doc.roundedRect(allergeniX, allergeniY - 4.5, boxWidth, boxHeight, 3, 3, 'F');
+          // Vai a capo se non c'è spazio
+          if (allergeniX + boxWidth > margin + tableWidth - 5) {
+            allergeniY += 9;
+            allergeniX = margin + 100;
+            itemsInRow = 0;
+          }
           
-          // Testo centrato nel box - rosso scuro
-          doc.setTextColor(185, 28, 28);
-          doc.text(allergene, allergeniX + 4, allergeniY);
+          // Box stondato azzurro chiaro (come screenshot)
+          doc.setFillColor(224, 242, 254);
+          doc.setDrawColor(147, 197, 253);
+          doc.setLineWidth(0.3);
+          doc.roundedRect(allergeniX, allergeniY - 5, boxWidth, boxHeight, 3, 3, 'FD');
+          
+          // Testo centrato nel box - blu scuro per contrasto
+          doc.setTextColor(30, 64, 175);
+          doc.text(allergene, allergeniX + 5, allergeniY);
           
           allergeniX += boxWidth + 4;
           itemsInRow++;
-          
-          // Vai a capo se necessario
-          if (itemsInRow >= 2 || allergeniX + boxWidth > margin + tableWidth) {
-            allergeniY += 8;
-            allergeniX = margin + 95;
-            itemsInRow = 0;
-          }
         });
       } else {
-        doc.setFontSize(9);
+        doc.setFontSize(11);
         doc.setFont(undefined, 'italic');
-        doc.setTextColor(120, 120, 120);
-        doc.text('Nessun allergene', margin + 95, currentY + 10);
+        doc.setTextColor(100, 100, 100);
+        doc.text('Nessun allergene', margin + 100, currentY + 10);
       }
 
-      currentY += estimatedHeight + 4;
+      currentY += estimatedHeight + 5;
     });
 
-    // Footer
-    doc.setFillColor(...brandBeige);
-    doc.rect(0, 282, 210, 15, 'F');
-    doc.setFontSize(8);
-    doc.setTextColor(...brandRed);
+    // Footer con info normativa e QR code placeholder
+    doc.setFillColor(245, 245, 245);
+    doc.rect(0, 275, 210, 22, 'F');
+    
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
     doc.setFont(undefined, 'bold');
-    doc.text('SA PIZZEDDA', 105, 290, { align: 'center' });
+    doc.text('SA PIZZEDDA', 105, 282, { align: 'center' });
+    
     doc.setFont(undefined, 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(60, 60, 60);
+    doc.text('Regolamento UE 1169/2011 - Versione digitale disponibile su richiesta', 105, 287, { align: 'center' });
+    
     doc.setFontSize(7);
-    doc.text('Per maggiori informazioni sugli allergeni, contatta il personale', 105, 294, { align: 'center' });
+    doc.text(`Aggiornato: ${new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })}`, 105, 292, { align: 'center' });
 
     const pdfBytes = doc.output('arraybuffer');
 
