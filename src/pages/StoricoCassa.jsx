@@ -15,8 +15,9 @@ import {
   Plus,
   CheckCircle,
   XCircle,
-  Edit } from
-'lucide-react';
+  Edit,
+  Loader2
+} from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
 import RollingTableRow from "../components/storico-cassa/RollingTableRow";
@@ -1235,12 +1236,23 @@ export default function StoricoCassa() {
               <p className="text-sm text-slate-600 mb-4">
                 Imposta il saldo di un dipendente ad un valore specifico. Il sistema calcolerà automaticamente l'aggiustamento necessario.
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                if (newManualSaldo.dipendente) {
+                  updateSaldoPersonaleMutation.mutate({
+                    dipendente: newManualSaldo.dipendente,
+                    nuovoSaldo: newManualSaldo.importo
+                  });
+                } else {
+                  alert('Seleziona un dipendente');
+                }
+              }} className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="text-sm text-slate-600 mb-2 block">Dipendente</label>
                   <select
                   value={newManualSaldo.dipendente}
                   onChange={(e) => setNewManualSaldo({ ...newManualSaldo, dipendente: e.target.value })}
+                  required
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
 
                     <option value="">Seleziona...</option>
@@ -1257,6 +1269,7 @@ export default function StoricoCassa() {
                   value={newManualSaldo.importo}
                   onChange={(e) => setNewManualSaldo({ ...newManualSaldo, importo: parseFloat(e.target.value) || 0 })}
                   placeholder="0.00"
+                  required
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
                   {newManualSaldo.dipendente && (
                     <p className="text-xs text-slate-500 mt-1">
@@ -1266,25 +1279,21 @@ export default function StoricoCassa() {
                 </div>
                 <div className="flex items-end">
                   <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (newManualSaldo.dipendente) {
-                      updateSaldoPersonaleMutation.mutate({
-                        dipendente: newManualSaldo.dipendente,
-                        nuovoSaldo: newManualSaldo.importo
-                      });
-                    } else {
-                      alert('Seleziona un dipendente');
-                    }
-                  }}
-                  disabled={!newManualSaldo.dipendente}
-                  className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                  type="submit"
+                  disabled={!newManualSaldo.dipendente || updateSaldoPersonaleMutation.isPending}
+                  className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
 
-                    Imposta Saldo
+                    {updateSaldoPersonaleMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Salvataggio...
+                      </>
+                    ) : (
+                      'Imposta Saldo'
+                    )}
                   </button>
                 </div>
-              </div>
+              </form>
             </NeumorphicCard>
 
             {/* Log Aggiustamenti Manuali */}
