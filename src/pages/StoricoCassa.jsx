@@ -174,6 +174,7 @@ export default function StoricoCassa() {
         store_name: 'Aggiustamento Manuale',
         rilevato_da: dipendente,
         importo: -differenza,
+        banca: 'BPM',
         data_deposito: new Date().toISOString(),
         note: `Impostazione saldo manuale a €${nuovoSaldo.toFixed(2)} (da €${saldoAttuale.toFixed(2)})`,
         impostato_da: currentUser?.email || ''
