@@ -107,63 +107,56 @@ Deno.serve(async (req) => {
     const margin = 15;
     const tableWidth = 180;
 
-    // Calcola layout a 2 colonne per compattezza
-    const itemsPerColumn = Math.ceil(ricetteOrdinate.length / 2);
-    const columnWidth = 88;
-    let columnX = margin;
-    let itemIndex = 0;
-
     ricetteOrdinate.forEach((ricetta, idx) => {
-      // Passa alla seconda colonna dopo metà prodotti
-      if (idx === itemsPerColumn) {
-        columnX = margin + columnWidth + 4;
-        currentY = 56;
-      }
+      // Box prodotto per riga
+      const boxHeight = 12;
+      doc.setFillColor(...brandBeige);
+      doc.roundedRect(margin, currentY, tableWidth, boxHeight, 2, 2, 'F');
       
-      // Design semplificato - solo linea separatrice
-      const rowHeight = 5.5;
-      
-      // Linea sottile beige di separazione
-      if (idx > 0 && idx !== itemsPerColumn) {
-        doc.setDrawColor(...brandBeige);
-        doc.setLineWidth(0.3);
-        doc.line(columnX, currentY - 0.5, columnX + columnWidth, currentY - 0.5);
-      }
+      // Bordo rosso a sinistra
+      doc.setFillColor(...brandRed);
+      doc.roundedRect(margin, currentY, 2, boxHeight, 1, 1, 'F');
 
-      // Nome prodotto - compatto
-      doc.setFontSize(7);
+      // Nome prodotto - 12px
+      doc.setFontSize(12);
       doc.setFont(undefined, 'bold');
       doc.setTextColor(...brandRed);
-      const nomeTruncato = doc.splitTextToSize(ricetta.nome_prodotto, 30);
-      doc.text(nomeTruncato[0], columnX + 1, currentY + 3.5);
+      const nomeTruncato = doc.splitTextToSize(ricetta.nome_prodotto, 65);
+      doc.text(nomeTruncato[0], margin + 5, currentY + 7.5);
 
-      // Allergeni - testo semplice separato da virgole
+      // Allergeni - box tondeggianti
       if (ricetta.allergeni && ricetta.allergeni.length > 0) {
-        doc.setFontSize(6);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(100, 100, 100);
+        let allergeniX = margin + 75;
+        const allergeniY = currentY + 7.5;
         
-        const allergeniText = ricetta.allergeni.slice(0, 4).join(', ');
-        const suffix = ricetta.allergeni.length > 4 ? ` +${ricetta.allergeni.length - 4}` : '';
-        const fullText = allergeniText + suffix;
-        
-        const textWidth = doc.getTextWidth(fullText);
-        const maxWidth = columnWidth - 32;
-        
-        if (textWidth <= maxWidth) {
-          doc.text(fullText, columnX + 31, currentY + 3.5);
-        } else {
-          const truncated = doc.splitTextToSize(fullText, maxWidth);
-          doc.text(truncated[0], columnX + 31, currentY + 3.5);
-        }
+        ricetta.allergeni.forEach((allergene) => {
+          doc.setFontSize(8);
+          doc.setFont(undefined, 'normal');
+          const textWidth = doc.getTextWidth(allergene);
+          const boxWidth = textWidth + 4;
+          const boxHeight = 5;
+          
+          if (allergeniX + boxWidth > margin + tableWidth - 2) return;
+          
+          // Box rosa tondeggiante
+          doc.setFillColor(252, 235, 235);
+          doc.setDrawColor(...brandRed);
+          doc.setLineWidth(0.3);
+          doc.roundedRect(allergeniX, allergeniY - 3.5, boxWidth, boxHeight, 2, 2, 'FD');
+          
+          doc.setTextColor(185, 28, 28);
+          doc.text(allergene, allergeniX + 2, allergeniY);
+          
+          allergeniX += boxWidth + 2;
+        });
       } else {
-        doc.setFontSize(6);
+        doc.setFontSize(9);
         doc.setFont(undefined, 'italic');
         doc.setTextColor(150, 150, 150);
-        doc.text('Nessuno', columnX + 31, currentY + 3.5);
+        doc.text('Nessuno', margin + 75, currentY + 7.5);
       }
 
-      currentY += rowHeight;
+      currentY += boxHeight + 1.5;
     });
 
     // Footer con palette brand
