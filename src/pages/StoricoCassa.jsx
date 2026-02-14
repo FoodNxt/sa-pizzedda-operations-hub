@@ -479,6 +479,41 @@ export default function StoricoCassa() {
         note: d.note || ''
       });
     });
+    
+    // Aggiungi i pagamenti straordinari dall'entità PagamentoStraordinario per i casi dove il Deposito non è stato creato
+    pagamentiStraordinari.filter(p => p.pagato && p.pagato_da).forEach((pagamento) => {
+      const dipendentePagatore = pagamento.pagato_da;
+      
+      if (!saldi[dipendentePagatore]) {
+        saldi[dipendentePagatore] = { 
+          nome: dipendentePagatore, 
+          prelievi: 0, 
+          depositi: 0,
+          pagamentiStraordinari: 0,
+          saldo: 0,
+          movimenti: []
+        };
+      }
+      
+      // Verifica se esiste già un deposito corrispondente
+      const depositoEsistente = depositi.find(d => 
+        d.store_id === 'pagamento_straordinario' &&
+        d.rilevato_da === dipendentePagatore &&
+        Math.abs(d.importo - pagamento.importo_totale) < 0.01 &&
+        Math.abs(new Date(d.data_deposito) - new Date(pagamento.data_pagamento)) < 60000
+      );
+      
+      if (!depositoEsistente) {
+        saldi[dipendentePagatore].pagamentiStraordinari += pagamento.importo_totale || 0;
+        saldi[dipendentePagatore].movimenti.push({
+          tipo: 'pagamento_straordinario_effettuato',
+          data: pagamento.data_pagamento,
+          importo: pagamento.importo_totale || 0,
+          store: pagamento.store_name,
+          note: `Straordinario pagato a ${pagamento.dipendente_nome} (${pagamento.ore_straordinarie}h × €${pagamento.costo_orario}/h)`
+        });
+      }
+    });
 
     // Calculate saldo: prelievi - depositi - pagamentiStraordinari
     Object.keys(saldi).forEach((dipendente) => {
