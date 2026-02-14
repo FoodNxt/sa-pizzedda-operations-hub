@@ -23,6 +23,7 @@ export default function PrecottureAdmin() {
   const [deltaStartDate, setDeltaStartDate] = useState(moment().subtract(7, 'days').format('YYYY-MM-DD'));
   const [deltaEndDate, setDeltaEndDate] = useState(moment().format('YYYY-MM-DD'));
   const [scartiManuali, setScartiManuali] = useState({});
+  const [expandedDays, setExpandedDays] = useState({});
   const { data: configTeglieData = [] } = useQuery({
     queryKey: ['config-teglie'],
     queryFn: () => base44.entities.ConfigurazioneTeglieCalcolo.list()
