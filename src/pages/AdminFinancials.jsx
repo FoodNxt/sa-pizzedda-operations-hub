@@ -11,7 +11,7 @@ const sectionAdminPages = [
   { title: 'Food Cost', page: 'FoodCost', icon: TrendingUp, description: 'Analisi food cost' },
   { title: 'Sconti', page: 'Sconti', icon: TrendingUp, description: 'Gestione sconti' },
   { title: 'Banche', page: 'Banche', icon: DollarSign, description: 'Transazioni bancarie' },
-  { title: 'Confronto Canali', page: 'ChannelComparison', icon: GitCompare, description: 'Confronta performance tra canali' }
+  { title: 'Confronto Canali', page: 'ChannelComparison', icon: GitCompare, description: 'Confronta performance tra canali e store' }
 ];
 
 export default function AdminFinancials() {

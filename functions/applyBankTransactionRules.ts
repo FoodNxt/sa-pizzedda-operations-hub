@@ -60,6 +60,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Log matching action
+    await base44.asServiceRole.entities.BankImportLog.create({
+      action_type: 'matching',
+      timestamp: new Date().toISOString(),
+      matched_count: updated,
+      status: 'success'
+    });
+
     return Response.json({
       success: true,
       updated
@@ -67,6 +75,20 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error applying rules:', error);
+    
+    // Log error
+    try {
+      const base44 = createClientFromRequest(req);
+      await base44.asServiceRole.entities.BankImportLog.create({
+        action_type: 'matching',
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        error_message: error.message
+      });
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
+    }
+    
     return Response.json({ 
       error: error.message,
       success: false 

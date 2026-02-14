@@ -105,6 +105,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Log import action
+    await base44.asServiceRole.entities.BankImportLog.create({
+      action_type: 'import',
+      timestamp: new Date().toISOString(),
+      imported_count: imported,
+      skipped_count: skipped,
+      status: 'success'
+    });
+
     return Response.json({
       success: true,
       imported,
@@ -115,6 +124,19 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error importing bank transactions:', error);
+    
+    // Log error
+    try {
+      await base44.asServiceRole.entities.BankImportLog.create({
+        action_type: 'import',
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        error_message: error.message
+      });
+    } catch (logError) {
+      console.error('Failed to log error:', logError);
+    }
+    
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

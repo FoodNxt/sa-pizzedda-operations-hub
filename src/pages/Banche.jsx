@@ -46,6 +46,14 @@ export default function Banche() {
     queryFn: () => base44.entities.BankTransactionRule.list('-priority')
   });
 
+  const { data: importLogs = [] } = useQuery({
+    queryKey: ['bank-import-logs'],
+    queryFn: () => base44.entities.BankImportLog.list('-timestamp', 10)
+  });
+
+  const lastImport = importLogs.find(log => log.action_type === 'import' && log.status === 'success');
+  const lastMatching = importLogs.find(log => log.action_type === 'matching' && log.status === 'success');
+
   const importMutation = useMutation({
     mutationFn: async () => {
       const response = await base44.functions.invoke('importBankTransactionsFromGoogleSheets');
@@ -390,21 +398,51 @@ export default function Banche() {
   return (
     <ProtectedPage pageName="Banche">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-slate-800">Banche</h1>
-          <NeumorphicButton
-            onClick={() => importMutation.mutate()}
-            disabled={importMutation.isPending}
-            variant="primary"
-            className="flex items-center gap-2"
-          >
-            {importMutation.isPending ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            Importa da Google Sheets
-          </NeumorphicButton>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-slate-800">Banche</h1>
+            <NeumorphicButton
+              onClick={() => importMutation.mutate()}
+              disabled={importMutation.isPending}
+              variant="primary"
+              className="flex items-center gap-2"
+            >
+              {importMutation.isPending ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              Importa Manualmente
+            </NeumorphicButton>
+          </div>
+
+          {/* Import Status */}
+          <NeumorphicCard className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Ultimo Import Automatico</p>
+                <p className="text-sm font-semibold text-slate-800">
+                  {lastImport ? new Date(lastImport.timestamp).toLocaleString('it-IT') : 'Mai eseguito'}
+                </p>
+                {lastImport && (
+                  <p className="text-xs text-slate-600 mt-1">
+                    Importate: {lastImport.imported_count || 0} | Saltate: {lastImport.skipped_count || 0}
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Ultimo Matching Automatico</p>
+                <p className="text-sm font-semibold text-slate-800">
+                  {lastMatching ? new Date(lastMatching.timestamp).toLocaleString('it-IT') : 'Mai eseguito'}
+                </p>
+                {lastMatching && (
+                  <p className="text-xs text-slate-600 mt-1">
+                    Matchate: {lastMatching.matched_count || 0}
+                  </p>
+                )}
+              </div>
+            </div>
+          </NeumorphicCard>
         </div>
 
         {/* View Tabs */}
