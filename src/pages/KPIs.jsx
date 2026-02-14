@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ProtectedPage from '../components/ProtectedPage';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
 import NeumorphicButton from '../components/neumorphic/NeumorphicButton';
-import { Plus, TrendingUp, TrendingDown, Target, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Target, Edit2, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -25,9 +25,12 @@ export default function KPIs() {
   const [showModal, setShowModal] = useState(false);
   const [editingKPI, setEditingKPI] = useState(null);
   const [dateRange, setDateRange] = useState('30');
+  const [expandedCategories, setExpandedCategories] = useState({});
+  const [newCategory, setNewCategory] = useState('');
   const [formData, setFormData] = useState({
     nome: '',
     metrica: '',
+    categoria: '',
     obiettivo: '',
     giorni_timeframe: '30',
     direzione: 'maggiore',
@@ -97,6 +100,7 @@ export default function KPIs() {
     setFormData({
       nome: '',
       metrica: '',
+      categoria: '',
       obiettivo: '',
       giorni_timeframe: '30',
       direzione: 'maggiore',
@@ -110,6 +114,7 @@ export default function KPIs() {
     setFormData({
       nome: kpi.nome,
       metrica: kpi.metrica,
+      categoria: kpi.categoria || '',
       obiettivo: kpi.obiettivo,
       giorni_timeframe: kpi.giorni_timeframe || '30',
       direzione: kpi.direzione,
@@ -126,6 +131,7 @@ export default function KPIs() {
       ...formData,
       obiettivo: parseFloat(formData.obiettivo),
       giorni_timeframe: formData.giorni_timeframe ? parseInt(formData.giorni_timeframe) : 30,
+      categoria: formData.categoria || 'Senza categoria',
       store_id: formData.store_id || null
     };
 
@@ -284,6 +290,35 @@ export default function KPIs() {
     };
   });
 
+  const categories = useMemo(() => {
+    const cats = new Set(kpisWithValues.map(k => k.categoria || 'Senza categoria'));
+    return Array.from(cats).sort();
+  }, [kpisWithValues]);
+
+  const kpisByCategory = useMemo(() => {
+    const grouped = {};
+    kpisWithValues.forEach(kpi => {
+      const cat = kpi.categoria || 'Senza categoria';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(kpi);
+    });
+    return grouped;
+  }, [kpisWithValues]);
+
+  const getCategoryStats = (categoryKpis) => {
+    const achieved = categoryKpis.filter(k => k.isAchieved).length;
+    const total = categoryKpis.length;
+    const avgPercentage = (categoryKpis.reduce((sum, k) => sum + parseFloat(k.percentage), 0) / total).toFixed(0);
+    return { achieved, total, avgPercentage };
+  };
+
+  const toggleCategory = (cat) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [cat]: !prev[cat]
+    }));
+  };
+
   return (
     <ProtectedPage pageName="KPIs">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -323,7 +358,7 @@ export default function KPIs() {
           </div>
         </NeumorphicCard>
 
-        {/* KPIs Grid */}
+        {/* KPIs by Category */}
         {kpisWithValues.length === 0 ? (
           <NeumorphicCard className="p-12 text-center">
             <Target className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -331,81 +366,121 @@ export default function KPIs() {
             <p className="text-sm text-slate-400 mt-2">Clicca su "Nuovo KPI" per iniziare</p>
           </NeumorphicCard>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {kpisWithValues.map((kpi) => (
-              <NeumorphicCard
-                key={kpi.id}
-                className={`p-6 border-2 ${
-                  kpi.isAchieved ? 'border-green-500' : 'border-red-500'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-slate-800 text-lg mb-1">{kpi.nome}</h3>
-                    <p className="text-xs text-slate-500">
-                      {metricLabels[kpi.metrica]}
-                      {kpi.store_id && ` - ${stores.find(s => s.id === kpi.store_id)?.name || 'Store'}`}
-                      {kpi.giorni_timeframe && ` (${kpi.giorni_timeframe}gg)`}
-                    </p>
-                  </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => openEditModal(kpi)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(kpi.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">Valore Attuale</p>
-                      <p className="text-3xl font-bold text-slate-800">
-                        {kpi.metrica.includes('percentuale') || kpi.metrica === 'food_cost_percentuale' 
-                          ? `${kpi.currentValue}%` 
-                          : kpi.currentValue}
-                      </p>
+          <div className="space-y-3">
+            {categories.map((category) => {
+              const categoryKpis = kpisByCategory[category];
+              const stats = getCategoryStats(categoryKpis);
+              const isExpanded = expandedCategories[category];
+              
+              return (
+                <div key={category}>
+                  <button
+                    onClick={() => toggleCategory(category)}
+                    className="w-full neumorphic-flat p-4 rounded-xl text-left hover:shadow-lg transition-all flex items-center justify-between"
+                  >
+                    <div className="flex-1">
+                      <h2 className="text-lg font-bold text-slate-800">{category}</h2>
+                      <div className="flex gap-6 mt-2 text-sm">
+                        <span className="text-slate-600">
+                          KPI: <span className="font-semibold">{stats.total}</span>
+                        </span>
+                        <span className="text-green-600 font-semibold">
+                          ✓ {stats.achieved}/{stats.total}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-blue-500 transition-all"
+                              style={{ width: `${Math.min(stats.avgPercentage, 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-slate-600 text-xs">{stats.avgPercentage}%</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className={`flex items-center gap-2 ${kpi.isAchieved ? 'text-green-600' : 'text-red-600'}`}>
-                      {kpi.isAchieved ? (
-                        <TrendingUp className="w-6 h-6" />
-                      ) : (
-                        <TrendingDown className="w-6 h-6" />
-                      )}
-                      <span className="text-sm font-semibold">
-                        {kpi.percentage}%
-                      </span>
+                    {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-600" /> : <ChevronDown className="w-5 h-5 text-slate-600" />}
+                  </button>
+
+                  {isExpanded && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
+                      {categoryKpis.map((kpi) => (
+                        <NeumorphicCard
+                          key={kpi.id}
+                          className={`p-6 border-2 ${
+                            kpi.isAchieved ? 'border-green-500' : 'border-red-500'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <h3 className="font-bold text-slate-800 text-lg mb-1">{kpi.nome}</h3>
+                              <p className="text-xs text-slate-500">
+                                {metricLabels[kpi.metrica]}
+                                {kpi.store_id && ` - ${stores.find(s => s.id === kpi.store_id)?.name || 'Store'}`}
+                                {kpi.giorni_timeframe && ` (${kpi.giorni_timeframe}gg)`}
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => openEditModal(kpi)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteMutation.mutate(kpi.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="flex items-end justify-between">
+                              <div>
+                                <p className="text-xs text-slate-500 mb-1">Valore Attuale</p>
+                                <p className="text-3xl font-bold text-slate-800">
+                                  {kpi.metrica.includes('percentuale') || kpi.metrica === 'food_cost_percentuale' 
+                                    ? `${kpi.currentValue}%` 
+                                    : kpi.currentValue}
+                                </p>
+                              </div>
+                              <div className={`flex items-center gap-2 ${kpi.isAchieved ? 'text-green-600' : 'text-red-600'}`}>
+                                {kpi.isAchieved ? (
+                                  <TrendingUp className="w-6 h-6" />
+                                ) : (
+                                  <TrendingDown className="w-6 h-6" />
+                                )}
+                                <span className="text-sm font-semibold">
+                                  {kpi.percentage}%
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="neumorphic-pressed p-3 rounded-lg">
+                              <p className="text-xs text-slate-500 mb-1">Obiettivo</p>
+                              <p className="text-lg font-bold text-slate-700">
+                                {kpi.direzione === 'maggiore' ? '≥' : '≤'} {kpi.obiettivo}
+                                {kpi.metrica.includes('percentuale') || kpi.metrica === 'food_cost_percentuale' ? '%' : ''}
+                              </p>
+                            </div>
+
+                            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                              <div
+                                className={`h-full transition-all ${
+                                  kpi.isAchieved ? 'bg-green-500' : 'bg-red-500'
+                                }`}
+                                style={{ width: `${Math.min(kpi.percentage, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </NeumorphicCard>
+                      ))}
                     </div>
-                  </div>
-
-                  <div className="neumorphic-pressed p-3 rounded-lg">
-                    <p className="text-xs text-slate-500 mb-1">Obiettivo</p>
-                    <p className="text-lg font-bold text-slate-700">
-                      {kpi.direzione === 'maggiore' ? '≥' : '≤'} {kpi.obiettivo}
-                      {kpi.metrica.includes('percentuale') || kpi.metrica === 'food_cost_percentuale' ? '%' : ''}
-                    </p>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-full transition-all ${
-                        kpi.isAchieved ? 'bg-green-500' : 'bg-red-500'
-                      }`}
-                      style={{ width: `${Math.min(kpi.percentage, 100)}%` }}
-                    />
-                  </div>
+                  )}
                 </div>
-              </NeumorphicCard>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -435,6 +510,45 @@ export default function KPIs() {
                   <SelectContent>
                     {Object.entries(metricLabels).map(([key, label]) => (
                       <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">Categoria</label>
+                <div className="flex gap-2 mb-2">
+                  <Input
+                    placeholder="Nuova categoria..."
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && newCategory.trim()) {
+                        setFormData({ ...formData, categoria: newCategory.trim() });
+                        setNewCategory('');
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <NeumorphicButton
+                    onClick={() => {
+                      if (newCategory.trim()) {
+                        setFormData({ ...formData, categoria: newCategory.trim() });
+                        setNewCategory('');
+                      }
+                    }}
+                    variant="primary"
+                  >
+                    Aggiungi
+                  </NeumorphicButton>
+                </div>
+                <Select value={formData.categoria} onValueChange={(v) => setFormData({ ...formData, categoria: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona categoria..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
