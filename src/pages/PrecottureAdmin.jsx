@@ -20,6 +20,9 @@ export default function PrecottureAdmin() {
   const [testTurno, setTestTurno] = useState('pranzo');
   const [testRossePresenti, setTestRossePresenti] = useState(0);
   const [testResult, setTestResult] = useState(null);
+  const [deltaStartDate, setDeltaStartDate] = useState(moment().subtract(7, 'days').format('YYYY-MM-DD'));
+  const [deltaEndDate, setDeltaEndDate] = useState(moment().format('YYYY-MM-DD'));
+  const [scartiManuali, setScartiManuali] = useState({});
   const { data: configTeglieData = [] } = useQuery({
     queryKey: ['config-teglie'],
     queryFn: () => base44.entities.ConfigurazioneTeglieCalcolo.list()
@@ -690,10 +693,10 @@ export default function PrecottureAdmin() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Gestione Precotture
+            <h1 className="bg-clip-text text-slate-50 text-3xl font-bold from-slate-700 to-slate-900">Gestione Teglie
 
             </h1>
-            <p className="text-slate-50 mt-1">Configura precotture e visualizza lo storico</p>
+            <p className="text-slate-50 mt-1">Configura teglie, confronta vendite e analizza delta</p>
           </div>
         </div>
 
@@ -731,6 +734,17 @@ export default function PrecottureAdmin() {
 
             <Pizza className="w-4 h-4" />
             Teglie Vendute
+          </button>
+          <button
+            onClick={() => setActiveTab('delta-teglie')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+            activeTab === 'delta-teglie' ?
+            'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+            'neumorphic-flat text-slate-700'}`
+            }>
+
+            <TrendingUp className="w-4 h-4" />
+            Delta Teglie
           </button>
         </div>
 
@@ -1736,6 +1750,235 @@ export default function PrecottureAdmin() {
             </NeumorphicCard>
           </>
         }
+
+        {/* Tab Delta Teglie */}
+        {activeTab === 'delta-teglie' && (
+          <>
+            {/* Date Range */}
+            <NeumorphicCard className="p-6">
+              <h3 className="text-sm font-medium text-slate-700 mb-3">Periodo di analisi</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Data inizio</label>
+                  <input
+                    type="date"
+                    value={deltaStartDate}
+                    onChange={(e) => setDeltaStartDate(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">Data fine</label>
+                  <input
+                    type="date"
+                    value={deltaEndDate}
+                    onChange={(e) => setDeltaEndDate(e.target.value)}
+                    className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                  />
+                </div>
+              </div>
+            </NeumorphicCard>
+
+            {(() => {
+              // Calcola dati per il delta
+              const deltaData = [];
+              
+              // Genera giorni nel range
+              let currentDate = moment(deltaStartDate);
+              const endMoment = moment(deltaEndDate);
+              
+              while (currentDate.isSameOrBefore(endMoment)) {
+                const dateStr = currentDate.format('YYYY-MM-DD');
+                const dayOfWeek = moment(dateStr).format('dddd');
+                
+                const dayMapping = {
+                  'Monday': 'Lunedì',
+                  'Tuesday': 'Martedì',
+                  'Wednesday': 'Mercoledì',
+                  'Thursday': 'Giovedì',
+                  'Friday': 'Venerdì',
+                  'Saturday': 'Sabato',
+                  'Sunday': 'Domenica'
+                };
+                const dayIta = dayMapping[dayOfWeek] || 'Lunedì';
+                
+                // 1. Teglie suggerite dal form
+                const formsDelGiorno = precottureForm.filter(f => {
+                  const formDate = moment(f.data_compilazione).format('YYYY-MM-DD');
+                  return formDate === dateStr && (!selectedStore || f.store_id === selectedStore);
+                });
+                const teglieSuggerite = formsDelGiorno.reduce((sum, f) => sum + (f.rosse_da_fare || 0), 0);
+                
+                // 2. Teglie vendute
+                const venduteDelGiorno = prodottiVenduti.filter(p => {
+                  if (p.data_vendita !== dateStr) return false;
+                  if (selectedStore && p.store_id !== selectedStore) return false;
+                  if (!teglieConfig.categorie.includes(p.category)) return false;
+                  return true;
+                });
+                const totaleUnitaVendute = venduteDelGiorno.reduce((sum, p) => sum + (p.total_pizzas_sold || 0), 0);
+                const teglieVendute = totaleUnitaVendute / teglieConfig.unita_per_teglia;
+                
+                // 3. Sprechi del giorno
+                const sprechiDelGiorno = sprechi.filter(s => {
+                  if (s.data !== dateStr) return false;
+                  if (selectedStore && s.store_id !== selectedStore) return false;
+                  return s.tipo_teglia === 'rossa';
+                });
+                const teglieSpreco = sprechiDelGiorno.reduce((sum, s) => sum + (s.quantita_buttata || 0), 0);
+                
+                // Scarto manuale (editable)
+                const scartoManuale = scartiManuali[dateStr] || 0;
+                
+                // Teglie fatte = vendute + sprechi + scarto manuale
+                const teglieFatte = teglieVendute + teglieSpreco + scartoManuale;
+                
+                // Delta
+                const delta = teglieFatte - teglieSuggerite;
+                
+                deltaData.push({
+                  data: dateStr,
+                  dayIta,
+                  teglieSuggerite,
+                  teglieVendute,
+                  teglieSpreco,
+                  scartoManuale,
+                  teglieFatte,
+                  delta
+                });
+                
+                currentDate.add(1, 'day');
+              }
+              
+              return (
+                <>
+                  <NeumorphicCard className="p-6">
+                    <h2 className="text-xl font-bold text-slate-800 mb-4">Delta Teglie - Confronto Suggerite vs Fatte</h2>
+                    
+                    {deltaData.length === 0 ? (
+                      <p className="text-slate-500 text-center py-8">Nessun dato nel periodo selezionato</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b-2 border-slate-200">
+                              <th className="text-left py-3 px-2 text-slate-700">Data</th>
+                              <th className="text-left py-3 px-2 text-slate-700">Giorno</th>
+                              <th className="text-center py-3 px-2 bg-blue-50 text-blue-700">Suggerite</th>
+                              <th className="text-center py-3 px-2 bg-green-50 text-green-700">Vendute</th>
+                              <th className="text-center py-3 px-2 bg-orange-50 text-orange-700">Sprechi</th>
+                              <th className="text-center py-3 px-2 bg-purple-50 text-purple-700">Scarto Manuale</th>
+                              <th className="text-center py-3 px-2 bg-yellow-50 text-yellow-700 font-bold">Fatte</th>
+                              <th className="text-center py-3 px-2 font-bold">Delta</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {deltaData.map((d) => (
+                              <tr key={d.data} className="border-b border-slate-100 hover:bg-slate-50">
+                                <td className="py-3 px-2 text-slate-700">{moment(d.data).format('DD/MM/YYYY')}</td>
+                                <td className="py-3 px-2 text-slate-600">{d.dayIta}</td>
+                                <td className="text-center py-3 px-2 bg-blue-50 font-medium text-blue-700">
+                                  {d.teglieSuggerite.toFixed(1)}
+                                </td>
+                                <td className="text-center py-3 px-2 bg-green-50 font-medium text-green-700">
+                                  {d.teglieVendute.toFixed(1)}
+                                </td>
+                                <td className="text-center py-3 px-2 bg-orange-50 font-medium text-orange-700">
+                                  {d.teglieSpreco.toFixed(1)}
+                                </td>
+                                <td className="text-center py-3 px-2 bg-purple-50">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.1"
+                                    value={scartiManuali[d.data] || 0}
+                                    onChange={(e) => setScartiManuali({
+                                      ...scartiManuali,
+                                      [d.data]: parseFloat(e.target.value) || 0
+                                    })}
+                                    className="w-20 text-center neumorphic-pressed px-2 py-1 rounded-lg text-purple-700 font-medium"
+                                  />
+                                </td>
+                                <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-yellow-700">
+                                  {d.teglieFatte.toFixed(1)}
+                                </td>
+                                <td className="text-center py-3 px-2">
+                                  <span className={`font-bold text-lg ${
+                                    d.delta > 0 ? 'text-green-600' : d.delta < 0 ? 'text-red-600' : 'text-slate-600'
+                                  }`}>
+                                    {d.delta > 0 ? '+' : ''}{d.delta.toFixed(1)}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="border-t-2 border-slate-300 bg-slate-100">
+                              <td colSpan="2" className="py-3 px-2 font-bold text-slate-800">TOTALE</td>
+                              <td className="text-center py-3 px-2 bg-blue-100 font-bold text-blue-700">
+                                {deltaData.reduce((sum, d) => sum + d.teglieSuggerite, 0).toFixed(1)}
+                              </td>
+                              <td className="text-center py-3 px-2 bg-green-100 font-bold text-green-700">
+                                {deltaData.reduce((sum, d) => sum + d.teglieVendute, 0).toFixed(1)}
+                              </td>
+                              <td className="text-center py-3 px-2 bg-orange-100 font-bold text-orange-700">
+                                {deltaData.reduce((sum, d) => sum + d.teglieSpreco, 0).toFixed(1)}
+                              </td>
+                              <td className="text-center py-3 px-2 bg-purple-100 font-bold text-purple-700">
+                                {deltaData.reduce((sum, d) => sum + d.scartoManuale, 0).toFixed(1)}
+                              </td>
+                              <td className="text-center py-3 px-2 bg-yellow-100 font-bold text-yellow-700">
+                                {deltaData.reduce((sum, d) => sum + d.teglieFatte, 0).toFixed(1)}
+                              </td>
+                              <td className="text-center py-3 px-2">
+                                <span className={`font-bold text-xl ${
+                                  deltaData.reduce((sum, d) => sum + d.delta, 0) > 0 ? 'text-green-600' : 
+                                  deltaData.reduce((sum, d) => sum + d.delta, 0) < 0 ? 'text-red-600' : 'text-slate-600'
+                                }`}>
+                                  {deltaData.reduce((sum, d) => sum + d.delta, 0) > 0 ? '+' : ''}
+                                  {deltaData.reduce((sum, d) => sum + d.delta, 0).toFixed(1)}
+                                </span>
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )}
+                  </NeumorphicCard>
+
+                  {/* Summary Cards */}
+                  {deltaData.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <NeumorphicCard className="p-6 text-center">
+                        <p className="text-xs text-slate-500 mb-2">Media Suggerite/Giorno</p>
+                        <p className="text-3xl font-bold text-blue-600">
+                          {(deltaData.reduce((sum, d) => sum + d.teglieSuggerite, 0) / deltaData.length).toFixed(1)}
+                        </p>
+                      </NeumorphicCard>
+
+                      <NeumorphicCard className="p-6 text-center">
+                        <p className="text-xs text-slate-500 mb-2">Media Fatte/Giorno</p>
+                        <p className="text-3xl font-bold text-yellow-600">
+                          {(deltaData.reduce((sum, d) => sum + d.teglieFatte, 0) / deltaData.length).toFixed(1)}
+                        </p>
+                      </NeumorphicCard>
+
+                      <NeumorphicCard className="p-6 text-center">
+                        <p className="text-xs text-slate-500 mb-2">Delta Medio/Giorno</p>
+                        <p className={`text-3xl font-bold ${
+                          (deltaData.reduce((sum, d) => sum + d.delta, 0) / deltaData.length) > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {(deltaData.reduce((sum, d) => sum + d.delta, 0) / deltaData.length) > 0 ? '+' : ''}
+                          {(deltaData.reduce((sum, d) => sum + d.delta, 0) / deltaData.length).toFixed(1)}
+                        </p>
+                      </NeumorphicCard>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </>
+        )}
       </div>
     </ProtectedPage>);
 
