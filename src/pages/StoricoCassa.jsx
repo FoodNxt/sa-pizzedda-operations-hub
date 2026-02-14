@@ -466,6 +466,7 @@ export default function StoricoCassa() {
       // vengono aggiunti alla colonna pagamentiStraordinari di chi li ha creati
       if (d.store_id === 'pagamento_straordinario') {
         saldi[dipendente].pagamentiStraordinari += d.importo || 0;
+        console.log('Pagamento straordinario trovato:', { dipendente, importo: d.importo, totale: saldi[dipendente].pagamentiStraordinari });
       } else {
         saldi[dipendente].depositi += d.importo || 0;
       }
@@ -479,6 +480,9 @@ export default function StoricoCassa() {
         note: d.note || ''
       });
     });
+    
+    console.log('Tutti i depositi con pagamento_straordinario:', depositi.filter(d => d.store_id === 'pagamento_straordinario'));
+    console.log('Saldi finali:', saldi);
 
     // Calculate saldo: prelievi - depositi - pagamentiStraordinari
     Object.keys(saldi).forEach((dipendente) => {
