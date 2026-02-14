@@ -136,21 +136,31 @@ export default function StoricoCassa() {
   });
 
   const updateSaldoPersonaleMutation = useMutation({
-    mutationFn: ({ dipendente, importo }) => {
+    mutationFn: ({ dipendente, nuovoSaldo }) => {
+      // Trova il saldo attuale del dipendente
+      const dipendenteData = saldoDipendenti.find(d => d.nome === dipendente);
+      if (!dipendenteData) {
+        throw new Error('Dipendente non trovato');
+      }
+      
+      const saldoAttuale = dipendenteData.saldo;
+      const differenza = nuovoSaldo - saldoAttuale;
+      
+      // Crea un deposito di aggiustamento per portare il saldo al valore desiderato
       return base44.entities.Deposito.create({
         store_id: 'manual_adjustment',
         store_name: 'Aggiustamento Manuale',
         rilevato_da: dipendente,
-        importo: importo,
+        importo: -differenza, // Inverti il segno perché deposito riduce il saldo
         data_deposito: new Date().toISOString(),
-        note: 'Aggiustamento saldo manuale',
+        note: `Impostazione saldo manuale a €${nuovoSaldo.toFixed(2)} (da €${saldoAttuale.toFixed(2)})`,
         impostato_da: currentUser?.email || ''
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['depositi'] });
       setNewManualSaldo({ dipendente: '', importo: 0 });
-      alert('✅ Saldo aggiornato con successo!');
+      alert('✅ Saldo impostato con successo!');
     }
   });
 
@@ -1204,7 +1214,7 @@ export default function StoricoCassa() {
             <NeumorphicCard className="p-4 lg:p-6 bg-blue-50">
               <h3 className="text-base font-bold text-slate-800 mb-4">Imposta Saldo Manuale</h3>
               <p className="text-sm text-slate-600 mb-4">
-                Aggiungi un deposito manuale per correggere il saldo di un dipendente
+                Imposta il saldo di un dipendente ad un valore specifico. Il sistema calcolerà automaticamente l'aggiustamento necessario.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
@@ -1221,26 +1231,29 @@ export default function StoricoCassa() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm text-slate-600 mb-2 block">Importo (€)</label>
+                  <label className="text-sm text-slate-600 mb-2 block">Nuovo Saldo (€)</label>
                   <input
                   type="number"
                   step="0.01"
                   value={newManualSaldo.importo}
                   onChange={(e) => setNewManualSaldo({ ...newManualSaldo, importo: parseFloat(e.target.value) || 0 })}
-                  placeholder="Positivo per azzerare saldo"
+                  placeholder="0.00"
                   className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
-
+                  {newManualSaldo.dipendente && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Saldo attuale: €{(saldoDipendenti.find(d => d.nome === newManualSaldo.dipendente)?.saldo || 0).toFixed(2)}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-end">
                   <button
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
-                    console.log('Salva saldo clicked:', newManualSaldo);
                     if (newManualSaldo.dipendente) {
                       updateSaldoPersonaleMutation.mutate({
                         dipendente: newManualSaldo.dipendente,
-                        importo: newManualSaldo.importo
+                        nuovoSaldo: newManualSaldo.importo
                       });
                     } else {
                       alert('Seleziona un dipendente');
@@ -1249,7 +1262,7 @@ export default function StoricoCassa() {
                   disabled={!newManualSaldo.dipendente}
                   className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed">
 
-                    Salva
+                    Imposta Saldo
                   </button>
                 </div>
               </div>
