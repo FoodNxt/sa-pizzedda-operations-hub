@@ -1901,44 +1901,108 @@ export default function PrecottureAdmin() {
                             </tr>
                           </thead>
                           <tbody>
-                            {deltaData.map((d) => (
-                              <tr key={d.data} className="border-b border-slate-100 hover:bg-slate-50">
-                                <td className="py-3 px-2 text-slate-700">{moment(d.data).format('DD/MM/YYYY')}</td>
-                                <td className="py-3 px-2 text-slate-600">{d.dayIta}</td>
-                                <td className="text-center py-3 px-2 bg-blue-50 font-medium text-blue-700">
-                                  {d.teglieSuggerite.toFixed(1)}
-                                </td>
-                                <td className="text-center py-3 px-2 bg-green-50 font-medium text-green-700">
-                                  {d.teglieVendute.toFixed(1)}
-                                </td>
-                                <td className="text-center py-3 px-2 bg-orange-50 font-medium text-orange-700">
-                                  {d.teglieSpreco.toFixed(1)}
-                                </td>
-                                <td className="text-center py-3 px-2 bg-purple-50">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="0.1"
-                                    value={scartiManuali[d.data] || 0}
-                                    onChange={(e) => setScartiManuali({
-                                      ...scartiManuali,
-                                      [d.data]: parseFloat(e.target.value) || 0
-                                    })}
-                                    className="w-20 text-center neumorphic-pressed px-2 py-1 rounded-lg text-purple-700 font-medium"
-                                  />
-                                </td>
-                                <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-yellow-700">
-                                  {d.teglieFatte.toFixed(1)}
-                                </td>
-                                <td className="text-center py-3 px-2">
-                                  <span className={`font-bold text-lg ${
-                                    d.delta > 0 ? 'text-green-600' : d.delta < 0 ? 'text-red-600' : 'text-slate-600'
-                                  }`}>
-                                    {d.delta > 0 ? '+' : ''}{d.delta.toFixed(1)}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
+                            {deltaData.map((d) => {
+                              const isExpanded = expandedDays[d.data];
+                              const formsPerDay = precottureForm.filter(f => {
+                                const formDate = moment(f.data_compilazione).format('YYYY-MM-DD');
+                                return formDate === d.data && (!selectedStore || f.store_id === selectedStore);
+                              });
+                              return (
+                                <React.Fragment key={d.data}>
+                                  <tr className="border-b border-slate-100 hover:bg-slate-50">
+                                    <td className="text-center py-3 px-2">
+                                      <button
+                                        onClick={() => setExpandedDays({...expandedDays, [d.data]: !isExpanded})}
+                                        className="nav-button p-1 rounded hover:bg-slate-200"
+                                      >
+                                        <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                      </button>
+                                    </td>
+                                    <td className="py-3 px-2 text-slate-700">{moment(d.data).format('DD/MM/YYYY')}</td>
+                                    <td className="py-3 px-2 text-slate-600">{d.dayIta}</td>
+                                    <td className="text-center py-3 px-2 bg-blue-50 font-medium text-blue-700">
+                                      {d.teglieSuggerite.toFixed(1)}
+                                    </td>
+                                    <td className="text-center py-3 px-2 bg-green-50 font-medium text-green-700">
+                                      {d.teglieVendute.toFixed(1)}
+                                    </td>
+                                    <td className="text-center py-3 px-2 bg-orange-50 font-medium text-orange-700">
+                                      {d.teglieSpreco.toFixed(1)}
+                                    </td>
+                                    <td className="text-center py-3 px-2 bg-purple-50">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        value={scartiManuali[d.data] || 0}
+                                        onChange={(e) => setScartiManuali({
+                                          ...scartiManuali,
+                                          [d.data]: parseFloat(e.target.value) || 0
+                                        })}
+                                        className="w-20 text-center neumorphic-pressed px-2 py-1 rounded-lg text-purple-700 font-medium"
+                                      />
+                                    </td>
+                                    <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-yellow-700">
+                                      {d.teglieFatte.toFixed(1)}
+                                    </td>
+                                    <td className="text-center py-3 px-2">
+                                      <span className={`font-bold text-lg ${
+                                        d.delta > 0 ? 'text-green-600' : d.delta < 0 ? 'text-red-600' : 'text-slate-600'
+                                      }`}>
+                                        {d.delta > 0 ? '+' : ''}{d.delta.toFixed(1)}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                  {isExpanded && formsPerDay.length > 0 && (
+                                    <tr className="bg-slate-50 border-b border-slate-100">
+                                      <td colSpan="9" className="py-4 px-4">
+                                        <div className="space-y-2">
+                                          <p className="text-sm font-semibold text-slate-700 mb-3">Form Precotture ({formsPerDay.length}):</p>
+                                          {formsPerDay.map((f, idx) => (
+                                            <div key={f.id} className="bg-white rounded-lg p-3 border border-slate-200 text-sm">
+                                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                <div>
+                                                  <p className="text-xs text-slate-500">Negozio</p>
+                                                  <p className="font-medium text-slate-700">{f.store_name}</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-xs text-slate-500">Dipendente</p>
+                                                  <p className="font-medium text-slate-700">{f.dipendente_nome || '-'}</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-xs text-slate-500">Turno</p>
+                                                  <p className="font-medium text-slate-700 capitalize">{f.turno || '-'}</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-xs text-slate-500">Ora</p>
+                                                  <p className="font-medium text-slate-700">{moment(f.data_compilazione).format('HH:mm')}</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-xs text-slate-500">Rosse Presenti</p>
+                                                  <p className="font-medium text-yellow-700">{f.rosse_presenti || 0}</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-xs text-slate-500">Richieste</p>
+                                                  <p className="font-medium text-orange-700">{f.rosse_richieste || 0}</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-xs text-slate-500">Da Fare</p>
+                                                  <p className="font-bold text-red-700">{f.rosse_da_fare || 0}</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-xs text-slate-500">Note</p>
+                                                  <p className="font-medium text-slate-600 text-xs">{f.note || '-'}</p>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })}
                           </tbody>
                           <tfoot>
                             <tr className="border-t-2 border-slate-300 bg-slate-100">
