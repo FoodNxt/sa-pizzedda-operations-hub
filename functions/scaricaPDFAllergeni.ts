@@ -31,12 +31,16 @@ Deno.serve(async (req) => {
     if (logo_url) {
       try {
         const logoResponse = await fetch(logo_url);
-        const logoBlob = await logoResponse.blob();
-        const logoBase64 = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(logoBlob);
-        });
+        const logoArrayBuffer = await logoResponse.arrayBuffer();
+        const logoUint8Array = new Uint8Array(logoArrayBuffer);
+        
+        // Convert to base64
+        let binary = '';
+        for (let i = 0; i < logoUint8Array.length; i++) {
+          binary += String.fromCharCode(logoUint8Array[i]);
+        }
+        const logoBase64 = 'data:image/png;base64,' + btoa(binary);
+        
         doc.addImage(logoBase64, 'PNG', 85, 8, 40, 25, undefined, 'FAST');
       } catch (error) {
         console.error('Error loading logo:', error);
