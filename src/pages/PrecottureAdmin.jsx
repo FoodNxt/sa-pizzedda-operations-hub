@@ -1846,20 +1846,16 @@ export default function PrecottureAdmin() {
                 const totaleUnitaVendute = venduteDelGiorno.reduce((sum, p) => sum + (p.total_pizzas_sold || 0), 0);
                 const teglieVendute = totaleUnitaVendute / teglieConfig.unita_per_teglia;
                 
-                const sprechiDelGiorno = sprechi.filter(s => {
-                   if (!s.data_rilevazione) return false;
-                   const sprecoDate = moment(s.data_rilevazione).format('YYYY-MM-DD');
-                   if (sprecoDate !== dateStr) return false;
-                   if (selectedStore && s.store_id !== selectedStore) return false;
-                   // Solo sprechi di ricette (pizze) che sono in teglie rosse
-                   const ricetta = ricette.find(r => r.id === s.prodotto_id);
-                   return ricetta && ricetta.tipo_teglia === 'rossa';
+                // Teglie buttate (rosse + bianche) - da TeglieButtate
+                const teglieButtateDelGiorno = teglieButtate.filter(t => {
+                   if (!t.data_rilevazione) return false;
+                   const buttateDate = moment(t.data_rilevazione).format('YYYY-MM-DD');
+                   if (buttateDate !== dateStr) return false;
+                   if (selectedStore && t.store_id !== selectedStore) return false;
+                   return true;
                  });
-                 const teglieSpreco = sprechiDelGiorno.reduce((sum, s) => {
-                   const ricetta = ricette.find(r => r.id === s.prodotto_id);
-                   if (!ricetta) return sum;
-                   // Se è una ricetta in teglia rossa, conta come 1 teglia per quantità
-                   return sum + 1; // conta come speco di 1 teglia per rilevazione
+                 const teglieSpreco = teglieButtateDelGiorno.reduce((sum, t) => {
+                   return sum + (t.teglie_rosse_buttate || 0) + (t.teglie_bianche_buttate || 0);
                  }, 0);
                 
                 const scartoManuale = scartiManuali[dateStr] || 0;
