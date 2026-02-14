@@ -407,7 +407,7 @@ export default function KPIs() {
       }
 
       case 'percentuale_store_revenue': {
-        if (!storeFilter) return 0; // Metrica sensata solo per uno store specifico
+        if (!storeFilter) return 0;
         const filtered = iPraticoData.filter(d => {
           if (!d.order_date) return false;
           const orderDate = new Date(d.order_date);
