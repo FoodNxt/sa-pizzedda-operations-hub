@@ -1829,7 +1829,9 @@ export default function PrecottureAdmin() {
                 const teglieVendute = totaleUnitaVendute / teglieConfig.unita_per_teglia;
                 
                 const sprechiDelGiorno = sprechi.filter(s => {
-                  if (s.data !== dateStr) return false;
+                  if (!s.data_rilevazione) return false;
+                  const sprecoDate = moment(s.data_rilevazione).format('YYYY-MM-DD');
+                  if (sprecoDate !== dateStr) return false;
                   if (selectedStore && s.store_id !== selectedStore) return false;
                   return s.tipo_teglia === 'rossa';
                 });
