@@ -48,9 +48,14 @@ Deno.serve(async (req) => {
           
           console.log('Logo loaded, size:', logoBytes.length, 'bytes');
           
-          // Convert to base64
-          const base64String = btoa(String.fromCharCode(...logoBytes));
-          const logoBase64 = 'data:image/png;base64,' + base64String;
+          // Convert to base64 properly for large files
+          let binary = '';
+          const chunkSize = 8192;
+          for (let i = 0; i < logoBytes.length; i += chunkSize) {
+            const chunk = logoBytes.slice(i, i + chunkSize);
+            binary += String.fromCharCode.apply(null, chunk);
+          }
+          const logoBase64 = 'data:image/png;base64,' + btoa(binary);
           
           // Aggiungi logo al PDF con dimensioni maggiori
           doc.addImage(logoBase64, 'PNG', 75, 5, 60, 22);
@@ -114,26 +119,35 @@ Deno.serve(async (req) => {
       doc.setFillColor(...brandRed);
       doc.roundedRect(margin, currentY, 2, boxHeight, 1, 1, 'F');
 
-      // Nome prodotto - 16px
-      doc.setFontSize(16);
+      // Nome prodotto - 15px (completo, non troncato)
+      doc.setFontSize(15);
       doc.setFont(undefined, 'bold');
       doc.setTextColor(...brandRed);
-      const nomeTruncato = doc.splitTextToSize(ricetta.nome_prodotto, 65);
-      doc.text(nomeTruncato[0], margin + 5, currentY + 8);
+      doc.text(ricetta.nome_prodotto, margin + 5, currentY + 8);
 
-      // Allergeni - box tondeggianti
+      // Allergeni - box tondeggianti allineati a destra
       if (ricetta.allergeni && ricetta.allergeni.length > 0) {
-        let allergeniX = margin + 75;
-        const allergeniY = currentY + 7.5;
+        // Calcola la larghezza totale degli allergeni
+        let totalWidth = 0;
+        const allergeniWidths = [];
         
         ricetta.allergeni.forEach((allergene) => {
           doc.setFontSize(10);
           doc.setFont(undefined, 'normal');
           const textWidth = doc.getTextWidth(allergene);
           const boxWidth = textWidth + 5;
+          allergeniWidths.push(boxWidth);
+          totalWidth += boxWidth + 2.5;
+        });
+        totalWidth -= 2.5; // Rimuovi l'ultimo gap
+        
+        // Parti da destra
+        let allergeniX = margin + tableWidth - totalWidth - 2;
+        const allergeniY = currentY + 7.5;
+        
+        ricetta.allergeni.forEach((allergene, idx) => {
+          const boxWidth = allergeniWidths[idx];
           const boxHeight = 6;
-          
-          if (allergeniX + boxWidth > margin + tableWidth - 2) return;
           
           // Box celeste tondeggiante (come screenshot)
           doc.setFillColor(219, 234, 254);
@@ -141,6 +155,7 @@ Deno.serve(async (req) => {
           doc.setLineWidth(0.4);
           doc.roundedRect(allergeniX, allergeniY - 4, boxWidth, boxHeight, 3, 3, 'FD');
           
+          doc.setFontSize(10);
           doc.setTextColor(30, 64, 175);
           doc.text(allergene, allergeniX + 2.5, allergeniY);
           
@@ -150,7 +165,9 @@ Deno.serve(async (req) => {
         doc.setFontSize(11);
         doc.setFont(undefined, 'italic');
         doc.setTextColor(150, 150, 150);
-        doc.text('Nessuno', margin + 75, currentY + 7.5);
+        // Allineato a destra anche "Nessuno"
+        const nessunoWidth = doc.getTextWidth('Nessuno');
+        doc.text('Nessuno', margin + tableWidth - nessunoWidth - 2, currentY + 7.5);
       }
 
       currentY += boxHeight + 1.5;
