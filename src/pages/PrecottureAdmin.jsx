@@ -116,6 +116,12 @@ export default function PrecottureAdmin() {
     enabled: activeTab === 'delta-teglie'
   });
 
+  const { data: ricette = [] } = useQuery({
+    queryKey: ['ricette'],
+    queryFn: () => base44.entities.Ricetta.list(),
+    enabled: activeTab === 'delta-teglie'
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.GestioneImpasti.create(data),
     onSuccess: () => {
