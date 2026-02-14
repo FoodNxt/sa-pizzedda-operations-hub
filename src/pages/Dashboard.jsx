@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [syncMessage, setSyncMessage] = useState(null);
+  const [selectedStoresForTrend, setSelectedStoresForTrend] = useState([]);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -303,14 +304,31 @@ export default function Dashboard() {
     });
 
     const revenueByDate = {};
+    const revenueByDateAndStore = {};
+    
     filteredData.forEach((item) => {
       if (!item.order_date) return;
 
       const dateStr = item.order_date;
+      const storeId = item.store_id;
+      const storeName = stores.find(s => s.id === storeId)?.name || 'N/A';
+      
       if (!revenueByDate[dateStr]) {
         revenueByDate[dateStr] = { date: dateStr, revenue: 0 };
       }
       revenueByDate[dateStr].revenue += item.total_revenue || 0;
+      
+      // Store-specific revenue
+      const key = `${dateStr}_${storeId}`;
+      if (!revenueByDateAndStore[key]) {
+        revenueByDateAndStore[key] = {
+          date: dateStr,
+          storeId,
+          storeName,
+          revenue: 0
+        };
+      }
+      revenueByDateAndStore[key].revenue += item.total_revenue || 0;
     });
 
     const dailyRevenue = Object.values(revenueByDate).
@@ -329,11 +347,45 @@ export default function Dashboard() {
       revenue: d.revenue
     })).
     filter((d) => d.date !== 'N/A');
+    
+    // Group by date for multi-store chart
+    const dailyRevenueByStore = {};
+    Object.values(revenueByDateAndStore).forEach((item) => {
+      if (!dailyRevenueByStore[item.date]) {
+        dailyRevenueByStore[item.date] = { date: item.date };
+      }
+      dailyRevenueByStore[item.date][item.storeName] = parseFloat(item.revenue.toFixed(2));
+    });
+    
+    const dailyRevenueMultiStore = Object.values(dailyRevenueByStore)
+      .map((d) => {
+        const parsedDate = safeParseDate(d.date);
+        return {
+          date: parsedDate,
+          dateStr: d.date,
+          ...d
+        };
+      })
+      .filter((d) => d.date !== null)
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .map((d) => {
+        const formatted = {
+          date: safeFormatDate(d.date, 'dd MMM')
+        };
+        stores.forEach(store => {
+          formatted[store.name] = d[store.name] || 0;
+        });
+        // Calculate total for percentage
+        formatted.total = stores.reduce((sum, s) => sum + (d[s.name] || 0), 0);
+        return formatted;
+      })
+      .filter((d) => d.date !== 'N/A');
 
     return {
       totalRevenue,
       totalOrders,
       dailyRevenue,
+      dailyRevenueMultiStore,
       revenueByStore,
       foodCostByStore,
       produttivitaByStore
@@ -1655,7 +1707,44 @@ export default function Dashboard() {
 
         {/* Trend Revenue */}
         <NeumorphicCard className="p-4 lg:p-6">
-          <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Trend Revenue</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base lg:text-lg font-bold text-slate-800">Trend Revenue</h2>
+          </div>
+          
+          {/* Store Filters */}
+          <div className="mb-4">
+            <p className="text-xs text-slate-600 mb-2">Negozi da visualizzare:</p>
+            <div className="flex flex-wrap gap-2">
+              {stores.map((store) => (
+                <button
+                  key={store.id}
+                  onClick={() => {
+                    setSelectedStoresForTrend((prev) =>
+                      prev.includes(store.id) 
+                        ? prev.filter((id) => id !== store.id)
+                        : [...prev, store.id]
+                    );
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    selectedStoresForTrend.includes(store.id)
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                      : 'neumorphic-flat text-slate-700'
+                  }`}
+                >
+                  {store.name}
+                </button>
+              ))}
+              {selectedStoresForTrend.length > 0 && (
+                <button
+                  onClick={() => setSelectedStoresForTrend([])}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium neumorphic-flat text-red-600"
+                >
+                  Mostra Totale
+                </button>
+              )}
+            </div>
+          </div>
+
           {dataLoading ? (
             <div className="animate-pulse space-y-3">
               <div className="h-6 bg-slate-200 rounded w-32" />
@@ -1665,7 +1754,7 @@ export default function Dashboard() {
           <div className="w-full overflow-x-auto">
               <div style={{ minWidth: '300px' }}>
                 <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={processedData.dailyRevenue}>
+                  <LineChart data={selectedStoresForTrend.length > 0 ? processedData.dailyRevenueMultiStore : processedData.dailyRevenue}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
                     <XAxis
                     dataKey="date"
@@ -1688,17 +1777,38 @@ export default function Dashboard() {
                       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                       fontSize: '12px'
                     }}
-                    formatter={(value) => `€${value.toFixed(2)}`} />
+                    formatter={(value, name, props) => {
+                      const percentage = props.payload.total > 0 
+                        ? ((value / props.payload.total) * 100).toFixed(1) 
+                        : '0.0';
+                      return [`€${value.toFixed(2)} (${percentage}%)`, name];
+                    }} />
 
                     <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    name="Revenue €"
-                    dot={{ fill: '#3b82f6', r: 3 }} />
-
+                    {selectedStoresForTrend.length > 0 ? (
+                      stores
+                        .filter(s => selectedStoresForTrend.includes(s.id))
+                        .map((store, idx) => (
+                          <Line
+                            key={store.id}
+                            type="monotone"
+                            dataKey={store.name}
+                            stroke={['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'][idx % 6]}
+                            strokeWidth={2}
+                            name={store.name}
+                            dot={{ r: 3 }}
+                          />
+                        ))
+                    ) : (
+                      <Line
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        name="Revenue €"
+                        dot={{ fill: '#3b82f6', r: 3 }}
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
