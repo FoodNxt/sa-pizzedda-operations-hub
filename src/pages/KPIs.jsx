@@ -357,7 +357,7 @@ export default function KPIs() {
         });
         const totalRevenue = filteredData.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
         const totalCOGS = filteredOrdini.reduce((sum, o) => sum + (o.totale_ordine || 0), 0);
-        return totalRevenue > 0 ? (totalCOGS / totalRevenue * 100).toFixed(1) : 0;
+        return totalRevenue > 0 ? (totalCOGS / totalRevenue * 100).toFixed(2) : 0;
       }
 
       case 'sconto_percentuale': {
