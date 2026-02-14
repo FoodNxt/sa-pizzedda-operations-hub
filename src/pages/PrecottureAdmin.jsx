@@ -110,6 +110,12 @@ export default function PrecottureAdmin() {
     enabled: activeTab === 'delta-teglie'
   });
 
+  const { data: sprechi = [] } = useQuery({
+    queryKey: ['sprechi'],
+    queryFn: () => base44.entities.Spreco.list('-data_rilevazione', 200),
+    enabled: activeTab === 'delta-teglie'
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.GestioneImpasti.create(data),
     onSuccess: () => {
