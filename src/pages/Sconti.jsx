@@ -16,119 +16,15 @@ export default function Sconti() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [channelFilter, setChannelFilter] = useState('all');
   const [isImporting, setIsImporting] = useState(false);
-  const fileInputRef = React.useRef(null);
 
   const queryClient = useQueryClient();
 
-  const handleImportCSV = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
+  const handleImportSconti = async () => {
     setIsImporting(true);
     try {
-      const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim());
-      const headers = lines[0].split(',').map(h => h.trim());
-      
-      const existingSconti = await base44.entities.Sconto.list();
-      const existingKeys = new Set(
-        existingSconti.map(s => `${s.order_date}|${s.channel}|${s.total_discount_price}`)
-      );
-
-      const stores = await base44.entities.Store.list();
-      const storeMapping = {};
-      stores.forEach(store => {
-        storeMapping[store.name.toLowerCase()] = {
-          id: store.id,
-          name: store.name
-        };
-      });
-
-      let imported = 0;
-      let skipped = 0;
-
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        if (values.length < 2) continue;
-
-        const order_date = values[0] || '';
-        const channel = values[1] || '';
-        const sourceApp_glovo = parseFloat(values[2]) || 0;
-        const sourceApp_deliveroo = parseFloat(values[3]) || 0;
-        const sourceApp_justeat = parseFloat(values[4]) || 0;
-        const sourceApp_onlineordering = parseFloat(values[5]) || 0;
-        const sourceApp_ordertable = parseFloat(values[6]) || 0;
-        const sourceApp_tabesto = parseFloat(values[7]) || 0;
-        const sourceApp_deliverect = parseFloat(values[8]) || 0;
-        const sourceApp_store = parseFloat(values[9]) || 0;
-        const sourceType_delivery = parseFloat(values[10]) || 0;
-        const sourceType_takeaway = parseFloat(values[11]) || 0;
-        const sourceType_takeawayOnSite = parseFloat(values[12]) || 0;
-        const sourceType_store = parseFloat(values[13]) || 0;
-        const moneyType_bancomat = parseFloat(values[14]) || 0;
-        const moneyType_cash = parseFloat(values[15]) || 0;
-        const moneyType_online = parseFloat(values[16]) || 0;
-        const moneyType_satispay = parseFloat(values[17]) || 0;
-        const moneyType_credit_card = parseFloat(values[18]) || 0;
-        const moneyType_fidelity_card_points = parseFloat(values[19]) || 0;
-
-        const total_discount_price = sourceApp_glovo + sourceApp_deliveroo + sourceApp_justeat + 
-          sourceApp_onlineordering + sourceApp_ordertable + sourceApp_tabesto + 
-          sourceApp_deliverect + sourceApp_store;
-
-        if (total_discount_price === 0) {
-          skipped++;
-          continue;
-        }
-
-        const key = `${order_date}|${channel}|${total_discount_price}`;
-        if (existingKeys.has(key)) {
-          skipped++;
-          continue;
-        }
-
-        const storeKey = channel.toLowerCase();
-        const mappedStore = storeMapping[storeKey];
-
-        const scontoData = {
-          order_date,
-          channel,
-          total_discount_price,
-          sourceApp_glovo,
-          sourceApp_deliveroo,
-          sourceApp_justeat,
-          sourceApp_onlineordering,
-          sourceApp_ordertable,
-          sourceApp_tabesto,
-          sourceApp_deliverect,
-          sourceApp_store,
-          sourceType_delivery,
-          sourceType_takeaway,
-          sourceType_takeawayOnSite,
-          sourceType_store,
-          moneyType_bancomat,
-          moneyType_cash,
-          moneyType_online,
-          moneyType_satispay,
-          moneyType_credit_card,
-          moneyType_fidelity_card_points
-        };
-
-        if (mappedStore) {
-          scontoData.store_id = mappedStore.id;
-          scontoData.store_name = mappedStore.name;
-        }
-
-        await base44.entities.Sconto.create(scontoData);
-        imported++;
-      }
-
-      alert(`Importazione completata! ${imported} nuovi sconti importati, ${skipped} già presenti.`);
+      const response = await base44.functions.invoke('importScontiFromGoogleSheets', {});
+      alert(`Importazione completata! ${response.data.imported} nuovi sconti importati, ${response.data.skipped} già presenti.`);
       queryClient.invalidateQueries({ queryKey: ['sconti'] });
-      
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     } catch (error) {
       alert(`Errore durante l'importazione: ${error.message}`);
     } finally {
@@ -512,32 +408,23 @@ export default function Sconti() {
             <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Analisi Sconti</h1>
             <p style={{ color: '#000000' }}>Monitora gli sconti applicati agli ordini</p>
           </div>
-          <div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleImportCSV}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isImporting}
-              className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-            >
-              {isImporting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Importazione...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4" />
-                  Importa CSV
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            onClick={handleImportSconti}
+            disabled={isImporting}
+            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {isImporting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Importazione...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Importa da Google Sheet
+              </>
+            )}
+          </button>
         </div>
 
         <NeumorphicCard className="p-2">
