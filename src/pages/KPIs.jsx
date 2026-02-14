@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const metricLabels = {
-  food_cost_percentuale: 'Food Cost %',
+  food_cost_percentuale: 'Food Cost % (medio ricette)',
   numero_recensioni: 'Numero Recensioni',
   punteggio_medio_recensioni: 'Rating Medio',
   produttivita_oraria: 'Produttività €/h',
@@ -18,7 +18,12 @@ const metricLabels = {
   ordini_giornalieri: 'Ordini Giornalieri',
   scontrino_medio: 'Scontrino Medio',
   percentuale_delivery: 'Delivery %',
-  percentuale_takeaway: 'Takeaway %'
+  percentuale_takeaway: 'Takeaway %',
+  percentuale_online: 'Online %',
+  food_cost_medio: 'Food Cost % (reale vs ricette)',
+  sconto_percentuale: 'Sconto % su Gross Sales',
+  sprechi_valore: 'Sprechi (€)',
+  review_tendenza: 'Trend Recensioni (% crescita)'
 };
 
 export default function KPIs() {
@@ -68,6 +73,19 @@ export default function KPIs() {
   const { data: produttivitaData = [] } = useQuery({
     queryKey: ['produttivita'],
     queryFn: () => base44.entities.RevenueByTimeSlot.list('-date', 500)
+  });
+
+  const { data: sprechi = [] } = useQuery({
+    queryKey: ['sprechi'],
+    queryFn: () => base44.entities.Spreco.list('-data_rilevazione', 500)
+  });
+
+  const { data: ordini = [] } = useQuery({
+    queryKey: ['ordini-fornitori'],
+    queryFn: async () => {
+      const allOrdini = await base44.entities.OrdineFornitore.list();
+      return allOrdini.filter((o) => o.status === 'completato');
+    }
   });
 
   const createMutation = useMutation({
@@ -267,6 +285,90 @@ export default function KPIs() {
         const totalRevenue = filtered.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
         const takeawayRevenue = filtered.reduce((sum, d) => sum + (d.sourceType_takeaway || 0), 0);
         return totalRevenue > 0 ? ((takeawayRevenue / totalRevenue) * 100).toFixed(1) : 0;
+      }
+
+      case 'percentuale_online': {
+        const filtered = iPraticoData.filter(d => {
+          if (!d.order_date) return false;
+          const orderDate = new Date(d.order_date);
+          const inRange = orderDate >= startDate && orderDate <= endDate;
+          const inStore = !storeFilter || d.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        if (filtered.length === 0) return 0;
+        const totalRevenue = filtered.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
+        const onlineRevenue = filtered.reduce((sum, d) => {
+          const delivery = d.sourceType_delivery || 0;
+          const takeaway = d.sourceType_takeaway || 0;
+          return sum + delivery + takeaway;
+        }, 0);
+        return totalRevenue > 0 ? ((onlineRevenue / totalRevenue) * 100).toFixed(1) : 0;
+      }
+
+      case 'food_cost_medio': {
+        const filteredData = iPraticoData.filter(d => {
+          if (!d.order_date) return false;
+          const orderDate = new Date(d.order_date);
+          const inRange = orderDate >= startDate && orderDate <= endDate;
+          const inStore = !storeFilter || d.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        const filteredOrdini = ordini.filter(o => {
+          if (!o.data_completamento) return false;
+          const orderDate = new Date(o.data_completamento);
+          const inRange = orderDate >= startDate && orderDate <= endDate;
+          const inStore = !storeFilter || o.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        const totalRevenue = filteredData.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
+        const totalCOGS = filteredOrdini.reduce((sum, o) => sum + (o.totale_ordine || 0), 0);
+        return totalRevenue > 0 ? (totalCOGS / totalRevenue * 100).toFixed(1) : 0;
+      }
+
+      case 'sconto_percentuale': {
+        const filtered = iPraticoData.filter(d => {
+          if (!d.order_date) return false;
+          const orderDate = new Date(d.order_date);
+          const inRange = orderDate >= startDate && orderDate <= endDate;
+          const inStore = !storeFilter || d.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        if (filtered.length === 0) return 0;
+        const totalRevenue = filtered.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
+        const totalSconti = filtered.reduce((sum, d) => sum + (d.total_discount || 0), 0);
+        const grossSales = totalRevenue + totalSconti;
+        return grossSales > 0 ? (totalSconti / grossSales * 100).toFixed(2) : 0;
+      }
+
+      case 'sprechi_valore': {
+        const filtered = sprechi.filter(s => {
+          if (!s.data_rilevazione) return false;
+          const sprecDate = new Date(s.data_rilevazione);
+          const inRange = sprecDate >= startDate && sprecDate <= endDate;
+          const inStore = !storeFilter || s.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        const totalSprechi = filtered.reduce((sum, s) => {
+          const value = (s.quantita_grammi || 0) * (s.costo_unitario || 0) / 1000;
+          return sum + value;
+        }, 0);
+        return totalSprechi.toFixed(2);
+      }
+
+      case 'review_tendenza': {
+        const allReviewsFiltered = reviews.filter(r => {
+          if (!r.review_date) return false;
+          const inStore = !storeFilter || r.store_id === storeFilter;
+          return inStore;
+        });
+        if (allReviewsFiltered.length < 2) return 0;
+        const mid = Math.ceil(allReviewsFiltered.length / 2);
+        const firstHalf = allReviewsFiltered.slice(0, mid);
+        const secondHalf = allReviewsFiltered.slice(mid);
+        const firstAvg = firstHalf.reduce((sum, r) => sum + r.rating, 0) / firstHalf.length;
+        const secondAvg = secondHalf.reduce((sum, r) => sum + r.rating, 0) / secondHalf.length;
+        const growth = ((secondAvg - firstAvg) / firstAvg) * 100;
+        return growth.toFixed(2);
       }
 
       default:
