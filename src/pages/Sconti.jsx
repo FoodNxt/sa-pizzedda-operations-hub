@@ -4,15 +4,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { TrendingDown, Calendar, Filter, Download, BarChart3, Upload } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
+import { TrendingDown, Calendar, Filter, Download, BarChart3 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
 
 export default function Sconti() {
-  const navigate = useNavigate();
   const [activeView, setActiveView] = useState('sconti');
   const [dateFilter, setDateFilter] = useState('month');
   const [customStartDate, setCustomStartDate] = useState('');
@@ -390,18 +387,9 @@ export default function Sconti() {
   return (
     <ProtectedPage pageName="Sconti">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Analisi Sconti</h1>
-            <p style={{ color: '#000000' }}>Monitora gli sconti applicati agli ordini • Import automatico da Google Sheet ogni 30 minuti</p>
-          </div>
-          <button
-            onClick={() => navigate(createPageUrl('BulkImportSconti'))}
-            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all"
-          >
-            <Upload className="w-4 h-4" />
-            Carica CSV
-          </button>
+        <div>
+          <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Analisi Sconti</h1>
+          <p style={{ color: '#000000' }}>Monitora gli sconti applicati agli ordini • Import automatico da Google Sheet ogni 30 minuti</p>
         </div>
 
         <NeumorphicCard className="p-2">
