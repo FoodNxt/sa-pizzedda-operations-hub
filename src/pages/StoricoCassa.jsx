@@ -136,14 +136,33 @@ export default function StoricoCassa() {
   });
 
   const updateSaldoPersonaleMutation = useMutation({
-    mutationFn: ({ dipendente, nuovoSaldo }) => {
-      // Trova il saldo attuale del dipendente
-      const dipendenteData = saldoDipendenti.find(d => d.nome === dipendente);
-      if (!dipendenteData) {
-        throw new Error('Dipendente non trovato');
-      }
+    mutationFn: async ({ dipendente, nuovoSaldo }) => {
+      // Recupera i dati aggiornati dalla cache
+      const currentPrelievi = queryClient.getQueryData(['prelievi']) || [];
+      const currentDepositi = queryClient.getQueryData(['depositi']) || [];
       
-      const saldoAttuale = dipendenteData.saldo;
+      // Calcola il saldo attuale
+      let prelievi = 0;
+      let depositi = 0;
+      let pagamentiStraordinari = 0;
+      
+      currentPrelievi.forEach((p) => {
+        if (p.rilevato_da === dipendente) {
+          prelievi += p.importo || 0;
+        }
+      });
+      
+      currentDepositi.forEach((d) => {
+        if (d.rilevato_da === dipendente) {
+          if (d.store_id === 'pagamento_straordinario') {
+            pagamentiStraordinari += d.importo || 0;
+          } else if (d.store_id !== 'manual_adjustment') {
+            depositi += d.importo || 0;
+          }
+        }
+      });
+      
+      const saldoAttuale = prelievi - depositi - pagamentiStraordinari;
       const differenza = nuovoSaldo - saldoAttuale;
       
       // Crea un deposito di aggiustamento per portare il saldo al valore desiderato
@@ -151,7 +170,7 @@ export default function StoricoCassa() {
         store_id: 'manual_adjustment',
         store_name: 'Aggiustamento Manuale',
         rilevato_da: dipendente,
-        importo: -differenza, // Inverti il segno perché deposito riduce il saldo
+        importo: -differenza,
         data_deposito: new Date().toISOString(),
         note: `Impostazione saldo manuale a €${nuovoSaldo.toFixed(2)} (da €${saldoAttuale.toFixed(2)})`,
         impostato_da: currentUser?.email || ''
