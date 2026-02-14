@@ -32,7 +32,7 @@ export default function Banche() {
   const [balanceExpanded, setBalanceExpanded] = useState(false);
   const [balanceHidden, setBalanceHidden] = useState(() => {
     const saved = localStorage.getItem('balance_hidden');
-    return saved === 'true';
+    return saved !== 'false'; // Default to true (hidden)
   });
   const queryClient = useQueryClient();
 
