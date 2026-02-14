@@ -1780,10 +1780,7 @@ export default function PrecottureAdmin() {
             </NeumorphicCard>
 
             {(() => {
-              // Calcola dati per il delta
               const deltaData = [];
-              
-              // Genera giorni nel range
               let currentDate = moment(deltaStartDate);
               const endMoment = moment(deltaEndDate);
               
@@ -1802,15 +1799,13 @@ export default function PrecottureAdmin() {
                 };
                 const dayIta = dayMapping[dayOfWeek] || 'Lunedì';
                 
-                // 1. Teglie suggerite dal form
                 const formsDelGiorno = precottureForm.filter(f => {
                   const formDate = moment(f.data_compilazione).format('YYYY-MM-DD');
                   return formDate === dateStr && (!selectedStore || f.store_id === selectedStore);
                 });
                 const teglieSuggerite = formsDelGiorno.reduce((sum, f) => sum + (f.rosse_da_fare || 0), 0);
                 
-                // 2. Teglie vendute
-                const venduteDelGiorno = prodottiVenduti.filter(p => {
+                const venduteDelGiorno = prodottiVendutiDelta.filter(p => {
                   if (p.data_vendita !== dateStr) return false;
                   if (selectedStore && p.store_id !== selectedStore) return false;
                   if (!teglieConfig.categorie.includes(p.category)) return false;
@@ -1819,7 +1814,6 @@ export default function PrecottureAdmin() {
                 const totaleUnitaVendute = venduteDelGiorno.reduce((sum, p) => sum + (p.total_pizzas_sold || 0), 0);
                 const teglieVendute = totaleUnitaVendute / teglieConfig.unita_per_teglia;
                 
-                // 3. Sprechi del giorno
                 const sprechiDelGiorno = sprechi.filter(s => {
                   if (s.data !== dateStr) return false;
                   if (selectedStore && s.store_id !== selectedStore) return false;
@@ -1827,13 +1821,8 @@ export default function PrecottureAdmin() {
                 });
                 const teglieSpreco = sprechiDelGiorno.reduce((sum, s) => sum + (s.quantita_buttata || 0), 0);
                 
-                // Scarto manuale (editable)
                 const scartoManuale = scartiManuali[dateStr] || 0;
-                
-                // Teglie fatte = vendute + sprechi + scarto manuale
                 const teglieFatte = teglieVendute + teglieSpreco + scartoManuale;
-                
-                // Delta
                 const delta = teglieFatte - teglieSuggerite;
                 
                 deltaData.push({
@@ -1946,7 +1935,6 @@ export default function PrecottureAdmin() {
                     )}
                   </NeumorphicCard>
 
-                  {/* Summary Cards */}
                   {deltaData.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <NeumorphicCard className="p-6 text-center">
