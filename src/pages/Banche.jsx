@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
 import NeumorphicButton from '../components/neumorphic/NeumorphicButton';
 import ProtectedPage from '../components/ProtectedPage';
-import { RefreshCw, Download, Plus, Trash2, Edit2, Check, X, ChevronRight } from 'lucide-react';
+import { RefreshCw, Download, Plus, Trash2, Edit2, Check, X, ChevronRight, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import { formatEuro } from '../components/utils/formatCurrency';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,6 +29,11 @@ export default function Banche() {
   const [uncategorizedExpanded, setUncategorizedExpanded] = useState(false);
   const [expandedSpendingRows, setExpandedSpendingRows] = useState({});
   const [expandedIncomeRows, setExpandedIncomeRows] = useState({});
+  const [balanceExpanded, setBalanceExpanded] = useState(false);
+  const [balanceHidden, setBalanceHidden] = useState(() => {
+    const saved = localStorage.getItem('balance_hidden');
+    return saved === 'true';
+  });
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery({
@@ -441,55 +446,90 @@ export default function Banche() {
         {/* Overview View */}
         {activeView === 'overview' && (
           <div className="space-y-6">
-            {/* Balance Table */}
-            <NeumorphicCard className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-800">Balance</h2>
-                <div className="text-right">
-                  <p className="text-sm text-slate-500">Totale</p>
-                  <p className={`text-2xl font-bold ${
-                    balanceData.reduce((sum, b) => sum + b.balance, 0) >= 0 
-                      ? 'text-green-600' 
-                      : 'text-red-600'
-                  }`}>
-                    {formatEuro(balanceData.reduce((sum, b) => sum + b.balance, 0))}
-                  </p>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200">
-                      <th className="text-left p-3 font-semibold text-slate-700">Account Provider</th>
-                      <th className="text-left p-3 font-semibold text-slate-700">Account Name</th>
-                      <th className="text-right p-3 font-semibold text-slate-700">Balance</th>
-                      <th className="text-left p-3 font-semibold text-slate-700">Last Updated</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {balanceData.length === 0 ? (
-                      <tr>
-                        <td colSpan="4" className="text-center py-8 text-slate-500">
-                          Nessun dato disponibile
-                        </td>
-                      </tr>
+            {/* Balance Table - Collapsible */}
+            <NeumorphicCard className="overflow-hidden">
+              <button
+                onClick={() => setBalanceExpanded(!balanceExpanded)}
+                className="w-full p-6 text-left hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {balanceExpanded ? (
+                      <ChevronDown className="w-5 h-5 text-slate-600" />
                     ) : (
-                      balanceData.map((item, idx) => (
-                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
-                          <td className="p-3 text-slate-700">{item.account_provider}</td>
-                          <td className="p-3 text-slate-700">{item.account_name}</td>
-                          <td className={`p-3 text-right font-medium ${
-                            item.balance >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {formatEuro(item.balance)}
-                          </td>
-                          <td className="p-3 text-slate-700">{item.date}</td>
-                        </tr>
-                      ))
+                      <ChevronRight className="w-5 h-5 text-slate-600" />
                     )}
-                  </tbody>
-                </table>
-              </div>
+                    <h2 className="text-xl font-bold text-slate-800">Balance</h2>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newValue = !balanceHidden;
+                        setBalanceHidden(newValue);
+                        localStorage.setItem('balance_hidden', newValue.toString());
+                      }}
+                      className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                      title={balanceHidden ? "Mostra importo" : "Nascondi importo"}
+                    >
+                      {balanceHidden ? (
+                        <EyeOff className="w-5 h-5 text-slate-600" />
+                      ) : (
+                        <Eye className="w-5 h-5 text-slate-600" />
+                      )}
+                    </button>
+                    <div className="text-right">
+                      <p className="text-sm text-slate-500">Totale</p>
+                      <p className={`text-2xl font-bold ${
+                        balanceData.reduce((sum, b) => sum + b.balance, 0) >= 0 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {balanceHidden ? '•••••' : formatEuro(balanceData.reduce((sum, b) => sum + b.balance, 0))}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              {balanceExpanded && (
+                <div className="p-6 pt-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left p-3 font-semibold text-slate-700">Account Provider</th>
+                          <th className="text-left p-3 font-semibold text-slate-700">Account Name</th>
+                          <th className="text-right p-3 font-semibold text-slate-700">Balance</th>
+                          <th className="text-left p-3 font-semibold text-slate-700">Last Updated</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {balanceData.length === 0 ? (
+                          <tr>
+                            <td colSpan="4" className="text-center py-8 text-slate-500">
+                              Nessun dato disponibile
+                            </td>
+                          </tr>
+                        ) : (
+                          balanceData.map((item, idx) => (
+                            <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                              <td className="p-3 text-slate-700">{item.account_provider}</td>
+                              <td className="p-3 text-slate-700">{item.account_name}</td>
+                              <td className={`p-3 text-right font-medium ${
+                                item.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {balanceHidden ? '•••••' : formatEuro(item.balance)}
+                              </td>
+                              <td className="p-3 text-slate-700">{item.date}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </NeumorphicCard>
 
             {/* Trend Chart */}
