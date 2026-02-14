@@ -29,6 +29,7 @@ export default function KPIs() {
     nome: '',
     metrica: '',
     obiettivo: '',
+    giorni_timeframe: '30',
     direzione: 'maggiore',
     store_id: '',
     attivo: true
@@ -97,6 +98,7 @@ export default function KPIs() {
       nome: '',
       metrica: '',
       obiettivo: '',
+      giorni_timeframe: '30',
       direzione: 'maggiore',
       store_id: '',
       attivo: true
@@ -109,6 +111,7 @@ export default function KPIs() {
       nome: kpi.nome,
       metrica: kpi.metrica,
       obiettivo: kpi.obiettivo,
+      giorni_timeframe: kpi.giorni_timeframe || '30',
       direzione: kpi.direzione,
       store_id: kpi.store_id || '',
       attivo: kpi.attivo
@@ -122,6 +125,7 @@ export default function KPIs() {
     const data = {
       ...formData,
       obiettivo: parseFloat(formData.obiettivo),
+      giorni_timeframe: formData.giorni_timeframe ? parseInt(formData.giorni_timeframe) : 30,
       store_id: formData.store_id || null
     };
 
@@ -341,6 +345,7 @@ export default function KPIs() {
                     <p className="text-xs text-slate-500">
                       {metricLabels[kpi.metrica]}
                       {kpi.store_id && ` - ${stores.find(s => s.id === kpi.store_id)?.name || 'Store'}`}
+                      {kpi.giorni_timeframe && ` (${kpi.giorni_timeframe}gg)`}
                     </p>
                   </div>
                   <div className="flex gap-1">
@@ -444,6 +449,18 @@ export default function KPIs() {
                   value={formData.obiettivo}
                   onChange={(e) => setFormData({ ...formData, obiettivo: e.target.value })}
                 />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-slate-700 mb-2 block">Time Frame (giorni)</label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="es. 30"
+                  value={formData.giorni_timeframe}
+                  onChange={(e) => setFormData({ ...formData, giorni_timeframe: e.target.value })}
+                />
+                <p className="text-xs text-slate-500 mt-1">Numero di giorni in cui raggiungere l'obiettivo</p>
               </div>
 
               <div>

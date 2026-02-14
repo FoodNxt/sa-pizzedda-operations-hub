@@ -122,6 +122,7 @@ import ImportReviews from './pages/ImportReviews';
 import InventarioStoreManager from './pages/InventarioStoreManager';
 import Inventory from './pages/Inventory';
 import InventoryForms from './pages/InventoryForms';
+import KPIs from './pages/KPIs';
 import LettereRichiamo from './pages/LettereRichiamo';
 import Marketing from './pages/Marketing';
 import MarketingSettings from './pages/MarketingSettings';
@@ -180,7 +181,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import KPIs from './pages/KPIs';
 import __Layout from './Layout.jsx';
 
 
@@ -260,6 +260,7 @@ export const PAGES = {
     "InventarioStoreManager": InventarioStoreManager,
     "Inventory": Inventory,
     "InventoryForms": InventoryForms,
+    "KPIs": KPIs,
     "LettereRichiamo": LettereRichiamo,
     "Marketing": Marketing,
     "MarketingSettings": MarketingSettings,
@@ -318,7 +319,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "KPIs": KPIs,
 }
 
 export const pagesConfig = {
