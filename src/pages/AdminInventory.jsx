@@ -1,31 +1,16 @@
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import ProtectedPage from "../components/ProtectedPage";
-import { Settings, ChefHat, Truck, BarChart3, Package } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import ProtectedPage from '../components/ProtectedPage';
+import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
+import { Settings, Package, AlertTriangle, ChefHat, TrendingUp, BarChart3, Truck } from 'lucide-react';
 
-const inventoryAdminPages = [
-  {
-    title: "Preparazioni",
-    page: "PreparazioniAdmin",
-    icon: ChefHat,
-    description: "Gestisci preparazioni e semilavorati",
-    gradient: "from-orange-500 to-red-600"
-  },
-  {
-    title: "Spostamenti",
-    page: "SpostamentiAdmin",
-    icon: Truck,
-    description: "Visualizza spostamenti tra locali",
-    gradient: "from-blue-500 to-indigo-600"
-  },
-  {
-    title: "Controllo Consumi",
-    page: "ControlloConsumi",
-    icon: BarChart3,
-    description: "Analisi consumi e sprechi",
-    gradient: "from-purple-500 to-pink-600"
-  }
+const sectionAdminPages = [
+  { title: 'Analisi Sprechi', page: 'AnalisiSprechi', icon: AlertTriangle, description: 'Configura e monitora sprechi' },
+  { title: 'Ricette', page: 'Ricette', icon: ChefHat, description: 'Gestione ricette e ingredienti' },
+  { title: 'Materie Prime', page: 'MateriePrime', icon: Package, description: 'Catalogo materie prime' },
+  { title: 'Confronto Listini', page: 'ConfrontoListini', icon: BarChart3, description: 'Confronta prezzi fornitori' },
+  { title: 'Ordini Fornitori', page: 'OrdiniAdmin', icon: Truck, description: 'Gestione ordini' },
+  { title: 'Controllo Consumi', page: 'ControlloConsumi', icon: TrendingUp, description: 'Analizza consumi vs vendite' }
 ];
 
 export default function AdminInventory() {
@@ -33,35 +18,33 @@ export default function AdminInventory() {
 
   return (
     <ProtectedPage pageName="AdminInventory">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg">
-              <Settings className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold" style={{ color: '#000000' }}>Admin Inventory</h1>
-              <p className="text-sm text-slate-600">Gestione e configurazione inventario</p>
-            </div>
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+            <Settings className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Admin Inventory</h1>
+            <p className="text-slate-500">Configura e gestisci le impostazioni inventario</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {inventoryAdminPages.map((page) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sectionAdminPages.map((page) => {
             const Icon = page.icon;
             return (
               <NeumorphicCard
                 key={page.page}
-                className="p-6 cursor-pointer hover:shadow-xl transition-all group"
+                className="p-6 cursor-pointer hover:shadow-xl transition-all"
                 onClick={() => navigate(createPageUrl(page.page))}
               >
                 <div className="flex items-start gap-4">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${page.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-7 h-7 text-white" />
+                  <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl">
+                    <Icon className="w-6 h-6 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-slate-800 mb-1">{page.title}</h3>
-                    <p className="text-sm text-slate-600">{page.description}</p>
+                    <h3 className="font-bold text-slate-800 mb-1">{page.title}</h3>
+                    <p className="text-sm text-slate-500">{page.description}</p>
                   </div>
                 </div>
               </NeumorphicCard>
