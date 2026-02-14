@@ -77,7 +77,7 @@ export default function PrecottureAdmin() {
   const { data: precottureForm = [] } = useQuery({
     queryKey: ['precotture-form-storico'],
     queryFn: () => base44.entities.PrecottureForm.list('-created_date', 500),
-    enabled: activeTab === 'storico'
+    enabled: activeTab === 'storico' || activeTab === 'delta-teglie'
   });
 
   const { data: prodottiVenduti = [] } = useQuery({
