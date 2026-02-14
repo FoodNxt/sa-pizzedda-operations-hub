@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { TrendingDown, Calendar, Filter, Download, BarChart3 } from 'lucide-react';
+import { TrendingDown, Calendar, Filter, Download, BarChart3, Upload, Loader2 } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
@@ -15,6 +15,22 @@ export default function Sconti() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [channelFilter, setChannelFilter] = useState('all');
+  const [isImporting, setIsImporting] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const handleImportSconti = async () => {
+    setIsImporting(true);
+    try {
+      const response = await base44.functions.invoke('importScontiFromGoogleSheets', {});
+      alert(`Importazione completata! ${response.data.imported} nuovi sconti importati, ${response.data.skipped} già presenti.`);
+      queryClient.invalidateQueries({ queryKey: ['sconti'] });
+    } catch (error) {
+      alert(`Errore durante l'importazione: ${error.message}`);
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const { data: sconti = [], isLoading } = useQuery({
     queryKey: ['sconti'],
@@ -387,9 +403,28 @@ export default function Sconti() {
   return (
     <ProtectedPage pageName="Sconti">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Analisi Sconti</h1>
-          <p style={{ color: '#000000' }}>Monitora gli sconti applicati agli ordini</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Analisi Sconti</h1>
+            <p style={{ color: '#000000' }}>Monitora gli sconti applicati agli ordini</p>
+          </div>
+          <button
+            onClick={handleImportSconti}
+            disabled={isImporting}
+            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {isImporting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Importazione...
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Importa da Google Sheet
+              </>
+            )}
+          </button>
         </div>
 
         <NeumorphicCard className="p-2">
