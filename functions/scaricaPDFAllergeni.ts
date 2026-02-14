@@ -10,12 +10,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { ricette_ids, logo_url } = await req.json();
+    const { ricette_ids } = await req.json();
 
     // Recupera le ricette selezionate
     const ricette = await base44.asServiceRole.entities.Ricetta.filter({
       id: { $in: ricette_ids }
     });
+    
+    // Recupera config allergeni per il logo
+    const configs = await base44.asServiceRole.entities.AllergeniConfig.filter({
+      is_active: true
+    });
+    const logo_url = configs[0]?.logo_url;
 
     const doc = new jsPDF();
     
@@ -23,9 +29,9 @@ Deno.serve(async (req) => {
     const brandRed = [227, 30, 36];
     const brandBeige = [244, 229, 201];
 
-    // Header con sfondo beige
+    // Header con sfondo beige (ridotto)
     doc.setFillColor(...brandBeige);
-    doc.rect(0, 0, 210, 55, 'F');
+    doc.rect(0, 0, 210, 40, 'F');
     
     // Add logo if provided (posizione alta centrata)
     if (logo_url) {
@@ -41,116 +47,121 @@ Deno.serve(async (req) => {
         }
         const logoBase64 = 'data:image/png;base64,' + btoa(binary);
         
-        doc.addImage(logoBase64, 'PNG', 85, 8, 40, 25, undefined, 'FAST');
+        doc.addImage(logoBase64, 'PNG', 85, 5, 40, 20, undefined, 'FAST');
       } catch (error) {
         console.error('Error loading logo:', error);
       }
     }
     
-    // Titolo "Lista allergeni" in rosso brand
-    doc.setFontSize(26);
+    // Titolo "Lista allergeni" in rosso brand (ridotto)
+    doc.setFontSize(20);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(...brandRed);
-    doc.text('Lista Allergeni', 105, logo_url ? 42 : 25, { align: 'center' });
+    doc.text('Lista Allergeni', 105, logo_url ? 30 : 20, { align: 'center' });
     
-    // Sottotitolo
-    doc.setFontSize(10);
+    // Sottotitolo (ridotto)
+    doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text('Informazioni sugli allergeni presenti nei nostri prodotti', 105, logo_url ? 50 : 33, { align: 'center' });
+    doc.text('Informazioni sugli allergeni presenti nei nostri prodotti', 105, logo_url ? 36 : 26, { align: 'center' });
 
-    // Avviso importante con colori brand
+    // Avviso importante con colori brand (compatto)
     doc.setFillColor(255, 250, 240);
-    doc.roundedRect(15, 60, 180, 23, 4, 4, 'F');
+    doc.roundedRect(15, 42, 180, 18, 3, 3, 'F');
     doc.setDrawColor(...brandRed);
-    doc.setLineWidth(1);
-    doc.roundedRect(15, 60, 180, 23, 4, 4, 'S');
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(...brandRed);
-    doc.text('ATTENZIONE', 20, 67);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(15, 42, 180, 18, 3, 3, 'S');
     
     doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(...brandRed);
+    doc.text('ATTENZIONE', 20, 48);
+    
+    doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(0, 0, 0);
     const avvisoTesto = 'Questo documento contiene informazioni sugli allergeni secondo il Regolamento UE 1169/2011. Per allergici gravi o intolleranze non elencate, contattare il personale prima di ordinare.';
     const avvisoLines = doc.splitTextToSize(avvisoTesto, 170);
-    doc.text(avvisoLines, 20, 74);
+    doc.text(avvisoLines, 20, 54);
 
     // Ordina ricette alfabeticamente
     const ricetteOrdinate = ricette
       .filter(r => r.attivo !== false)
       .sort((a, b) => (a.nome_prodotto || '').localeCompare(b.nome_prodotto || '', 'it'));
 
-    let currentY = 88;
+    let currentY = 64;
     const margin = 15;
     const tableWidth = 180;
 
+    // Calcola layout a 2 colonne per compattezza
+    const itemsPerColumn = Math.ceil(ricetteOrdinate.length / 2);
+    const columnWidth = 88;
+    let columnX = margin;
+    let itemIndex = 0;
+
     ricetteOrdinate.forEach((ricetta, idx) => {
-      // Controlla se serve nuova pagina
-      const allergeniCount = ricetta.allergeni?.length || 0;
-      const allergeniLines = Math.ceil(allergeniCount / 2);
-      const estimatedHeight = 20 + (allergeniLines > 0 ? allergeniLines * 8 : 0);
-      
-      if (currentY + estimatedHeight > 265) {
-        doc.addPage();
-        currentY = 20;
+      // Passa alla seconda colonna dopo metà prodotti
+      if (idx === itemsPerColumn) {
+        columnX = margin + columnWidth + 4;
+        currentY = 64;
       }
       
-      // Box prodotto moderno con sfondo beige e bordo rosso
+      // Box prodotto compatto
+      const boxHeight = 12;
       doc.setFillColor(...brandBeige);
-      doc.roundedRect(margin, currentY, tableWidth, estimatedHeight, 5, 5, 'F');
+      doc.roundedRect(columnX, currentY, columnWidth, boxHeight, 3, 3, 'F');
       
       // Bordo rosso a sinistra (accento design)
       doc.setFillColor(...brandRed);
-      doc.roundedRect(margin, currentY, 4, estimatedHeight, 2, 2, 'F');
+      doc.roundedRect(columnX, currentY, 2, boxHeight, 1, 1, 'F');
 
-      // Nome prodotto - leggibile (minimo 13pt), rosso brand
-      doc.setFontSize(13);
+      // Nome prodotto compatto
+      doc.setFontSize(9);
       doc.setFont(undefined, 'bold');
       doc.setTextColor(...brandRed);
-      doc.text(ricetta.nome_prodotto, margin + 10, currentY + 11);
+      const nomeTruncato = doc.splitTextToSize(ricetta.nome_prodotto, 35);
+      doc.text(nomeTruncato[0], columnX + 4, currentY + 7);
 
-      // Allergeni in box rosati stondati (palette brand)
+      // Allergeni compatti
       if (ricetta.allergeni && ricetta.allergeni.length > 0) {
-        let allergeniY = currentY + 11;
-        let allergeniX = margin + 100;
+        let allergeniX = columnX + 42;
+        const allergeniY = currentY + 7;
         
-        ricetta.allergeni.forEach((allergene) => {
-          // Misura il testo - minimo 11pt per leggibilità
-          doc.setFontSize(10);
+        ricetta.allergeni.slice(0, 3).forEach((allergene, aIdx) => {
+          doc.setFontSize(7);
           doc.setFont(undefined, 'normal');
           const textWidth = doc.getTextWidth(allergene);
-          const boxWidth = textWidth + 8;
-          const boxHeight = 6;
+          const boxWidth = textWidth + 4;
+          const boxHeight = 4;
           
-          // Vai a capo se non c'è spazio
-          if (allergeniX + boxWidth > margin + tableWidth - 5) {
-            allergeniY += 8;
-            allergeniX = margin + 100;
-          }
+          if (allergeniX + boxWidth > columnX + columnWidth - 2) return;
           
-          // Box stondato rosa chiaro
+          // Box mini rosa
           doc.setFillColor(252, 235, 235);
           doc.setDrawColor(...brandRed);
-          doc.setLineWidth(0.4);
-          doc.roundedRect(allergeniX, allergeniY - 4.5, boxWidth, boxHeight, 3, 3, 'FD');
+          doc.setLineWidth(0.3);
+          doc.roundedRect(allergeniX, allergeniY - 3, boxWidth, boxHeight, 2, 2, 'FD');
           
-          // Testo centrato nel box - rosso scuro
           doc.setTextColor(185, 28, 28);
-          doc.text(allergene, allergeniX + 4, allergeniY);
+          doc.text(allergene, allergeniX + 2, allergeniY);
           
-          allergeniX += boxWidth + 3;
+          allergeniX += boxWidth + 2;
         });
+        
+        // Mostra +N se ci sono più allergeni
+        if (ricetta.allergeni.length > 3) {
+          doc.setFontSize(7);
+          doc.setTextColor(120, 120, 120);
+          doc.text('+' + (ricetta.allergeni.length - 3), allergeniX + 1, allergeniY);
+        }
       } else {
-        doc.setFontSize(10);
+        doc.setFontSize(7);
         doc.setFont(undefined, 'italic');
-        doc.setTextColor(120, 120, 120);
-        doc.text('Nessun allergene', margin + 100, currentY + 11);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Nessuno', columnX + 42, currentY + 7);
       }
 
-      currentY += estimatedHeight + 4;
+      currentY += boxHeight + 2;
     });
 
     // Footer con palette brand
