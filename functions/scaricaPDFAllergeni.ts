@@ -49,14 +49,11 @@ Deno.serve(async (req) => {
           console.log('Logo loaded, size:', logoBytes.length, 'bytes');
           
           // Convert to base64
-          let binary = '';
-          for (let i = 0; i < logoBytes.length; i++) {
-            binary += String.fromCharCode(logoBytes[i]);
-          }
-          const logoBase64 = 'data:image/png;base64,' + btoa(binary);
+          const base64String = btoa(String.fromCharCode(...logoBytes));
+          const logoBase64 = 'data:image/png;base64,' + base64String;
           
-          // Aggiungi logo al PDF
-          doc.addImage(logoBase64, 'PNG', 80, 4, 50, 18, 'LOGO', 'FAST');
+          // Aggiungi logo al PDF con dimensioni maggiori
+          doc.addImage(logoBase64, 'PNG', 75, 5, 60, 22);
           logoLoaded = true;
           console.log('Logo added to PDF successfully');
         }
@@ -117,12 +114,12 @@ Deno.serve(async (req) => {
       doc.setFillColor(...brandRed);
       doc.roundedRect(margin, currentY, 2, boxHeight, 1, 1, 'F');
 
-      // Nome prodotto - 12px
-      doc.setFontSize(12);
+      // Nome prodotto - 16px
+      doc.setFontSize(16);
       doc.setFont(undefined, 'bold');
       doc.setTextColor(...brandRed);
       const nomeTruncato = doc.splitTextToSize(ricetta.nome_prodotto, 65);
-      doc.text(nomeTruncato[0], margin + 5, currentY + 7.5);
+      doc.text(nomeTruncato[0], margin + 5, currentY + 8);
 
       // Allergeni - box tondeggianti
       if (ricetta.allergeni && ricetta.allergeni.length > 0) {
@@ -130,27 +127,27 @@ Deno.serve(async (req) => {
         const allergeniY = currentY + 7.5;
         
         ricetta.allergeni.forEach((allergene) => {
-          doc.setFontSize(8);
+          doc.setFontSize(10);
           doc.setFont(undefined, 'normal');
           const textWidth = doc.getTextWidth(allergene);
-          const boxWidth = textWidth + 4;
-          const boxHeight = 5;
+          const boxWidth = textWidth + 5;
+          const boxHeight = 6;
           
           if (allergeniX + boxWidth > margin + tableWidth - 2) return;
           
-          // Box rosa tondeggiante
-          doc.setFillColor(252, 235, 235);
-          doc.setDrawColor(...brandRed);
-          doc.setLineWidth(0.3);
-          doc.roundedRect(allergeniX, allergeniY - 3.5, boxWidth, boxHeight, 2, 2, 'FD');
+          // Box celeste tondeggiante (come screenshot)
+          doc.setFillColor(219, 234, 254);
+          doc.setDrawColor(147, 197, 253);
+          doc.setLineWidth(0.4);
+          doc.roundedRect(allergeniX, allergeniY - 4, boxWidth, boxHeight, 3, 3, 'FD');
           
-          doc.setTextColor(185, 28, 28);
-          doc.text(allergene, allergeniX + 2, allergeniY);
+          doc.setTextColor(30, 64, 175);
+          doc.text(allergene, allergeniX + 2.5, allergeniY);
           
-          allergeniX += boxWidth + 2;
+          allergeniX += boxWidth + 2.5;
         });
       } else {
-        doc.setFontSize(9);
+        doc.setFontSize(11);
         doc.setFont(undefined, 'italic');
         doc.setTextColor(150, 150, 150);
         doc.text('Nessuno', margin + 75, currentY + 7.5);
