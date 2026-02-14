@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ProtectedPage from '../components/ProtectedPage';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
-import { Settings, TrendingUp, DollarSign, Target, FileText, BarChart3 } from 'lucide-react';
+import { Settings, TrendingUp, DollarSign, Target, FileText, BarChart3, GitCompare } from 'lucide-react';
 
 const sectionAdminPages = [
   { title: 'Target', page: 'Target', icon: Target, description: 'Configura target di revenue' },
@@ -10,7 +10,8 @@ const sectionAdminPages = [
   { title: 'Costi', page: 'Costi', icon: DollarSign, description: 'Gestione costi operativi' },
   { title: 'Food Cost', page: 'FoodCost', icon: TrendingUp, description: 'Analisi food cost' },
   { title: 'Sconti', page: 'Sconti', icon: TrendingUp, description: 'Gestione sconti' },
-  { title: 'Banche', page: 'Banche', icon: DollarSign, description: 'Transazioni bancarie' }
+  { title: 'Banche', page: 'Banche', icon: DollarSign, description: 'Transazioni bancarie' },
+  { title: 'Confronto Canali', page: 'ChannelComparison', icon: GitCompare, description: 'Confronta performance tra canali' }
 ];
 
 export default function AdminFinancials() {
