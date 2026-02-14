@@ -288,6 +288,9 @@ export default function OrdiniAdmin() {
       const product = products.find((p) => p.id === reading.prodotto_id);
       if (!product) return;
 
+      // Escludi prodotti non attivi
+      if (product.attivo === false) return;
+
       const store = stores.find((s) => s.id === reading.store_id);
       if (!store) return;
 
@@ -344,6 +347,9 @@ export default function OrdiniAdmin() {
       
       const product = products.find((p) => p.id === prodottoId);
       if (!product) return;
+
+      // Escludi prodotti non attivi
+      if (product.attivo === false) return;
 
       const store = stores.find((s) => s.id === storeId);
       if (!store) return;
@@ -551,8 +557,11 @@ export default function OrdiniAdmin() {
   const openOrderEditor = (storeName, storeId, supplierName, orders) => {
     const fornitore = getFornitoreByName(supplierName);
 
-    // Filter out products that already have a pending order OR arrived today
+    // Filter out products that already have a pending order OR arrived today OR are inactive
     const prodottiSenzaOrdineInCorso = orders.filter((order) => {
+      // Escludi prodotti non attivi
+      if (order.product.attivo === false) return false;
+
       const hasPendingOrder = ordiniInviati.some((o) =>
       o.store_id === storeId &&
       o.prodotti.some((p) => p.prodotto_id === order.product.id)
@@ -2103,6 +2112,7 @@ Sa Pizzedda`,
                       // Get available products from this supplier
                       const prodottiDisponibili = products.filter((p) =>
                       p.fornitore === editingOrder.fornitore &&
+                      p.attivo !== false &&
                       !editingOrder.prodotti.some((ep) => ep.prodotto_id === p.id)
                       );
 
@@ -2831,6 +2841,7 @@ Sa Pizzedda`,
                       // Get available products from this supplier
                       const prodottiDisponibili = products.filter((p) =>
                       p.fornitore === customizingEmail.supplierName &&
+                      p.attivo !== false &&
                       !emailTemplate.prodotti.some((ep) => ep.prodotto_id === p.id)
                       );
 
@@ -3112,7 +3123,7 @@ Sa Pizzedda`,
 
                     <option value="">Seleziona un prodotto</option>
                     {products.
-                  filter((p) => !regoleOrdini.some((r) => r.prodotto_id === p.id && r.id !== editingRegola.id)).
+                  filter((p) => p.attivo !== false && !regoleOrdini.some((r) => r.prodotto_id === p.id && r.id !== editingRegola.id)).
                   sort((a, b) => a.nome_prodotto.localeCompare(b.nome_prodotto)).
                   map((prod) =>
                   <option key={prod.id} value={prod.id}>{prod.nome_prodotto}</option>
@@ -3467,23 +3478,24 @@ Sa Pizzedda`,
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-bold text-slate-800">Prodotti</h3>
                     <NeumorphicButton
-                      onClick={() => {
-                        const prodottiDisponibili = products.filter((p) =>
-                          p.fornitore === editingInviatoOrder.fornitore &&
-                          !editingInviatoOrder.prodotti.some((ep) => ep.prodotto_id === p.id)
-                        );
+                    onClick={() => {
+                      const prodottiDisponibili = products.filter((p) =>
+                        p.fornitore === editingInviatoOrder.fornitore &&
+                        p.attivo !== false &&
+                        !editingInviatoOrder.prodotti.some((ep) => ep.prodotto_id === p.id)
+                      );
 
-                        if (prodottiDisponibili.length === 0) {
-                          alert('Nessun altro prodotto disponibile per questo fornitore');
-                          return;
-                        }
+                      if (prodottiDisponibili.length === 0) {
+                        alert('Nessun altro prodotto disponibile per questo fornitore');
+                        return;
+                      }
 
-                        setAddProductModal({
-                          open: true,
-                          availableProducts: prodottiDisponibili
-                        });
-                      }}
-                      className="flex items-center gap-2 text-sm">
+                      setAddProductModal({
+                        open: true,
+                        availableProducts: prodottiDisponibili
+                      });
+                    }}
+                    className="flex items-center gap-2 text-sm">
                       <Plus className="w-4 h-4" />
                       Aggiungi Prodotto
                     </NeumorphicButton>
