@@ -101,6 +101,8 @@ export default function MateriePrime() {
   const [allergeniProgress, setAllergeniProgress] = useState({ current: 0, total: 0 });
   const [selectedRicette, setSelectedRicette] = useState([]);
   const [editingAllergeni, setEditingAllergeni] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [showLogoConfig, setShowLogoConfig] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -132,6 +134,12 @@ export default function MateriePrime() {
     queryKey: ['ricette'],
     queryFn: () => base44.entities.Ricetta.list(),
     staleTime: 5 * 60 * 1000,
+    enabled: activeTab === 'allergeni'
+  });
+
+  const { data: allergeniConfigs = [] } = useQuery({
+    queryKey: ['allergeni-config'],
+    queryFn: () => base44.entities.AllergeniConfig.list(),
     enabled: activeTab === 'allergeni'
   });
 
@@ -428,8 +436,10 @@ export default function MateriePrime() {
     }
 
     try {
+      const activeConfig = allergeniConfigs.find(c => c.is_active);
       const response = await base44.functions.invoke('scaricaPDFAllergeni', {
-        ricette_ids: selectedRicette
+        ricette_ids: selectedRicette,
+        logo_url: activeConfig?.logo_url || null
       });
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -469,6 +479,20 @@ export default function MateriePrime() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ricette'] });
       setEditingAllergeni(null);
+    }
+  });
+
+  const saveLogoMutation = useMutation({
+    mutationFn: (logoUrl) => {
+      const activeConfig = allergeniConfigs.find(c => c.is_active);
+      if (activeConfig) {
+        return base44.entities.AllergeniConfig.update(activeConfig.id, { logo_url: logoUrl });
+      }
+      return base44.entities.AllergeniConfig.create({ logo_url: logoUrl, is_active: true });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allergeni-config'] });
+      setShowLogoConfig(false);
     }
   });
 
@@ -591,7 +615,44 @@ export default function MateriePrime() {
         {activeTab === 'ricette' && <RicetteContent />}
         {activeTab === 'fornitori' && <FornitoriContent />}
         {activeTab === 'allergeni' && (
-          <NeumorphicCard className="p-4 lg:p-6">
+          <>
+            {/* Logo Configuration Card */}
+            <NeumorphicCard className="p-4 lg:p-6 bg-blue-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Logo Aziendale</h3>
+                  <p className="text-xs text-slate-600 mt-1">Logo da includere nel PDF allergeni</p>
+                </div>
+                {(() => {
+                  const activeConfig = allergeniConfigs.find(c => c.is_active);
+                  return activeConfig?.logo_url ? (
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={activeConfig.logo_url} 
+                        alt="Logo" 
+                        className="h-12 object-contain rounded"
+                      />
+                      <button
+                        onClick={() => setShowLogoConfig(true)}
+                        className="p-2 rounded-lg hover:bg-blue-100 text-blue-600"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <NeumorphicButton
+                      onClick={() => setShowLogoConfig(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Carica Logo
+                    </NeumorphicButton>
+                  );
+                })()}
+              </div>
+            </NeumorphicCard>
+
+            <NeumorphicCard className="p-4 lg:p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -680,64 +741,64 @@ export default function MateriePrime() {
                             </span>
                           </td>
                           <td className="p-3">
-                            {editingAllergeni?.id === ricetta.id ? (
-                              <div className="space-y-2">
-                                <div className="flex flex-wrap gap-1">
-                                  {['Glutine', 'Crostacei', 'Uova', 'Pesce', 'Arachidi', 'Soia', 'Latte', 'Frutta a guscio', 'Sedano', 'Senape', 'Semi di sesamo', 'Anidride solforosa', 'Lupini', 'Molluschi'].map(allergene => (
-                                    <button
-                                      key={allergene}
-                                      type="button"
-                                      onClick={() => {
-                                        const current = editingAllergeni.allergeni || [];
-                                        const updated = current.includes(allergene)
-                                          ? current.filter(a => a !== allergene)
-                                          : [...current, allergene];
-                                        setEditingAllergeni({ ...editingAllergeni, allergeni: updated });
-                                      }}
-                                      className={`px-2 py-1 rounded-full text-xs font-medium transition-all ${
-                                        (editingAllergeni.allergeni || []).includes(allergene)
-                                          ? 'bg-red-500 text-white'
-                                          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                                      }`}
-                                    >
-                                      {allergene}
-                                    </button>
-                                  ))}
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => {
-                                      saveAllergeniMutation.mutate({
-                                        ricettaId: ricetta.id,
-                                        allergeni: editingAllergeni.allergeni
-                                      });
-                                    }}
-                                    disabled={saveAllergeniMutation.isPending}
-                                    className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 flex items-center gap-1"
-                                  >
-                                    <Save className="w-3 h-3" /> Salva
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingAllergeni(null)}
-                                    className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-300"
-                                  >
-                                    Annulla
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              ricetta.allergeni && ricetta.allergeni.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                  {ricetta.allergeni.map((allergene, idx) => (
-                                    <span key={idx} className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                                      {allergene}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-xs text-slate-400 italic">Nessun allergene specificato</span>
-                              )
-                            )}
+                           {editingAllergeni?.id === ricetta.id ? (
+                             <div className="space-y-2">
+                               <div className="flex flex-wrap gap-2">
+                                 {['Glutine', 'Crostacei', 'Uova', 'Pesce', 'Arachidi', 'Soia', 'Latte', 'Frutta a guscio', 'Sedano', 'Senape', 'Semi di sesamo', 'Anidride solforosa', 'Lupini', 'Molluschi'].map(allergene => (
+                                   <button
+                                     key={allergene}
+                                     type="button"
+                                     onClick={() => {
+                                       const current = editingAllergeni.allergeni || [];
+                                       const updated = current.includes(allergene)
+                                         ? current.filter(a => a !== allergene)
+                                         : [...current, allergene];
+                                       setEditingAllergeni({ ...editingAllergeni, allergeni: updated });
+                                     }}
+                                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                                       (editingAllergeni.allergeni || []).includes(allergene)
+                                         ? 'bg-blue-500 text-white shadow-md'
+                                         : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                                     }`}
+                                   >
+                                     {allergene}
+                                   </button>
+                                 ))}
+                               </div>
+                               <div className="flex gap-2">
+                                 <button
+                                   onClick={() => {
+                                     saveAllergeniMutation.mutate({
+                                       ricettaId: ricetta.id,
+                                       allergeni: editingAllergeni.allergeni
+                                     });
+                                   }}
+                                   disabled={saveAllergeniMutation.isPending}
+                                   className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 flex items-center gap-1"
+                                 >
+                                   <Save className="w-3 h-3" /> Salva
+                                 </button>
+                                 <button
+                                   onClick={() => setEditingAllergeni(null)}
+                                   className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-300"
+                                 >
+                                   Annulla
+                                 </button>
+                               </div>
+                             </div>
+                           ) : (
+                             ricetta.allergeni && ricetta.allergeni.length > 0 ? (
+                               <div className="flex flex-wrap gap-2">
+                                 {ricetta.allergeni.map((allergene, idx) => (
+                                   <span key={idx} className="px-3 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200">
+                                     {allergene}
+                                   </span>
+                                 ))}
+                               </div>
+                             ) : (
+                               <span className="text-xs text-slate-400 italic">Nessun allergene specificato</span>
+                             )
+                           )}
                           </td>
                           <td className="p-3">
                             <div className="flex flex-col items-center gap-1">
@@ -773,6 +834,72 @@ export default function MateriePrime() {
               </div>
             )}
           </NeumorphicCard>
+
+          {/* Logo Upload Modal */}
+          {showLogoConfig && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <NeumorphicCard className="max-w-md w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-slate-800">Carica Logo</h2>
+                  <button onClick={() => setShowLogoConfig(false)} className="p-2 rounded-lg hover:bg-slate-100">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {(() => {
+                    const activeConfig = allergeniConfigs.find(c => c.is_active);
+                    return activeConfig?.logo_url && (
+                      <div className="relative">
+                        <img 
+                          src={activeConfig.logo_url} 
+                          alt="Logo attuale" 
+                          className="w-full h-32 object-contain rounded-xl bg-slate-50 p-4"
+                        />
+                        <button
+                          onClick={() => saveLogoMutation.mutate(null)}
+                          className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  <label className="neumorphic-pressed p-4 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-blue-50 transition-colors">
+                    <Upload className="w-8 h-8 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-600">
+                      {uploadingLogo ? 'Caricamento...' : 'Seleziona Logo'}
+                    </span>
+                    <p className="text-xs text-slate-500 text-center">
+                      Formato consigliato: PNG o JPG con sfondo trasparente
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setUploadingLogo(true);
+                          try {
+                            const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                            saveLogoMutation.mutate(file_url);
+                          } catch (error) {
+                            alert('Errore nel caricamento: ' + error.message);
+                          } finally {
+                            setUploadingLogo(false);
+                          }
+                        }
+                      }}
+                      disabled={uploadingLogo}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </NeumorphicCard>
+            </div>
+          )}
+          </>
         )}
 
         {activeTab === 'materie_prime' && (

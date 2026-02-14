@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { ricette_ids } = await req.json();
+    const { ricette_ids, logo_url } = await req.json();
 
     // Recupera le ricette selezionate
     const ricette = await base44.asServiceRole.entities.Ricetta.filter({
@@ -45,10 +45,26 @@ Deno.serve(async (req) => {
     doc.setFillColor(...brandRed);
     doc.rect(0, 0, 210, 40, 'F');
     
+    // Add logo if provided
+    if (logo_url) {
+      try {
+        const logoResponse = await fetch(logo_url);
+        const logoBlob = await logoResponse.blob();
+        const logoBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(logoBlob);
+        });
+        doc.addImage(logoBase64, 'PNG', 15, 10, 30, 20, undefined, 'FAST');
+      } catch (error) {
+        console.error('Error loading logo:', error);
+      }
+    }
+    
     doc.setFontSize(24);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(255, 255, 255);
-    doc.text('ALLERGENI', 105, 20, { align: 'center' });
+    doc.text('ALLERGENI', logo_url ? 125 : 105, 20, { align: 'center' });
     
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
