@@ -104,6 +104,11 @@ export default function KPIs() {
     queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 500)
   });
 
+  const { data: turni = [] } = useQuery({
+    queryKey: ['turni-planday'],
+    queryFn: () => base44.entities.TurnoPlanday.list()
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.KPI.create(data),
     onSuccess: () => {
@@ -222,17 +227,31 @@ export default function KPIs() {
       }
 
       case 'produttivita_oraria': {
-        const filtered = produttivitaData.filter(p => {
-          if (!p.date) return false;
-          const prodDate = new Date(p.date);
-          const inRange = prodDate >= startDate && prodDate <= endDate;
-          const inStore = !storeFilter || p.store_id === storeFilter;
+        const filteredData = iPraticoData.filter(d => {
+          if (!d.order_date) return false;
+          const orderDate = new Date(d.order_date);
+          const inRange = orderDate >= startDate && orderDate <= endDate;
+          const inStore = !storeFilter || d.store_id === storeFilter;
           return inRange && inStore;
         });
-        if (filtered.length === 0) return 0;
-        const totalRevenue = filtered.reduce((sum, p) => sum + (p.total_revenue || 0), 0);
-        const totalHours = filtered.length * 12; // 12h per day approx
-        return (totalRevenue / totalHours).toFixed(2);
+        const totalRevenue = filteredData.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
+        
+        const storeTurni = turni.filter(t => {
+          if (!t.timbratura_entrata || !t.timbratura_uscita) return false;
+          if (!t.data) return false;
+          const shiftDate = new Date(t.data);
+          const inRange = shiftDate >= startDate && shiftDate <= endDate;
+          const inStore = !storeFilter || t.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        
+        const totalHours = storeTurni.reduce((sum, t) => {
+          const entrata = new Date(t.timbratura_entrata);
+          const uscita = new Date(t.timbratura_uscita);
+          return sum + (uscita - entrata) / (1000 * 60 * 60);
+        }, 0);
+        
+        return totalHours > 0 ? (totalRevenue / totalHours).toFixed(2) : 0;
       }
 
       case 'revenue_giornaliero': {
