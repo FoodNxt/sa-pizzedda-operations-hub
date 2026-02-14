@@ -321,10 +321,27 @@ export default function Financials() {
       if (!item.order_date) return;
       const date = item.order_date;
       if (!revenueByDate[date]) {
-        revenueByDate[date] = { date, revenue: 0, orders: 0 };
+        revenueByDate[date] = { date, revenue: 0, orders: 0, storeRevenue: 0, deliveryRevenue: 0 };
       }
       revenueByDate[date].revenue += item.total_revenue || 0;
       revenueByDate[date].orders += item.total_orders || 0;
+      
+      // Calculate store and delivery revenue for % in Store
+      const channels = [
+        { key: 'delivery', revenue: item.sourceType_delivery || 0 },
+        { key: 'takeaway', revenue: item.sourceType_takeaway || 0 },
+        { key: 'takeawayOnSite', revenue: item.sourceType_takeawayOnSite || 0 },
+        { key: 'store', revenue: item.sourceType_store || 0 }
+      ];
+      
+      channels.forEach((ch) => {
+        const mappedKey = channelMapping[ch.key] || ch.key;
+        if (mappedKey.toLowerCase() === 'store') {
+          revenueByDate[date].storeRevenue += ch.revenue;
+        } else if (mappedKey.toLowerCase() === 'delivery') {
+          revenueByDate[date].deliveryRevenue += ch.revenue;
+        }
+      });
     });
 
     // Aggregate based on view type
@@ -337,13 +354,18 @@ export default function Financials() {
         })).
         filter((d) => d.parsedDate !== null).
         sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime()).
-        map((d) => ({
-          date: safeFormatDate(d.parsedDate, 'dd/MM'),
-          parsedDate: d.parsedDate,
-          revenue: parseFloat(d.revenue.toFixed(2)),
-          orders: d.orders,
-          avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0
-        })).
+        map((d) => {
+          const totalChannelRevenue = d.storeRevenue + d.deliveryRevenue;
+          const percentInStore = totalChannelRevenue > 0 ? (d.storeRevenue / totalChannelRevenue) * 100 : 0;
+          return {
+            date: safeFormatDate(d.parsedDate, 'dd/MM'),
+            parsedDate: d.parsedDate,
+            revenue: parseFloat(d.revenue.toFixed(2)),
+            orders: d.orders,
+            avgValue: d.orders > 0 ? parseFloat((d.revenue / d.orders).toFixed(2)) : 0,
+            percentInStore: parseFloat(percentInStore.toFixed(2))
+          };
+        }).
         filter((d) => d.date !== 'N/A');
     } else if (trendView === 'weekly') {
       const weeklyMap = {};
@@ -359,20 +381,27 @@ export default function Financials() {
         
         const weekKey = format(weekStart, 'dd/MM');
         if (!weeklyMap[weekKey]) {
-          weeklyMap[weekKey] = { revenue: 0, orders: 0, parsedDate: weekStart };
+          weeklyMap[weekKey] = { revenue: 0, orders: 0, storeRevenue: 0, deliveryRevenue: 0, parsedDate: weekStart };
         }
         weeklyMap[weekKey].revenue += d.revenue;
         weeklyMap[weekKey].orders += d.orders;
+        weeklyMap[weekKey].storeRevenue += d.storeRevenue;
+        weeklyMap[weekKey].deliveryRevenue += d.deliveryRevenue;
       });
       
       aggregatedData = Object.entries(weeklyMap).
-        map(([weekKey, data]) => ({
-          date: weekKey,
-          revenue: parseFloat(data.revenue.toFixed(2)),
-          orders: data.orders,
-          avgValue: data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0,
-          parsedDate: data.parsedDate
-        })).
+        map(([weekKey, data]) => {
+          const totalChannelRevenue = data.storeRevenue + data.deliveryRevenue;
+          const percentInStore = totalChannelRevenue > 0 ? (data.storeRevenue / totalChannelRevenue) * 100 : 0;
+          return {
+            date: weekKey,
+            revenue: parseFloat(data.revenue.toFixed(2)),
+            orders: data.orders,
+            avgValue: data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0,
+            percentInStore: parseFloat(percentInStore.toFixed(2)),
+            parsedDate: data.parsedDate
+          };
+        }).
         sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
     } else if (trendView === 'monthly') {
       const monthlyMap = {};
@@ -382,20 +411,27 @@ export default function Financials() {
         
         const monthKey = format(date, 'MMM yyyy', { locale: it });
         if (!monthlyMap[monthKey]) {
-          monthlyMap[monthKey] = { revenue: 0, orders: 0, parsedDate: date };
+          monthlyMap[monthKey] = { revenue: 0, orders: 0, storeRevenue: 0, deliveryRevenue: 0, parsedDate: date };
         }
         monthlyMap[monthKey].revenue += d.revenue;
         monthlyMap[monthKey].orders += d.orders;
+        monthlyMap[monthKey].storeRevenue += d.storeRevenue;
+        monthlyMap[monthKey].deliveryRevenue += d.deliveryRevenue;
       });
       
       aggregatedData = Object.entries(monthlyMap).
-        map(([monthKey, data]) => ({
-          date: monthKey,
-          parsedDate: data.parsedDate,
-          revenue: parseFloat(data.revenue.toFixed(2)),
-          orders: data.orders,
-          avgValue: data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0
-        })).
+        map(([monthKey, data]) => {
+          const totalChannelRevenue = data.storeRevenue + data.deliveryRevenue;
+          const percentInStore = totalChannelRevenue > 0 ? (data.storeRevenue / totalChannelRevenue) * 100 : 0;
+          return {
+            date: monthKey,
+            parsedDate: data.parsedDate,
+            revenue: parseFloat(data.revenue.toFixed(2)),
+            orders: data.orders,
+            avgValue: data.orders > 0 ? parseFloat((data.revenue / data.orders).toFixed(2)) : 0,
+            percentInStore: parseFloat(percentInStore.toFixed(2))
+          };
+        }).
         sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
     }
 
@@ -2942,6 +2978,15 @@ export default function Financials() {
                         connectNulls />
 
                       }
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="percentInStore"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        name="% in Store"
+                        dot={{ fill: '#f59e0b', r: 2 }} />
+
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
