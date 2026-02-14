@@ -31,65 +31,79 @@ Deno.serve(async (req) => {
 
     // Header con sfondo beige (ridotto)
     doc.setFillColor(...brandBeige);
-    doc.rect(0, 0, 210, 40, 'F');
+    doc.rect(0, 0, 210, 35, 'F');
     
-    // Add logo if provided (posizione alta centrata)
+    // Add logo if provided (posizione alta centrata) - SEMPRE VISIBILE
+    let logoLoaded = false;
     if (logo_url) {
       try {
+        console.log('Loading logo from:', logo_url);
         const logoResponse = await fetch(logo_url);
-        const logoArrayBuffer = await logoResponse.arrayBuffer();
-        const logoUint8Array = new Uint8Array(logoArrayBuffer);
         
-        // Convert to base64
-        let binary = '';
-        for (let i = 0; i < logoUint8Array.length; i++) {
-          binary += String.fromCharCode(logoUint8Array[i]);
+        if (!logoResponse.ok) {
+          console.error('Logo fetch failed:', logoResponse.status, logoResponse.statusText);
+        } else {
+          const logoArrayBuffer = await logoResponse.arrayBuffer();
+          const logoBytes = new Uint8Array(logoArrayBuffer);
+          
+          console.log('Logo loaded, size:', logoBytes.length, 'bytes');
+          
+          // Convert to base64
+          let binary = '';
+          for (let i = 0; i < logoBytes.length; i++) {
+            binary += String.fromCharCode(logoBytes[i]);
+          }
+          const logoBase64 = 'data:image/png;base64,' + btoa(binary);
+          
+          // Aggiungi logo al PDF
+          doc.addImage(logoBase64, 'PNG', 80, 4, 50, 18, 'LOGO', 'FAST');
+          logoLoaded = true;
+          console.log('Logo added to PDF successfully');
         }
-        const logoBase64 = 'data:image/png;base64,' + btoa(binary);
-        
-        doc.addImage(logoBase64, 'PNG', 85, 5, 40, 20, undefined, 'FAST');
       } catch (error) {
-        console.error('Error loading logo:', error);
+        console.error('Error loading logo:', error.message);
       }
+    } else {
+      console.log('No logo_url provided');
     }
     
     // Titolo "Lista allergeni" in rosso brand (ridotto)
-    doc.setFontSize(20);
+    doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(...brandRed);
-    doc.text('Lista Allergeni', 105, logo_url ? 30 : 20, { align: 'center' });
+    doc.text('Lista Allergeni', 105, logoLoaded ? 27 : 18, { align: 'center' });
     
     // Sottotitolo (ridotto)
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text('Informazioni sugli allergeni presenti nei nostri prodotti', 105, logo_url ? 36 : 26, { align: 'center' });
+    doc.text('Informazioni sugli allergeni presenti nei nostri prodotti', 105, logoLoaded ? 32 : 24, { align: 'center' });
 
-    // Avviso importante con colori brand (compatto)
+    // Avviso importante con colori brand (ultra-compatto)
     doc.setFillColor(255, 250, 240);
-    doc.roundedRect(15, 42, 180, 18, 3, 3, 'F');
+    doc.roundedRect(15, 38, 180, 14, 2, 2, 'F');
     doc.setDrawColor(...brandRed);
-    doc.setLineWidth(0.8);
-    doc.roundedRect(15, 42, 180, 18, 3, 3, 'S');
-    
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(...brandRed);
-    doc.text('ATTENZIONE', 20, 48);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(15, 38, 180, 14, 2, 2, 'S');
     
     doc.setFontSize(8);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(...brandRed);
+    doc.text('ATTENZIONE', 18, 43);
+    
+    doc.setFontSize(6.5);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(0, 0, 0);
-    const avvisoTesto = 'Questo documento contiene informazioni sugli allergeni secondo il Regolamento UE 1169/2011. Per allergici gravi o intolleranze non elencate, contattare il personale prima di ordinare.';
+    const avvisoTesto = 'Per allergici gravi o intolleranze non elencate, contattare il personale prima di ordinare. Reg. UE 1169/2011.';
     const avvisoLines = doc.splitTextToSize(avvisoTesto, 170);
-    doc.text(avvisoLines, 20, 54);
+    doc.text(avvisoLines, 18, 48);
 
     // Ordina ricette alfabeticamente
     const ricetteOrdinate = ricette
       .filter(r => r.attivo !== false)
       .sort((a, b) => (a.nome_prodotto || '').localeCompare(b.nome_prodotto || '', 'it'));
 
-    let currentY = 64;
+    let currentY = 56;
     const margin = 15;
     const tableWidth = 180;
 
@@ -103,7 +117,7 @@ Deno.serve(async (req) => {
       // Passa alla seconda colonna dopo metà prodotti
       if (idx === itemsPerColumn) {
         columnX = margin + columnWidth + 4;
-        currentY = 64;
+        currentY = 56;
       }
       
       // Design semplificato - solo linea separatrice
