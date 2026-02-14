@@ -11,6 +11,7 @@ export default function ConfrontoListini() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [downloadCategories, setDownloadCategories] = useState([]);
+  const [downloadFornitori, setDownloadFornitori] = useState([]);
 
   const { data: materiePrime = [], isLoading } = useQuery({
     queryKey: ['materie-prime'],
@@ -196,6 +197,7 @@ export default function ConfrontoListini() {
     const prodottiDaEsportare = materiePrime.filter(p => {
       if (!p.attivo) return false;
       if (downloadCategories.length > 0 && !downloadCategories.includes(p.categoria)) return false;
+      if (downloadFornitori.length > 0 && !downloadFornitori.includes(p.fornitore)) return false;
       return true;
     });
 
@@ -223,12 +225,16 @@ export default function ConfrontoListini() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `listino_${downloadCategories.length > 0 ? downloadCategories.join('_') : 'completo'}_${new Date().toISOString().split('T')[0]}.csv`;
+    const filters = [];
+    if (downloadCategories.length > 0) filters.push(downloadCategories.join('_'));
+    if (downloadFornitori.length > 0) filters.push(downloadFornitori.join('_'));
+    link.download = `listino_${filters.length > 0 ? filters.join('_') : 'completo'}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
 
     setShowDownloadModal(false);
     setDownloadCategories([]);
+    setDownloadFornitori([]);
   };
 
   const toggleCategory = (category) => {
@@ -236,6 +242,14 @@ export default function ConfrontoListini() {
       prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
     );
   };
+
+  const toggleFornitore = (fornitore) => {
+    setDownloadFornitori(prev => 
+      prev.includes(fornitore) ? prev.filter(f => f !== fornitore) : [...prev, fornitore]
+    );
+  };
+
+  const allFornitori = [...new Set(materiePrime.map(p => p.fornitore).filter(Boolean))].sort();
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -585,44 +599,78 @@ export default function ConfrontoListini() {
           <NeumorphicCard className="max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-slate-800">Scarica Listino</h2>
-              <button onClick={() => {setShowDownloadModal(false); setDownloadCategories([]);}} className="nav-button p-2 rounded-lg">
+              <button onClick={() => {setShowDownloadModal(false); setDownloadCategories([]); setDownloadFornitori([]);}} className="nav-button p-2 rounded-lg">
                 <X className="w-5 h-5 text-slate-600" />
               </button>
             </div>
 
-            <div className="mb-4">
-              <p className="text-sm text-slate-700 mb-3">Seleziona categorie da includere:</p>
-              
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                <button
-                  onClick={() => setDownloadCategories(downloadCategories.length === allCategories.length ? [] : allCategories)}
-                  className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors">
-                  {downloadCategories.length === allCategories.length ? '✓ Deseleziona Tutto' : '☐ Seleziona Tutto'}
-                </button>
-                {allCategories.map(cat => (
+            <div className="space-y-4 mb-4 max-h-[60vh] overflow-y-auto">
+              {/* Categorie */}
+              <div>
+                <p className="text-sm font-bold text-slate-700 mb-3">Categorie:</p>
+                
+                <div className="space-y-2">
                   <button
-                    key={cat}
-                    onClick={() => toggleCategory(cat)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
-                      downloadCategories.includes(cat) 
-                        ? 'bg-blue-100 text-blue-700 font-medium' 
-                        : 'text-slate-700 hover:bg-slate-100'
-                    }`}>
-                    {downloadCategories.includes(cat) ? '✓' : '☐'} {cat}
+                    onClick={() => setDownloadCategories(downloadCategories.length === allCategories.length ? [] : allCategories)}
+                    className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors">
+                    {downloadCategories.length === allCategories.length ? '✓ Deseleziona Tutto' : '☐ Seleziona Tutto'}
                   </button>
-                ))}
+                  {allCategories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => toggleCategory(cat)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
+                        downloadCategories.includes(cat) 
+                          ? 'bg-blue-100 text-blue-700 font-medium' 
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}>
+                      {downloadCategories.includes(cat) ? '✓' : '☐'} {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {downloadCategories.length === 0 && (
+                  <p className="text-xs text-blue-600 mt-2 bg-blue-50 p-2 rounded-lg">
+                    Nessuna categoria = tutte
+                  </p>
+                )}
               </div>
 
-              {downloadCategories.length === 0 && (
-                <p className="text-xs text-blue-600 mt-3 bg-blue-50 p-2 rounded-lg">
-                  Nessuna categoria selezionata = tutte le categorie
-                </p>
-              )}
+              {/* Fornitori */}
+              <div>
+                <p className="text-sm font-bold text-slate-700 mb-3">Fornitori:</p>
+                
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setDownloadFornitori(downloadFornitori.length === allFornitori.length ? [] : allFornitori)}
+                    className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-green-600 hover:bg-green-50 transition-colors">
+                    {downloadFornitori.length === allFornitori.length ? '✓ Deseleziona Tutto' : '☐ Seleziona Tutto'}
+                  </button>
+                  {allFornitori.map(fornitore => (
+                    <button
+                      key={fornitore}
+                      onClick={() => toggleFornitore(fornitore)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
+                        downloadFornitori.includes(fornitore) 
+                          ? 'bg-green-100 text-green-700 font-medium' 
+                          : 'text-slate-700 hover:bg-slate-100'
+                      }`}>
+                      {downloadFornitori.includes(fornitore) ? '✓' : '☐'} {fornitore}
+                    </button>
+                  ))}
+                </div>
+
+                {downloadFornitori.length === 0 && (
+                  <p className="text-xs text-green-600 mt-2 bg-green-50 p-2 rounded-lg">
+                    Nessun fornitore = tutti
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3">
               <button
-                onClick={() => {setShowDownloadModal(false); setDownloadCategories([]);}}
+                onClick={() => {setShowDownloadModal(false); setDownloadCategories([]); setDownloadFornitori([]);}}
                 className="flex-1 neumorphic-flat px-4 py-3 rounded-xl text-slate-700 font-medium hover:bg-slate-100 transition-colors">
                 Annulla
               </button>
