@@ -23,7 +23,13 @@ const metricLabels = {
   food_cost_medio: 'Food Cost % (reale vs ricette)',
   sconto_percentuale: 'Sconto % su Gross Sales',
   sprechi_valore: 'Sprechi (€)',
-  review_tendenza: 'Trend Recensioni (% crescita)'
+  review_tendenza: 'Trend Recensioni (% crescita)',
+  percentuale_store_revenue: '% Revenue Store (su totale)',
+  ordini_sbagliati_numero: 'Numero Ordini Sbagliati',
+  percentuale_ordini_corretti: '% Ordini Corretti',
+  score_pulizie_medio: 'Score Pulizie Medio',
+  revenue_totale: 'Revenue Totale',
+  numero_sprechi_rilevazioni: 'N. Rilevazioni Sprechi'
 };
 
 export default function KPIs() {
@@ -86,6 +92,16 @@ export default function KPIs() {
       const allOrdini = await base44.entities.OrdineFornitore.list();
       return allOrdini.filter((o) => o.status === 'completato');
     }
+  });
+
+  const { data: wrongOrders = [] } = useQuery({
+    queryKey: ['wrong-orders'],
+    queryFn: () => base44.entities.WrongOrder.list()
+  });
+
+  const { data: cleaningInspections = [] } = useQuery({
+    queryKey: ['cleaning-inspections'],
+    queryFn: () => base44.entities.CleaningInspection.list('-inspection_date', 500)
   });
 
   const createMutation = useMutation({
@@ -369,6 +385,88 @@ export default function KPIs() {
         const secondAvg = secondHalf.reduce((sum, r) => sum + r.rating, 0) / secondHalf.length;
         const growth = ((secondAvg - firstAvg) / firstAvg) * 100;
         return growth.toFixed(2);
+      }
+
+      case 'percentuale_store_revenue': {
+        if (!storeFilter) return 0; // Metrica sensata solo per uno store specifico
+        const filtered = iPraticoData.filter(d => {
+          if (!d.order_date) return false;
+          const orderDate = new Date(d.order_date);
+          const inRange = orderDate >= startDate && orderDate <= endDate;
+          return inRange;
+        });
+        const totalAllRevenue = filtered.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
+        const storeRevenue = filtered.filter(d => d.store_id === storeFilter).reduce((sum, d) => sum + (d.total_revenue || 0), 0);
+        return totalAllRevenue > 0 ? (storeRevenue / totalAllRevenue * 100).toFixed(2) : 0;
+      }
+
+      case 'ordini_sbagliati_numero': {
+        const filtered = wrongOrders.filter(w => {
+          if (!w.order_date) return false;
+          const orderDate = new Date(w.order_date);
+          const inRange = orderDate >= startDate && orderDate <= endDate;
+          const inStore = !storeFilter || w.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        return filtered.length;
+      }
+
+      case 'percentuale_ordini_corretti': {
+        const filteredData = iPraticoData.filter(d => {
+          if (!d.order_date) return false;
+          const orderDate = new Date(d.order_date);
+          const inRange = orderDate >= startDate && orderDate <= endDate;
+          const inStore = !storeFilter || d.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        const totalOrders = filteredData.reduce((sum, d) => sum + (d.total_orders || 0), 0);
+        
+        const filteredWrong = wrongOrders.filter(w => {
+          if (!w.order_date) return false;
+          const orderDate = new Date(w.order_date);
+          const inRange = orderDate >= startDate && orderDate <= endDate;
+          const inStore = !storeFilter || w.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        const wrongOrderCount = filteredWrong.length;
+        
+        return totalOrders > 0 ? (((totalOrders - wrongOrderCount) / totalOrders) * 100).toFixed(2) : 0;
+      }
+
+      case 'score_pulizie_medio': {
+        const filtered = cleaningInspections.filter(c => {
+          if (!c.inspection_date) return false;
+          const inspDate = new Date(c.inspection_date);
+          const inRange = inspDate >= startDate && inspDate <= endDate;
+          const inStore = !storeFilter || c.store_id === storeFilter;
+          return inRange && inStore && c.analysis_status === 'completed' && c.overall_score !== null;
+        });
+        if (filtered.length === 0) return 0;
+        const avgScore = filtered.reduce((sum, c) => sum + c.overall_score, 0) / filtered.length;
+        return avgScore.toFixed(1);
+      }
+
+      case 'revenue_totale': {
+        const filtered = iPraticoData.filter(d => {
+          if (!d.order_date) return false;
+          const orderDate = new Date(d.order_date);
+          const inRange = orderDate >= startDate && orderDate <= endDate;
+          const inStore = !storeFilter || d.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        const totalRevenue = filtered.reduce((sum, d) => sum + (d.total_revenue || 0), 0);
+        return totalRevenue.toFixed(2);
+      }
+
+      case 'numero_sprechi_rilevazioni': {
+        const filtered = sprechi.filter(s => {
+          if (!s.data_rilevazione) return false;
+          const sprecDate = new Date(s.data_rilevazione);
+          const inRange = sprecDate >= startDate && sprecDate <= endDate;
+          const inStore = !storeFilter || s.store_id === storeFilter;
+          return inRange && inStore;
+        });
+        return filtered.length;
       }
 
       default:
