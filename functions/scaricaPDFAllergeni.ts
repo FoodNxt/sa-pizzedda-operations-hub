@@ -61,27 +61,29 @@ Deno.serve(async (req) => {
 
     // Avviso importante con colori brand
     doc.setFillColor(255, 250, 240);
-    doc.roundedRect(15, 60, 180, 18, 4, 4, 'F');
+    doc.roundedRect(15, 60, 180, 23, 4, 4, 'F');
     doc.setDrawColor(...brandRed);
     doc.setLineWidth(1);
-    doc.roundedRect(15, 60, 180, 18, 4, 4, 'S');
+    doc.roundedRect(15, 60, 180, 23, 4, 4, 'S');
     
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(...brandRed);
     doc.text('ATTENZIONE', 20, 67);
     
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(0, 0, 0);
-    doc.text('Per allergici gravi o intolleranze non elencate, contattare il personale prima di ordinare.', 20, 74);
+    const avvisoTesto = 'Questo documento contiene informazioni sugli allergeni secondo il Regolamento UE 1169/2011. Per allergici gravi o intolleranze non elencate, contattare il personale prima di ordinare.';
+    const avvisoLines = doc.splitTextToSize(avvisoTesto, 170);
+    doc.text(avvisoLines, 20, 74);
 
     // Ordina ricette alfabeticamente
     const ricetteOrdinate = ricette
       .filter(r => r.attivo !== false)
       .sort((a, b) => (a.nome_prodotto || '').localeCompare(b.nome_prodotto || '', 'it'));
 
-    let currentY = 83;
+    let currentY = 88;
     const margin = 15;
     const tableWidth = 180;
 
