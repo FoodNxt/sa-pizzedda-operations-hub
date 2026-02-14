@@ -1889,6 +1889,7 @@ export default function PrecottureAdmin() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b-2 border-slate-200">
+                              <th className="text-center py-3 px-2 w-8"></th>
                               <th className="text-left py-3 px-2 text-slate-700">Data</th>
                               <th className="text-left py-3 px-2 text-slate-700">Giorno</th>
                               <th className="text-center py-3 px-2 bg-blue-50 text-blue-700">Suggerite</th>
