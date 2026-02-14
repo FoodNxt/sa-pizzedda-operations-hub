@@ -434,7 +434,7 @@ export default function StoricoCassa() {
           nome: dipendente, 
           prelievi: 0, 
           depositi: 0,
-          pagamentiStraordinari: 0,
+          pagamentiStraordinariRicevuti: 0,
           saldo: 0,
           movimenti: []
         };
@@ -456,20 +456,20 @@ export default function StoricoCassa() {
           nome: dipendente, 
           prelievi: 0, 
           depositi: 0,
-          pagamentiStraordinari: 0,
+          pagamentiStraordinariRicevuti: 0,
           saldo: 0,
           movimenti: []
         };
       }
       
-      // Non contare i pagamenti straordinari qui, vengono gestiti separatamente
+      // Non contare i pagamenti straordinari (chi paga) nei depositi normali
       if (d.store_id !== 'pagamento_straordinario') {
         saldi[dipendente].depositi += d.importo || 0;
       }
       
       saldi[dipendente].movimenti.push({
         tipo: d.store_id === 'manual_adjustment' ? 'aggiustamento' : 
-              d.store_id === 'pagamento_straordinario' ? 'pagamento_straordinario' : 'deposito',
+              d.store_id === 'pagamento_straordinario' ? 'pagamento_straordinario_effettuato' : 'deposito',
         data: d.data_deposito,
         importo: d.importo || 0,
         store: d.store_name,
@@ -477,25 +477,35 @@ export default function StoricoCassa() {
       });
     });
 
-    // Aggiungi i pagamenti straordinari effettuati (chi ha pagato)
-    // I pagamenti vengono registrati come Depositi con store_id='pagamento_straordinario'
-    // Quindi sono già inclusi nei depositi sopra
-    // Ma dobbiamo assicurarci che vengano contati nella colonna corretta
-    
-    // Aggiorniamo: quando un deposito ha store_id='pagamento_straordinario',
-    // significa che chi l'ha creato (rilevato_da) ha pagato uno straordinario
-    depositi.filter(d => d.store_id === 'pagamento_straordinario').forEach((deposito) => {
-      const dipendenteChePaga = deposito.rilevato_da;
-      if (dipendenteChePaga && saldi[dipendenteChePaga]) {
-        // Rimuovi dai depositi e aggiungi ai pagamenti straordinari
-        saldi[dipendenteChePaga].depositi -= deposito.importo || 0;
-        saldi[dipendenteChePaga].pagamentiStraordinari += deposito.importo || 0;
+    // Aggiungi i pagamenti straordinari RICEVUTI dai dipendenti
+    pagamentiStraordinari.filter(p => p.pagato).forEach((pagamento) => {
+      const dipendenteRicevente = pagamento.dipendente_nome;
+      
+      if (!saldi[dipendenteRicevente]) {
+        saldi[dipendenteRicevente] = { 
+          nome: dipendenteRicevente, 
+          prelievi: 0, 
+          depositi: 0,
+          pagamentiStraordinariRicevuti: 0,
+          saldo: 0,
+          movimenti: []
+        };
       }
+      
+      saldi[dipendenteRicevente].pagamentiStraordinariRicevuti += pagamento.importo_totale || 0;
+      saldi[dipendenteRicevente].movimenti.push({
+        tipo: 'pagamento_straordinario_ricevuto',
+        data: pagamento.data_pagamento,
+        importo: pagamento.importo_totale || 0,
+        store: pagamento.store_name,
+        note: `Straordinario ricevuto (${pagamento.ore_straordinarie}h × €${pagamento.costo_orario}/h)`,
+        pagato_da: pagamento.pagato_da
+      });
     });
 
-    // Calculate saldo: prelievi - depositi - pagamentiStraordinari
+    // Calculate saldo: prelievi - depositi - pagamentiStraordinariRicevuti
     Object.keys(saldi).forEach((dipendente) => {
-      saldi[dipendente].saldo = saldi[dipendente].prelievi - saldi[dipendente].depositi - saldi[dipendente].pagamentiStraordinari;
+      saldi[dipendente].saldo = saldi[dipendente].prelievi - saldi[dipendente].depositi - saldi[dipendente].pagamentiStraordinariRicevuti;
       // Sort movimenti by date (most recent first)
       saldi[dipendente].movimenti.sort((a, b) => {
         try {
@@ -1418,7 +1428,7 @@ export default function StoricoCassa() {
                             </td>
                             <td className="p-2 lg:p-3 text-right">
                               <span className="text-orange-600 font-bold text-sm">
-                                -€{dipendente.pagamentiStraordinari.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                                -€{dipendente.pagamentiStraordinariRicevuti.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
                               </span>
                             </td>
                             <td className="p-2 lg:p-3 text-right">
@@ -1454,11 +1464,11 @@ export default function StoricoCassa() {
                                               {movimento.tipo === 'aggiustamento' && (
                                                 <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-medium">Aggiustamento</span>
                                               )}
-                                              {movimento.tipo === 'pagamento_straordinario' && (
-                                                <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-medium">Pag. Straordinario Ricevuto</span>
+                                              {movimento.tipo === 'pagamento_straordinario_ricevuto' && (
+                                               <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-medium">Straordinario Ricevuto</span>
                                               )}
                                               {movimento.tipo === 'pagamento_straordinario_effettuato' && (
-                                                <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-medium">Pag. Straordinario</span>
+                                               <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-medium">Straordinario Pagato</span>
                                               )}
                                               <span className="text-xs text-slate-500">
                                                 {format(parseISO(movimento.data), 'dd/MM/yyyy HH:mm', { locale: it })}
@@ -1473,6 +1483,7 @@ export default function StoricoCassa() {
                                           <div className="text-xs text-slate-500">
                                             <p><strong>Locale:</strong> {movimento.store}</p>
                                             {movimento.note && <p><strong>Note:</strong> {movimento.note}</p>}
+                                            {movimento.pagato_da && <p><strong>Pagato da:</strong> {movimento.pagato_da}</p>}
                                           </div>
                                         </div>
                                       ))}
@@ -1491,7 +1502,7 @@ export default function StoricoCassa() {
 
               <div className="mt-6 neumorphic-pressed p-4 rounded-xl bg-blue-50">
                 <p className="text-sm text-blue-800">
-                  <strong>ℹ️ Legenda:</strong> Saldo calcolato come: Prelievi - Depositi - Pagamenti Straordinari. Saldo positivo = il dipendente ha prelevato più di quanto depositato. Saldo negativo = ha depositato più di quanto prelevato.
+                  <strong>ℹ️ Legenda:</strong> Saldo calcolato come: Prelievi - Depositi - Pagamenti Straordinari Ricevuti. I pagamenti straordinari ricevuti vengono scalati dal saldo perché rappresentano soldi che il dipendente deve ricevere. Saldo positivo = il dipendente ha prelevato più di quanto depositato. Saldo negativo = ha depositato più di quanto prelevato.
                 </p>
               </div>
             </NeumorphicCard>
