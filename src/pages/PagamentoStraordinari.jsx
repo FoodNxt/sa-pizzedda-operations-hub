@@ -102,6 +102,7 @@ export default function PagamentoStraordinari() {
       await base44.entities.Deposito.create({
         store_id: 'pagamento_straordinario',
         store_name: 'Pagamento Straordinario',
+        banca: 'Contanti',
         rilevato_da: currentUser?.nome_cognome || currentUser?.full_name || currentUser?.email,
         importo: importo,
         data_deposito: new Date().toISOString(),
