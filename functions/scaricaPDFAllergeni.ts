@@ -43,27 +43,32 @@ Deno.serve(async (req) => {
         if (!logoResponse.ok) {
           console.error('Logo fetch failed:', logoResponse.status, logoResponse.statusText);
         } else {
-          const logoArrayBuffer = await logoResponse.arrayBuffer();
+          const logoBlob = await logoResponse.blob();
+          const logoArrayBuffer = await logoBlob.arrayBuffer();
           const logoBytes = new Uint8Array(logoArrayBuffer);
           
           console.log('Logo loaded, size:', logoBytes.length, 'bytes');
           
-          // Convert to base64 properly for large files
+          // Convert to base64 in smaller chunks to avoid stack overflow
           let binary = '';
           const chunkSize = 8192;
           for (let i = 0; i < logoBytes.length; i += chunkSize) {
-            const chunk = logoBytes.slice(i, i + chunkSize);
-            binary += String.fromCharCode.apply(null, chunk);
+            const chunk = Array.from(logoBytes.slice(i, i + chunkSize));
+            binary += String.fromCharCode(...chunk);
           }
-          const logoBase64 = 'data:image/png;base64,' + btoa(binary);
+          
+          // Detect image type from blob
+          const mimeType = logoBlob.type || 'image/png';
+          const imageFormat = mimeType.includes('jpeg') || mimeType.includes('jpg') ? 'JPEG' : 'PNG';
+          const logoBase64 = `data:${mimeType};base64,${btoa(binary)}`;
           
           // Aggiungi logo al PDF con dimensioni maggiori
-          doc.addImage(logoBase64, 'PNG', 75, 5, 60, 22);
+          doc.addImage(logoBase64, imageFormat, 75, 5, 60, 22);
           logoLoaded = true;
           console.log('Logo added to PDF successfully');
         }
       } catch (error) {
-        console.error('Error loading logo:', error.message);
+        console.error('Error loading logo:', error.message, error.stack);
       }
     } else {
       console.log('No logo_url provided');
