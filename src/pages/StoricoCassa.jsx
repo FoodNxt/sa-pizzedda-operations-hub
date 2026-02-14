@@ -166,8 +166,10 @@ export default function StoricoCassa() {
       const saldoAttuale = prelievi - depositi - pagamentiStraordinari;
       const differenza = nuovoSaldo - saldoAttuale;
       
+      console.log('Impostazione saldo:', { dipendente, saldoAttuale, nuovoSaldo, differenza });
+      
       // Crea un deposito di aggiustamento per portare il saldo al valore desiderato
-      return base44.entities.Deposito.create({
+      const result = await base44.entities.Deposito.create({
         store_id: 'manual_adjustment',
         store_name: 'Aggiustamento Manuale',
         rilevato_da: dipendente,
@@ -176,11 +178,18 @@ export default function StoricoCassa() {
         note: `Impostazione saldo manuale a €${nuovoSaldo.toFixed(2)} (da €${saldoAttuale.toFixed(2)})`,
         impostato_da: currentUser?.email || ''
       });
+      
+      console.log('Deposito creato:', result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['depositi'] });
       setNewManualSaldo({ dipendente: '', importo: 0 });
       alert('✅ Saldo impostato con successo!');
+    },
+    onError: (error) => {
+      console.error('Errore impostazione saldo:', error);
+      alert('❌ Errore: ' + error.message);
     }
   });
 
