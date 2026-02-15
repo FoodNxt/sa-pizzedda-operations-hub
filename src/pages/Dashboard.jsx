@@ -1841,32 +1841,64 @@ export default function Dashboard() {
                     content={({ active, payload, label }) => {
                       if (!active || !payload || payload.length === 0) return null;
                       
+                      const currentPayload = payload[0]?.payload;
+                      if (!currentPayload) return null;
+                      
                       return (
                         <div style={{
-                          background: 'rgba(248, 250, 252, 0.95)',
-                          border: 'none',
+                          background: 'rgba(248, 250, 252, 0.98)',
+                          border: '1px solid rgba(148, 163, 184, 0.2)',
                           borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          padding: '12px'
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          padding: '12px',
+                          minWidth: '200px'
                         }}>
-                          <p className="font-bold text-slate-700 mb-2">{label}</p>
-                          {payload.map((entry, idx) => {
-                            const storeName = entry.name;
-                            const value = entry.value;
-                            const percentage = entry.payload[`${storeName}_percentage`] || 
-                              (entry.payload.total > 0 ? ((value / entry.payload.total) * 100).toFixed(1) : '0.0');
-                            
-                            return (
-                              <div key={idx} className="mb-1">
-                                <p style={{ color: entry.color }} className="font-medium text-sm">
-                                  {storeName}: €{value.toFixed(2)}
-                                </p>
-                                {showPercentageInStore && selectedStoresForTrend.length > 0 && (
-                                  <p className="text-xs text-slate-600 ml-4">% In Store: {percentage}%</p>
-                                )}
-                              </div>
-                            );
-                          })}
+                          <p className="font-bold text-slate-800 mb-2 pb-2 border-b border-slate-200">{label}</p>
+                          
+                          {selectedStoresForTrend.length > 0 ? (
+                            // Multi-store view
+                            <>
+                              {payload.map((entry, idx) => {
+                                const storeName = entry.name;
+                                const value = entry.value;
+                                const orders = currentPayload[`${storeName}_orders`] || 0;
+                                const aov = currentPayload[`${storeName}_aov`] || '0.00';
+                                const percentage = currentPayload[`${storeName}_percentage`] || '0.0';
+                                
+                                return (
+                                  <div key={idx} className="mb-2">
+                                    <p style={{ color: entry.color }} className="font-bold text-sm mb-1">
+                                      {storeName}
+                                    </p>
+                                    <p className="text-xs text-slate-700 ml-2">
+                                      Revenue: <span className="font-semibold">€{value.toFixed(2)}</span> ({orders} ordini)
+                                    </p>
+                                    {showPercentageInStore && (
+                                      <p className="text-xs text-slate-600 ml-2">
+                                        % In Store: <span className="font-semibold">{percentage}%</span>
+                                      </p>
+                                    )}
+                                    <p className="text-xs text-slate-600 ml-2">
+                                      AOV: <span className="font-semibold">€{aov}</span>
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </>
+                          ) : (
+                            // Total view
+                            <div>
+                              <p className="text-sm text-slate-700 mb-1">
+                                Revenue: <span className="font-bold text-blue-600">€{currentPayload.revenue?.toFixed(2)}</span>
+                              </p>
+                              <p className="text-xs text-slate-600">
+                                {currentPayload.orders} ordini
+                              </p>
+                              <p className="text-xs text-slate-600">
+                                AOV: <span className="font-semibold">€{currentPayload.aov?.toFixed(2)}</span>
+                              </p>
+                            </div>
+                          )}
                         </div>
                       );
                     }} />
