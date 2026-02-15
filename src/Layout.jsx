@@ -224,10 +224,11 @@ const navigationStructure = [
         title: "Controllo Consumi",
         url: createPageUrl("ControlloConsumi"),
         icon: BarChart3,
-        requiredUserType: ["admin"]
+        requiredUserType: ["admin"],
+        parent_admin_section: "Inventory"
       },
       {
-        title: "Inventory Admin",
+        title: "Admin Inventory",
         url: createPageUrl("AdminInventory"),
         icon: Settings,
         requiredUserType: ["admin"]
