@@ -378,6 +378,15 @@ export default function Dashboard() {
         });
         // Calculate total for percentage
         formatted.total = stores.reduce((sum, s) => sum + (d[s.name] || 0), 0);
+        
+        // Calculate % In Store for each store
+        stores.forEach(store => {
+          const storeRevenue = d[store.name] || 0;
+          formatted[`${store.name}_percentage`] = formatted.total > 0 
+            ? ((storeRevenue / formatted.total) * 100).toFixed(1) 
+            : '0.0';
+        });
+        
         return formatted;
       })
       .filter((d) => d.date !== 'N/A');
