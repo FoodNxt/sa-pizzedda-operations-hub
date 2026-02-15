@@ -1805,13 +1805,40 @@ export default function Dashboard() {
                       border: 'none',
                       borderRadius: '12px',
                       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                      fontSize: '12px'
+                      fontSize: '12px',
+                      padding: '12px'
                     }}
-                    formatter={(value, name, props) => {
-                      const percentage = props.payload.total > 0 
-                        ? ((value / props.payload.total) * 100).toFixed(1) 
-                        : '0.0';
-                      return [`€${value.toFixed(2)} (${percentage}%)`, name];
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload || payload.length === 0) return null;
+                      
+                      return (
+                        <div style={{
+                          background: 'rgba(248, 250, 252, 0.95)',
+                          border: 'none',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          padding: '12px'
+                        }}>
+                          <p className="font-bold text-slate-700 mb-2">{label}</p>
+                          {payload.map((entry, idx) => {
+                            const storeName = entry.name;
+                            const value = entry.value;
+                            const percentage = entry.payload[`${storeName}_percentage`] || 
+                              (entry.payload.total > 0 ? ((value / entry.payload.total) * 100).toFixed(1) : '0.0');
+                            
+                            return (
+                              <div key={idx} className="mb-1">
+                                <p style={{ color: entry.color }} className="font-medium text-sm">
+                                  {storeName}: €{value.toFixed(2)}
+                                </p>
+                                {showPercentageInStore && selectedStoresForTrend.length > 0 && (
+                                  <p className="text-xs text-slate-600 ml-4">% In Store: {percentage}%</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
                     }} />
 
                     <Legend wrapperStyle={{ fontSize: '12px' }} />
