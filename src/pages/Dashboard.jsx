@@ -1713,37 +1713,57 @@ export default function Dashboard() {
           </div>
           
           {/* Store Filters */}
-          <div className="mb-4">
-            <p className="text-xs text-slate-600 mb-2">Negozi da visualizzare:</p>
-            <div className="flex flex-wrap gap-2">
-              {stores.map((store) => (
-                <button
-                  key={store.id}
-                  onClick={() => {
-                    setSelectedStoresForTrend((prev) =>
-                      prev.includes(store.id) 
-                        ? prev.filter((id) => id !== store.id)
-                        : [...prev, store.id]
-                    );
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    selectedStoresForTrend.includes(store.id)
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                      : 'neumorphic-flat text-slate-700'
-                  }`}
-                >
-                  {store.name}
-                </button>
-              ))}
-              {selectedStoresForTrend.length > 0 && (
-                <button
-                  onClick={() => setSelectedStoresForTrend([])}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium neumorphic-flat text-red-600"
-                >
-                  Mostra Totale
-                </button>
-              )}
+          <div className="mb-4 space-y-3">
+            <div>
+              <p className="text-xs text-slate-600 mb-2">Negozi da visualizzare:</p>
+              <div className="flex flex-wrap gap-2">
+                {stores.map((store) => (
+                  <button
+                    key={store.id}
+                    onClick={() => {
+                      setSelectedStoresForTrend((prev) =>
+                        prev.includes(store.id) 
+                          ? prev.filter((id) => id !== store.id)
+                          : [...prev, store.id]
+                      );
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      selectedStoresForTrend.includes(store.id)
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        : 'neumorphic-flat text-slate-700'
+                    }`}
+                  >
+                    {store.name}
+                  </button>
+                ))}
+                {selectedStoresForTrend.length > 0 && (
+                  <button
+                    onClick={() => setSelectedStoresForTrend([])}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium neumorphic-flat text-red-600"
+                  >
+                    Mostra Totale
+                  </button>
+                )}
+              </div>
             </div>
+            
+            {selectedStoresForTrend.length > 0 && (
+              <div>
+                <p className="text-xs text-slate-600 mb-2">Metriche aggiuntive:</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setShowPercentageInStore(!showPercentageInStore)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      showPercentageInStore
+                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                        : 'neumorphic-flat text-slate-700'
+                    }`}
+                  >
+                    % In Store
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {dataLoading ? (
