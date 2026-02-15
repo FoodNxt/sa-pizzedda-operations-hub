@@ -228,7 +228,7 @@ const navigationStructure = [
       },
       {
         title: "Inventory Admin",
-        url: createPageUrl("InventarioAdmin"),
+        url: createPageUrl("AdminInventory"),
         icon: Settings,
         requiredUserType: ["admin"]
       }
