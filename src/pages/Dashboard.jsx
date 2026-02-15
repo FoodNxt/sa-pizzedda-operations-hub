@@ -335,17 +335,25 @@ export default function Dashboard() {
     const dailyRevenue = Object.values(revenueByDate).
     map((d) => {
       const parsedDate = safeParseDate(d.date);
+      // Get orders count for this date
+      const ordersForDate = filteredData.filter(item => item.order_date === d.date)
+        .reduce((sum, item) => sum + (item.total_orders || 0), 0);
+      
       return {
         date: parsedDate,
         dateStr: d.date,
-        revenue: parseFloat(d.revenue.toFixed(2))
+        revenue: parseFloat(d.revenue.toFixed(2)),
+        orders: ordersForDate
       };
     }).
     filter((d) => d.date !== null).
     sort((a, b) => a.date.getTime() - b.date.getTime()).
     map((d) => ({
       date: safeFormatDate(d.date, 'dd MMM'),
-      revenue: d.revenue
+      dateStr: d.dateStr,
+      revenue: d.revenue,
+      orders: d.orders,
+      aov: d.orders > 0 ? (d.revenue / d.orders) : 0
     })).
     filter((d) => d.date !== 'N/A');
     
