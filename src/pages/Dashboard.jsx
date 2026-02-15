@@ -359,11 +359,26 @@ export default function Dashboard() {
     
     // Group by date for multi-store chart
     const dailyRevenueByStore = {};
+    const ordersCountByDateAndStore = {};
+    
+    filteredData.forEach((item) => {
+      if (!item.order_date) return;
+      const key = `${item.order_date}_${item.store_id}`;
+      if (!ordersCountByDateAndStore[key]) {
+        ordersCountByDateAndStore[key] = 0;
+      }
+      ordersCountByDateAndStore[key] += item.total_orders || 0;
+    });
+    
     Object.values(revenueByDateAndStore).forEach((item) => {
       if (!dailyRevenueByStore[item.date]) {
         dailyRevenueByStore[item.date] = { date: item.date };
       }
       dailyRevenueByStore[item.date][item.storeName] = parseFloat(item.revenue.toFixed(2));
+      
+      // Add orders count
+      const key = `${item.date}_${item.storeId}`;
+      dailyRevenueByStore[item.date][`${item.storeName}_orders`] = ordersCountByDateAndStore[key] || 0;
     });
     
     const dailyRevenueMultiStore = Object.values(dailyRevenueByStore)
