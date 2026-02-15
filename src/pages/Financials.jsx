@@ -34,6 +34,7 @@ export default function Financials() {
   const [showAvgValue, setShowAvgValue] = useState(true);
   const [showTrendline, setShowTrendline] = useState(false);
   const [selectedStoresForTrend, setSelectedStoresForTrend] = useState([]);
+  const [showPercentageInStore, setShowPercentageInStore] = useState(true);
   const [showChannelSettings, setShowChannelSettings] = useState(false);
   const [showAppSettings, setShowAppSettings] = useState(false);
   const [channelMapping, setChannelMapping] = useState({});
@@ -2609,6 +2610,15 @@ export default function Financials() {
                   {showAvgValue ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                   AOV
                 </button>
+                <button
+                    onClick={() => setShowPercentageInStore(!showPercentageInStore)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
+                    showPercentageInStore ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-600'}`
+                    }>
+
+                  {showPercentageInStore ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                  % In Store
+                </button>
               </div>
             </div>
 
@@ -2837,27 +2847,27 @@ export default function Financials() {
                                 Periodo Corrente
                               </p>
                               <p className="text-xs text-slate-600 mb-1">
-                                {(() => {
-                                  const currentDateObj = data.parsedDate;
-                                  if (currentDateObj && isValid(currentDateObj)) {
-                                    return `Data: ${format(currentDateObj, 'EEEE dd/MM', { locale: it })}`;
-                                  }
-                                  return `Data: ${label}`;
-                                })()}
+                               {(() => {
+                                 const currentDateObj = data.parsedDate;
+                                 if (currentDateObj && isValid(currentDateObj)) {
+                                   return `Data: ${format(currentDateObj, 'EEEE dd/MM', { locale: it })}`;
+                                 }
+                                 return `Data: ${label}`;
+                               })()}
                               </p>
                               {payload.map((entry, idx) => {
-                                if (entry.dataKey === 'revenue' || entry.dataKey === 'avgValue' || entry.dataKey === 'trend') {
-                                  return (
-                                    <p key={idx} className="text-xs text-slate-700 mb-1">
-                                      <span style={{ color: entry.color }}>{entry.name}: </span>
-                                      <span className="font-bold">
-                                        €{formatCurrency(entry.value)}
-                                        {entry.dataKey === 'revenue' && data.orders > 0 && ` (${data.orders} ordini)`}
-                                      </span>
-                                    </p>
-                                  );
-                                }
-                                return null;
+                               if (entry.dataKey === 'revenue' || entry.dataKey === 'avgValue' || entry.dataKey === 'trend' || entry.dataKey === 'percentInStore') {
+                                 return (
+                                   <p key={idx} className="text-xs text-slate-700 mb-1">
+                                     <span style={{ color: entry.color }}>{entry.name}: </span>
+                                     <span className="font-bold">
+                                       {entry.dataKey === 'percentInStore' ? `${entry.value}%` : `€${formatCurrency(entry.value)}`}
+                                       {entry.dataKey === 'revenue' && data.orders > 0 && ` (${data.orders} ordini)`}
+                                     </span>
+                                   </p>
+                                 );
+                               }
+                               return null;
                               })}
                               
                               {/* Periodo di Confronto */}
@@ -2978,6 +2988,7 @@ export default function Financials() {
                         connectNulls />
 
                       }
+                      {showPercentageInStore &&
                       <Line
                         yAxisId="right"
                         type="monotone"
@@ -2986,6 +2997,8 @@ export default function Financials() {
                         strokeWidth={2}
                         name="% in Store"
                         dot={{ fill: '#f59e0b', r: 2 }} />
+
+                      }
 
                     </LineChart>
                   </ResponsiveContainer>
