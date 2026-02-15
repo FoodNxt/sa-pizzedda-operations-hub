@@ -385,17 +385,17 @@ export default function Dashboard() {
       .map((d) => {
         const parsedDate = safeParseDate(d.date);
         return {
-          date: parsedDate,
+          parsedDate: parsedDate,
           dateStr: d.date,
           ...d
         };
       })
-      .filter((d) => d.date !== null)
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .filter((d) => d.parsedDate !== null && d.parsedDate instanceof Date)
+      .sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime())
       .map((d) => {
         const formatted = {
-          date: safeFormatDate(d.date, 'dd MMM'),
-          dateStr: d.date
+          date: safeFormatDate(d.parsedDate, 'dd MMM'),
+          dateStr: d.dateStr
         };
         stores.forEach(store => {
           formatted[store.name] = d[store.name] || 0;
