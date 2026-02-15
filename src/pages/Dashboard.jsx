@@ -394,20 +394,27 @@ export default function Dashboard() {
       .sort((a, b) => a.date.getTime() - b.date.getTime())
       .map((d) => {
         const formatted = {
-          date: safeFormatDate(d.date, 'dd MMM')
+          date: safeFormatDate(d.date, 'dd MMM'),
+          dateStr: d.date
         };
         stores.forEach(store => {
           formatted[store.name] = d[store.name] || 0;
+          formatted[`${store.name}_orders`] = d[`${store.name}_orders`] || 0;
         });
         // Calculate total for percentage
         formatted.total = stores.reduce((sum, s) => sum + (d[s.name] || 0), 0);
+        formatted.totalOrders = stores.reduce((sum, s) => sum + (d[`${s.name}_orders`] || 0), 0);
         
-        // Calculate % In Store for each store
+        // Calculate % In Store and AOV for each store
         stores.forEach(store => {
           const storeRevenue = d[store.name] || 0;
+          const storeOrders = d[`${store.name}_orders`] || 0;
           formatted[`${store.name}_percentage`] = formatted.total > 0 
             ? ((storeRevenue / formatted.total) * 100).toFixed(1) 
             : '0.0';
+          formatted[`${store.name}_aov`] = storeOrders > 0 
+            ? (storeRevenue / storeOrders).toFixed(2) 
+            : '0.00';
         });
         
         return formatted;
