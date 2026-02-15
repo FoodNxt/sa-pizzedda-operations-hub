@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [endDate, setEndDate] = useState('');
   const [syncMessage, setSyncMessage] = useState(null);
   const [selectedStoresForTrend, setSelectedStoresForTrend] = useState([]);
+  const [showPercentageInStore, setShowPercentageInStore] = useState(false);
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
