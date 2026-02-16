@@ -508,13 +508,19 @@ export default function Contatti() {
                           ) : (contatto.visite_negozio && contatto.visite_negozio.length > 0) ? (
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs text-slate-500">Negozi:</span>
-                              {[...new Set(contatto.visite_negozio.map(v => v.negozio).filter(Boolean))].map((negozio, idx) => (
-                                <span key={idx} className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
-                                  {negozio}
-                                </span>
-                              ))}
+                              {(() => {
+                                const negozioCount = {};
+                                contatto.visite_negozio.filter(v => v.negozio).forEach(v => {
+                                  negozioCount[v.negozio] = (negozioCount[v.negozio] || 0) + 1;
+                                });
+                                return Object.entries(negozioCount).map(([negozio, count], idx) => (
+                                  <span key={idx} className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
+                                    x{count} {negozio}
+                                  </span>
+                                ));
+                              })()}
                               <span className="text-xs text-slate-500">
-                                ({contatto.visite_negozio.length} {contatto.visite_negozio.length === 1 ? 'visita' : 'visite'})
+                                • Ultima: {new Date(Math.max(...contatto.visite_negozio.map(v => new Date(v.data)))).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}
                               </span>
                             </div>
                           ) : contatto.data_visita_negozio && (
