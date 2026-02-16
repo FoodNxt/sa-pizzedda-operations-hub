@@ -789,7 +789,7 @@ export default function Financials() {
       deliveryAppBreakdown,
       comparisonData
     };
-  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, selectedStoresForTrend, channelMapping, appMapping, compareMode, compareStartDate, compareEndDate, selectedChannels, selectedApps, selectedPaymentMethods, trendView]);
+  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, selectedStoresForTrend, channelMapping, appMapping, compareMode, compareStartDate, compareEndDate, selectedChannels, selectedApps, selectedPaymentMethods, trendView, showWithVAT, ivaPercentage]);
 
   // Payment Methods Analysis
   const paymentMethodsData = useMemo(() => {
@@ -945,7 +945,7 @@ export default function Financials() {
     }
 
     return { breakdown, totalRevenue, totalOrders, comparisonBreakdown };
-  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, compareMode, compareStartDate, compareEndDate]);
+  }, [iPraticoData, selectedStore, dateRange, startDate, endDate, compareMode, compareStartDate, compareEndDate, showWithVAT, ivaPercentage]);
 
   // Monthly aggregation with filters
   const monthlyData = useMemo(() => {
@@ -1070,7 +1070,7 @@ export default function Financials() {
       percentStore: month.totalChannelRevenue > 0 ? month.storeRevenue / month.totalChannelRevenue * 100 : 0
     })).
     sort((a, b) => b.monthStart.localeCompare(a.monthStart));
-  }, [iPraticoData, selectedStore, weeklySelectedChannels, weeklySelectedApps, weeklySelectedPayments, channelMapping, appMapping]);
+  }, [iPraticoData, selectedStore, weeklySelectedChannels, weeklySelectedApps, weeklySelectedPayments, channelMapping, appMapping, showWithVAT, ivaPercentage]);
 
   // Weekly aggregation with filters
   const weeklyData = useMemo(() => {
@@ -1255,7 +1255,7 @@ export default function Financials() {
       dailyData: Object.values(week.days).sort((a, b) => a.date.localeCompare(b.date))
     })).
     sort((a, b) => b.weekStart.localeCompare(a.weekStart));
-  }, [iPraticoData, selectedStore, weeklySelectedChannels, weeklySelectedApps, weeklySelectedPayments, channelMapping, appMapping]);
+  }, [iPraticoData, selectedStore, weeklySelectedChannels, weeklySelectedApps, weeklySelectedPayments, channelMapping, appMapping, showWithVAT, ivaPercentage]);
 
   // Historical averages for weekly view (by day of week)
   const historicalAveragesByDayOfWeek = useMemo(() => {
@@ -1553,7 +1553,7 @@ export default function Financials() {
 
       return averages;
     }
-  }, [iPraticoData, selectedStore, historicalAvgDays, weeklySelectedChannels, weeklySelectedApps, weeklySelectedPayments, channelMapping, appMapping]);
+  }, [iPraticoData, selectedStore, historicalAvgDays, weeklySelectedChannels, weeklySelectedApps, weeklySelectedPayments, channelMapping, appMapping, showWithVAT, ivaPercentage]);
 
   // Daily chart data (day of week analysis)
   const dailyChartData = useMemo(() => {
