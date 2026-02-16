@@ -169,11 +169,17 @@ export default function StoricoCassa() {
       console.log('Impostazione saldo:', { dipendente, saldoAttuale, nuovoSaldo, differenza });
       
       // Crea un deposito di aggiustamento per portare il saldo al valore desiderato
+      // Formula: saldo = prelievi - depositi - pagamentiStraordinari
+      // Per portare il saldo da saldoAttuale a nuovoSaldo:
+      // nuovoSaldo = prelievi - (depositi + aggiustamento) - pagamentiStraordinari
+      // aggiustamento = prelievi - depositi - pagamentiStraordinari - nuovoSaldo = saldoAttuale - nuovoSaldo
+      const aggiustamento = saldoAttuale - nuovoSaldo;
+      
       const result = await base44.entities.Deposito.create({
         store_id: 'manual_adjustment',
         store_name: 'Aggiustamento Manuale',
         rilevato_da: dipendente,
-        importo: -differenza,
+        importo: aggiustamento,
         banca: 'BPM',
         data_deposito: new Date().toISOString(),
         note: `Impostazione saldo manuale a €${nuovoSaldo.toFixed(2)} (da €${saldoAttuale.toFixed(2)})`,
