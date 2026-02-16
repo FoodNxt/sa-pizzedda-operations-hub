@@ -1587,7 +1587,7 @@ export default function Financials() {
         };
       }
 
-      dayOfWeekData[dayOfWeek].revenue.push(item.total_revenue || 0);
+      dayOfWeekData[dayOfWeek].revenue.push(applyVAT(item.total_revenue || 0));
       dayOfWeekData[dayOfWeek].orders.push(item.total_orders || 0);
       dayOfWeekData[dayOfWeek].storeRevenue.push(item.sourceType_store || 0);
       dayOfWeekData[dayOfWeek].totalChannelRevenue.push((item.sourceType_store || 0) + (item.sourceType_delivery || 0));
@@ -1617,7 +1617,7 @@ export default function Financials() {
         value: parseFloat(value.toFixed(2))
       };
     });
-  }, [iPraticoData, selectedStore, dailyDays]);
+  }, [iPraticoData, selectedStore, dailyDays, showWithVAT, ivaPercentage]);
 
   // Calculate min/max for color scale
   const weeklyStats = useMemo(() => {
