@@ -272,7 +272,8 @@ Deno.serve(async (req) => {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'attachment; filename=allergeni.pdf'
+        'Content-Disposition': 'attachment; filename=allergeni.pdf',
+        'Content-Length': pdfBytes.length.toString()
       }
     });
 
