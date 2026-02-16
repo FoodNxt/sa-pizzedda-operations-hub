@@ -56,6 +56,11 @@ export default function Contatti() {
     queryFn: () => base44.entities.ContattoMarketing.list()
   });
 
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => base44.entities.Store.list()
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.ContattoMarketing.create(data),
     onSuccess: () => {
@@ -722,13 +727,18 @@ export default function Contatti() {
                                 <label className="text-sm font-medium text-slate-700 mb-2 block">
                                   Negozio Visitato
                                 </label>
-                                <input
-                              type="text"
-                              value={nuovaVisita.negozio}
-                              onChange={(e) => setNuovaVisita({ ...nuovaVisita, negozio: e.target.value })}
-                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                              placeholder="Nome del negozio" />
-
+                                <select
+                                  value={nuovaVisita.negozio}
+                                  onChange={(e) => setNuovaVisita({ ...nuovaVisita, negozio: e.target.value })}
+                                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                                >
+                                  <option value="">Seleziona negozio</option>
+                                  {stores.map((store) => (
+                                    <option key={store.id} value={store.name}>
+                                      {store.name}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
 
                               <NeumorphicButton
