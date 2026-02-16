@@ -692,7 +692,7 @@ Sa Pizzedda`,
     setSendingEmail((prev) => ({ ...prev, [emailKey]: true }));
 
     try {
-      await base44.integrations.Core.SendEmail({
+      await base44.functions.invoke('inviaEmailOrdineFornitore', {
         to: fornitore.contatto_email,
         subject: emailTemplate.subject,
         body: emailTemplate.body,
