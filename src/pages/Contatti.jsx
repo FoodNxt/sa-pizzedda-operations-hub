@@ -24,6 +24,8 @@ export default function Contatti() {
   const [activeTab, setActiveTab] = useState('Food influencers');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortByVisit, setSortByVisit] = useState(false);
+  const [filterMaiVisitato, setFilterMaiVisitato] = useState(false);
+  const [filterNegozio, setFilterNegozio] = useState('');
   const [formData, setFormData] = useState({
     categoria: 'Food influencers',
     nome: '',
@@ -204,6 +206,34 @@ export default function Contatti() {
     });
   }
 
+  // Apply "mai visitato" filter for Food Influencers
+  if (activeTab === 'Food influencers' && filterMaiVisitato) {
+    contattiByCategoria = contattiByCategoria.filter((c) => c.mai_visitato === true);
+  }
+
+  // Apply negozio filter for Food Influencers
+  if (activeTab === 'Food influencers' && filterNegozio) {
+    contattiByCategoria = contattiByCategoria.filter((c) => {
+      if (c.visite_negozio && c.visite_negozio.length > 0) {
+        return c.visite_negozio.some(v => v.negozio === filterNegozio);
+      }
+      // Fallback to old field
+      return c.negozio_visitato === filterNegozio;
+    });
+  }
+
+  // Get list of unique negozi for filter dropdown
+  const negoziList = activeTab === 'Food influencers' ? [...new Set(
+    contatti
+      .filter(c => c.categoria === 'Food influencers')
+      .flatMap(c => {
+        if (c.visite_negozio && c.visite_negozio.length > 0) {
+          return c.visite_negozio.map(v => v.negozio).filter(Boolean);
+        }
+        return c.negozio_visitato ? [c.negozio_visitato] : [];
+      })
+  )].sort() : [];
+
   // Apply sorting for Food Influencers
   if (activeTab === 'Food influencers' && sortByVisit) {
     contattiByCategoria = [...contattiByCategoria].sort((a, b) => {
@@ -330,7 +360,7 @@ export default function Contatti() {
               {activeTab}
             </h2>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               {/* Search Bar */}
               <input
                 type="text"
@@ -340,15 +370,43 @@ export default function Contatti() {
                 className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none w-64"
               />
               
-              {/* Sort Toggle for Food Influencers */}
+              {/* Food Influencers Filters */}
               {activeTab === 'Food influencers' && (
-                <NeumorphicButton
-                  onClick={() => setSortByVisit(!sortByVisit)}
-                  variant={sortByVisit ? 'primary' : 'default'}
-                  className="flex items-center gap-2 whitespace-nowrap"
-                >
-                  {sortByVisit ? '✓ ' : ''}Ordina per data visita
-                </NeumorphicButton>
+                <>
+                  {/* Mai Visitato Filter */}
+                  <NeumorphicButton
+                    onClick={() => setFilterMaiVisitato(!filterMaiVisitato)}
+                    variant={filterMaiVisitato ? 'primary' : 'default'}
+                    className="flex items-center gap-2 whitespace-nowrap"
+                  >
+                    {filterMaiVisitato ? '✓ ' : ''}Mai visitato
+                  </NeumorphicButton>
+
+                  {/* Negozio Filter */}
+                  {negoziList.length > 0 && (
+                    <select
+                      value={filterNegozio}
+                      onChange={(e) => setFilterNegozio(e.target.value)}
+                      className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
+                    >
+                      <option value="">Tutti i negozi</option>
+                      {negoziList.map((negozio) => (
+                        <option key={negozio} value={negozio}>
+                          {negozio}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Sort Toggle */}
+                  <NeumorphicButton
+                    onClick={() => setSortByVisit(!sortByVisit)}
+                    variant={sortByVisit ? 'primary' : 'default'}
+                    className="flex items-center gap-2 whitespace-nowrap"
+                  >
+                    {sortByVisit ? '✓ ' : ''}Ordina per data visita
+                  </NeumorphicButton>
+                </>
               )}
             </div>
           </div>
