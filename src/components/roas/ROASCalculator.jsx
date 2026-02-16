@@ -41,6 +41,7 @@ export default function ROASCalculator({ foodCostPercentage, platformFeesPercent
     const margine = revenue * marginePercentuale;
     const profittoTotale = profittoPerEuro * costoEffettivo;
     const roi = profittoPerEuro * 100;
+    const marginalita = revenue > 0 ? (profittoTotale / revenue) * 100 : 0;
 
     return {
       budget,
@@ -53,6 +54,7 @@ export default function ROASCalculator({ foodCostPercentage, platformFeesPercent
       profittoPerEuro,
       profittoTotale,
       roi,
+      marginalita,
       isProfit: roas >= roasBreakEven
     };
   };
@@ -179,9 +181,10 @@ export default function ROASCalculator({ foodCostPercentage, platformFeesPercent
             </div>
           </div>
           
-          <div className="pt-2 border-t border-slate-300">
-            <p className="text-xs text-slate-600 mb-1">ROI: {results.profittoPerEuro >= 0 ? '+' : ''}{results.roi.toFixed(1)}%</p>
+          <div className="pt-2 border-t border-slate-300 space-y-1">
+            <p className="text-xs text-slate-600">ROI: {results.profittoPerEuro >= 0 ? '+' : ''}{results.roi.toFixed(1)}%</p>
             <p className="text-xs text-slate-600">Profitto per €1 investito: {results.profittoPerEuro >= 0 ? '+' : ''}€{results.profittoPerEuro.toFixed(2)}</p>
+            <p className="text-xs text-slate-600">Marginalità: {results.marginalita >= 0 ? '+' : ''}{results.marginalita.toFixed(1)}%</p>
           </div>
         </div>
       </div>
