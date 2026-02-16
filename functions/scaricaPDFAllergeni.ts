@@ -193,30 +193,36 @@ Deno.serve(async (req) => {
           
           xPos -= boxWidth;
           
-          // Box celeste con bordi arrotondati
-          const radius = 4;
-          const boxX = xPos;
-          const boxY = yPosition - 26;
-          const boxH = 16;
+          // Box celeste arrotondato usando ellissi
+          currentPage.drawEllipse({
+            x: xPos + 8,
+            y: yPosition - 18,
+            xScale: 8,
+            yScale: 8,
+            color: lightBlue,
+            borderColor: borderBlue,
+            borderWidth: 0.5
+          });
           
-          // Disegna rettangolo con bordi arrotondati usando SVG path
-          currentPage.drawSvgPath(
-            `M ${boxX + radius},${boxY} 
-             L ${boxX + boxWidth - radius},${boxY} 
-             Q ${boxX + boxWidth},${boxY} ${boxX + boxWidth},${boxY + radius}
-             L ${boxX + boxWidth},${boxY + boxH - radius}
-             Q ${boxX + boxWidth},${boxY + boxH} ${boxX + boxWidth - radius},${boxY + boxH}
-             L ${boxX + radius},${boxY + boxH}
-             Q ${boxX},${boxY + boxH} ${boxX},${boxY + boxH - radius}
-             L ${boxX},${boxY + radius}
-             Q ${boxX},${boxY} ${boxX + radius},${boxY}
-             Z`,
-            {
-              color: lightBlue,
-              borderColor: borderBlue,
-              borderWidth: 0.5
-            }
-          );
+          currentPage.drawRectangle({
+            x: xPos + 8,
+            y: yPosition - 26,
+            width: boxWidth - 16,
+            height: 16,
+            color: lightBlue,
+            borderColor: borderBlue,
+            borderWidth: 0.5
+          });
+          
+          currentPage.drawEllipse({
+            x: xPos + boxWidth - 8,
+            y: yPosition - 18,
+            xScale: 8,
+            yScale: 8,
+            color: lightBlue,
+            borderColor: borderBlue,
+            borderWidth: 0.5
+          });
           
           currentPage.drawText(allergene, {
             x: xPos + 6,
