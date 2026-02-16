@@ -47,6 +47,7 @@ export default function Contatti() {
     data: '',
     negozio: ''
   });
+  const [editingVisitaIndex, setEditingVisitaIndex] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -99,6 +100,7 @@ export default function Contatti() {
     });
     setNuovaProposta({ descrizione: '', prezzo: '' });
     setNuovaVisita({ data: '', negozio: '' });
+    setEditingVisitaIndex(null);
     setEditingContatto(null);
     setShowForm(false);
   };
@@ -171,17 +173,46 @@ export default function Contatti() {
   const handleAggiungiVisita = () => {
     if (!nuovaVisita.data) return;
 
-    setFormData({
-      ...formData,
-      visite_negozio: [
-        ...formData.visite_negozio,
-        {
-          data: nuovaVisita.data,
-          negozio: nuovaVisita.negozio
-        }
-      ]
-    });
+    if (editingVisitaIndex !== null) {
+      // Update existing visit
+      const updatedVisite = [...formData.visite_negozio];
+      updatedVisite[editingVisitaIndex] = {
+        data: nuovaVisita.data,
+        negozio: nuovaVisita.negozio
+      };
+      setFormData({
+        ...formData,
+        visite_negozio: updatedVisite
+      });
+      setEditingVisitaIndex(null);
+    } else {
+      // Add new visit
+      setFormData({
+        ...formData,
+        visite_negozio: [
+          ...formData.visite_negozio,
+          {
+            data: nuovaVisita.data,
+            negozio: nuovaVisita.negozio
+          }
+        ]
+      });
+    }
     setNuovaVisita({ data: '', negozio: '' });
+  };
+
+  const handleEditVisita = (index) => {
+    const visita = formData.visite_negozio[index];
+    setNuovaVisita({
+      data: visita.data,
+      negozio: visita.negozio
+    });
+    setEditingVisitaIndex(index);
+  };
+
+  const handleCancelEditVisita = () => {
+    setNuovaVisita({ data: '', negozio: '' });
+    setEditingVisitaIndex(null);
   };
 
   const handleRimuoviVisita = (index) => {
@@ -679,20 +710,39 @@ export default function Contatti() {
                                         <p className="text-xs text-slate-500">{visita.negozio}</p>
                                       )}
                                     </div>
-                                    <button
-                                  type="button"
-                                  onClick={() => handleRimuoviVisita(idx)}
-                                  className="p-2 rounded-lg hover:bg-red-50 transition-colors">
-
-                                      <Trash2 className="w-4 h-4 text-red-600" />
-                                    </button>
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEditVisita(idx)}
+                                        className="p-2 rounded-lg hover:bg-blue-50 transition-colors">
+                                        <Edit className="w-4 h-4 text-blue-600" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRimuoviVisita(idx)}
+                                        className="p-2 rounded-lg hover:bg-red-50 transition-colors">
+                                        <Trash2 className="w-4 h-4 text-red-600" />
+                                      </button>
+                                    </div>
                                   </div>
                               )}
                               </div>
                           }
 
-                            {/* Form per nuova visita */}
+                            {/* Form per nuova/modifica visita */}
                             <div className="space-y-3 neumorphic-pressed p-4 rounded-xl">
+                              {editingVisitaIndex !== null && (
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-sm font-bold text-blue-600">Modifica Visita</p>
+                                  <button
+                                    type="button"
+                                    onClick={handleCancelEditVisita}
+                                    className="text-xs text-slate-500 hover:text-slate-700"
+                                  >
+                                    Annulla
+                                  </button>
+                                </div>
+                              )}
                               <div>
                                 <label className="text-sm font-medium text-slate-700 mb-2 block">
                                   Data Visita *
@@ -729,8 +779,17 @@ export default function Contatti() {
                               className="w-full flex items-center justify-center gap-2"
                               disabled={!nuovaVisita.data}>
 
-                                <Plus className="w-4 h-4" />
-                                Aggiungi Visita
+                                {editingVisitaIndex !== null ? (
+                                  <>
+                                    <Edit className="w-4 h-4" />
+                                    Salva Modifica
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-4 h-4" />
+                                    Aggiungi Visita
+                                  </>
+                                )}
                               </NeumorphicButton>
                             </div>
                       </div>
