@@ -38,40 +38,48 @@ Deno.serve(async (req) => {
     if (logo_url) {
       try {
         console.log('Loading logo from:', logo_url);
-        const logoResponse = await fetch(logo_url);
         
+        // Scarica l'immagine
+        const logoResponse = await fetch(logo_url);
         if (!logoResponse.ok) {
-          console.error('Logo fetch failed:', logoResponse.status, logoResponse.statusText);
-        } else {
-          const logoBlob = await logoResponse.blob();
-          const logoArrayBuffer = await logoBlob.arrayBuffer();
-          const logoBytes = new Uint8Array(logoArrayBuffer);
-          
-          console.log('Logo loaded, size:', logoBytes.length, 'bytes');
-          
-          // Convert to base64 in smaller chunks to avoid stack overflow
-          let binary = '';
-          const chunkSize = 8192;
-          for (let i = 0; i < logoBytes.length; i += chunkSize) {
-            const chunk = Array.from(logoBytes.slice(i, i + chunkSize));
-            binary += String.fromCharCode(...chunk);
-          }
-          
-          // Detect image type from blob
-          const mimeType = logoBlob.type || 'image/png';
-          const imageFormat = mimeType.includes('jpeg') || mimeType.includes('jpg') ? 'JPEG' : 'PNG';
-          const logoBase64 = `data:${mimeType};base64,${btoa(binary)}`;
-          
-          // Aggiungi logo al PDF con dimensioni maggiori
-          doc.addImage(logoBase64, imageFormat, 75, 5, 60, 22);
-          logoLoaded = true;
-          console.log('Logo added to PDF successfully');
+          throw new Error(`Logo fetch failed: ${logoResponse.status} ${logoResponse.statusText}`);
         }
+        
+        const logoBlob = await logoResponse.blob();
+        const logoArrayBuffer = await logoBlob.arrayBuffer();
+        
+        // Converti in base64 a pezzi per evitare stack overflow
+        const logoBytes = new Uint8Array(logoArrayBuffer);
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < logoBytes.length; i += chunkSize) {
+          const chunk = Array.from(logoBytes.slice(i, i + chunkSize));
+          binary += String.fromCharCode(...chunk);
+        }
+        const base64Data = btoa(binary);
+        
+        // Determina formato: jsPDF supporta solo JPEG e PNG
+        let format = 'PNG';
+        const mimeType = logoBlob.type.toLowerCase();
+        if (mimeType.includes('jpeg') || mimeType.includes('jpg')) {
+          format = 'JPEG';
+        }
+        
+        const logoDataUrl = `data:${logoBlob.type};base64,${base64Data}`;
+        
+        console.log('Logo type:', mimeType, 'Format:', format, 'Size:', logoBytes.length);
+        
+        // Aggiungi al PDF
+        doc.addImage(logoDataUrl, format, 75, 5, 60, 22);
+        logoLoaded = true;
+        console.log('✓ Logo added to PDF successfully');
+        
       } catch (error) {
-        console.error('Error loading logo:', error.message, error.stack);
+        console.error('❌ Error loading logo:', error.message);
+        // Continua senza logo se fallisce
       }
     } else {
-      console.log('No logo_url provided');
+      console.log('⚠ No logo_url configured');
     }
     
     // Titolo "Lista allergeni" in rosso brand (ridotto)
