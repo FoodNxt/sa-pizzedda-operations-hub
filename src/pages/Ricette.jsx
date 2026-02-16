@@ -31,7 +31,6 @@ export default function Ricette() {
     nome_prodotto: '',
     categoria: 'pizza',
     tipo_teglia: 'nessuna',
-    allergeni: [],
     is_semilavorato: false,
     quantita_prodotta: '',
     unita_misura_prodotta: 'grammi',
@@ -138,7 +137,6 @@ export default function Ricette() {
       nome_prodotto: '',
       categoria: 'pizza',
       tipo_teglia: 'nessuna',
-      allergeni: [],
       is_semilavorato: false,
       quantita_prodotta: '',
       unita_misura_prodotta: 'grammi',
@@ -171,7 +169,6 @@ export default function Ricette() {
       nome_prodotto: ricetta.nome_prodotto,
       categoria: ricetta.categoria || 'pizza',
       tipo_teglia: ricetta.tipo_teglia || 'nessuna',
-      allergeni: ricetta.allergeni || [],
       is_semilavorato: ricetta.is_semilavorato || false,
       quantita_prodotta: ricetta.quantita_prodotta || '',
       unita_misura_prodotta: ricetta.unita_misura_prodotta || 'grammi',
@@ -801,33 +798,6 @@ export default function Ricette() {
                         <option value="rossa">🔴 Teglia Rossa</option>
                         <option value="bianca">⚪ Teglia Bianca</option>
                       </select>
-                    </div>
-                  </div>
-
-                  {/* Allergeni */}
-                  <div>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Allergeni
-                    </label>
-                    <div className="neumorphic-pressed p-4 rounded-xl">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {['Glutine', 'Crostacei', 'Uova', 'Pesce', 'Arachidi', 'Soia', 'Latte', 'Frutta a guscio', 'Sedano', 'Senape', 'Semi di sesamo', 'Anidride solforosa e solfiti', 'Lupini', 'Molluschi'].map(allergene => (
-                          <label key={allergene} className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.allergeni?.includes(allergene)}
-                              onChange={(e) => {
-                                const newAllergeni = e.target.checked
-                                  ? [...(formData.allergeni || []), allergene]
-                                  : (formData.allergeni || []).filter(a => a !== allergene);
-                                setFormData({ ...formData, allergeni: newAllergeni });
-                              }}
-                              className="w-4 h-4 rounded"
-                            />
-                            <span className="text-xs text-slate-700">{allergene}</span>
-                          </label>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 </div>

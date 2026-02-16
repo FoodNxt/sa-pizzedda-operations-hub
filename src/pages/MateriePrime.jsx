@@ -807,30 +807,30 @@ export default function MateriePrime() {
                             </span>
                           </td>
                           <td className="p-3">
-                           {editingAllergeni?.id === ricetta.id ? (
-                             <div className="space-y-2">
-                               <div className="flex flex-wrap gap-2">
-                                 {['Glutine', 'Crostacei', 'Uova', 'Pesce', 'Arachidi', 'Soia', 'Latte', 'Frutta a guscio', 'Sedano', 'Senape', 'Semi di sesamo', 'Anidride solforosa', 'Lupini', 'Molluschi'].map(allergene => (
-                                   <button
-                                     key={allergene}
-                                     type="button"
-                                     onClick={() => {
-                                       const current = editingAllergeni.allergeni || [];
-                                       const updated = current.includes(allergene)
-                                         ? current.filter(a => a !== allergene)
-                                         : [...current, allergene];
-                                       setEditingAllergeni({ ...editingAllergeni, allergeni: updated });
-                                     }}
-                                     className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                                       (editingAllergeni.allergeni || []).includes(allergene)
-                                         ? 'bg-blue-500 text-white shadow-md'
-                                         : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                                     }`}
-                                   >
-                                     {allergene}
-                                   </button>
-                                 ))}
-                               </div>
+                          {editingAllergeni?.id === ricetta.id ? (
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-2">
+                                {['Glutine', 'Crostacei', 'Uova', 'Pesce', 'Arachidi', 'Soia', 'Latte', 'Frutta a guscio', 'Sedano', 'Senape', 'Semi di sesamo', 'Anidride solforosa e solfiti', 'Lupini', 'Molluschi'].map(allergene => (
+                                  <button
+                                    key={allergene}
+                                    type="button"
+                                    onClick={() => {
+                                      const current = editingAllergeni.allergeni || [];
+                                      const updated = current.includes(allergene)
+                                        ? current.filter(a => a !== allergene)
+                                        : [...current, allergene];
+                                      setEditingAllergeni({ ...editingAllergeni, allergeni: updated });
+                                    }}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                                      (editingAllergeni.allergeni || []).includes(allergene)
+                                        ? 'bg-blue-500 text-white shadow-md'
+                                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                                    }`}
+                                  >
+                                    {allergene}
+                                  </button>
+                                ))}
+                              </div>
                                <div className="flex gap-2">
                                  <button
                                    onClick={() => {
