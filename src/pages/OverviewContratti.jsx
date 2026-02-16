@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { FileText, Calendar, Clock, Briefcase, User, ArrowUpDown, AlertTriangle, RefreshCw, X, History, Send, Settings, Plus, Trash2, Edit, Save } from "lucide-react";
+import { FileText, Calendar, Clock, Briefcase, User, ArrowUpDown, AlertTriangle, RefreshCw, X, History, Send, Settings, Plus, Trash2, Edit, Save, Download } from "lucide-react";
 import moment from "moment";
 
 export default function OverviewContratti() {
@@ -1308,6 +1308,33 @@ export default function OverviewContratti() {
                               <span className="font-medium">Fine:</span> {moment(dataFine).format('DD/MM/YYYY')}
                             </p>
                           </div>
+                        </div>
+                        <div>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await base44.functions.invoke('downloadContrattoPDF', {
+                                  contractId: contratto.id
+                                });
+                                const blob = new Blob([response.data], { type: 'application/pdf' });
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `Contratto_${contratto.template_nome}_${moment(contratto.data_inizio_contratto).format('YYYY-MM-DD')}.pdf`;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                a.remove();
+                              } catch (error) {
+                                console.error('Error downloading contract:', error);
+                                alert('Errore durante il download del contratto');
+                              }
+                            }}
+                            className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                            title="Scarica PDF"
+                          >
+                            <Download className="w-4 h-4 text-blue-600" />
+                          </button>
                         </div>
                       </div>
                     </div>);
