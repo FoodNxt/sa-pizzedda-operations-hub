@@ -103,6 +103,7 @@ export default function MateriePrime() {
   const [editingAllergeni, setEditingAllergeni] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [showLogoConfig, setShowLogoConfig] = useState(false);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -467,6 +468,38 @@ export default function MateriePrime() {
     }
   };
 
+  const anteprimaPDFAllergeni = async () => {
+    if (selectedRicette.length === 0) {
+      alert('Seleziona almeno un prodotto per l\'anteprima');
+      return;
+    }
+
+    try {
+      const activeConfig = allergeniConfigs.find(c => c.is_active);
+      const response = await base44.functions.invoke('scaricaPDFAllergeni', {
+        ricette_ids: selectedRicette,
+        logo_url: activeConfig?.logo_url || null
+      });
+
+      if (!response.data.success || !response.data.pdf) {
+        throw new Error(response.data.error || 'PDF non disponibile');
+      }
+
+      // Decode base64 PDF
+      const pdfData = atob(response.data.pdf);
+      const bytes = new Uint8Array(pdfData.length);
+      for (let i = 0; i < pdfData.length; i++) {
+        bytes[i] = pdfData.charCodeAt(i);
+      }
+
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      setPreviewPdfUrl(url);
+    } catch (error) {
+      alert('❌ Errore: ' + (error.message || 'Errore nella generazione dell\'anteprima'));
+    }
+  };
+
   const toggleRicettaSelection = (ricettaId) => {
     setSelectedRicette(prev => 
       prev.includes(ricettaId) 
@@ -694,6 +727,14 @@ export default function MateriePrime() {
                   )}
                 </NeumorphicButton>
                 <NeumorphicButton
+                  onClick={anteprimaPDFAllergeni}
+                  disabled={selectedRicette.length === 0}
+                  className="flex items-center gap-2"
+                >
+                  <Camera className="w-4 h-4" />
+                  Anteprima ({selectedRicette.length})
+                </NeumorphicButton>
+                <NeumorphicButton
                   onClick={scaricaPDFAllergeni}
                   disabled={selectedRicette.length === 0}
                   className="flex items-center gap-2"
@@ -845,6 +886,31 @@ export default function MateriePrime() {
               </div>
             )}
           </NeumorphicCard>
+
+          {/* PDF Preview Modal */}
+          {previewPdfUrl && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <NeumorphicCard className="max-w-6xl w-full h-[90vh] p-6 flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-slate-800">Anteprima PDF Allergeni</h2>
+                  <button 
+                    onClick={() => {
+                      window.URL.revokeObjectURL(previewPdfUrl);
+                      setPreviewPdfUrl(null);
+                    }} 
+                    className="p-2 rounded-lg hover:bg-slate-100"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <iframe
+                  src={previewPdfUrl}
+                  className="flex-1 w-full rounded-xl border border-slate-200"
+                  title="Anteprima PDF"
+                />
+              </NeumorphicCard>
+            </div>
+          )}
 
           {/* Logo Upload Modal */}
           {showLogoConfig && (
