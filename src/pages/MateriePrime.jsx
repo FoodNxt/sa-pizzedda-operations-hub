@@ -443,8 +443,14 @@ export default function MateriePrime() {
         logo_url: activeConfig?.logo_url || null
       });
 
-      if (!response.data.success || !response.data.pdf) {
-        throw new Error(response.data.error || 'PDF non disponibile');
+      console.log('Response:', response);
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      if (!response.data?.success || !response.data?.pdf) {
+        throw new Error('PDF non disponibile nella risposta');
       }
 
       // Decode base64 PDF
@@ -464,6 +470,7 @@ export default function MateriePrime() {
       window.URL.revokeObjectURL(url);
       a.remove();
     } catch (error) {
+      console.error('Errore PDF:', error);
       alert('❌ Errore: ' + (error.message || 'Errore nella generazione del PDF'));
     }
   };
@@ -481,8 +488,14 @@ export default function MateriePrime() {
         logo_url: activeConfig?.logo_url || null
       });
 
-      if (!response.data.success || !response.data.pdf) {
-        throw new Error(response.data.error || 'PDF non disponibile');
+      console.log('Response anteprima:', response);
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      if (!response.data?.success || !response.data?.pdf) {
+        throw new Error('PDF non disponibile nella risposta');
       }
 
       // Decode base64 PDF
@@ -496,6 +509,7 @@ export default function MateriePrime() {
       const url = window.URL.createObjectURL(blob);
       setPreviewPdfUrl(url);
     } catch (error) {
+      console.error('Errore anteprima:', error);
       alert('❌ Errore: ' + (error.message || 'Errore nella generazione dell\'anteprima'));
     }
   };
