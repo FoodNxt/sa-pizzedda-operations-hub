@@ -417,140 +417,101 @@ export default function Contatti() {
               <p className="text-slate-500">Nessun contatto in questa categoria</p>
             </div> :
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-3">
               {contattiByCategoria.map((contatto) =>
-            <div key={contatto.id} className="neumorphic-pressed p-5 rounded-xl">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-slate-800 mb-1">
-                        {contatto.nome} {contatto.cognome}
-                      </h3>
-                      {contatto.societa &&
-                  <div className="flex items-center gap-2 text-sm text-slate-600 mb-2">
-                          <Building className="w-4 h-4" />
-                          {contatto.societa}
-                        </div>
-                  }
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                    onClick={() => handleEdit(contatto)}
-                    className="p-2 rounded-lg hover:bg-blue-50 transition-colors">
+            <div key={contatto.id} className="neumorphic-pressed p-4 rounded-xl">
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Nome e Info Base */}
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="flex-shrink-0">
+                        <h3 className="text-lg font-bold text-slate-800">
+                          {contatto.nome} {contatto.cognome}
+                        </h3>
+                        {contatto.societa &&
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <Building className="w-4 h-4" />
+                            {contatto.societa}
+                          </div>
+                        }
+                      </div>
 
+                      {/* Contatti */}
+                      <div className="flex items-center gap-4 text-sm">
+                        {contatto.email &&
+                          <a href={`mailto:${contatto.email}`} className="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors">
+                            <Mail className="w-4 h-4" />
+                            <span className="hidden lg:inline">{contatto.email}</span>
+                          </a>
+                        }
+                        {contatto.telefono &&
+                          <a href={`tel:${contatto.telefono}`} className="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors">
+                            <Phone className="w-4 h-4" />
+                            <span className="hidden lg:inline">{contatto.telefono}</span>
+                          </a>
+                        }
+                        {contatto.link &&
+                          <a href={contatto.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors">
+                            <LinkIcon className="w-4 h-4" />
+                          </a>
+                        }
+                      </div>
+
+                      {/* Food Influencer Info */}
+                      {contatto.categoria === 'Food influencers' &&
+                        <div className="flex items-center gap-4 text-sm">
+                          {contatto.followers &&
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-500">Followers:</span>
+                              <span className="font-bold text-purple-600">
+                                {contatto.followers.toLocaleString()}
+                              </span>
+                            </div>
+                          }
+                          {contatto.mai_visitato ?
+                            <span className="text-xs text-slate-500">❌ Mai visitato</span> :
+                            (contatto.visite_negozio && contatto.visite_negozio.length > 0) ?
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-500">Visite:</span>
+                              <span className="font-bold text-green-600">{contatto.visite_negozio.length}</span>
+                              <span className="text-xs text-slate-500">
+                                (ultima: {new Date(Math.max(...contatto.visite_negozio.map(v => new Date(v.data)))).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })})
+                              </span>
+                            </div> :
+                            contatto.data_visita_negozio &&
+                            <span className="text-xs text-slate-500">
+                              ✓ {new Date(contatto.data_visita_negozio).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}
+                            </span>
+                          }
+                        </div>
+                      }
+
+                      {/* Proposte */}
+                      {contatto.proposte_commerciali && contatto.proposte_commerciali.length > 0 &&
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">Proposte:</span>
+                          <span className="font-bold text-green-600">{contatto.proposte_commerciali.length}</span>
+                        </div>
+                      }
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleEdit(contatto)}
+                        className="p-2 rounded-lg hover:bg-blue-50 transition-colors">
                         <Edit className="w-4 h-4 text-blue-600" />
                       </button>
                       <button
-                    onClick={() => {
-                      if (confirm(`Eliminare ${contatto.nome} ${contatto.cognome}?`)) {
-                        deleteMutation.mutate(contatto.id);
-                      }
-                    }}
-                    className="p-2 rounded-lg hover:bg-red-50 transition-colors">
-
+                        onClick={() => {
+                          if (confirm(`Eliminare ${contatto.nome} ${contatto.cognome}?`)) {
+                            deleteMutation.mutate(contatto.id);
+                          }
+                        }}
+                        className="p-2 rounded-lg hover:bg-red-50 transition-colors">
                         <Trash2 className="w-4 h-4 text-red-600" />
                       </button>
                     </div>
                   </div>
-
-                  <div className="space-y-2 text-sm">
-                    {contatto.email &&
-                <div className="flex items-center gap-2 text-slate-600">
-                        <Mail className="w-4 h-4" />
-                        <a href={`mailto:${contatto.email}`} className="hover:text-blue-600 transition-colors">
-                          {contatto.email}
-                        </a>
-                      </div>
-                }
-                    {contatto.telefono &&
-                <div className="flex items-center gap-2 text-slate-600">
-                        <Phone className="w-4 h-4" />
-                        <a href={`tel:${contatto.telefono}`} className="hover:text-blue-600 transition-colors">
-                          {contatto.telefono}
-                        </a>
-                      </div>
-                }
-                    {contatto.link &&
-                <div className="flex items-center gap-2 text-slate-600">
-                        <LinkIcon className="w-4 h-4" />
-                        <a
-                    href={contatto.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-blue-600 transition-colors truncate">
-
-                          {contatto.link}
-                        </a>
-                      </div>
-                }
-                  </div>
-
-                  {contatto.categoria === 'Food influencers' &&
-              <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-                      {contatto.followers &&
-                <div>
-                          <p className="text-xs font-bold text-slate-700">Followers</p>
-                          <p className="text-lg font-bold text-purple-600">
-                            {contatto.followers.toLocaleString()}
-                          </p>
-                        </div>
-                }
-                      {contatto.mai_visitato ?
-                <div>
-                          <p className="text-xs text-slate-500">❌ Non è mai venuto in negozio</p>
-                        </div> :
-                (contatto.visite_negozio && contatto.visite_negozio.length > 0) ?
-                <div>
-                          <p className="text-xs font-bold text-slate-700 mb-1">Visite ({contatto.visite_negozio.length})</p>
-                          <div className="space-y-1">
-                            {contatto.visite_negozio
-                              .sort((a, b) => new Date(b.data) - new Date(a.data))
-                              .slice(0, 3)
-                              .map((visita, idx) => (
-                                <p key={idx} className="text-xs text-slate-500">
-                                  ✓ {new Date(visita.data).toLocaleDateString('it-IT')}
-                                  {visita.negozio && ` • ${visita.negozio}`}
-                                </p>
-                              ))}
-                            {contatto.visite_negozio.length > 3 && (
-                              <p className="text-xs text-slate-400 italic">
-                                +{contatto.visite_negozio.length - 3} altre visite
-                              </p>
-                            )}
-                          </div>
-                        </div> :
-                contatto.data_visita_negozio ?
-                <div>
-                          <p className="text-xs text-slate-500">
-                            ✓ Visita: {new Date(contatto.data_visita_negozio).toLocaleDateString('it-IT')}
-                            {contatto.negozio_visitato && ` • ${contatto.negozio_visitato}`}
-                          </p>
-                        </div> :
-                null}
-                    </div>
-              }
-
-                  {contatto.proposte_commerciali && contatto.proposte_commerciali.length > 0 &&
-              <div className="mt-3 pt-3 border-t border-slate-200">
-                      <p className="text-xs font-bold text-slate-700 mb-2">Proposte Commerciali</p>
-                      <div className="space-y-2">
-                        {contatto.proposte_commerciali.map((proposta, idx) =>
-                  <div key={idx} className="bg-slate-50 p-2 rounded-lg">
-                            <p className="text-sm text-slate-600 mb-1">{proposta.descrizione}</p>
-                            <div className="flex items-center gap-2 text-green-600 font-bold text-sm">
-                              <Euro className="w-3 h-3" />
-                              {proposta.prezzo.toFixed(2)}
-                            </div>
-                          </div>
-                  )}
-                      </div>
-                    </div>
-              }
-
-                  {contatto.note &&
-              <div className="mt-3 pt-3 border-t border-slate-200">
-                      <p className="text-xs text-slate-500">{contatto.note}</p>
-                    </div>
-              }
                 </div>
             )}
             </div>
