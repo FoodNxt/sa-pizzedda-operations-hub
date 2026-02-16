@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
           console.log('✓ Logo downloaded:', logoImageBytes.byteLength, 'bytes');
           
           const logoImage = await pdfDoc.embedPng(logoImageBytes);
-          const logoScaled = logoImage.scale(0.2);
+          const logoScaled = logoImage.scale(0.12);
           
           currentPage.drawImage(logoImage, {
             x: (width - logoScaled.width) / 2,
@@ -193,16 +193,30 @@ Deno.serve(async (req) => {
           
           xPos -= boxWidth;
           
-          // Box celeste
-          currentPage.drawRectangle({
-            x: xPos,
-            y: yPosition - 26,
-            width: boxWidth,
-            height: 16,
-            color: lightBlue,
-            borderColor: borderBlue,
-            borderWidth: 0.5
-          });
+          // Box celeste con bordi arrotondati
+          const radius = 4;
+          const boxX = xPos;
+          const boxY = yPosition - 26;
+          const boxH = 16;
+          
+          // Disegna rettangolo con bordi arrotondati usando SVG path
+          currentPage.drawSvgPath(
+            `M ${boxX + radius},${boxY} 
+             L ${boxX + boxWidth - radius},${boxY} 
+             Q ${boxX + boxWidth},${boxY} ${boxX + boxWidth},${boxY + radius}
+             L ${boxX + boxWidth},${boxY + boxH - radius}
+             Q ${boxX + boxWidth},${boxY + boxH} ${boxX + boxWidth - radius},${boxY + boxH}
+             L ${boxX + radius},${boxY + boxH}
+             Q ${boxX},${boxY + boxH} ${boxX},${boxY + boxH - radius}
+             L ${boxX},${boxY + radius}
+             Q ${boxX},${boxY} ${boxX + radius},${boxY}
+             Z`,
+            {
+              color: lightBlue,
+              borderColor: borderBlue,
+              borderWidth: 0.5
+            }
+          );
           
           currentPage.drawText(allergene, {
             x: xPos + 6,
