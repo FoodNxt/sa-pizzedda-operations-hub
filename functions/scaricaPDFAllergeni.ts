@@ -69,12 +69,12 @@ Deno.serve(async (req) => {
             height: logoScaled.height
           });
           
-          yPosition = height - 105;
+          yPosition = height - 125;
           console.log('✅ Logo added to PDF');
         }
       } catch (error) {
         console.error('Logo error:', error.message);
-        yPosition = height - 65;
+        yPosition = height - 85;
       }
     }
     
@@ -193,61 +193,13 @@ Deno.serve(async (req) => {
           
           xPos -= boxWidth;
           
-          // Box celeste arrotondato - prima riempi, poi bordo
-          const radius = 8;
-          const boxX = xPos;
-          const boxY = yPosition - 26;
-          const boxH = 16;
-          
-          // Disegna sfondo pieno senza bordo
-          currentPage.drawEllipse({
-            x: boxX + radius,
-            y: boxY + boxH / 2,
-            xScale: radius,
-            yScale: boxH / 2,
-            color: lightBlue
-          });
-          
+          // Box celeste rettangolare semplice
           currentPage.drawRectangle({
-            x: boxX + radius,
-            y: boxY,
-            width: boxWidth - 2 * radius,
-            height: boxH,
-            color: lightBlue
-          });
-          
-          currentPage.drawEllipse({
-            x: boxX + boxWidth - radius,
-            y: boxY + boxH / 2,
-            xScale: radius,
-            yScale: boxH / 2,
-            color: lightBlue
-          });
-          
-          // Disegna bordo separatamente (solo outline)
-          currentPage.drawEllipse({
-            x: boxX + radius,
-            y: boxY + boxH / 2,
-            xScale: radius,
-            yScale: boxH / 2,
-            borderColor: borderBlue,
-            borderWidth: 0.5
-          });
-          
-          currentPage.drawRectangle({
-            x: boxX + radius,
-            y: boxY,
-            width: boxWidth - 2 * radius,
-            height: boxH,
-            borderColor: borderBlue,
-            borderWidth: 0.5
-          });
-          
-          currentPage.drawEllipse({
-            x: boxX + boxWidth - radius,
-            y: boxY + boxH / 2,
-            xScale: radius,
-            yScale: boxH / 2,
+            x: xPos,
+            y: yPosition - 26,
+            width: boxWidth,
+            height: 16,
+            color: lightBlue,
             borderColor: borderBlue,
             borderWidth: 0.5
           });
