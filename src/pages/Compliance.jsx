@@ -26,6 +26,24 @@ import moment from "moment";
 
 export default function Compliance() {
   const [activeTab, setActiveTab] = useState('requisiti');
+  const [showElementoDivisaForm, setShowElementoDivisaForm] = useState(false);
+  const [editingElemento, setEditingElemento] = useState(null);
+  const [showConsegnaForm, setShowConsegnaForm] = useState(false);
+  const [selectedDipendente, setSelectedDipendente] = useState(null);
+  const [elementoForm, setElementoForm] = useState({
+    nome: '',
+    tipo: 'Maglietta',
+    parte_divisa_completa: false,
+    ruoli_assegnati: [],
+    descrizione: '',
+    taglia_disponibili: [],
+    attivo: true
+  });
+  const [consegnaForm, setConsegnaForm] = useState({
+    tipo_consegna: 'elemento_singolo',
+    elementi_consegnati: [],
+    note: ''
+  });
   const [showRequisitoForm, setShowRequisitoForm] = useState(false);
   const [editingRequisito, setEditingRequisito] = useState(null);
   const [showAssegnazioneForm, setShowAssegnazioneForm] = useState(null);
@@ -71,6 +89,16 @@ export default function Compliance() {
     queryFn: () => base44.entities.Store.list()
   });
 
+  const { data: elementiDivisa = [] } = useQuery({
+    queryKey: ['elementi-divisa'],
+    queryFn: () => base44.entities.ElementoDivisa.list()
+  });
+
+  const { data: consegneDivisa = [] } = useQuery({
+    queryKey: ['consegne-divisa'],
+    queryFn: () => base44.entities.ConsegnaDivisa.list()
+  });
+
   const dipendenti = users.filter((u) => u.user_type === 'dipendente' || u.user_type === 'user');
 
   // Mutations
@@ -112,6 +140,56 @@ export default function Compliance() {
       queryClient.invalidateQueries({ queryKey: ['dipendenti-compliance'] });
     }
   });
+
+  const createElementoMutation = useMutation({
+    mutationFn: (data) => base44.entities.ElementoDivisa.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['elementi-divisa'] });
+      resetElementoForm();
+    }
+  });
+
+  const updateElementoMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.ElementoDivisa.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['elementi-divisa'] });
+      resetElementoForm();
+    }
+  });
+
+  const deleteElementoMutation = useMutation({
+    mutationFn: (id) => base44.entities.ElementoDivisa.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['elementi-divisa'] });
+    }
+  });
+
+  const createConsegnaMutation = useMutation({
+    mutationFn: (data) => base44.entities.ConsegnaDivisa.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['consegne-divisa'] });
+      setShowConsegnaForm(false);
+      setConsegnaForm({
+        tipo_consegna: 'elemento_singolo',
+        elementi_consegnati: [],
+        note: ''
+      });
+    }
+  });
+
+  const resetElementoForm = () => {
+    setElementoForm({
+      nome: '',
+      tipo: 'Maglietta',
+      parte_divisa_completa: false,
+      ruoli_assegnati: [],
+      descrizione: '',
+      taglia_disponibili: [],
+      attivo: true
+    });
+    setEditingElemento(null);
+    setShowElementoDivisaForm(false);
+  };
 
   const resetRequisitoForm = () => {
     setRequisitoForm({
@@ -264,14 +342,30 @@ export default function Compliance() {
           </div>
           <p style={{ color: '#000000' }}>Gestione requisiti e certificazioni dipendenti</p>
         </div>
-        <NeumorphicButton
-          onClick={() => setShowRequisitoForm(true)}
-          variant="primary"
-          className="flex items-center gap-2">
+      </div>
 
-          <Plus className="w-5 h-5" />
-          Nuovo Requisito
-        </NeumorphicButton>
+      {/* Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        <button
+          onClick={() => setActiveTab('requisiti')}
+          className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+            activeTab === 'requisiti' ?
+            'neumorphic-pressed bg-blue-50 text-blue-700' :
+            'neumorphic-flat text-slate-600 hover:text-slate-800'
+          }`}>
+          <Shield className="w-4 h-4" />
+          Requisiti
+        </button>
+        <button
+          onClick={() => setActiveTab('divisa')}
+          className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+            activeTab === 'divisa' ?
+            'neumorphic-pressed bg-blue-50 text-blue-700' :
+            'neumorphic-flat text-slate-600 hover:text-slate-800'
+          }`}>
+          <Users className="w-4 h-4" />
+          Divisa
+        </button>
       </div>
 
       {/* Stats */}
@@ -301,8 +395,508 @@ export default function Compliance() {
         </NeumorphicCard>
       </div>
 
-      {/* Form Nuovo Requisito */}
-      {showRequisitoForm &&
+      {/* TAB DIVISA */}
+      {activeTab === 'divisa' && (
+        <>
+          {/* Header Divisa */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-800">Gestione Divisa</h2>
+            <NeumorphicButton
+              onClick={() => setShowElementoDivisaForm(true)}
+              variant="primary"
+              className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Nuovo Elemento
+            </NeumorphicButton>
+          </div>
+
+          {/* Form Elemento Divisa */}
+          {showElementoDivisaForm && (
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-slate-800">
+                  {editingElemento ? 'Modifica Elemento' : 'Nuovo Elemento Divisa'}
+                </h3>
+                <button onClick={resetElementoForm} className="text-slate-500">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                if (editingElemento) {
+                  updateElementoMutation.mutate({ id: editingElemento.id, data: elementoForm });
+                } else {
+                  createElementoMutation.mutate(elementoForm);
+                }
+              }} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">
+                      Nome Elemento <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={elementoForm.nome}
+                      onChange={(e) => setElementoForm({ ...elementoForm, nome: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                      placeholder="Es. Maglietta nera logo"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">
+                      Tipo <span className="text-red-600">*</span>
+                    </label>
+                    <select
+                      value={elementoForm.tipo}
+                      onChange={(e) => setElementoForm({ ...elementoForm, tipo: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+                      <option value="Maglietta">Maglietta</option>
+                      <option value="Grembiule">Grembiule</option>
+                      <option value="Pantaloni">Pantaloni</option>
+                      <option value="Scarpe">Scarpe</option>
+                      <option value="Cappello">Cappello</option>
+                      <option value="Altro">Altro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-1 block">Descrizione</label>
+                  <textarea
+                    value={elementoForm.descrizione}
+                    onChange={(e) => setElementoForm({ ...elementoForm, descrizione: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-20 resize-none"
+                    placeholder="Descrizione elemento..."
+                  />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="parte_divisa_completa"
+                    checked={elementoForm.parte_divisa_completa}
+                    onChange={(e) => setElementoForm({ ...elementoForm, parte_divisa_completa: e.target.checked })}
+                    className="w-5 h-5"
+                  />
+                  <label htmlFor="parte_divisa_completa" className="text-sm font-medium text-slate-700">
+                    Fa parte della divisa completa
+                  </label>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">Ruoli Assegnati</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Pizzaiolo', 'Cassiere', 'Store Manager', 'Altro'].map((ruolo) => (
+                      <button
+                        key={ruolo}
+                        type="button"
+                        onClick={() => {
+                          const current = elementoForm.ruoli_assegnati;
+                          setElementoForm({
+                            ...elementoForm,
+                            ruoli_assegnati: current.includes(ruolo) ?
+                              current.filter((r) => r !== ruolo) :
+                              [...current, ruolo]
+                          });
+                        }}
+                        className={`px-3 py-2 rounded-xl text-sm transition-all ${
+                          elementoForm.ruoli_assegnati.includes(ruolo) ?
+                          'bg-blue-500 text-white' :
+                          'neumorphic-flat text-slate-700'
+                        }`}>
+                        {ruolo}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton type="button" onClick={resetElementoForm}>
+                    Annulla
+                  </NeumorphicButton>
+                  <NeumorphicButton type="submit" variant="primary" className="flex items-center gap-2">
+                    <Save className="w-5 h-5" />
+                    {editingElemento ? 'Aggiorna' : 'Crea'} Elemento
+                  </NeumorphicButton>
+                </div>
+              </form>
+            </NeumorphicCard>
+          )}
+
+          {/* Lista Elementi Divisa */}
+          <NeumorphicCard className="p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">Elementi Divisa</h3>
+            {elementiDivisa.length === 0 ? (
+              <p className="text-center text-slate-500 py-8">Nessun elemento configurato</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {elementiDivisa.map((elemento) => (
+                  <div key={elemento.id} className="neumorphic-flat p-4 rounded-xl">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h4 className="font-bold text-slate-800">{elemento.nome}</h4>
+                        <p className="text-xs text-slate-500">{elemento.tipo}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingElemento(elemento);
+                            setElementoForm({
+                              nome: elemento.nome,
+                              tipo: elemento.tipo,
+                              parte_divisa_completa: elemento.parte_divisa_completa || false,
+                              ruoli_assegnati: elemento.ruoli_assegnati || [],
+                              descrizione: elemento.descrizione || '',
+                              taglia_disponibili: elemento.taglia_disponibili || [],
+                              attivo: elemento.attivo !== false
+                            });
+                            setShowElementoDivisaForm(true);
+                          }}
+                          className="p-1 rounded hover:bg-blue-50">
+                          <Edit className="w-4 h-4 text-blue-600" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm('Eliminare questo elemento?')) {
+                              deleteElementoMutation.mutate(elemento.id);
+                            }
+                          }}
+                          className="p-1 rounded hover:bg-red-50">
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                      </div>
+                    </div>
+                    {elemento.parte_divisa_completa && (
+                      <span className="inline-block px-2 py-1 bg-green-100 text-green-700 rounded text-xs mb-2">
+                        Divisa Completa
+                      </span>
+                    )}
+                    {elemento.ruoli_assegnati?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {elemento.ruoli_assegnati.map((r) => (
+                          <span key={r} className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{r}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </NeumorphicCard>
+
+          {/* Consegna Divisa */}
+          <NeumorphicCard className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-800">Consegna Divisa a Dipendente</h3>
+              <NeumorphicButton
+                onClick={() => setShowConsegnaForm(!showConsegnaForm)}
+                variant="primary"
+                className="flex items-center gap-2">
+                <Plus className="w-5 h-5" />
+                Nuova Consegna
+              </NeumorphicButton>
+            </div>
+
+            {showConsegnaForm && (
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const dipendente = dipendenti.find(d => d.id === selectedDipendente);
+                  createConsegnaMutation.mutate({
+                    dipendente_id: selectedDipendente,
+                    dipendente_nome: dipendente?.nome_cognome || dipendente?.full_name || dipendente?.email,
+                    data_consegna: new Date().toISOString(),
+                    tipo_consegna: consegnaForm.tipo_consegna,
+                    elementi_consegnati: consegnaForm.elementi_consegnati,
+                    consegnato_da: currentUser?.email || '',
+                    note: consegnaForm.note
+                  });
+                }} className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Dipendente</label>
+                    <select
+                      value={selectedDipendente || ''}
+                      onChange={(e) => setSelectedDipendente(e.target.value)}
+                      required
+                      className="w-full neumorphic-flat px-4 py-3 rounded-xl outline-none">
+                      <option value="">Seleziona dipendente...</option>
+                      {dipendenti.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nome_cognome || d.full_name || d.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Tipo Consegna</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConsegnaForm({ ...consegnaForm, tipo_consegna: 'elemento_singolo', elementi_consegnati: [] });
+                        }}
+                        className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                          consegnaForm.tipo_consegna === 'elemento_singolo' ?
+                          'bg-blue-500 text-white' :
+                          'neumorphic-flat text-slate-700'
+                        }`}>
+                        Elemento Singolo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const divisaCompleta = elementiDivisa
+                            .filter(e => e.parte_divisa_completa && e.attivo)
+                            .map(e => ({ elemento_id: e.id, elemento_nome: e.nome, taglia: '', quantita: 1 }));
+                          setConsegnaForm({ ...consegnaForm, tipo_consegna: 'divisa_completa', elementi_consegnati: divisaCompleta });
+                        }}
+                        className={`flex-1 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                          consegnaForm.tipo_consegna === 'divisa_completa' ?
+                          'bg-green-500 text-white' :
+                          'neumorphic-flat text-slate-700'
+                        }`}>
+                        Divisa Completa
+                      </button>
+                    </div>
+                  </div>
+
+                  {consegnaForm.tipo_consegna === 'elemento_singolo' && (
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">Seleziona Elementi</label>
+                      <div className="space-y-2">
+                        {elementiDivisa.filter(e => e.attivo).map((elemento) => {
+                          const isSelected = consegnaForm.elementi_consegnati.some(ec => ec.elemento_id === elemento.id);
+                          return (
+                            <div key={elemento.id} className="neumorphic-flat p-3 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setConsegnaForm({
+                                        ...consegnaForm,
+                                        elementi_consegnati: [
+                                          ...consegnaForm.elementi_consegnati,
+                                          { elemento_id: elemento.id, elemento_nome: elemento.nome, taglia: '', quantita: 1 }
+                                        ]
+                                      });
+                                    } else {
+                                      setConsegnaForm({
+                                        ...consegnaForm,
+                                        elementi_consegnati: consegnaForm.elementi_consegnati.filter(ec => ec.elemento_id !== elemento.id)
+                                      });
+                                    }
+                                  }}
+                                  className="w-5 h-5"
+                                />
+                                <div className="flex-1">
+                                  <p className="font-medium text-slate-800">{elemento.nome}</p>
+                                  <p className="text-xs text-slate-500">{elemento.tipo}</p>
+                                </div>
+                                {isSelected && (
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder="Taglia"
+                                      value={consegnaForm.elementi_consegnati.find(ec => ec.elemento_id === elemento.id)?.taglia || ''}
+                                      onChange={(e) => {
+                                        setConsegnaForm({
+                                          ...consegnaForm,
+                                          elementi_consegnati: consegnaForm.elementi_consegnati.map(ec =>
+                                            ec.elemento_id === elemento.id ? { ...ec, taglia: e.target.value } : ec
+                                          )
+                                        });
+                                      }}
+                                      className="w-20 neumorphic-pressed px-2 py-1 rounded text-sm"
+                                    />
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      placeholder="Qty"
+                                      value={consegnaForm.elementi_consegnati.find(ec => ec.elemento_id === elemento.id)?.quantita || 1}
+                                      onChange={(e) => {
+                                        setConsegnaForm({
+                                          ...consegnaForm,
+                                          elementi_consegnati: consegnaForm.elementi_consegnati.map(ec =>
+                                            ec.elemento_id === elemento.id ? { ...ec, quantita: parseInt(e.target.value) || 1 } : ec
+                                          )
+                                        });
+                                      }}
+                                      className="w-16 neumorphic-pressed px-2 py-1 rounded text-sm"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {consegnaForm.tipo_consegna === 'divisa_completa' && (
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">Elementi Divisa Completa</label>
+                      <div className="space-y-2">
+                        {consegnaForm.elementi_consegnati.map((ec, idx) => {
+                          const elemento = elementiDivisa.find(e => e.id === ec.elemento_id);
+                          return (
+                            <div key={idx} className="neumorphic-flat p-3 rounded-lg flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-slate-800">{ec.elemento_nome}</p>
+                                <p className="text-xs text-slate-500">{elemento?.tipo}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Taglia"
+                                  value={ec.taglia || ''}
+                                  onChange={(e) => {
+                                    const newElementi = [...consegnaForm.elementi_consegnati];
+                                    newElementi[idx] = { ...newElementi[idx], taglia: e.target.value };
+                                    setConsegnaForm({ ...consegnaForm, elementi_consegnati: newElementi });
+                                  }}
+                                  className="w-20 neumorphic-pressed px-2 py-1 rounded text-sm"
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-1 block">Note</label>
+                    <input
+                      type="text"
+                      value={consegnaForm.note}
+                      onChange={(e) => setConsegnaForm({ ...consegnaForm, note: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                      placeholder="Note sulla consegna..."
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <NeumorphicButton type="button" onClick={() => {
+                      setShowConsegnaForm(false);
+                      setConsegnaForm({ tipo_consegna: 'elemento_singolo', elementi_consegnati: [], note: '' });
+                      setSelectedDipendente(null);
+                    }}>
+                      Annulla
+                    </NeumorphicButton>
+                    <NeumorphicButton
+                      type="submit"
+                      variant="primary"
+                      disabled={!selectedDipendente || consegnaForm.elementi_consegnati.length === 0}
+                      className="flex items-center gap-2">
+                      <Save className="w-5 h-5" />
+                      Registra Consegna
+                    </NeumorphicButton>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Storico Consegne */}
+            <div className="mt-6">
+              <h4 className="text-base font-bold text-slate-800 mb-3">Storico Consegne</h4>
+              {consegneDivisa.length === 0 ? (
+                <p className="text-center text-slate-500 py-4">Nessuna consegna registrata</p>
+              ) : (
+                <div className="space-y-2">
+                  {consegneDivisa.sort((a, b) => new Date(b.data_consegna) - new Date(a.data_consegna)).map((consegna) => (
+                    <div key={consegna.id} className="neumorphic-flat p-4 rounded-xl">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <User className="w-4 h-4 text-blue-600" />
+                            <p className="font-bold text-slate-800">{consegna.dipendente_nome}</p>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            <Calendar className="w-3 h-3 inline mr-1" />
+                            {moment(consegna.data_consegna).format('DD/MM/YYYY HH:mm')}
+                          </p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          consegna.tipo_consegna === 'divisa_completa' ?
+                          'bg-green-100 text-green-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {consegna.tipo_consegna === 'divisa_completa' ? 'Divisa Completa' : 'Elemento Singolo'}
+                        </span>
+                      </div>
+                      <div className="mt-2">
+                        <p className="text-xs text-slate-600 font-medium mb-1">Elementi consegnati:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {consegna.elementi_consegnati?.map((ec, idx) => (
+                            <span key={idx} className="text-xs px-2 py-1 bg-slate-100 text-slate-700 rounded">
+                              {ec.elemento_nome}
+                              {ec.taglia && ` (${ec.taglia})`}
+                              {ec.quantita > 1 && ` x${ec.quantita}`}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      {consegna.note && (
+                        <p className="text-xs text-slate-500 mt-2 italic">{consegna.note}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </NeumorphicCard>
+        </>
+      )}
+
+      {/* TAB REQUISITI */}
+      {activeTab === 'requisiti' && (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <NeumorphicCard className="p-4 text-center">
+              <Shield className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-slate-800">{stats.totaleRequisiti}</p>
+              <p className="text-xs text-slate-500">Requisiti Attivi</p>
+            </NeumorphicCard>
+            <NeumorphicCard className="p-4 text-center">
+              <p className={`text-2xl font-bold ${stats.coperturaMedia >= 100 ? 'text-green-600' : stats.coperturaMedia >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
+                {stats.coperturaMedia}%
+              </p>
+              <p className="text-xs text-slate-500">Copertura Media</p>
+            </NeumorphicCard>
+            <NeumorphicCard className="p-4 text-center">
+              <p className="text-2xl font-bold text-red-600">{stats.requisitiConProblemi}</p>
+              <p className="text-xs text-slate-500">Requisiti Incompleti</p>
+            </NeumorphicCard>
+            <NeumorphicCard className="p-4 text-center">
+              <p className="text-2xl font-bold text-orange-600">{stats.totaleInScadenza}</p>
+              <p className="text-xs text-slate-500">In Scadenza</p>
+            </NeumorphicCard>
+            <NeumorphicCard className="p-4 text-center">
+              <p className="text-2xl font-bold text-red-600">{stats.totaleScaduti}</p>
+              <p className="text-xs text-slate-500">Scaduti</p>
+            </NeumorphicCard>
+          </div>
+
+          {/* Button Nuovo Requisito */}
+          <div className="flex justify-end">
+            <NeumorphicButton
+              onClick={() => setShowRequisitoForm(true)}
+              variant="primary"
+              className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Nuovo Requisito
+            </NeumorphicButton>
+          </div>
+
+          {/* Form Nuovo Requisito */}
+          {showRequisitoForm &&
       <NeumorphicCard className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-slate-800">
@@ -735,6 +1329,8 @@ export default function Compliance() {
           </div>
         }
       </NeumorphicCard>
+        </>
+      )}
     </div>);
 
 }
