@@ -36,7 +36,6 @@ export default function Contatti() {
     societa: '',
     followers: '',
     visite_negozio: [],
-    mai_visitato: false,
     proposte_commerciali: [],
     note: ''
   });
@@ -95,7 +94,6 @@ export default function Contatti() {
       societa: '',
       followers: '',
       visite_negozio: [],
-      mai_visitato: false,
       proposte_commerciali: [],
       note: ''
     });
@@ -127,7 +125,6 @@ export default function Contatti() {
       societa: contatto.societa || '',
       followers: contatto.followers || '',
       visite_negozio: visite,
-      mai_visitato: contatto.mai_visitato || false,
       proposte_commerciali: contatto.proposte_commerciali || [],
       note: contatto.note || ''
     });
@@ -213,7 +210,10 @@ export default function Contatti() {
 
   // Apply "mai visitato" filter for Food Influencers
   if (activeTab === 'Food influencers' && filterMaiVisitato) {
-    contattiByCategoria = contattiByCategoria.filter((c) => c.mai_visitato === true);
+    contattiByCategoria = contattiByCategoria.filter((c) => {
+      // Consider "mai visitato" if no visits recorded
+      return (!c.visite_negozio || c.visite_negozio.length === 0) && !c.data_visita_negozio;
+    });
   }
 
   // Apply negozio filter for Food Influencers
@@ -472,7 +472,7 @@ export default function Contatti() {
                               </span>
                             </div>
                           }
-                          {contatto.mai_visitato ?
+                          {(!contatto.visite_negozio || contatto.visite_negozio.length === 0) && !contatto.data_visita_negozio ?
                             <span className="text-xs text-slate-500">❌ Mai visitato</span> :
                             (contatto.visite_negozio && contatto.visite_negozio.length > 0) ?
                             <div className="flex items-center gap-2">
@@ -658,25 +658,7 @@ export default function Contatti() {
                       <div className="border-t pt-4 mt-4">
                         <h3 className="text-sm font-bold text-slate-700 mb-4">Visite in Negozio</h3>
 
-                        <div className="flex items-center gap-3 mb-4">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                          type="checkbox"
-                          checked={formData.mai_visitato}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            mai_visitato: e.target.checked,
-                            visite_negozio: e.target.checked ? [] : formData.visite_negozio
-                          })}
-                          className="w-4 h-4" />
-
-                            <span className="text-sm text-slate-700">Non è mai venuto in negozio</span>
-                          </label>
-                        </div>
-
-                        {!formData.mai_visitato &&
-                    <>
-                            {/* Lista visite esistenti */}
+                        {/* Lista visite esistenti */}
                             {formData.visite_negozio.length > 0 &&
                           <div className="space-y-2 mb-4">
                                 <p className="text-xs font-bold text-slate-700">Storico Visite ({formData.visite_negozio.length})</p>
@@ -751,8 +733,6 @@ export default function Contatti() {
                                 Aggiungi Visita
                               </NeumorphicButton>
                             </div>
-                          </>
-                    }
                       </div>
                     </>
                 }
