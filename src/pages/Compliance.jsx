@@ -20,8 +20,10 @@ import {
   Upload,
   ChevronDown,
   ChevronRight,
-  User } from
-"lucide-react";
+  User,
+  Download,
+  Shirt
+} from "lucide-react";
 import moment from "moment";
 
 export default function Compliance() {
