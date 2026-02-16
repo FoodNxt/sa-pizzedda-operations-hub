@@ -14,13 +14,16 @@ import {
   Link as LinkIcon,
   Building,
   Euro,
-  X } from
+  X,
+  Search } from
 'lucide-react';
 
 export default function Contatti() {
   const [showForm, setShowForm] = useState(false);
   const [editingContatto, setEditingContatto] = useState(null);
   const [activeTab, setActiveTab] = useState('Food influencers');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortByVisit, setSortByVisit] = useState(false);
   const [formData, setFormData] = useState({
     categoria: 'Food influencers',
     nome: '',
@@ -156,7 +159,31 @@ export default function Contatti() {
     'Partners': contatti.filter((c) => c.categoria === 'Partners').length
   };
 
-  const contattiByCategoria = contatti.filter((c) => c.categoria === activeTab);
+  let contattiByCategoria = contatti.filter((c) => c.categoria === activeTab);
+
+  // Apply search filter
+  if (searchQuery.trim()) {
+    contattiByCategoria = contattiByCategoria.filter((c) => {
+      const fullName = `${c.nome} ${c.cognome}`.toLowerCase();
+      return fullName.includes(searchQuery.toLowerCase());
+    });
+  }
+
+  // Apply sorting for Food Influencers
+  if (activeTab === 'Food influencers' && sortByVisit) {
+    contattiByCategoria = [...contattiByCategoria].sort((a, b) => {
+      // Put "mai_visitato" at the end
+      if (a.mai_visitato && !b.mai_visitato) return 1;
+      if (!a.mai_visitato && b.mai_visitato) return -1;
+      
+      // Sort by date (oldest first)
+      if (!a.data_visita_negozio && !b.data_visita_negozio) return 0;
+      if (!a.data_visita_negozio) return 1;
+      if (!b.data_visita_negozio) return -1;
+      
+      return new Date(a.data_visita_negozio) - new Date(b.data_visita_negozio);
+    });
+  }
 
   const getCategoriaColor = (categoria) => {
     switch (categoria) {
@@ -247,10 +274,34 @@ export default function Contatti() {
 
         {/* Contacts List */}
         <NeumorphicCard className="p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span>{getCategoriaIcon(activeTab)}</span>
-            {activeTab}
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <span>{getCategoriaIcon(activeTab)}</span>
+              {activeTab}
+            </h2>
+            
+            <div className="flex items-center gap-3">
+              {/* Search Bar */}
+              <input
+                type="text"
+                placeholder="Cerca nome o cognome..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none w-64"
+              />
+              
+              {/* Sort Toggle for Food Influencers */}
+              {activeTab === 'Food influencers' && (
+                <NeumorphicButton
+                  onClick={() => setSortByVisit(!sortByVisit)}
+                  variant={sortByVisit ? 'primary' : 'default'}
+                  className="flex items-center gap-2 whitespace-nowrap"
+                >
+                  {sortByVisit ? '✓ ' : ''}Ordina per data visita
+                </NeumorphicButton>
+              )}
+            </div>
+          </div>
 
           {contattiByCategoria.length === 0 ?
           <div className="text-center py-12">
