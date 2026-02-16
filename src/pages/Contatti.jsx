@@ -33,8 +33,7 @@ export default function Contatti() {
     link: '',
     societa: '',
     followers: '',
-    data_visita_negozio: '',
-    negozio_visitato: '',
+    visite_negozio: [],
     mai_visitato: false,
     proposte_commerciali: [],
     note: ''
@@ -42,6 +41,10 @@ export default function Contatti() {
   const [nuovaProposta, setNuovaProposta] = useState({
     descrizione: '',
     prezzo: ''
+  });
+  const [nuovaVisita, setNuovaVisita] = useState({
+    data: '',
+    negozio: ''
   });
 
   const queryClient = useQueryClient();
@@ -84,19 +87,29 @@ export default function Contatti() {
       link: '',
       societa: '',
       followers: '',
-      data_visita_negozio: '',
-      negozio_visitato: '',
+      visite_negozio: [],
       mai_visitato: false,
       proposte_commerciali: [],
       note: ''
     });
     setNuovaProposta({ descrizione: '', prezzo: '' });
+    setNuovaVisita({ data: '', negozio: '' });
     setEditingContatto(null);
     setShowForm(false);
   };
 
   const handleEdit = (contatto) => {
     setEditingContatto(contatto);
+    
+    // Migrate old single visit to new array format if needed
+    let visite = contatto.visite_negozio || [];
+    if (contatto.data_visita_negozio && !contatto.mai_visitato && visite.length === 0) {
+      visite = [{
+        data: contatto.data_visita_negozio,
+        negozio: contatto.negozio_visitato || ''
+      }];
+    }
+    
     setFormData({
       categoria: contatto.categoria,
       nome: contatto.nome,
@@ -106,8 +119,7 @@ export default function Contatti() {
       link: contatto.link || '',
       societa: contatto.societa || '',
       followers: contatto.followers || '',
-      data_visita_negozio: contatto.data_visita_negozio || '',
-      negozio_visitato: contatto.negozio_visitato || '',
+      visite_negozio: visite,
       mai_visitato: contatto.mai_visitato || false,
       proposte_commerciali: contatto.proposte_commerciali || [],
       note: contatto.note || ''
@@ -152,6 +164,29 @@ export default function Contatti() {
     });
   };
 
+  const handleAggiungiVisita = () => {
+    if (!nuovaVisita.data) return;
+
+    setFormData({
+      ...formData,
+      visite_negozio: [
+        ...formData.visite_negozio,
+        {
+          data: nuovaVisita.data,
+          negozio: nuovaVisita.negozio
+        }
+      ]
+    });
+    setNuovaVisita({ data: '', negozio: '' });
+  };
+
+  const handleRimuoviVisita = (index) => {
+    setFormData({
+      ...formData,
+      visite_negozio: formData.visite_negozio.filter((_, i) => i !== index)
+    });
+  };
+
   const categorieStats = {
     'Food influencers': contatti.filter((c) => c.categoria === 'Food influencers').length,
     'PR': contatti.filter((c) => c.categoria === 'PR').length,
@@ -176,12 +211,27 @@ export default function Contatti() {
       if (a.mai_visitato && !b.mai_visitato) return 1;
       if (!a.mai_visitato && b.mai_visitato) return -1;
       
-      // Sort by date (oldest first)
-      if (!a.data_visita_negozio && !b.data_visita_negozio) return 0;
-      if (!a.data_visita_negozio) return 1;
-      if (!b.data_visita_negozio) return -1;
+      // Get most recent visit date for each contact
+      const getLastVisit = (contatto) => {
+        if (contatto.visite_negozio && contatto.visite_negozio.length > 0) {
+          return Math.max(...contatto.visite_negozio.map(v => new Date(v.data).getTime()));
+        }
+        // Fallback to old single visit field
+        if (contatto.data_visita_negozio) {
+          return new Date(contatto.data_visita_negozio).getTime();
+        }
+        return 0;
+      };
       
-      return new Date(a.data_visita_negozio) - new Date(b.data_visita_negozio);
+      const aLastVisit = getLastVisit(a);
+      const bLastVisit = getLastVisit(b);
+      
+      if (aLastVisit === 0 && bLastVisit === 0) return 0;
+      if (aLastVisit === 0) return 1;
+      if (bLastVisit === 0) return -1;
+      
+      // Sort by date (oldest first)
+      return aLastVisit - bLastVisit;
     });
   }
 
@@ -390,6 +440,26 @@ export default function Contatti() {
                 <div>
                           <p className="text-xs text-slate-500">❌ Non è mai venuto in negozio</p>
                         </div> :
+                (contatto.visite_negozio && contatto.visite_negozio.length > 0) ?
+                <div>
+                          <p className="text-xs font-bold text-slate-700 mb-1">Visite ({contatto.visite_negozio.length})</p>
+                          <div className="space-y-1">
+                            {contatto.visite_negozio
+                              .sort((a, b) => new Date(b.data) - new Date(a.data))
+                              .slice(0, 3)
+                              .map((visita, idx) => (
+                                <p key={idx} className="text-xs text-slate-500">
+                                  ✓ {new Date(visita.data).toLocaleDateString('it-IT')}
+                                  {visita.negozio && ` • ${visita.negozio}`}
+                                </p>
+                              ))}
+                            {contatto.visite_negozio.length > 3 && (
+                              <p className="text-xs text-slate-400 italic">
+                                +{contatto.visite_negozio.length - 3} altre visite
+                              </p>
+                            )}
+                          </div>
+                        </div> :
                 contatto.data_visita_negozio ?
                 <div>
                           <p className="text-xs text-slate-500">
@@ -562,7 +632,7 @@ export default function Contatti() {
                       </div>
 
                       <div className="border-t pt-4 mt-4">
-                        <h3 className="text-sm font-bold text-slate-700 mb-4">Visita in Negozio</h3>
+                        <h3 className="text-sm font-bold text-slate-700 mb-4">Visite in Negozio</h3>
 
                         <div className="flex items-center gap-3 mb-4">
                           <label className="flex items-center gap-2 cursor-pointer">
@@ -572,7 +642,7 @@ export default function Contatti() {
                           onChange={(e) => setFormData({
                             ...formData,
                             mai_visitato: e.target.checked,
-                            data_visita_negozio: e.target.checked ? '' : formData.data_visita_negozio
+                            visite_negozio: e.target.checked ? [] : formData.visite_negozio
                           })}
                           className="w-4 h-4" />
 
@@ -582,29 +652,75 @@ export default function Contatti() {
 
                         {!formData.mai_visitato &&
                     <>
-                            <div className="mb-3">
-                              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                                Data Visita
-                              </label>
-                              <input
-                          type="date"
-                          value={formData.data_visita_negozio}
-                          onChange={(e) => setFormData({ ...formData, data_visita_negozio: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+                            {/* Lista visite esistenti */}
+                            {formData.visite_negozio.length > 0 &&
+                          <div className="space-y-2 mb-4">
+                                <p className="text-xs font-bold text-slate-700">Storico Visite ({formData.visite_negozio.length})</p>
+                                {formData.visite_negozio
+                                  .sort((a, b) => new Date(b.data) - new Date(a.data))
+                                  .map((visita, idx) =>
+                              <div key={idx} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+                                    <div>
+                                      <p className="text-sm text-slate-700 font-medium">
+                                        {new Date(visita.data).toLocaleDateString('it-IT', { 
+                                          weekday: 'short', 
+                                          day: '2-digit', 
+                                          month: 'short', 
+                                          year: 'numeric' 
+                                        })}
+                                      </p>
+                                      {visita.negozio && (
+                                        <p className="text-xs text-slate-500">{visita.negozio}</p>
+                                      )}
+                                    </div>
+                                    <button
+                                  type="button"
+                                  onClick={() => handleRimuoviVisita(idx)}
+                                  className="p-2 rounded-lg hover:bg-red-50 transition-colors">
 
-                            </div>
+                                      <Trash2 className="w-4 h-4 text-red-600" />
+                                    </button>
+                                  </div>
+                              )}
+                              </div>
+                          }
 
-                            <div>
-                              <label className="text-sm font-medium text-slate-700 mb-2 block">
-                                Negozio Visitato
-                              </label>
-                              <input
-                          type="text"
-                          value={formData.negozio_visitato}
-                          onChange={(e) => setFormData({ ...formData, negozio_visitato: e.target.value })}
-                          className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
-                          placeholder="Nome del negozio" />
+                            {/* Form per nuova visita */}
+                            <div className="space-y-3 neumorphic-pressed p-4 rounded-xl">
+                              <div>
+                                <label className="text-sm font-medium text-slate-700 mb-2 block">
+                                  Data Visita *
+                                </label>
+                                <input
+                              type="date"
+                              value={nuovaVisita.data}
+                              onChange={(e) => setNuovaVisita({ ...nuovaVisita, data: e.target.value })}
+                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
 
+                              </div>
+
+                              <div>
+                                <label className="text-sm font-medium text-slate-700 mb-2 block">
+                                  Negozio Visitato
+                                </label>
+                                <input
+                              type="text"
+                              value={nuovaVisita.negozio}
+                              onChange={(e) => setNuovaVisita({ ...nuovaVisita, negozio: e.target.value })}
+                              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                              placeholder="Nome del negozio" />
+
+                              </div>
+
+                              <NeumorphicButton
+                              type="button"
+                              onClick={handleAggiungiVisita}
+                              className="w-full flex items-center justify-center gap-2"
+                              disabled={!nuovaVisita.data}>
+
+                                <Plus className="w-4 h-4" />
+                                Aggiungi Visita
+                              </NeumorphicButton>
                             </div>
                           </>
                     }
