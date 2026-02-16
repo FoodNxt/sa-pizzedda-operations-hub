@@ -675,7 +675,7 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
   };
 
   return (
-    <ProtectedPage pageName="Activation">
+    <ProtectedPage pageName="Activation" requiredUserTypes={['admin', 'manager']}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
