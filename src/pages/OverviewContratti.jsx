@@ -1314,20 +1314,32 @@ export default function OverviewContratti() {
                             onClick={async () => {
                               try {
                                 const response = await base44.functions.invoke('downloadContrattoPDF', {
-                                  contractId: contratto.id
+                                  contrattoId: contratto.id
                                 });
-                                const blob = new Blob([response.data], { type: 'application/pdf' });
+                                
+                                if (!response.data.success || !response.data.pdf) {
+                                  throw new Error(response.data.error || 'PDF non disponibile');
+                                }
+                                
+                                // Decode base64 PDF
+                                const pdfData = atob(response.data.pdf);
+                                const bytes = new Uint8Array(pdfData.length);
+                                for (let i = 0; i < pdfData.length; i++) {
+                                  bytes[i] = pdfData.charCodeAt(i);
+                                }
+                                
+                                const blob = new Blob([bytes], { type: 'application/pdf' });
                                 const url = window.URL.createObjectURL(blob);
                                 const a = document.createElement('a');
                                 a.href = url;
-                                a.download = `Contratto_${contratto.template_nome}_${moment(contratto.data_inizio_contratto).format('YYYY-MM-DD')}.pdf`;
+                                a.download = response.data.filename || `Contratto_${moment(contratto.data_inizio_contratto).format('YYYY-MM-DD')}.pdf`;
                                 document.body.appendChild(a);
                                 a.click();
                                 window.URL.revokeObjectURL(url);
                                 a.remove();
                               } catch (error) {
                                 console.error('Error downloading contract:', error);
-                                alert('Errore durante il download del contratto');
+                                alert('❌ Errore: ' + (error.message || 'Errore durante il download del contratto'));
                               }
                             }}
                             className="nav-button p-2 rounded-lg hover:bg-blue-50 transition-colors"
