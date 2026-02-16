@@ -94,12 +94,42 @@ Deno.serve(async (req) => {
   </body>
 </html>`;
 
-    // Send HTML email via Core integration
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to,
-      subject,
-      body: fullHtmlBody
+    // Get Gmail access token
+    const accessToken = await base44.asServiceRole.connectors.getAccessToken("gmail");
+    
+    // Create RFC 2822 formatted email
+    const emailLines = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=utf-8',
+      '',
+      fullHtmlBody
+    ];
+    const rawEmail = emailLines.join('\r\n');
+    
+    // Encode email in base64url format
+    const base64Email = btoa(unescape(encodeURIComponent(rawEmail)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    // Send email via Gmail API
+    const gmailResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        raw: base64Email
+      })
     });
+
+    if (!gmailResponse.ok) {
+      const error = await gmailResponse.text();
+      throw new Error(`Gmail API error: ${error}`);
+    }
 
     // Log the email to PayrollEmailLog
     try {
