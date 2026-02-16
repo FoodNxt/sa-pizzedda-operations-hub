@@ -442,17 +442,28 @@ export default function MateriePrime() {
         logo_url: activeConfig?.logo_url || null
       });
 
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      if (!response.data.success || !response.data.pdf) {
+        throw new Error(response.data.error || 'PDF non disponibile');
+      }
+
+      // Decode base64 PDF
+      const pdfData = atob(response.data.pdf);
+      const bytes = new Uint8Array(pdfData.length);
+      for (let i = 0; i < pdfData.length; i++) {
+        bytes[i] = pdfData.charCodeAt(i);
+      }
+
+      const blob = new Blob([bytes], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'allergeni.pdf';
+      a.download = response.data.filename || 'allergeni.pdf';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       a.remove();
     } catch (error) {
-      alert('Errore nella generazione del PDF: ' + error.message);
+      alert('❌ Errore: ' + (error.message || 'Errore nella generazione del PDF'));
     }
   };
 

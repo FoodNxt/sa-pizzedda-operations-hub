@@ -267,14 +267,14 @@ Deno.serve(async (req) => {
     }
 
     const pdfBytes = await pdfDoc.save();
+    
+    // Convert to base64 for reliable transfer
+    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
 
-    return new Response(pdfBytes, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': 'attachment; filename=allergeni.pdf',
-        'Content-Length': pdfBytes.length.toString()
-      }
+    return Response.json({
+      success: true,
+      pdf: base64Pdf,
+      filename: 'allergeni.pdf'
     });
 
   } catch (error) {
