@@ -27,7 +27,7 @@ import { it } from 'date-fns/locale';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function StoricoCassa() {
-  const [activeTab, setActiveTab] = useState('storico');
+  const [activeTab, setActiveTab] = useState('rolling');
   const [selectedStore, setSelectedStore] = useState('all');
   const [dateRange, setDateRange] = useState('30');
   const [startDate, setStartDate] = useState('');
