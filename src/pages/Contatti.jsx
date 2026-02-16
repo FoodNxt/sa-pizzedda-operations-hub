@@ -494,7 +494,7 @@ export default function Contatti() {
 
                       {/* Food Influencer Info */}
                       {contatto.categoria === 'Food influencers' &&
-                        <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-4 text-sm flex-wrap">
                           {contatto.followers &&
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-slate-500">Followers:</span>
@@ -503,21 +503,25 @@ export default function Contatti() {
                               </span>
                             </div>
                           }
-                          {(!contatto.visite_negozio || contatto.visite_negozio.length === 0) && !contatto.data_visita_negozio ?
-                            <span className="text-xs text-slate-500">❌ Mai visitato</span> :
-                            (contatto.visite_negozio && contatto.visite_negozio.length > 0) ?
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-500">Visite:</span>
-                              <span className="font-bold text-green-600">{contatto.visite_negozio.length}</span>
+                          {(!contatto.visite_negozio || contatto.visite_negozio.length === 0) && !contatto.data_visita_negozio ? (
+                            <span className="text-xs text-slate-500">❌ Mai visitato</span>
+                          ) : (contatto.visite_negozio && contatto.visite_negozio.length > 0) ? (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs text-slate-500">Negozi:</span>
+                              {[...new Set(contatto.visite_negozio.map(v => v.negozio).filter(Boolean))].map((negozio, idx) => (
+                                <span key={idx} className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
+                                  {negozio}
+                                </span>
+                              ))}
                               <span className="text-xs text-slate-500">
-                                (ultima: {new Date(Math.max(...contatto.visite_negozio.map(v => new Date(v.data)))).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })})
+                                ({contatto.visite_negozio.length} {contatto.visite_negozio.length === 1 ? 'visita' : 'visite'})
                               </span>
-                            </div> :
-                            contatto.data_visita_negozio &&
+                            </div>
+                          ) : contatto.data_visita_negozio && (
                             <span className="text-xs text-slate-500">
                               ✓ {new Date(contatto.data_visita_negozio).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}
                             </span>
-                          }
+                          )}
                         </div>
                       }
 
