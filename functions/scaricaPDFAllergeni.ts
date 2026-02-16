@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
-import { jsPDF } from 'npm:jspdf@2.5.2';
+import { PDFDocument, rgb, StandardFonts } from 'npm:pdf-lib@1.17.1';
 
 Deno.serve(async (req) => {
   try {
@@ -23,188 +23,250 @@ Deno.serve(async (req) => {
     });
     const logo_url = configs[0]?.logo_url;
 
-    const doc = new jsPDF();
+    // Crea PDF con pdf-lib (supporto PNG migliore)
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]); // A4
+    const { width, height } = page.getSize();
+    
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
     
     // Colori brand Sa Pizzedda
-    const brandRed = [227, 30, 36];
-    const brandBeige = [244, 229, 201];
+    const brandRed = rgb(227/255, 30/255, 36/255);
+    const brandBeige = rgb(244/255, 229/255, 201/255);
+    const brandBlue = rgb(30/255, 64/255, 175/255);
+    const lightBlue = rgb(219/255, 234/255, 254/255);
 
-    // Header con sfondo beige (ridotto)
-    doc.setFillColor(...brandBeige);
-    doc.rect(0, 0, 210, 35, 'F');
+    let currentY = height - 35; // Start from top
+
+    // Header con sfondo beige
+    page.drawRectangle({
+      x: 0,
+      y: height - 100,
+      width: width,
+      height: 100,
+      color: brandBeige
+    });
     
-    // Add logo if provided (posizione alta centrata) - SEMPRE VISIBILE
+    // Carica e aggiungi logo - APPROCCIO NUOVO con pdf-lib
     let logoLoaded = false;
     if (logo_url) {
       try {
-        console.log('Loading logo from:', logo_url);
+        console.log('🔄 Loading logo from:', logo_url);
         
-        // Scarica l'immagine
         const logoResponse = await fetch(logo_url);
         if (!logoResponse.ok) {
-          throw new Error(`Logo fetch failed: ${logoResponse.status} ${logoResponse.statusText}`);
+          throw new Error(`HTTP ${logoResponse.status}`);
         }
         
-        const logoBlob = await logoResponse.blob();
-        const logoArrayBuffer = await logoBlob.arrayBuffer();
+        const logoBytes = await logoResponse.arrayBuffer();
+        console.log('✓ Logo downloaded:', logoBytes.byteLength, 'bytes');
         
-        // Converti in base64 a pezzi per evitare stack overflow
-        const logoBytes = new Uint8Array(logoArrayBuffer);
-        let binary = '';
-        const chunkSize = 8192;
-        for (let i = 0; i < logoBytes.length; i += chunkSize) {
-          const chunk = Array.from(logoBytes.slice(i, i + chunkSize));
-          binary += String.fromCharCode(...chunk);
-        }
-        const base64Data = btoa(binary);
+        // pdf-lib ha supporto nativo migliore per PNG
+        const logoImage = await pdfDoc.embedPng(logoBytes);
+        const logoDims = logoImage.scale(0.3); // Scala automatica
         
-        // Determina formato: jsPDF supporta solo JPEG e PNG
-        let format = 'PNG';
-        const mimeType = logoBlob.type.toLowerCase();
-        if (mimeType.includes('jpeg') || mimeType.includes('jpg')) {
-          format = 'JPEG';
-        }
+        // Centra il logo
+        const logoX = (width - logoDims.width) / 2;
+        const logoY = height - 80;
         
-        const logoDataUrl = `data:${logoBlob.type};base64,${base64Data}`;
+        page.drawImage(logoImage, {
+          x: logoX,
+          y: logoY,
+          width: logoDims.width,
+          height: logoDims.height
+        });
         
-        console.log('Logo type:', mimeType, 'Format:', format, 'Size:', logoBytes.length);
-        
-        // Aggiungi al PDF
-        doc.addImage(logoDataUrl, format, 75, 5, 60, 22);
         logoLoaded = true;
-        console.log('✓ Logo added to PDF successfully');
+        currentY = logoY - 15;
+        console.log('✅ Logo embedded successfully');
         
       } catch (error) {
-        console.error('❌ Error loading logo:', error.message);
-        // Continua senza logo se fallisce
+        console.error('❌ Logo error:', error.message);
+        currentY = height - 50; // Position senza logo
       }
     } else {
-      console.log('⚠ No logo_url configured');
+      console.log('⚠ No logo configured');
+      currentY = height - 50;
     }
     
-    // Titolo "Lista allergeni" in rosso brand (ridotto)
-    doc.setFontSize(18);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(...brandRed);
-    doc.text('Lista Allergeni', 105, logoLoaded ? 27 : 18, { align: 'center' });
+    // Titolo
+    page.drawText('Lista Allergeni', {
+      x: width / 2 - 80,
+      y: currentY,
+      size: 24,
+      font: helveticaBold,
+      color: brandRed
+    });
     
-    // Sottotitolo (ridotto)
-    doc.setFontSize(7);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text('Informazioni sugli allergeni presenti nei nostri prodotti', 105, logoLoaded ? 32 : 24, { align: 'center' });
+    currentY -= 15;
+    
+    // Sottotitolo
+    page.drawText('Informazioni sugli allergeni presenti nei nostri prodotti', {
+      x: width / 2 - 140,
+      y: currentY,
+      size: 9,
+      font: helvetica,
+      color: rgb(0.4, 0.4, 0.4)
+    });
+    
+    currentY -= 25;
 
-    // Avviso importante con colori brand (ultra-compatto)
-    doc.setFillColor(255, 250, 240);
-    doc.roundedRect(15, 38, 180, 14, 2, 2, 'F');
-    doc.setDrawColor(...brandRed);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(15, 38, 180, 14, 2, 2, 'S');
+    // Box avviso
+    page.drawRectangle({
+      x: 40,
+      y: currentY - 35,
+      width: width - 80,
+      height: 35,
+      color: rgb(1, 0.98, 0.94),
+      borderColor: brandRed,
+      borderWidth: 1
+    });
     
-    doc.setFontSize(8);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(...brandRed);
-    doc.text('ATTENZIONE', 18, 43);
+    page.drawText('ATTENZIONE', {
+      x: 50,
+      y: currentY - 15,
+      size: 10,
+      font: helveticaBold,
+      color: brandRed
+    });
     
-    doc.setFontSize(6.5);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(0, 0, 0);
     const avvisoTesto = 'Per allergici gravi o intolleranze non elencate, contattare il personale prima di ordinare. Reg. UE 1169/2011.';
-    const avvisoLines = doc.splitTextToSize(avvisoTesto, 170);
-    doc.text(avvisoLines, 18, 48);
+    page.drawText(avvisoTesto, {
+      x: 50,
+      y: currentY - 28,
+      size: 7,
+      font: helvetica,
+      color: rgb(0, 0, 0),
+      maxWidth: width - 100
+    });
+
+    currentY -= 50;
 
     // Ordina ricette alfabeticamente
     const ricetteOrdinate = ricette
       .filter(r => r.attivo !== false)
       .sort((a, b) => (a.nome_prodotto || '').localeCompare(b.nome_prodotto || '', 'it'));
 
-    let currentY = 56;
-    const margin = 15;
-    const tableWidth = 180;
-
-    ricetteOrdinate.forEach((ricetta, idx) => {
-      // Box prodotto per riga
-      const boxHeight = 12;
-      doc.setFillColor(...brandBeige);
-      doc.roundedRect(margin, currentY, tableWidth, boxHeight, 2, 2, 'F');
-      
-      // Bordo rosso a sinistra
-      doc.setFillColor(...brandRed);
-      doc.roundedRect(margin, currentY, 2, boxHeight, 1, 1, 'F');
-
-      // Nome prodotto - 15px (completo, non troncato)
-      doc.setFontSize(15);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(...brandRed);
-      doc.text(ricetta.nome_prodotto, margin + 5, currentY + 8);
-
-      // Allergeni - box tondeggianti allineati a destra
-      if (ricetta.allergeni && ricetta.allergeni.length > 0) {
-        // Calcola la larghezza totale degli allergeni
-        let totalWidth = 0;
-        const allergeniWidths = [];
-        
-        ricetta.allergeni.forEach((allergene) => {
-          doc.setFontSize(10);
-          doc.setFont(undefined, 'normal');
-          const textWidth = doc.getTextWidth(allergene);
-          const boxWidth = textWidth + 5;
-          allergeniWidths.push(boxWidth);
-          totalWidth += boxWidth + 2.5;
-        });
-        totalWidth -= 2.5; // Rimuovi l'ultimo gap
-        
-        // Parti da destra
-        let allergeniX = margin + tableWidth - totalWidth - 2;
-        const allergeniY = currentY + 7.5;
-        
-        ricetta.allergeni.forEach((allergene, idx) => {
-          const boxWidth = allergeniWidths[idx];
-          const boxHeight = 6;
-          
-          // Box celeste tondeggiante (come screenshot)
-          doc.setFillColor(219, 234, 254);
-          doc.setDrawColor(147, 197, 253);
-          doc.setLineWidth(0.4);
-          doc.roundedRect(allergeniX, allergeniY - 4, boxWidth, boxHeight, 3, 3, 'FD');
-          
-          doc.setFontSize(10);
-          doc.setTextColor(30, 64, 175);
-          doc.text(allergene, allergeniX + 2.5, allergeniY);
-          
-          allergeniX += boxWidth + 2.5;
-        });
-      } else {
-        doc.setFontSize(11);
-        doc.setFont(undefined, 'italic');
-        doc.setTextColor(150, 150, 150);
-        // Allineato a destra anche "Nessuno"
-        const nessunoWidth = doc.getTextWidth('Nessuno');
-        doc.text('Nessuno', margin + tableWidth - nessunoWidth - 2, currentY + 7.5);
+    // Disegna ricette
+    for (const ricetta of ricetteOrdinate) {
+      if (currentY < 80) {
+        // Aggiungi nuova pagina se necessario
+        const newPage = pdfDoc.addPage([595, 842]);
+        currentY = height - 50;
       }
+      
+      const boxHeight = 35;
+      
+      // Box beige
+      page.drawRectangle({
+        x: 40,
+        y: currentY - boxHeight,
+        width: width - 80,
+        height: boxHeight,
+        color: brandBeige
+      });
+      
+      // Bordo rosso sinistra
+      page.drawRectangle({
+        x: 40,
+        y: currentY - boxHeight,
+        width: 4,
+        height: boxHeight,
+        color: brandRed
+      });
+      
+      // Nome prodotto
+      page.drawText(ricetta.nome_prodotto || 'N/A', {
+        x: 50,
+        y: currentY - 22,
+        size: 14,
+        font: helveticaBold,
+        color: brandRed,
+        maxWidth: 200
+      });
+      
+      // Allergeni
+      if (ricetta.allergeni && ricetta.allergeni.length > 0) {
+        let allergeniX = width - 60;
+        const allergeniY = currentY - 22;
+        
+        for (let i = ricetta.allergeni.length - 1; i >= 0; i--) {
+          const allergene = ricetta.allergeni[i];
+          const textWidth = helvetica.widthOfTextAtSize(allergene, 9);
+          const boxWidth = textWidth + 12;
+          
+          allergeniX -= boxWidth;
+          
+          // Box celeste
+          page.drawRectangle({
+            x: allergeniX,
+            y: allergeniY - 6,
+            width: boxWidth,
+            height: 15,
+            color: lightBlue,
+            borderColor: rgb(147/255, 197/255, 253/255),
+            borderWidth: 0.5
+          });
+          
+          page.drawText(allergene, {
+            x: allergeniX + 6,
+            y: allergeniY,
+            size: 9,
+            font: helvetica,
+            color: brandBlue
+          });
+          
+          allergeniX -= 8;
+        }
+      } else {
+        page.drawText('Nessuno', {
+          x: width - 100,
+          y: currentY - 22,
+          size: 10,
+          font: helvetica,
+          color: rgb(0.6, 0.6, 0.6)
+        });
+      }
+      
+      currentY -= boxHeight + 4;
+    }
 
-      currentY += boxHeight + 1.5;
+    // Footer
+    page.drawRectangle({
+      x: 0,
+      y: 0,
+      width: width,
+      height: 60,
+      color: brandBeige
+    });
+    
+    page.drawText('SA PIZZEDDA', {
+      x: width / 2 - 50,
+      y: 40,
+      size: 14,
+      font: helveticaBold,
+      color: brandRed
+    });
+    
+    page.drawText('Regolamento UE 1169/2011 - Versione digitale disponibile su richiesta', {
+      x: width / 2 - 150,
+      y: 25,
+      size: 8,
+      font: helvetica,
+      color: rgb(0.3, 0.3, 0.3)
+    });
+    
+    const dataAggiornamento = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+    page.drawText('Aggiornato: ' + dataAggiornamento, {
+      x: width / 2 - 60,
+      y: 12,
+      size: 7,
+      font: helvetica,
+      color: rgb(0.3, 0.3, 0.3)
     });
 
-    // Footer con palette brand
-    doc.setFillColor(...brandBeige);
-    doc.rect(0, 275, 210, 22, 'F');
-    
-    doc.setFontSize(11);
-    doc.setTextColor(...brandRed);
-    doc.setFont(undefined, 'bold');
-    doc.text('SA PIZZEDDA', 105, 282, { align: 'center' });
-    
-    doc.setFont(undefined, 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(80, 80, 80);
-    doc.text('Regolamento UE 1169/2011 - Versione digitale disponibile su richiesta', 105, 287, { align: 'center' });
-    
-    doc.setFontSize(7);
-    const dataAggiornamento = new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
-    doc.text('Aggiornato: ' + dataAggiornamento, 105, 292, { align: 'center' });
-
-    const pdfBytes = doc.output('arraybuffer');
+    const pdfBytes = await pdfDoc.save();
 
     return new Response(pdfBytes, {
       status: 200,
