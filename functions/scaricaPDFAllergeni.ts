@@ -43,9 +43,9 @@ Deno.serve(async (req) => {
     // Header con sfondo beige
     currentPage.drawRectangle({
       x: 0,
-      y: height - 100,
+      y: height - 150,
       width: width,
-      height: 100,
+      height: 150,
       color: brandBeige
     });
     
@@ -60,21 +60,21 @@ Deno.serve(async (req) => {
           console.log('✓ Logo downloaded:', logoImageBytes.byteLength, 'bytes');
           
           const logoImage = await pdfDoc.embedPng(logoImageBytes);
-          const logoScaled = logoImage.scale(0.12);
+          const logoScaled = logoImage.scale(0.06);
           
           currentPage.drawImage(logoImage, {
             x: (width - logoScaled.width) / 2,
-            y: height - 70,
+            y: height - 95,
             width: logoScaled.width,
             height: logoScaled.height
           });
           
-          yPosition = height - 75;
+          yPosition = height - 105;
           console.log('✅ Logo added to PDF');
         }
       } catch (error) {
         console.error('Logo error:', error.message);
-        yPosition = height - 35;
+        yPosition = height - 65;
       }
     }
     
@@ -193,33 +193,61 @@ Deno.serve(async (req) => {
           
           xPos -= boxWidth;
           
-          // Box celeste arrotondato usando ellissi
+          // Box celeste arrotondato - prima riempi, poi bordo
+          const radius = 8;
+          const boxX = xPos;
+          const boxY = yPosition - 26;
+          const boxH = 16;
+          
+          // Disegna sfondo pieno senza bordo
           currentPage.drawEllipse({
-            x: xPos + 8,
-            y: yPosition - 18,
-            xScale: 8,
-            yScale: 8,
-            color: lightBlue,
+            x: boxX + radius,
+            y: boxY + boxH / 2,
+            xScale: radius,
+            yScale: boxH / 2,
+            color: lightBlue
+          });
+          
+          currentPage.drawRectangle({
+            x: boxX + radius,
+            y: boxY,
+            width: boxWidth - 2 * radius,
+            height: boxH,
+            color: lightBlue
+          });
+          
+          currentPage.drawEllipse({
+            x: boxX + boxWidth - radius,
+            y: boxY + boxH / 2,
+            xScale: radius,
+            yScale: boxH / 2,
+            color: lightBlue
+          });
+          
+          // Disegna bordo separatamente (solo outline)
+          currentPage.drawEllipse({
+            x: boxX + radius,
+            y: boxY + boxH / 2,
+            xScale: radius,
+            yScale: boxH / 2,
             borderColor: borderBlue,
             borderWidth: 0.5
           });
           
           currentPage.drawRectangle({
-            x: xPos + 8,
-            y: yPosition - 26,
-            width: boxWidth - 16,
-            height: 16,
-            color: lightBlue,
+            x: boxX + radius,
+            y: boxY,
+            width: boxWidth - 2 * radius,
+            height: boxH,
             borderColor: borderBlue,
             borderWidth: 0.5
           });
           
           currentPage.drawEllipse({
-            x: xPos + boxWidth - 8,
-            y: yPosition - 18,
-            xScale: 8,
-            yScale: 8,
-            color: lightBlue,
+            x: boxX + boxWidth - radius,
+            y: boxY + boxH / 2,
+            xScale: radius,
+            yScale: boxH / 2,
             borderColor: borderBlue,
             borderWidth: 0.5
           });
