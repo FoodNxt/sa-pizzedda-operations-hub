@@ -37,6 +37,7 @@ export default function Contatti() {
     followers: '',
     visite_negozio: [],
     proposte_commerciali: [],
+    collaborazioni_completate: [],
     note: ''
   });
   const [nuovaProposta, setNuovaProposta] = useState({
@@ -48,6 +49,11 @@ export default function Contatti() {
     negozio: ''
   });
   const [editingVisitaIndex, setEditingVisitaIndex] = useState(null);
+  const [nuovaCollaborazione, setNuovaCollaborazione] = useState({
+    data: '',
+    link: '',
+    descrizione: ''
+  });
 
   const queryClient = useQueryClient();
 
@@ -96,11 +102,13 @@ export default function Contatti() {
       followers: '',
       visite_negozio: [],
       proposte_commerciali: [],
+      collaborazioni_completate: [],
       note: ''
     });
     setNuovaProposta({ descrizione: '', prezzo: '' });
     setNuovaVisita({ data: '', negozio: '' });
     setEditingVisitaIndex(null);
+    setNuovaCollaborazione({ data: '', link: '', descrizione: '' });
     setEditingContatto(null);
     setShowForm(false);
   };
@@ -128,6 +136,7 @@ export default function Contatti() {
       followers: contatto.followers || '',
       visite_negozio: visite,
       proposte_commerciali: contatto.proposte_commerciali || [],
+      collaborazioni_completate: contatto.collaborazioni_completate || [],
       note: contatto.note || ''
     });
     setShowForm(true);
@@ -167,6 +176,30 @@ export default function Contatti() {
     setFormData({
       ...formData,
       proposte_commerciali: formData.proposte_commerciali.filter((_, i) => i !== index)
+    });
+  };
+
+  const handleAggiungiCollaborazione = () => {
+    if (!nuovaCollaborazione.data) return;
+
+    setFormData({
+      ...formData,
+      collaborazioni_completate: [
+        ...formData.collaborazioni_completate,
+        {
+          data: nuovaCollaborazione.data,
+          link: nuovaCollaborazione.link,
+          descrizione: nuovaCollaborazione.descrizione
+        }
+      ]
+    });
+    setNuovaCollaborazione({ data: '', link: '', descrizione: '' });
+  };
+
+  const handleRimuoviCollaborazione = (index) => {
+    setFormData({
+      ...formData,
+      collaborazioni_completate: formData.collaborazioni_completate.filter((_, i) => i !== index)
     });
   };
 
@@ -538,6 +571,14 @@ export default function Contatti() {
                           <span className="font-bold text-green-600">{contatto.proposte_commerciali.length}</span>
                         </div>
                       }
+
+                      {/* Collaborazioni Completate (PR e Adv) */}
+                      {(contatto.categoria === 'PR' || contatto.categoria === 'Adv') && contatto.collaborazioni_completate && contatto.collaborazioni_completate.length > 0 &&
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">✓ Collaborazioni:</span>
+                          <span className="font-bold text-blue-600">{contatto.collaborazioni_completate.length}</span>
+                        </div>
+                      }
                     </div>
 
                     {/* Actions */}
@@ -872,6 +913,96 @@ export default function Contatti() {
                       </NeumorphicButton>
                     </div>
                   </div>
+
+                  {/* Collaborazioni Completate (solo PR e Adv) */}
+                  {(formData.categoria === 'PR' || formData.categoria === 'Adv') &&
+                    <div className="border-t pt-4 mt-4">
+                      <h3 className="text-sm font-bold text-slate-700 mb-3">Collaborazioni Completate</h3>
+                      
+                      {/* Lista collaborazioni esistenti */}
+                      {formData.collaborazioni_completate.length > 0 &&
+                        <div className="space-y-2 mb-4">
+                          {formData.collaborazioni_completate
+                            .sort((a, b) => new Date(b.data) - new Date(a.data))
+                            .map((collab, idx) =>
+                              <div key={idx} className="neumorphic-pressed p-3 rounded-xl flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="text-sm text-slate-700 font-medium mb-1">
+                                    {new Date(collab.data).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  </p>
+                                  {collab.descrizione && (
+                                    <p className="text-xs text-slate-600 mb-1">{collab.descrizione}</p>
+                                  )}
+                                  {collab.link && (
+                                    <a 
+                                      href={collab.link} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                    >
+                                      <LinkIcon className="w-3 h-3" />
+                                      Vedi post/articolo
+                                    </a>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRimuoviCollaborazione(idx)}
+                                  className="p-2 rounded-lg hover:bg-red-50 transition-colors">
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </button>
+                              </div>
+                            )}
+                        </div>
+                      }
+
+                      {/* Form per nuova collaborazione */}
+                      <div className="space-y-3 neumorphic-pressed p-4 rounded-xl">
+                        <div>
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">
+                            Data Collaborazione *
+                          </label>
+                          <input
+                            type="date"
+                            value={nuovaCollaborazione.data}
+                            onChange={(e) => setNuovaCollaborazione({ ...nuovaCollaborazione, data: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">
+                            Descrizione
+                          </label>
+                          <textarea
+                            value={nuovaCollaborazione.descrizione}
+                            onChange={(e) => setNuovaCollaborazione({ ...nuovaCollaborazione, descrizione: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-20"
+                            placeholder="Descrizione della collaborazione..." />
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium text-slate-700 mb-2 block">
+                            Link Post/Articolo
+                          </label>
+                          <input
+                            type="url"
+                            value={nuovaCollaborazione.link}
+                            onChange={(e) => setNuovaCollaborazione({ ...nuovaCollaborazione, link: e.target.value })}
+                            className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                            placeholder="https://..." />
+                        </div>
+
+                        <NeumorphicButton
+                          type="button"
+                          onClick={handleAggiungiCollaborazione}
+                          className="w-full flex items-center justify-center gap-2"
+                          disabled={!nuovaCollaborazione.data}>
+                          <Plus className="w-4 h-4" />
+                          Aggiungi Collaborazione
+                        </NeumorphicButton>
+                      </div>
+                    </div>
+                  }
 
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-2 block">
