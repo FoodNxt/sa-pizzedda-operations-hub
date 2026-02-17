@@ -411,6 +411,7 @@ export default function Activation() {
   // Vista per stato
   const activationsByStato = useMemo(() => {
     const grouped = {
+      in_sospeso: activations.filter((a) => a.stato === 'in_sospeso'),
       in_corso: activations.filter((a) => a.stato === 'in_corso'),
       completata: activations.filter((a) => a.stato === 'completata'),
       annullata: activations.filter((a) => a.stato === 'annullata')
@@ -462,6 +463,7 @@ export default function Activation() {
 
   const getStatoColor = (stato) => {
     switch (stato) {
+      case 'in_sospeso':return 'bg-orange-100 text-orange-700 border-orange-200';
       case 'in_corso':return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'completata':return 'bg-green-100 text-green-700 border-green-200';
       case 'annullata':return 'bg-red-100 text-red-700 border-red-200';
@@ -471,7 +473,8 @@ export default function Activation() {
 
   const getStatoIcon = (stato) => {
     switch (stato) {
-      case 'in_corso':return <Clock className="w-4 h-4" />;
+      case 'in_sospeso':return <Clock className="w-4 h-4" />;
+      case 'in_corso':return <Zap className="w-4 h-4" />;
       case 'completata':return <CheckCircle className="w-4 h-4" />;
       case 'annullata':return <XCircle className="w-4 h-4" />;
       default:return <Clock className="w-4 h-4" />;
@@ -941,6 +944,7 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                     onChange={(e) => setFormData({ ...formData, stato: e.target.value })}
                     className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
 
+                      <option value="in_sospeso">In Sospeso</option>
                       <option value="in_corso">In Corso</option>
                       <option value="completata">Completata</option>
                       <option value="annullata">Annullata</option>
