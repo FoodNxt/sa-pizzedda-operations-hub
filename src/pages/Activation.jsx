@@ -75,6 +75,7 @@ export default function Activation() {
   const [expandedCategoryCards, setExpandedCategoryCards] = useState({});
   const [showSubattivitaInDeadlines, setShowSubattivitaInDeadlines] = useState(false);
   const [showCompletedSection, setShowCompletedSection] = useState({});
+  const [expandedStatiCards, setExpandedStatiCards] = useState({});
   const [formData, setFormData] = useState({
     nome: '',
     descrizione: '',
@@ -609,6 +610,13 @@ export default function Activation() {
     setExpandedCategoryCards((prev) => ({
       ...prev,
       [categoryId]: !prev[categoryId]
+    }));
+  };
+
+  const toggleStatoCard = (stato) => {
+    setExpandedStatiCards((prev) => ({
+      ...prev,
+      [stato]: !prev[stato]
     }));
   };
 
@@ -2203,21 +2211,29 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
         <div className="space-y-4">
             {Object.entries(activationsByStato).filter(([stato]) => stato !== 'completata').map(([stato, stateActivations]) => {
               if (stateActivations.length === 0) return null;
+              const isExpanded = expandedStatiCards[stato] ?? false;
               
               return (
                 <NeumorphicCard key={stato} className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
+                  <button
+                    onClick={() => toggleStatoCard(stato)}
+                    className="w-full flex items-center gap-3 mb-4 hover:opacity-80 transition-opacity">
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${getStatoColor(stato)}`}>
                       {getStatoIcon(stato)}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 text-left">
                       <h2 className="text-xl font-bold text-slate-800 capitalize">
                         {stato.replace('_', ' ')}
                       </h2>
                       <p className="text-sm text-slate-500">{stateActivations.length} activation</p>
                     </div>
-                  </div>
+                    {isExpanded ? 
+                      <ChevronDown className="w-5 h-5 text-slate-500" /> : 
+                      <ChevronRight className="w-5 h-5 text-slate-500" />
+                    }
+                  </button>
 
+                  {isExpanded && (
                   <div className="space-y-3">
                     {[...stateActivations].sort((a, b) => 
                       new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
@@ -2308,6 +2324,7 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       );
                     })}
                   </div>
+                  )}
                 </NeumorphicCard>
               );
             })}
