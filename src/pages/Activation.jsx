@@ -39,8 +39,20 @@ export default function Activation() {
   const [editingActivation, setEditingActivation] = useState(null);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [calendarView, setCalendarView] = useState('week'); // 'week' or 'month'
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [eventFormData, setEventFormData] = useState({
+    nome: '',
+    descrizione: '',
+    data_evento: '',
+    store_id: '',
+    store_name: '',
+    contatto_id: '',
+    contatto_nome: '',
+    contatto_categoria: '',
+    note: ''
+  });
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [selectedActivationForChecklist, setSelectedActivationForChecklist] = useState(null);
   const [newChecklistItem, setNewChecklistItem] = useState('');
@@ -121,6 +133,16 @@ export default function Activation() {
     }
   });
 
+  const { data: eventi = [] } = useQuery({
+    queryKey: ['eventi-marketing'],
+    queryFn: () => base44.entities.EventoMarketing.list('-data_evento')
+  });
+
+  const { data: contatti = [] } = useQuery({
+    queryKey: ['contatti-marketing'],
+    queryFn: () => base44.entities.ContattoMarketing.list()
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Activation.create(data),
     onSuccess: () => {
@@ -189,6 +211,29 @@ export default function Activation() {
     }
   });
 
+  const createEventMutation = useMutation({
+    mutationFn: (data) => base44.entities.EventoMarketing.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['eventi-marketing'] });
+      resetEventForm();
+    }
+  });
+
+  const updateEventMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.EventoMarketing.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['eventi-marketing'] });
+      resetEventForm();
+    }
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: (id) => base44.entities.EventoMarketing.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['eventi-marketing'] });
+    }
+  });
+
   const resetForm = () => {
     setFormData({
       nome: '',
@@ -215,6 +260,47 @@ export default function Activation() {
     });
     setEditingCategory(null);
     setShowCategoryForm(false);
+  };
+
+  const resetEventForm = () => {
+    setEventFormData({
+      nome: '',
+      descrizione: '',
+      data_evento: '',
+      store_id: '',
+      store_name: '',
+      contatto_id: '',
+      contatto_nome: '',
+      contatto_categoria: '',
+      note: ''
+    });
+    setEditingEvent(null);
+    setShowEventForm(false);
+  };
+
+  const handleEditEvent = (evento) => {
+    setEditingEvent(evento);
+    setEventFormData({
+      nome: evento.nome,
+      descrizione: evento.descrizione || '',
+      data_evento: evento.data_evento,
+      store_id: evento.store_id || '',
+      store_name: evento.store_name || '',
+      contatto_id: evento.contatto_id || '',
+      contatto_nome: evento.contatto_nome || '',
+      contatto_categoria: evento.contatto_categoria || '',
+      note: evento.note || ''
+    });
+    setShowEventForm(true);
+  };
+
+  const handleEventSubmit = (e) => {
+    e.preventDefault();
+    if (editingEvent) {
+      updateEventMutation.mutate({ id: editingEvent.id, data: eventFormData });
+    } else {
+      createEventMutation.mutate(eventFormData);
+    }
   };
 
   const handleEdit = (activation) => {
@@ -332,72 +418,31 @@ export default function Activation() {
     return grouped;
   }, [activations, allUsers]);
 
-  // Calendar view calculations
-  const calendarData = useMemo(() => {
-    let start, end, days;
-    if (calendarView === 'week') {
-      start = startOfWeek(currentDate, { weekStartsOn: 1 });
-      end = endOfWeek(currentDate, { weekStartsOn: 1 });
-      days = eachDayOfInterval({ start, end });
-    } else {
-      start = startOfMonth(currentDate);
-      end = endOfMonth(currentDate);
-      const monthDays = eachDayOfInterval({ start, end });
+  // Calendar view calculations for Eventi
+  const eventiCalendarData = useMemo(() => {
+    const start = startOfMonth(currentDate);
+    const end = endOfMonth(currentDate);
+    const monthDays = eachDayOfInterval({ start, end });
 
-      // Add empty cells for days before the month starts (to align with weekStartsOn: 1)
-      const firstDayOfMonth = start.getDay();
-      const emptyCellsCount = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-      const emptyCells = Array(emptyCellsCount).fill(null);
+    // Add empty cells for days before the month starts
+    const firstDayOfMonth = start.getDay();
+    const emptyCellsCount = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+    const emptyCells = Array(emptyCellsCount).fill(null);
 
-      days = [...emptyCells, ...monthDays];
-    }
+    const days = [...emptyCells, ...monthDays];
 
     return { days, start, end };
-  }, [currentDate, calendarView]);
+  }, [currentDate]);
 
-  const activationsByDay = useMemo(() => {
+  const eventiByDay = useMemo(() => {
     const map = {};
-    calendarData.days.forEach((day) => {
+    eventiCalendarData.days.forEach((day) => {
       if (!day) return; // Skip empty cells
-
       const dayKey = format(day, 'yyyy-MM-dd');
-      let filtered = activations.filter((a) => {
-        const start = a.data_inizio ? parseISO(a.data_inizio) : parseISO(a.data_completamento_target);
-        const end = parseISO(a.data_completamento_target);
-        return day >= start && day <= end;
-      });
-
-      // Applica filtri categoria e activation
-      if (calendarCategoryFilter !== 'all') {
-        filtered = filtered.filter((a) => a.categorie_ids?.includes(calendarCategoryFilter));
-      }
-      if (calendarActivationFilter !== 'all') {
-        filtered = filtered.filter((a) => a.id === calendarActivationFilter);
-      }
-
-      map[dayKey] = filtered;
+      map[dayKey] = eventi.filter((e) => e.data_evento === dayKey);
     });
     return map;
-  }, [activations, calendarData, calendarCategoryFilter, calendarActivationFilter]);
-
-  const subattivitaByDay = useMemo(() => {
-    const map = {};
-    if (calendarActivationFilter !== 'all') {
-      // Mostra sottoattività solo se filtrata per activation singola
-      calendarData.days.forEach((day) => {
-        if (!day) return; // Skip empty cells
-
-        const dayKey = format(day, 'yyyy-MM-dd');
-        map[dayKey] = subattivita.filter((s) => {
-          const activation = activations.find((a) => a.id === s.activation_id);
-          return s.activation_id === calendarActivationFilter &&
-          s.data_target &&
-          format(parseISO(s.data_target), 'yyyy-MM-dd') === dayKey;
-        });
-      });
-    }
-    return map;
-  }, [subattivita, activations, calendarData, calendarActivationFilter]);
+  }, [eventi, eventiCalendarData]);
 
   const activationsByCategory = useMemo(() => {
     const grouped = {};
@@ -725,12 +770,12 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
             Per Persona
           </NeumorphicButton>
           <NeumorphicButton
-            onClick={() => setActiveView('calendario')}
-            variant={activeView === 'calendario' ? 'primary' : 'default'}
+            onClick={() => setActiveView('eventi')}
+            variant={activeView === 'eventi' ? 'primary' : 'default'}
             className="flex items-center gap-2">
 
             <Calendar className="w-4 h-4" />
-            Calendario
+            Eventi
           </NeumorphicButton>
           <NeumorphicButton
             onClick={() => setActiveView('categorie')}
@@ -1666,172 +1711,228 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                             </div>
         }
 
-        {/* Calendario View */}
-        {activeView === 'calendario' &&
-        <NeumorphicCard className="p-6">
+        {/* Vista Eventi */}
+        {activeView === 'eventi' && (
+          <NeumorphicCard className="p-6">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <h2 className="text-xl font-bold text-slate-800">Vista Calendario</h2>
-              <div className="flex items-center gap-2 flex-wrap">
-                <select
-                value={calendarView}
-                onChange={(e) => setCalendarView(e.target.value)}
-                className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none">
-
-                  <option value="week">Settimana</option>
-                  <option value="month">Mese</option>
-                </select>
-                <select
-                value={calendarCategoryFilter}
-                onChange={(e) => setCalendarCategoryFilter(e.target.value)}
-                className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none">
-
-                  <option value="all">Tutte le categorie</option>
-                  {categories.map((cat) =>
-                <option key={cat.id} value={cat.id}>{cat.nome}</option>
-                )}
-                </select>
-                <select
-                value={calendarActivationFilter}
-                onChange={(e) => setCalendarActivationFilter(e.target.value)}
-                className="neumorphic-pressed px-3 py-2 rounded-xl text-sm outline-none">
-
-                  <option value="all">Tutte le activation</option>
-                  {activations.map((act) =>
-                <option key={act.id} value={act.id}>{act.nome}</option>
-                )}
-                </select>
+              <h2 className="text-xl font-bold text-slate-800">Eventi Marketing</h2>
+              <div className="flex items-center gap-2">
                 <NeumorphicButton
-                onClick={() => {
-                  if (calendarView === 'week') {
-                    setCurrentDate(subWeeks(currentDate, 1));
-                  } else {
-                    setCurrentDate(subMonths(currentDate, 1));
-                  }
-                }}>
-
+                  onClick={() => setCurrentDate(subMonths(currentDate, 1))}>
                   <ChevronLeft className="w-4 h-4" />
                 </NeumorphicButton>
-                <NeumorphicButton
-                onClick={() => setCurrentDate(new Date())}
-                className="px-4">
-
+                <NeumorphicButton onClick={() => setCurrentDate(new Date())} className="px-4">
                   Oggi
                 </NeumorphicButton>
-                <NeumorphicButton
-                onClick={() => {
-                  if (calendarView === 'week') {
-                    setCurrentDate(addWeeks(currentDate, 1));
-                  } else {
-                    setCurrentDate(addMonths(currentDate, 1));
-                  }
-                }}>
-
+                <NeumorphicButton onClick={() => setCurrentDate(addMonths(currentDate, 1))}>
                   <ChevronRight className="w-4 h-4" />
+                </NeumorphicButton>
+                <NeumorphicButton
+                  onClick={() => setShowEventForm(true)}
+                  variant="primary"
+                  className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Nuovo Evento
                 </NeumorphicButton>
               </div>
             </div>
 
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-lg font-bold text-slate-700 capitalize">
-                {calendarView === 'week' ?
-              `${format(calendarData.start, 'dd MMM', { locale: it })} - ${format(calendarData.end, 'dd MMM yyyy', { locale: it })}` :
-              format(currentDate, 'MMMM yyyy', { locale: it })}
-              </p>
-              <NeumorphicButton
-              onClick={() => setShowSuggestionsModal(true)}
-              className="flex items-center gap-2">
+            <p className="text-lg font-bold text-slate-700 capitalize mb-4">
+              {format(currentDate, 'MMMM yyyy', { locale: it })}
+            </p>
 
-                <Lightbulb className="w-4 h-4" />
-                Suggerimenti
-              </NeumorphicButton>
-            </div>
-
-            <div className={`grid ${calendarView === 'week' ? 'grid-cols-7' : 'grid-cols-7'} gap-2`}>
+            <div className="grid grid-cols-7 gap-2">
               {/* Header giorni */}
-              {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((day) =>
-            <div key={day} className={`text-center font-bold text-slate-600 p-2 ${calendarView === 'week' ? 'text-sm' : 'text-xs'}`}>
+              {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((day) => (
+                <div key={day} className="text-center font-bold text-slate-600 p-2 text-xs">
                   {day}
                 </div>
-            )}
+              ))}
 
               {/* Calendar cells */}
-              {calendarData.days.map((day, idx) => {
-              if (!day) {
-                // Empty cell for padding
-                return <div key={`empty-${idx}`} className="neumorphic-pressed p-2 rounded-xl min-h-24 bg-slate-100" />;
-              }
+              {eventiCalendarData.days.map((day, idx) => {
+                if (!day) {
+                  return <div key={`empty-${idx}`} className="neumorphic-pressed p-2 rounded-xl min-h-24 bg-slate-100" />;
+                }
 
-              const dayKey = format(day, 'yyyy-MM-dd');
-              const dayActivations = activationsByDay[dayKey] || [];
-              const isToday = isSameDay(day, new Date());
-              const isExpanded = expandedCalendarCell === dayKey;
+                const dayKey = format(day, 'yyyy-MM-dd');
+                const dayEventi = eventiByDay[dayKey] || [];
+                const isToday = isSameDay(day, new Date());
 
-              return (
-                <div
-                  key={dayKey}
-                  className={`neumorphic-pressed p-2 rounded-xl min-h-24 relative ${
-                  isToday ? 'border-2 border-blue-500 bg-blue-50' : ''} ${
-                  isExpanded ? 'col-span-2 row-span-2 z-10' : ''}`}>
-
-                    <div className={`text-center text-sm font-bold mb-2 flex items-center justify-between ${
-                  isToday ? 'text-blue-600' : 'text-slate-700'}`
-                  }>
-                      <span>{format(day, 'd')}</span>
-                      {dayActivations.length > 0 &&
-                    <button
-                      onClick={() => setExpandedCalendarCell(isExpanded ? null : dayKey)}
-                      className="text-xs hover:bg-slate-200 rounded px-1">
-
-                          {isExpanded ? '−' : '+'}
-                        </button>
-                    }
+                return (
+                  <div
+                    key={dayKey}
+                    className={`neumorphic-pressed p-2 rounded-xl min-h-24 cursor-pointer hover:bg-slate-50 transition-colors ${
+                      isToday ? 'border-2 border-blue-500 bg-blue-50' : ''
+                    }`}
+                    onClick={() => {
+                      setEventFormData({ ...eventFormData, data_evento: dayKey });
+                      setShowEventForm(true);
+                    }}>
+                    <div className={`text-center text-sm font-bold mb-2 ${
+                      isToday ? 'text-blue-600' : 'text-slate-700'
+                    }`}>
+                      {format(day, 'd')}
                     </div>
                     <div className="space-y-1">
-                       {(isExpanded ? dayActivations : dayActivations.slice(0, 3)).map((act) => {
-                      const categoryColor = act.categorie_ids?.[0] ?
-                      categories.find((c) => c.id === act.categorie_ids[0])?.colore :
-                      '#60a5fa';
-                      return (
-                        <div key={act.id}>
-                             <div
-                            className={`text-xs px-2 py-1 rounded text-white cursor-pointer ${
-                            isExpanded ? '' : 'truncate'}`
-                            }
-                            style={{ backgroundColor: categoryColor }}
-                            title={act.nome}
-                            onClick={() => {
-                              setViewOnlyActivation(act);
-                              setShowViewOnlyModal(true);
-                            }}>
-
-                               {act.nome}
-                             </div>
-                             {calendarActivationFilter === act.id &&
-                          <div className="text-xs space-y-0.5 mt-1 pl-1 border-l border-slate-300">
-                                 {subattivita.
-                            filter((s) => s.activation_id === act.id && dayKey === format(parseISO(s.data_target), 'yyyy-MM-dd')).
-                            map((sub) =>
-                            <div key={sub.id} className="text-slate-600 text-[11px]">
-                                       {sub.completata ? '✓' : '○'} {sub.titolo}
-                                     </div>
-                            )}
-                               </div>
-                          }
-                           </div>);
-
-                    })}
-                       {!isExpanded && dayActivations.length > 3 &&
-                    <div className="text-xs text-slate-500 text-center">
-                           +{dayActivations.length - 3}
-                         </div>
-                    }
-                     </div>
-                  </div>);
-
-            })}
+                      {dayEventi.map((evento) => (
+                        <div
+                          key={evento.id}
+                          className="text-xs px-2 py-1 rounded bg-purple-500 text-white cursor-pointer hover:bg-purple-600 transition-colors"
+                          title={evento.nome}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditEvent(evento);
+                          }}>
+                          {evento.nome}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </NeumorphicCard>
-        }
+        )}
+
+        {/* Event Form Modal */}
+        {showEventForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-slate-800">
+                  {editingEvent ? 'Modifica Evento' : 'Nuovo Evento'}
+                </h2>
+                <button
+                  onClick={resetEventForm}
+                  className="p-2 rounded-lg hover:bg-slate-100 transition-colors">
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <form onSubmit={handleEventSubmit} className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Nome Evento *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={eventFormData.nome}
+                    onChange={(e) => setEventFormData({ ...eventFormData, nome: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                    placeholder="es. Inaugurazione, Evento Speciale" />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Data Evento *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={eventFormData.data_evento}
+                    onChange={(e) => setEventFormData({ ...eventFormData, data_evento: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Descrizione
+                  </label>
+                  <textarea
+                    value={eventFormData.descrizione}
+                    onChange={(e) => setEventFormData({ ...eventFormData, descrizione: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-24"
+                    placeholder="Descrivi l'evento..." />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Locale (opzionale)
+                  </label>
+                  <select
+                    value={eventFormData.store_id}
+                    onChange={(e) => {
+                      const selectedStore = stores.find(s => s.id === e.target.value);
+                      setEventFormData({
+                        ...eventFormData,
+                        store_id: e.target.value,
+                        store_name: selectedStore?.name || ''
+                      });
+                    }}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+                    <option value="">Nessun locale</option>
+                    {stores.map((store) => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Contatto Marketing (opzionale)
+                  </label>
+                  <select
+                    value={eventFormData.contatto_id}
+                    onChange={(e) => {
+                      const selectedContatto = contatti.find(c => c.id === e.target.value);
+                      setEventFormData({
+                        ...eventFormData,
+                        contatto_id: e.target.value,
+                        contatto_nome: selectedContatto ? `${selectedContatto.nome} ${selectedContatto.cognome}` : '',
+                        contatto_categoria: selectedContatto?.categoria || ''
+                      });
+                    }}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
+                    <option value="">Nessun contatto</option>
+                    {contatti.map((contatto) => (
+                      <option key={contatto.id} value={contatto.id}>
+                        {contatto.nome} {contatto.cognome} ({contatto.categoria})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Note
+                  </label>
+                  <textarea
+                    value={eventFormData.note}
+                    onChange={(e) => setEventFormData({ ...eventFormData, note: e.target.value })}
+                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none resize-none h-20"
+                    placeholder="Note aggiuntive..." />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <NeumorphicButton type="button" onClick={resetEventForm} className="flex-1">
+                    Annulla
+                  </NeumorphicButton>
+                  {editingEvent && (
+                    <NeumorphicButton
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Eliminare questo evento?')) {
+                          deleteEventMutation.mutate(editingEvent.id);
+                        }
+                      }}
+                      className="px-4 bg-red-500 text-white hover:bg-red-600">
+                      <Trash2 className="w-4 h-4" />
+                    </NeumorphicButton>
+                  )}
+                  <NeumorphicButton
+                    type="submit"
+                    variant="primary"
+                    className="flex-1"
+                    disabled={createEventMutation.isPending || updateEventMutation.isPending}>
+                    {editingEvent ? 'Aggiorna' : 'Crea'}
+                  </NeumorphicButton>
+                </div>
+              </form>
+            </NeumorphicCard>
+          </div>
+        )}
 
         {/* Vista per Categoria */}
         {activeView === 'categorie' &&
