@@ -1703,12 +1703,11 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                         )}
                       </>
                     )}
-                }
-                            </NeumorphicCard>);
-
+              </NeumorphicCard>
+            );
           })
           }
-                            </div>
+        </div>
         }
 
         {/* Vista Eventi */}
@@ -2193,7 +2192,8 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                 )}
               </>
                 )}
-              </NeumorphicCard>);
+              </NeumorphicCard>
+              );
             })()}
           </div>
         }
