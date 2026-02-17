@@ -62,6 +62,7 @@ export default function Activation() {
   const [collapsedCompletedCards, setCollapsedCompletedCards] = useState({});
   const [expandedCategoryCards, setExpandedCategoryCards] = useState({});
   const [showSubattivitaInDeadlines, setShowSubattivitaInDeadlines] = useState(false);
+  const [showCompletedSection, setShowCompletedSection] = useState({});
   const [formData, setFormData] = useState({
     nome: '',
     descrizione: '',
@@ -1244,10 +1245,11 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
               <p className="text-slate-500">Nessuna activation creata</p>
             </div>
           </NeumorphicCard> :
-        <NeumorphicCard className="p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-4">Tutte le Activation</h2>
+        <>
+          <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Activation In Corso e Annullate</h2>
           <div className="space-y-3">
-                {[...activations].sort((a, b) => 
+                {[...activations].filter(a => a.stato !== 'completata').sort((a, b) => 
                   new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
                 ).map((activation) => (
             <div key={activation.id} className="neumorphic-pressed p-5 rounded-xl">
@@ -1342,6 +1344,55 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   ))}
                   </div>
                   </NeumorphicCard>
+
+          {/* Sezione Completate - Collapsabile */}
+          {activations.filter(a => a.stato === 'completata').length > 0 && (
+            <NeumorphicCard className="p-6">
+              <button
+                onClick={() => setShowCompletedSection(prev => ({ ...prev, lista: !prev.lista }))}
+                className="w-full flex items-center justify-between hover:bg-slate-50 p-2 rounded-lg transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  {showCompletedSection.lista ? <ChevronDown className="w-5 h-5 text-green-600" /> : <ChevronRight className="w-5 h-5 text-green-600" />}
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <h2 className="text-lg font-bold text-slate-800">Activation Completate</h2>
+                  <span className="text-sm text-slate-500">({activations.filter(a => a.stato === 'completata').length})</span>
+                </div>
+              </button>
+
+              {showCompletedSection.lista && (
+                <div className="space-y-3 mt-4">
+                  {[...activations].filter(a => a.stato === 'completata').sort((a, b) => 
+                    new Date(b.data_completamento_target) - new Date(a.data_completamento_target)
+                  ).map((activation) => (
+                    <div key={activation.id} className="neumorphic-pressed p-5 rounded-xl">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-lg font-bold text-slate-800">{activation.nome}</h3>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatoColor(activation.stato)}`}>
+                              {getStatoIcon(activation.stato)}
+                              {activation.stato.replace('_', ' ').toUpperCase()}
+                            </span>
+                          </div>
+                          {activation.descrizione && <p className="text-sm text-slate-600 mb-2">{activation.descrizione}</p>}
+                          <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                            {activation.data_inizio && <div className="flex items-center gap-1"><Calendar className="w-3 h-3" />Inizio: {format(parseISO(activation.data_inizio), 'dd MMM yyyy', { locale: it })}</div>}
+                            <div className="flex items-center gap-1"><Calendar className="w-3 h-3" />Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}</div>
+                            {activation.assegnato_a_nome && <div className="flex items-center gap-1"><User className="w-3 h-3" />Assegnato: {activation.assegnato_a_nome}</div>}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button onClick={() => handleEdit(activation)} className="nav-button p-2 rounded-lg hover:bg-blue-50"><Edit className="w-4 h-4 text-blue-600" /></button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </NeumorphicCard>
+          )}
+        </>
                   )}
 
         {/* Vista Per Persona */}
@@ -1389,9 +1440,10 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   }
                     </button>
 
-                    {isExpanded &&
+                    {isExpanded && (
+                      <>
                 <div className="space-y-3">
-                        {[...data.activations].sort((a, b) => 
+                        {[...data.activations].filter(a => a.stato !== 'completata').sort((a, b) => 
                           new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
                         ).map((activation) => {
                     const subattivitaList = subattivita.filter((s) => s.activation_id === activation.id);
@@ -1553,6 +1605,55 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
 
                   })}
                             </div>
+
+                        {/* Sezione Completate - Collapsabile */}
+                        {data.activations.filter(a => a.stato === 'completata').length > 0 && (
+                          <div className="mt-4">
+                            <button
+                              onClick={() => setShowCompletedSection(prev => ({ ...prev, [personId]: !prev[personId] }))}
+                              className="w-full flex items-center gap-2 hover:bg-slate-50 p-2 rounded-lg transition-colors mb-3"
+                            >
+                              {showCompletedSection[personId] ? <ChevronDown className="w-4 h-4 text-green-600" /> : <ChevronRight className="w-4 h-4 text-green-600" />}
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <span className="text-sm font-medium text-slate-700">Completate ({data.activations.filter(a => a.stato === 'completata').length})</span>
+                            </button>
+
+                            {showCompletedSection[personId] && (
+                              <div className="space-y-3">
+                                {[...data.activations].filter(a => a.stato === 'completata').sort((a, b) => 
+                                  new Date(b.data_completamento_target) - new Date(a.data_completamento_target)
+                                ).map((activation) => {
+                                  const subattivitaList = subattivita.filter((s) => s.activation_id === activation.id);
+                                  const subattivitaComplete = subattivitaList.filter((s) => s.completata).length;
+
+                                  return (
+                                    <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl opacity-75">
+                                      <div className="flex items-start justify-between mb-2">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-bold text-slate-700">{activation.nome}</h3>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatoColor(activation.stato)}`}>
+                                              {getStatoIcon(activation.stato)}
+                                              COMPLETATA
+                                            </span>
+                                          </div>
+                                          <div className="text-xs text-slate-500">
+                                            Target: {format(parseISO(activation.data_completamento_target), 'dd MMM yyyy', { locale: it })}
+                                          </div>
+                                        </div>
+                                        <button onClick={() => handleEdit(activation)} className="p-2 rounded-lg hover:bg-blue-50">
+                                          <Edit className="w-4 h-4 text-blue-600" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
                 }
                             </NeumorphicCard>);
 
@@ -1766,8 +1867,9 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                   activationsByCategory[category.id]?.length === 0 ?
             <p className="text-slate-400 text-sm text-center py-6">Nessuna activation in questa categoria</p> :
 
+            <>
             <div className="space-y-3">
-                    {[...(activationsByCategory[category.id] || [])].sort((a, b) => 
+                    {[...(activationsByCategory[category.id] || [])].filter(a => a.stato !== 'completata').sort((a, b) => 
                       new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
                     ).map((activation) =>
               <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
@@ -1838,6 +1940,48 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                       </div>
               )}
                   </div>
+
+              {/* Sezione Completate - Collapsabile */}
+              {(activationsByCategory[category.id] || []).filter(a => a.stato === 'completata').length > 0 && (
+                <div className="mt-4">
+                  <button
+                    onClick={() => setShowCompletedSection(prev => ({ ...prev, [category.id]: !prev[category.id] }))}
+                    className="w-full flex items-center gap-2 hover:bg-slate-50 p-2 rounded-lg transition-colors mb-3"
+                  >
+                    {showCompletedSection[category.id] ? <ChevronDown className="w-4 h-4 text-green-600" /> : <ChevronRight className="w-4 h-4 text-green-600" />}
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-slate-700">Completate ({(activationsByCategory[category.id] || []).filter(a => a.stato === 'completata').length})</span>
+                  </button>
+
+                  {showCompletedSection[category.id] && (
+                    <div className="space-y-3">
+                      {[...(activationsByCategory[category.id] || [])].filter(a => a.stato === 'completata').sort((a, b) => 
+                        new Date(b.data_completamento_target) - new Date(a.data_completamento_target)
+                      ).map((activation) => (
+                        <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl opacity-75">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-bold text-slate-700">{activation.nome}</h3>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatoColor(activation.stato)}`}>
+                                  COMPLETATA
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                Target: {format(parseISO(activation.data_completamento_target), 'dd/MM/yy')}
+                              </div>
+                            </div>
+                            <button onClick={() => handleEdit(activation)} className="p-2 rounded-lg hover:bg-blue-50 flex-shrink-0">
+                              <Edit className="w-4 h-4 text-blue-600" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
             )}
               </NeumorphicCard>);
             })}
@@ -1869,8 +2013,9 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                 </button>
 
                 {isExpanded && (
+                  <>
                 <div className="space-y-2">
-                 {[...activationsByCategory['uncategorized']].sort((a, b) => 
+                 {[...activationsByCategory['uncategorized']].filter(a => a.stato !== 'completata').sort((a, b) => 
                    new Date(a.data_completamento_target) - new Date(b.data_completamento_target)
                  ).map((activation) =>
               <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl">
@@ -1907,6 +2052,41 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                     </div>
               )}
                 </div>
+
+                {/* Sezione Completate - Collapsabile */}
+                {activationsByCategory['uncategorized'].filter(a => a.stato === 'completata').length > 0 && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() => setShowCompletedSection(prev => ({ ...prev, uncategorized: !prev.uncategorized }))}
+                      className="w-full flex items-center gap-2 hover:bg-slate-50 p-2 rounded-lg transition-colors mb-3"
+                    >
+                      {showCompletedSection.uncategorized ? <ChevronDown className="w-4 h-4 text-green-600" /> : <ChevronRight className="w-4 h-4 text-green-600" />}
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium text-slate-700">Completate ({activationsByCategory['uncategorized'].filter(a => a.stato === 'completata').length})</span>
+                    </button>
+
+                    {showCompletedSection.uncategorized && (
+                      <div className="space-y-2">
+                        {[...activationsByCategory['uncategorized']].filter(a => a.stato === 'completata').sort((a, b) => 
+                          new Date(b.data_completamento_target) - new Date(a.data_completamento_target)
+                        ).map((activation) => (
+                          <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl opacity-75">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-bold text-slate-700">{activation.nome}</h3>
+                                <div className="text-xs text-slate-500">Target: {format(parseISO(activation.data_completamento_target), 'dd/MM/yy')}</div>
+                              </div>
+                              <button onClick={() => handleEdit(activation)} className="p-2 rounded-lg hover:bg-blue-50">
+                                <Edit className="w-4 h-4 text-blue-600" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
                 )}
               </NeumorphicCard>);
             })()}
@@ -1916,7 +2096,7 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
         {/* Vista Per Stato */}
         {activeView === 'per_stato' &&
         <div className="space-y-4">
-            {Object.entries(activationsByStato).map(([stato, stateActivations]) => {
+            {Object.entries(activationsByStato).filter(([stato]) => stato !== 'completata').map(([stato, stateActivations]) => {
               if (stateActivations.length === 0) return null;
               
               return (
@@ -2026,6 +2206,49 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                 </NeumorphicCard>
               );
             })}
+
+            {/* Sezione Completate - Collapsabile */}
+            {activationsByStato.completata?.length > 0 && (
+              <NeumorphicCard className="p-6">
+                <button
+                  onClick={() => setShowCompletedSection(prev => ({ ...prev, per_stato: !prev.per_stato }))}
+                  className="w-full flex items-center justify-between hover:bg-slate-50 p-2 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {showCompletedSection.per_stato ? <ChevronDown className="w-5 h-5 text-green-600" /> : <ChevronRight className="w-5 h-5 text-green-600" />}
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-green-100 text-green-700 border-green-200">
+                      <CheckCircle className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h2 className="text-xl font-bold text-slate-800">Completata</h2>
+                      <p className="text-sm text-slate-500">{activationsByStato.completata.length} activation</p>
+                    </div>
+                  </div>
+                </button>
+
+                {showCompletedSection.per_stato && (
+                  <div className="space-y-3 mt-4">
+                    {[...activationsByStato.completata].sort((a, b) => 
+                      new Date(b.data_completamento_target) - new Date(a.data_completamento_target)
+                    ).map((activation) => (
+                      <div key={activation.id} className="neumorphic-pressed p-4 rounded-xl opacity-75">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-bold text-slate-700 mb-1">{activation.nome}</h3>
+                            <div className="text-xs text-slate-500">
+                              Target: {format(parseISO(activation.data_completamento_target), 'dd/MM/yy')}
+                            </div>
+                          </div>
+                          <button onClick={() => handleEdit(activation)} className="p-2 rounded-lg hover:bg-blue-50">
+                            <Edit className="w-4 h-4 text-blue-600" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </NeumorphicCard>
+            )}
           </div>
         }
 
