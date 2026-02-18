@@ -516,10 +516,11 @@ export default function ConfrontoListini() {
                     </span>
                   </div>
                 </div>
-              </div>
+                </div>
+              )}
+            </div>
           )}
-          </div>
-        </NeumorphicCard>
+        </NeumomorphicCard>
       }
 
       {/* Stats */}
