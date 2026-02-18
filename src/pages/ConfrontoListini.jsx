@@ -509,17 +509,27 @@ export default function ConfrontoListini() {
                       Miglior prezzo: <strong>{issue.bestProduct.nome_prodotto}</strong> ({issue.bestProduct.fornitore || 'N/D'})
                     </p>
                     {(() => {
-                      const venduteDati = venduteMensili[issue.nomeInterno];
-                      if (venduteDati && venduteDati.confezioni > 0) {
-                        const risparmioPerConfezione = issue.productInUse.prezzo_unitario - issue.bestProduct.prezzo_unitario;
-                        const risparmioMensile = risparmioPerConfezione * venduteDati.confezioni;
-                        return (
-                          <p className="text-xs text-blue-600 mt-1">
-                            📊 {venduteDati.confezioni.toFixed(1)} confezioni ({venduteDati.unita > 0 ? `${Math.round(venduteDati.unita)} unità` : ''}) → Risparmio: <strong>€{risparmioMensile.toFixed(2)}/mese</strong>
-                          </p>
-                        );
-                      }
-                    })()}
+                             const venduteDati = venduteMensili[issue.nomeInterno];
+                             if (venduteDati && venduteDati.confezioni > 0) {
+                               // Conta quanti store hanno questo prodotto non ottimale
+                               const storeConProblema = notOptimalProducts.filter(i => i.nomeInterno === issue.nomeInterno).length > 0;
+                               const storeCount = selectedStore === 'all' 
+                                 ? [...new Set(notOptimalProducts.filter(i => i.nomeInterno === issue.nomeInterno).map(i => i.storeId))].length
+                                 : 1;
+
+                               // Dividi le vendite per il numero di store per evitare duplicazione
+                               const confezioniPerStore = venduteDati.confezioni / storeCount;
+                               const unitaPerStore = venduteDati.unita / storeCount;
+
+                               const risparmioPerConfezione = issue.productInUse.prezzo_unitario - issue.bestProduct.prezzo_unitario;
+                               const risparmioMensile = risparmioPerConfezione * confezioniPerStore;
+                               return (
+                                 <p className="text-xs text-blue-600 mt-1">
+                                   📊 {confezioniPerStore.toFixed(1)} confezioni ({unitaPerStore > 0 ? `${Math.round(unitaPerStore)} unità` : ''}) → Risparmio: <strong>€{risparmioMensile.toFixed(2)}/mese</strong>
+                                 </p>
+                               );
+                             }
+                           })()}
                   </div>
                   <div className="text-right">
                     <span className="text-red-600 font-bold text-sm">
