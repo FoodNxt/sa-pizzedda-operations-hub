@@ -362,11 +362,10 @@ export default function MateriePrime() {
   p.categoria?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Nomi interni unici e ordinati (da MateriePrime + flavor da ProdottiVenduti)
+  // Nomi interni unici e ordinati (solo da MateriePrime con prodotti effettivi)
   const nomiInterniUnici = [
-  ...new Set([
-  ...products.map((p) => p.nome_interno).filter(Boolean),
-  ...prodottiVenduti.map((p) => p.flavor).filter(Boolean)]
+  ...new Set(
+  products.map((p) => p.nome_interno).filter(Boolean)
   )].
   sort((a, b) => a.localeCompare(b, 'it'));
 
