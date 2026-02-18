@@ -12,6 +12,9 @@ export default function ConfrontoListini() {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [downloadCategories, setDownloadCategories] = useState([]);
   const [downloadFornitori, setDownloadFornitori] = useState([]);
+  const [showMatchingModal, setShowMatchingModal] = useState(false);
+  const [selectedProductForMatch, setSelectedProductForMatch] = useState(null);
+  const [matchFormData, setMatchFormData] = useState({ ricetta_id: '' });
 
   const { data: materiePrime = [], isLoading } = useQuery({
     queryKey: ['materie-prime'],
@@ -21,6 +24,21 @@ export default function ConfrontoListini() {
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list()
+  });
+
+  const { data: prodottiVenduti = [] } = useQuery({
+    queryKey: ['prodotti-venduti'],
+    queryFn: async () => {
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      const dateFilter = oneMonthAgo.toISOString().split('T')[0];
+      return base44.entities.ProdottiVenduti.filter({ data_vendita: { $gte: dateFilter } });
+    }
+  });
+
+  const { data: ricette = [] } = useQuery({
+    queryKey: ['ricette'],
+    queryFn: () => base44.entities.Ricetta.list()
   });
 
   // Get unique nomi interni
@@ -251,6 +269,66 @@ export default function ConfrontoListini() {
 
   const allFornitori = [...new Set(materiePrime.map(p => p.fornitore).filter(Boolean))].sort();
 
+  // Calcola quantità vendute nell'ultimo mese per nome_interno
+  const quantitaVenduteMensili = React.useMemo(() => {
+    const map = {};
+    
+    prodottiVenduti.forEach(vendita => {
+      const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
+      if (!ricetta) return;
+
+      // Per ogni ingrediente della ricetta
+      ricetta.ingredienti?.forEach(ingrediente => {
+        const materiaPrima = materiePrime.find(mp => mp.id === ingrediente.materia_prima_id);
+        if (!materiaPrima?.nome_interno) return;
+
+        const nomeInterno = materiaPrima.nome_interno;
+        const quantitaPerProdotto = ingrediente.quantita || 0;
+        const quantitaVenduta = vendita.total_pizzas_sold || 0;
+        const quantitaTotale = quantitaPerProdotto * quantitaVenduta;
+
+        // Normalizza a kg/litri
+        let quantitaNormalizzata = quantitaTotale;
+        if (ingrediente.unita_misura === 'g' || ingrediente.unita_misura === 'ml') {
+          quantitaNormalizzata = quantitaTotale / 1000;
+        }
+
+        if (!map[nomeInterno]) {
+          map[nomeInterno] = 0;
+        }
+        map[nomeInterno] += quantitaNormalizzata;
+      });
+    });
+
+    return map;
+  }, [prodottiVenduti, ricette, materiePrime]);
+
+  // Calcola risparmio mensile potenziale
+  const calcolaRisparmioMensile = (nomeInterno, products) => {
+    const quantitaMensile = quantitaVenduteMensili[nomeInterno] || 0;
+    if (quantitaMensile === 0) return 0;
+
+    const bestPrice = getBestPrice(products);
+    
+    // Trova il prodotto in uso
+    const productInUse = products.find(p => {
+      const inUsoPerStore = p.in_uso_per_store || {};
+      if (selectedStore === 'all') {
+        return Object.values(inUsoPerStore).some(v => v);
+      } else {
+        return inUsoPerStore[selectedStore];
+      }
+    });
+
+    if (!productInUse) return 0;
+
+    const currentPrice = getNormalizedPrice(productInUse);
+    if (!currentPrice || currentPrice <= bestPrice) return 0;
+
+    const priceDiff = currentPrice - bestPrice;
+    return priceDiff * quantitaMensile;
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -319,16 +397,31 @@ export default function ConfrontoListini() {
       <NeumorphicCard className="p-6 bg-orange-50 border-2 border-orange-200">
           <div className="flex items-start gap-3 mb-4">
             <AlertTriangle className="w-6 h-6 text-orange-600 flex-shrink-0" />
-            <div>
+            <div className="flex-1">
               <h3 className="font-bold text-orange-800 mb-1">
                 ⚠️ Prodotti in uso non ottimali ({notOptimalProducts.length})
               </h3>
-              <p className="text-sm text-orange-700">
+              <p className="text-sm text-orange-700 mb-2">
                 {selectedStore === 'all' ?
               'Ci sono prodotti in uso che non hanno il miglior prezzo disponibile' :
               `Nel negozio selezionato ci sono prodotti in uso che non hanno il miglior prezzo`
               }
               </p>
+              {/* Risparmio mensile totale */}
+              {(() => {
+                const risparmioTotale = notOptimalProducts.reduce((sum, issue) => {
+                  const quantitaMensile = quantitaVenduteMensili[issue.nomeInterno] || 0;
+                  return sum + (issue.priceDiff * quantitaMensile);
+                }, 0);
+                
+                if (risparmioTotale > 0) {
+                  return (
+                    <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600 text-white font-bold">
+                      💰 Risparmio mensile totale: €{risparmioTotale.toFixed(2)}
+                    </div>
+                  );
+                }
+              })()}
             </div>
           </div>
           
@@ -348,6 +441,17 @@ export default function ConfrontoListini() {
                     <p className="text-xs text-green-600">
                       Miglior prezzo: <strong>{issue.bestProduct.nome_prodotto}</strong> ({issue.bestProduct.fornitore || 'N/D'})
                     </p>
+                    {(() => {
+                      const quantitaMensile = quantitaVenduteMensili[issue.nomeInterno] || 0;
+                      if (quantitaMensile > 0) {
+                        const risparmioMensile = issue.priceDiff * quantitaMensile;
+                        return (
+                          <p className="text-xs text-blue-600 mt-1">
+                            📊 {quantitaMensile.toFixed(1)} kg/L venduti → Risparmio mensile: <strong>€{risparmioMensile.toFixed(2)}</strong>
+                          </p>
+                        );
+                      }
+                    })()}
                   </div>
                   <div className="text-right">
                     <span className="text-red-600 font-bold text-sm">
@@ -410,14 +514,29 @@ export default function ConfrontoListini() {
             const bestPrice = sortedByPrice[0].prezzo_unitario;
             const savingsPercent = getSavingsPercentage(products);
 
+            const risparmioMensile = calcolaRisparmioMensile(nomeInterno, products);
+            const quantitaMensile = quantitaVenduteMensili[nomeInterno] || 0;
+
             return (
               <div key={nomeInterno} className="neumorphic-pressed p-5 rounded-xl">
                   <div className="flex items-start justify-between mb-4">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-bold text-lg text-[#6b6b6b]">{nomeInterno}</h3>
                       <p className="text-sm text-[#9b9b9b]">
                         {products[0].categoria} • {products.length} {products.length === 1 ? 'fornitore' : 'fornitori'}
                       </p>
+                      {quantitaMensile > 0 && (
+                        <div className="mt-2 flex items-center gap-2 text-xs">
+                          <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
+                            📊 {quantitaMensile.toFixed(1)} kg/L venduti (ultimo mese)
+                          </span>
+                          {risparmioMensile > 0 && (
+                            <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 font-bold">
+                              💰 Risparmio mensile: €{risparmioMensile.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {products.length > 1 &&
                   <div className="text-right">
