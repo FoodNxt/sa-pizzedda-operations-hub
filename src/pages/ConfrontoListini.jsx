@@ -497,30 +497,30 @@ export default function ConfrontoListini() {
             {notOptimalProducts.map((issue, idx) =>
           <div key={idx} className="neumorphic-pressed p-3 rounded-lg bg-white">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="flex-1">
                     <p className="font-bold text-slate-700 text-sm">{issue.nomeInterno}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 mb-2">
                       <Store className="w-3 h-3 inline mr-1" />
-                      {issue.store}
+                      {selectedStore === 'all' ? `${issue.storeCount} negozi` : stores.find(s => s.id === selectedStore)?.name}
                     </p>
-                    <p className="text-xs text-orange-600 mt-1">
+                    <p className="text-xs text-orange-600">
                       In uso: <strong>{issue.productInUse.nome_prodotto}</strong> ({issue.productInUse.fornitore || 'N/D'})
                     </p>
                     <p className="text-xs text-green-600">
                       Miglior prezzo: <strong>{issue.bestProduct.nome_prodotto}</strong> ({issue.bestProduct.fornitore || 'N/D'})
                     </p>
                     {(() => {
-                             const venduteDati = venduteMensili[issue.nomeInterno];
-                             if (venduteDati && venduteDati.confezioni > 0) {
-                               const risparmioPerConfezione = issue.productInUse.prezzo_unitario - issue.bestProduct.prezzo_unitario;
-                               const risparmioMensile = risparmioPerConfezione * venduteDati.confezioni;
-                               return (
-                                 <p className="text-xs text-blue-600 mt-1">
-                                   📊 {venduteDati.confezioni.toFixed(1)} confezioni ({venduteDati.unita > 0 ? `${Math.round(venduteDati.unita)} unità` : ''}) → Risparmio: <strong>€{risparmioMensile.toFixed(2)}/mese</strong>
-                                 </p>
-                               );
-                             }
-                           })()}
+                      const venduteDati = venduteMensili[issue.nomeInterno];
+                      if (venduteDati && venduteDati.confezioni > 0) {
+                        const risparmioPerConfezione = issue.productInUse.prezzo_unitario - issue.bestProduct.prezzo_unitario;
+                        const risparmioMensile = risparmioPerConfezione * venduteDati.confezioni;
+                        return (
+                          <p className="text-xs text-blue-600 mt-2">
+                            📊 {venduteDati.confezioni.toFixed(1)} confezioni ({venduteDati.unita > 0 ? `${Math.round(venduteDati.unita)} unità` : ''}) → <strong>€{risparmioMensile.toFixed(2)}/mese</strong>
+                          </p>
+                        );
+                      }
+                    })()}
                   </div>
                   <div className="text-right">
                     <span className="text-red-600 font-bold text-sm">
