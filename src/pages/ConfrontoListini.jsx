@@ -301,16 +301,19 @@ export default function ConfrontoListini() {
         materiaPrimaDiretta = materiePrime.find(mp => mp.nome_prodotto === vendita.flavor);
       }
       
-      // Caso 1: Prodotto venduto direttamente (es. Acqua)
+      // Caso 1: Prodotto venduto direttamente (es. Ichnusa, Acqua)
       if (materiaPrimaDiretta?.nome_interno) {
         const nomeInterno = materiaPrimaDiretta.nome_interno;
+        // Per prodotti diretti, la quantità venduta è in unità (non pizze)
+        // total_pizzas_sold contiene il numero di unità vendute per i prodotti diretti
         const unitaVendute = vendita.total_pizzas_sold || 0;
         
         if (!map[nomeInterno]) {
           map[nomeInterno] = { confezioni: 0, unita: 0 };
         }
         
-        if (materiaPrimaDiretta.unita_per_confezione) {
+        // Confezioni: unità / unita_per_confezione
+        if (materiaPrimaDiretta.unita_per_confezione && materiaPrimaDiretta.unita_per_confezione > 0) {
           const confezioniVendute = unitaVendute / materiaPrimaDiretta.unita_per_confezione;
           map[nomeInterno].confezioni += confezioniVendute;
         }
