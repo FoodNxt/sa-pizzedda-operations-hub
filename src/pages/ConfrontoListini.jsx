@@ -284,8 +284,19 @@ export default function ConfrontoListini() {
     });
     
     prodottiUltimi30Giorni.forEach(vendita => {
+      // Cerca prima nel mapping manuale
+      const mapping = mappings.find(m => m.flavor_prodotto_venduto === vendita.flavor);
+      let materiaPrimaDiretta = null;
+      
+      if (mapping) {
+        // Usa il mapping configurato
+        materiaPrimaDiretta = materiePrime.find(mp => mp.id === mapping.materia_prima_id);
+      } else {
+        // Fallback: match per nome
+        materiaPrimaDiretta = materiePrime.find(mp => mp.nome_prodotto === vendita.flavor);
+      }
+      
       // Caso 1: Prodotto venduto direttamente (es. Acqua)
-      const materiaPrimaDiretta = materiePrime.find(mp => mp.nome_prodotto === vendita.flavor);
       if (materiaPrimaDiretta?.nome_interno && materiaPrimaDiretta.unita_per_confezione) {
         const nomeInterno = materiaPrimaDiretta.nome_interno;
         const unitaVendute = vendita.total_pizzas_sold || 0;
