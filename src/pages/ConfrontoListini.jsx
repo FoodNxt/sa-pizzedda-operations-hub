@@ -146,9 +146,9 @@ export default function ConfrontoListini() {
     return sum + savingsForThisProduct;
   }, 0);
 
-  // Find products in use that are not the best price (for specific store or all stores)
+  // Find products in use that are not the best price - grouped by product, not by store
   const getProductsNotOptimal = () => {
-    const issues = [];
+    const issuesMap = {};
 
     filteredGrouped.forEach(([nomeInterno, products]) => {
       const bestPriceProduct = products.reduce((best, p) => {
@@ -166,39 +166,40 @@ export default function ConfrontoListini() {
         if (!productPrice || !bestPrice) return;
 
         const inUsoPerStore = product.in_uso_per_store || {};
+        let hasIssue = false;
+        let storeIds = [];
 
         if (selectedStore === 'all') {
           // Check all stores
           stores.forEach((store) => {
             if (inUsoPerStore[store.id] && productPrice > bestPrice) {
-              issues.push({
-                store: store.name,
-                storeId: store.id,
-                nomeInterno,
-                productInUse: product,
-                bestProduct: bestPriceProduct,
-                priceDiff: productPrice - bestPrice
-              });
+              hasIssue = true;
+              storeIds.push(store.id);
             }
           });
         } else {
           // Check specific store
           if (inUsoPerStore[selectedStore] && productPrice > bestPrice) {
-            const store = stores.find((s) => s.id === selectedStore);
-            issues.push({
-              store: store?.name || 'N/D',
-              storeId: selectedStore,
-              nomeInterno,
-              productInUse: product,
-              bestProduct: bestPriceProduct,
-              priceDiff: productPrice - bestPrice
-            });
+            hasIssue = true;
+            storeIds.push(selectedStore);
           }
+        }
+
+        // Se il prodotto ha un problema, aggiungilo alla mappa (una sola volta per nome_interno)
+        if (hasIssue && !issuesMap[nomeInterno]) {
+          issuesMap[nomeInterno] = {
+            nomeInterno,
+            productInUse: product,
+            bestProduct: bestPriceProduct,
+            priceDiff: productPrice - bestPrice,
+            storeIds: storeIds,
+            storeCount: storeIds.length
+          };
         }
       });
     });
 
-    return issues;
+    return Object.values(issuesMap);
   };
 
   const notOptimalProducts = getProductsNotOptimal();

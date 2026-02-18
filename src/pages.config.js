@@ -124,6 +124,7 @@ import Inventory from './pages/Inventory';
 import InventoryForms from './pages/InventoryForms';
 import KPIs from './pages/KPIs';
 import LettereRichiamo from './pages/LettereRichiamo';
+import MappingProdottiVenduti from './pages/MappingProdottiVenduti';
 import Marketing from './pages/Marketing';
 import MarketingSettings from './pages/MarketingSettings';
 import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
@@ -181,7 +182,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import MappingProdottiVenduti from './pages/MappingProdottiVenduti';
 import __Layout from './Layout.jsx';
 
 
@@ -263,6 +263,7 @@ export const PAGES = {
     "InventoryForms": InventoryForms,
     "KPIs": KPIs,
     "LettereRichiamo": LettereRichiamo,
+    "MappingProdottiVenduti": MappingProdottiVenduti,
     "Marketing": Marketing,
     "MarketingSettings": MarketingSettings,
     "MatchingOrdiniSbagliati": MatchingOrdiniSbagliati,
@@ -320,7 +321,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "MappingProdottiVenduti": MappingProdottiVenduti,
 }
 
 export const pagesConfig = {
