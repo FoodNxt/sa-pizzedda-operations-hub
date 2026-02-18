@@ -15,6 +15,7 @@ export default function ConfrontoListini() {
   const [showMatchingModal, setShowMatchingModal] = useState(false);
   const [selectedProductForMatch, setSelectedProductForMatch] = useState(null);
   const [matchFormData, setMatchFormData] = useState({ ricetta_id: '' });
+  const [showDetailsExpanded, setShowDetailsExpanded] = useState(false);
 
   const { data: materiePrime = [], isLoading } = useQuery({
     queryKey: ['materie-prime'],
