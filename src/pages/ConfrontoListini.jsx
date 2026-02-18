@@ -383,6 +383,28 @@ export default function ConfrontoListini() {
 
   const risparmioMensileTotale = getRisparmioMensileTotale();
 
+  const calcolaRisparmioMensile = (nomeInterno, products) => {
+    const bestPrice = getBestPrice(products);
+    const venduteDati = venduteMensili[nomeInterno];
+    if (!venduteDati || venduteDati.confezioni === 0) return 0;
+
+    let totalSavings = 0;
+    products.forEach((product) => {
+      const productPrice = getNormalizedPrice(product);
+      if (!productPrice || productPrice === bestPrice) return;
+
+      const inUsoPerStore = product.in_uso_per_store || {};
+      const isInUso = Object.values(inUsoPerStore).some((v) => v);
+
+      if (isInUso && productPrice > bestPrice) {
+        const risparmioPerConfezione = product.prezzo_unitario - products.find(p => getNormalizedPrice(p) === bestPrice).prezzo_unitario;
+        totalSavings = Math.max(totalSavings, risparmioPerConfezione * venduteDati.confezioni);
+      }
+    });
+
+    return totalSavings;
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
