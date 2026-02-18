@@ -37,7 +37,7 @@ import RicetteContent from "../components/inventory/RicetteContent";
 import FornitoriContent from "../components/inventory/FornitoriContent";
 
 export default function MateriePrime() {
-  const [activeTab, setActiveTab] = useState('materie_prime'); // materie_prime | ricette | fornitori
+  const [activeTab, setActiveTab] = useState('materie_prime'); // materie_prime | ricette | fornitori | nomi_interni
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -667,8 +667,121 @@ export default function MateriePrime() {
               <Wheat className="w-4 h-4" />
               <span className="hidden sm:inline">Allergeni</span>
             </button>
+            <button
+              onClick={() => setActiveTab('nomi_interni')}
+              className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'nomi_interni'
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'bg-transparent text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              <span className="hidden sm:inline">Nomi Interni</span>
+            </button>
           </div>
         </NeumorphicCard>
+
+        {activeTab === 'nomi_interni' && (
+          <NeumorphicCard className="p-6">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">
+              📋 Nomi Interni - Gestione
+            </h2>
+            <p className="text-sm text-slate-600 mb-6">
+              Elenco di tutti i nomi interni utilizzati nelle materie prime
+            </p>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-blue-600">
+                    <th className="text-left p-3 text-slate-600 font-medium">Nome Interno</th>
+                    <th className="text-center p-3 text-slate-600 font-medium">N° Prodotti</th>
+                    <th className="text-center p-3 text-slate-600 font-medium">In Uso</th>
+                    <th className="text-center p-3 text-slate-600 font-medium">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    // Raggruppa per nome_interno
+                    const nomiInterniStats = {};
+                    products.forEach(p => {
+                      if (!p.nome_interno) return;
+                      if (!nomiInterniStats[p.nome_interno]) {
+                        nomiInterniStats[p.nome_interno] = {
+                          count: 0,
+                          inUso: false,
+                          products: []
+                        };
+                      }
+                      nomiInterniStats[p.nome_interno].count++;
+                      nomiInterniStats[p.nome_interno].products.push(p);
+                      if (p.in_uso_per_store && Object.values(p.in_uso_per_store).some(v => v)) {
+                        nomiInterniStats[p.nome_interno].inUso = true;
+                      }
+                    });
+
+                    const sorted = Object.entries(nomiInterniStats).sort(([a], [b]) => 
+                      a.localeCompare(b, 'it')
+                    );
+
+                    return sorted.map(([nomeInterno, stats]) => (
+                      <tr key={nomeInterno} className="border-b border-slate-200 hover:bg-slate-50">
+                        <td className="p-3">
+                          <p className="font-medium text-slate-800">{nomeInterno}</p>
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-sm">
+                            {stats.count}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          {stats.inUso ? (
+                            <span className="px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-xs">
+                              ✓ Sì
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-xs">
+                              No
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 text-center">
+                          {!stats.inUso && (
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Vuoi cancellare il nome interno "${nomeInterno}"?\n\nQuesto rimuoverà il nome interno da ${stats.count} prodotti.`)) {
+                                  return;
+                                }
+                                
+                                try {
+                                  // Update all products with this nome_interno
+                                  for (const product of stats.products) {
+                                    await base44.entities.MateriePrime.update(product.id, {
+                                      nome_interno: ''
+                                    });
+                                  }
+                                  
+                                  queryClient.invalidateQueries({ queryKey: ['materie-prime'] });
+                                  alert('✓ Nome interno rimosso con successo');
+                                } catch (error) {
+                                  alert('Errore: ' + error.message);
+                                }
+                              }}
+                              className="p-2 rounded-lg hover:bg-red-100 transition-colors"
+                              title="Rimuovi nome interno"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </NeumorphicCard>
+        )}
 
         {activeTab === 'ricette' && <RicetteContent />}
         {activeTab === 'fornitori' && <FornitoriContent />}
