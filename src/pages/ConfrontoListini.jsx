@@ -452,36 +452,36 @@ export default function ConfrontoListini() {
           <div className="flex items-start gap-3 mb-4">
             <AlertTriangle className="w-6 h-6 text-orange-600 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="font-bold text-orange-800 mb-1">
-                ⚠️ Prodotti in uso non ottimali ({notOptimalProducts.length})
-              </h3>
-              <p className="text-sm text-orange-700 mb-2">
-                {selectedStore === 'all' ?
-              'Ci sono prodotti in uso che non hanno il miglior prezzo disponibile' :
-              `Nel negozio selezionato ci sono prodotti in uso che non hanno il miglior prezzo`
-              }
-              </p>
-              {/* Risparmio mensile totale */}
-              {(() => {
-                const risparmioTotale = notOptimalProducts.reduce((sum, issue) => {
-                  const venduteDati = venduteMensili[issue.nomeInterno];
-                  if (!venduteDati) return sum;
-                  const risparmioPerConfezione = issue.productInUse.prezzo_unitario - issue.bestProduct.prezzo_unitario;
-                  return sum + (risparmioPerConfezione * venduteDati.confezioni);
-                }, 0);
-                
-                if (risparmioTotale > 0) {
-                  return (
-                    <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600 text-white font-bold">
-                      💰 Risparmio mensile totale: €{risparmioTotale.toFixed(2)}
-                    </div>
-                  );
-                }
-              })()}
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-orange-800 mb-1">
+                    ⚠️ Prodotti in uso non ottimali ({notOptimalProducts.length})
+                  </h3>
+                  <p className="text-sm text-orange-700">
+                    {selectedStore === 'all' ?
+                  'Ci sono prodotti in uso che non hanno il miglior prezzo disponibile' :
+                  `Nel negozio selezionato ci sono prodotti in uso che non hanno il miglior prezzo`
+                  }
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowDetailsExpanded(!showDetailsExpanded)}
+                  className="px-3 py-1 rounded-lg bg-orange-200 hover:bg-orange-300 text-orange-800 font-medium text-sm transition-colors flex-shrink-0"
+                >
+                  {showDetailsExpanded ? 'Nascondi' : 'Mostra'}
+                </button>
+              </div>
+              
+              {risparmioMensileTotale > 0 && (
+                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600 text-white font-bold mt-3">
+                  💰 Risparmio mensile totale: €{risparmioMensileTotale.toFixed(2)}
+                </div>
+              )}
             </div>
           </div>
           
-          <div className="space-y-3 max-h-60 overflow-y-auto">
+          {showDetailsExpanded && (
+            <div className="space-y-3 max-h-60 overflow-y-auto mt-4 pt-4 border-t border-orange-200">
             {notOptimalProducts.map((issue, idx) =>
           <div key={idx} className="neumorphic-pressed p-3 rounded-lg bg-white">
                 <div className="flex items-start justify-between gap-3">
