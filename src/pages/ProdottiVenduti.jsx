@@ -16,7 +16,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 export default function ProdottiVenduti() {
   const [selectedStore, setSelectedStore] = useState('all');
-  const [dateRange, setDateRange] = useState('week');
+  const [dateRange, setDateRange] = useState('30days');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +75,13 @@ export default function ProdottiVenduti() {
       filtered = filtered.filter((p) => {
         const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
         return dataStr >= weekAgoStr;
+      });
+    } else if (dateRange === '30days') {
+      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+      filtered = filtered.filter((p) => {
+        const dataStr = p.data_vendita?.split('T')[0] || p.data_vendita;
+        return dataStr >= thirtyDaysAgoStr;
       });
     } else if (dateRange === 'month') {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -631,6 +638,7 @@ export default function ProdottiVenduti() {
 
               <option value="today">Oggi</option>
               <option value="week">Ultima Settimana</option>
+              <option value="30days">Ultimi 30 Giorni</option>
               <option value="month">Questo Mese</option>
               <option value="all">Tutto</option>
               <option value="custom">Personalizzato</option>
