@@ -520,7 +520,7 @@ export default function ConfrontoListini() {
               )}
             </div>
           )}
-        </NeumomorphicCard>
+        </NeumorphicCard>
       }
 
       {/* Stats */}
