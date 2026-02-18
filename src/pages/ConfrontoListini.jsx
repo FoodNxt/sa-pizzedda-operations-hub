@@ -269,15 +269,29 @@ export default function ConfrontoListini() {
 
   const allFornitori = [...new Set(materiePrime.map(p => p.fornitore).filter(Boolean))].sort();
 
-  // Calcola quantità vendute nell'ultimo mese per nome_interno
-  const quantitaVenduteMensili = React.useMemo(() => {
+  // Calcola confezioni vendute nell'ultimo mese per nome_interno
+  const confezioniVenduteMensili = React.useMemo(() => {
     const map = {};
     
     prodottiVenduti.forEach(vendita => {
+      // Caso 1: Prodotto venduto direttamente (es. Acqua)
+      const materiaPrimaDiretta = materiePrime.find(mp => mp.nome_prodotto === vendita.flavor);
+      if (materiaPrimaDiretta?.nome_interno && materiaPrimaDiretta.unita_per_confezione) {
+        const nomeInterno = materiaPrimaDiretta.nome_interno;
+        const unitaVendute = vendita.total_pizzas_sold || 0;
+        const confezioniVendute = unitaVendute / materiaPrimaDiretta.unita_per_confezione;
+        
+        if (!map[nomeInterno]) {
+          map[nomeInterno] = 0;
+        }
+        map[nomeInterno] += confezioniVendute;
+        return;
+      }
+
+      // Caso 2: Prodotto con ricetta
       const ricetta = ricette.find(r => r.nome_prodotto === vendita.flavor);
       if (!ricetta) return;
 
-      // Per ogni ingrediente della ricetta
       ricetta.ingredienti?.forEach(ingrediente => {
         const materiaPrima = materiePrime.find(mp => mp.id === ingrediente.materia_prima_id);
         if (!materiaPrima?.nome_interno) return;
@@ -287,16 +301,24 @@ export default function ConfrontoListini() {
         const quantitaVenduta = vendita.total_pizzas_sold || 0;
         const quantitaTotale = quantitaPerProdotto * quantitaVenduta;
 
-        // Normalizza a kg/litri
-        let quantitaNormalizzata = quantitaTotale;
+        // Converti a kg/litri base
+        let quantitaInKgLitri = quantitaTotale;
         if (ingrediente.unita_misura === 'g' || ingrediente.unita_misura === 'ml') {
-          quantitaNormalizzata = quantitaTotale / 1000;
+          quantitaInKgLitri = quantitaTotale / 1000;
         }
 
-        if (!map[nomeInterno]) {
-          map[nomeInterno] = 0;
+        // Converti in confezioni usando normalizeToBaseUnit
+        const prodottoRiferimento = materiePrime.find(mp => mp.nome_interno === nomeInterno);
+        if (prodottoRiferimento) {
+          const kgPerConfezione = normalizeToBaseUnit(prodottoRiferimento);
+          if (kgPerConfezione) {
+            const confezioniNecessarie = quantitaInKgLitri / kgPerConfezione;
+            if (!map[nomeInterno]) {
+              map[nomeInterno] = 0;
+            }
+            map[nomeInterno] += confezioniNecessarie;
+          }
         }
-        map[nomeInterno] += quantitaNormalizzata;
       });
     });
 
@@ -305,11 +327,9 @@ export default function ConfrontoListini() {
 
   // Calcola risparmio mensile potenziale
   const calcolaRisparmioMensile = (nomeInterno, products) => {
-    const quantitaMensile = quantitaVenduteMensili[nomeInterno] || 0;
-    if (quantitaMensile === 0) return 0;
+    const confezioniMensili = confezioniVenduteMensili[nomeInterno] || 0;
+    if (confezioniMensili === 0) return 0;
 
-    const bestPrice = getBestPrice(products);
-    
     // Trova il prodotto in uso
     const productInUse = products.find(p => {
       const inUsoPerStore = p.in_uso_per_store || {};
@@ -322,11 +342,19 @@ export default function ConfrontoListini() {
 
     if (!productInUse) return 0;
 
-    const currentPrice = getNormalizedPrice(productInUse);
-    if (!currentPrice || currentPrice <= bestPrice) return 0;
+    // Trova il prodotto col miglior prezzo
+    const bestProduct = products.reduce((best, p) => {
+      const currentPrice = p.prezzo_unitario;
+      const bestPrice = best.prezzo_unitario;
+      if (!currentPrice) return best;
+      if (!bestPrice) return p;
+      return currentPrice < bestPrice ? p : best;
+    }, products[0]);
 
-    const priceDiff = currentPrice - bestPrice;
-    return priceDiff * quantitaMensile;
+    const priceDiff = productInUse.prezzo_unitario - bestProduct.prezzo_unitario;
+    if (priceDiff <= 0) return 0;
+
+    return priceDiff * confezioniMensili;
   };
 
   return (
@@ -410,8 +438,9 @@ export default function ConfrontoListini() {
               {/* Risparmio mensile totale */}
               {(() => {
                 const risparmioTotale = notOptimalProducts.reduce((sum, issue) => {
-                  const quantitaMensile = quantitaVenduteMensili[issue.nomeInterno] || 0;
-                  return sum + (issue.priceDiff * quantitaMensile);
+                  const confezioniMensili = confezioniVenduteMensili[issue.nomeInterno] || 0;
+                  const risparmioPerConfezione = issue.productInUse.prezzo_unitario - issue.bestProduct.prezzo_unitario;
+                  return sum + (risparmioPerConfezione * confezioniMensili);
                 }, 0);
                 
                 if (risparmioTotale > 0) {
@@ -442,12 +471,13 @@ export default function ConfrontoListini() {
                       Miglior prezzo: <strong>{issue.bestProduct.nome_prodotto}</strong> ({issue.bestProduct.fornitore || 'N/D'})
                     </p>
                     {(() => {
-                      const quantitaMensile = quantitaVenduteMensili[issue.nomeInterno] || 0;
-                      if (quantitaMensile > 0) {
-                        const risparmioMensile = issue.priceDiff * quantitaMensile;
+                      const confezioniMensili = confezioniVenduteMensili[issue.nomeInterno] || 0;
+                      if (confezioniMensili > 0) {
+                        const risparmioPerConfezione = issue.productInUse.prezzo_unitario - issue.bestProduct.prezzo_unitario;
+                        const risparmioMensile = risparmioPerConfezione * confezioniMensili;
                         return (
                           <p className="text-xs text-blue-600 mt-1">
-                            📊 {quantitaMensile.toFixed(1)} kg/L venduti → Risparmio mensile: <strong>€{risparmioMensile.toFixed(2)}</strong>
+                            📊 {confezioniMensili.toFixed(1)} confezioni vendute → Risparmio mensile: <strong>€{risparmioMensile.toFixed(2)}</strong>
                           </p>
                         );
                       }
@@ -515,7 +545,7 @@ export default function ConfrontoListini() {
             const savingsPercent = getSavingsPercentage(products);
 
             const risparmioMensile = calcolaRisparmioMensile(nomeInterno, products);
-            const quantitaMensile = quantitaVenduteMensili[nomeInterno] || 0;
+            const confezioniMensili = confezioniVenduteMensili[nomeInterno] || 0;
 
             return (
               <div key={nomeInterno} className="neumorphic-pressed p-5 rounded-xl">
@@ -525,10 +555,10 @@ export default function ConfrontoListini() {
                       <p className="text-sm text-[#9b9b9b]">
                         {products[0].categoria} • {products.length} {products.length === 1 ? 'fornitore' : 'fornitori'}
                       </p>
-                      {quantitaMensile > 0 && (
-                        <div className="mt-2 flex items-center gap-2 text-xs">
+                      {confezioniMensili > 0 && (
+                        <div className="mt-2 flex items-center gap-2 text-xs flex-wrap">
                           <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
-                            📊 {quantitaMensile.toFixed(1)} kg/L venduti (ultimo mese)
+                            📊 {confezioniMensili.toFixed(1)} confezioni vendute (ultimo mese)
                           </span>
                           {risparmioMensile > 0 && (
                             <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 font-bold">
