@@ -702,8 +702,19 @@ export default function MateriePrime() {
                 </thead>
                 <tbody>
                   {(() => {
-                    // Raggruppa per nome_interno
+                    // Crea stats per TUTTI i nomi interni (inclusi quelli senza prodotti)
                     const nomiInterniStats = {};
+                    
+                    // Inizializza con tutti i nomi interni unici
+                    nomiInterniUnici.forEach(nome => {
+                      nomiInterniStats[nome] = {
+                        count: 0,
+                        inUso: false,
+                        products: []
+                      };
+                    });
+                    
+                    // Aggiungi i dati dai prodotti
                     products.forEach(p => {
                       if (!p.nome_interno) return;
                       if (!nomiInterniStats[p.nome_interno]) {
@@ -730,9 +741,15 @@ export default function MateriePrime() {
                           <p className="font-medium text-slate-800">{nomeInterno}</p>
                         </td>
                         <td className="p-3 text-center">
-                          <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-sm">
-                            {stats.count}
-                          </span>
+                          {stats.count > 0 ? (
+                            <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-sm">
+                              {stats.count}
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-sm">
+                              0
+                            </span>
+                          )}
                         </td>
                         <td className="p-3 text-center">
                           {stats.inUso ? (
@@ -746,7 +763,7 @@ export default function MateriePrime() {
                           )}
                         </td>
                         <td className="p-3 text-center">
-                          {!stats.inUso && (
+                          {!stats.inUso && stats.count > 0 && (
                             <button
                               onClick={async () => {
                                 if (!confirm(`Vuoi cancellare il nome interno "${nomeInterno}"?\n\nQuesto rimuoverà il nome interno da ${stats.count} prodotti.`)) {
@@ -768,10 +785,15 @@ export default function MateriePrime() {
                                 }
                               }}
                               className="p-2 rounded-lg hover:bg-red-100 transition-colors"
-                              title="Rimuovi nome interno"
+                              title="Rimuovi nome interno da tutti i prodotti"
                             >
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </button>
+                          )}
+                          {stats.count === 0 && (
+                            <span className="text-xs text-slate-400 italic">
+                              Da Prodotti Venduti
+                            </span>
                           )}
                         </td>
                       </tr>
