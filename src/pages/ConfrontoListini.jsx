@@ -371,38 +371,17 @@ export default function ConfrontoListini() {
     return map;
   }, [prodottiVenduti, ricette, materiePrime]);
 
-  // Calcola risparmio mensile potenziale
-  const calcolaRisparmioMensile = (nomeInterno, products) => {
-    const venduteDati = venduteMensili[nomeInterno];
-    if (!venduteDati || venduteDati.confezioni === 0) return 0;
-    const confezioniMensili = venduteDati.confezioni;
-
-    // Trova il prodotto in uso
-    const productInUse = products.find(p => {
-      const inUsoPerStore = p.in_uso_per_store || {};
-      if (selectedStore === 'all') {
-        return Object.values(inUsoPerStore).some(v => v);
-      } else {
-        return inUsoPerStore[selectedStore];
-      }
-    });
-
-    if (!productInUse) return 0;
-
-    // Trova il prodotto col miglior prezzo
-    const bestProduct = products.reduce((best, p) => {
-      const currentPrice = p.prezzo_unitario;
-      const bestPrice = best.prezzo_unitario;
-      if (!currentPrice) return best;
-      if (!bestPrice) return p;
-      return currentPrice < bestPrice ? p : best;
-    }, products[0]);
-
-    const priceDiff = productInUse.prezzo_unitario - bestProduct.prezzo_unitario;
-    if (priceDiff <= 0) return 0;
-
-    return priceDiff * confezioniMensili;
+  // Calcola il risparmio mensile totale da tutti i prodotti non ottimali
+  const getRisparmioMensileTotale = () => {
+    return notOptimalProducts.reduce((sum, issue) => {
+      const venduteDati = venduteMensili[issue.nomeInterno];
+      if (!venduteDati || venduteDati.confezioni === 0) return sum;
+      const risparmioPerConfezione = issue.productInUse.prezzo_unitario - issue.bestProduct.prezzo_unitario;
+      return sum + (risparmioPerConfezione * venduteDati.confezioni);
+    }, 0);
   };
+
+  const risparmioMensileTotale = getRisparmioMensileTotale();
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
