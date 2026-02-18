@@ -185,16 +185,23 @@ export default function ConfrontoListini() {
           }
         }
 
-        // Se il prodotto ha un problema, aggiungilo alla mappa (una sola volta per nome_interno)
-        if (hasIssue && !issuesMap[nomeInterno]) {
-          issuesMap[nomeInterno] = {
-            nomeInterno,
-            productInUse: product,
-            bestProduct: bestPriceProduct,
-            priceDiff: productPrice - bestPrice,
-            storeIds: storeIds,
-            storeCount: storeIds.length
-          };
+        // Se il prodotto ha un problema, aggiungilo/aggiornalo nella mappa
+        if (hasIssue) {
+          if (!issuesMap[nomeInterno]) {
+            issuesMap[nomeInterno] = {
+              nomeInterno,
+              productInUse: product,
+              bestProduct: bestPriceProduct,
+              priceDiff: productPrice - bestPrice,
+              storeIds: storeIds,
+              storeCount: storeIds.length
+            };
+          } else {
+            // Accumula gli storeIds per evitare duplicati
+            const allStoreIds = [...new Set([...issuesMap[nomeInterno].storeIds, ...storeIds])];
+            issuesMap[nomeInterno].storeIds = allStoreIds;
+            issuesMap[nomeInterno].storeCount = allStoreIds.length;
+          }
         }
       });
     });
