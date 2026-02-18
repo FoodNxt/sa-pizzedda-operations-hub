@@ -546,8 +546,8 @@ export default function ConfrontoListini() {
           <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
             <TrendingDown className="w-8 h-8 text-green-600" />
           </div>
-          <h3 className="text-3xl font-bold text-green-600 mb-1">€{totalPotentialSavings.toFixed(2)}</h3>
-          <p className="text-sm text-[#9b9b9b]">Risparmio Potenziale</p>
+          <h3 className="text-3xl font-bold text-green-600 mb-1">€{risparmioMensileTotale.toFixed(2)}</h3>
+          <p className="text-sm text-[#9b9b9b]">Risparmio Mensile</p>
         </NeumorphicCard>
       </div>
 
