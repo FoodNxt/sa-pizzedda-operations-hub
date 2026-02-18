@@ -41,6 +41,11 @@ export default function ConfrontoListini() {
     queryFn: () => base44.entities.Ricetta.list()
   });
 
+  const { data: mappings = [] } = useQuery({
+    queryKey: ['prodotto-venduto-mappings'],
+    queryFn: () => base44.entities.ProdottoVendutoMapping.filter({ attivo: true })
+  });
+
   // Get unique nomi interni
   const nomiInterni = [...new Set(materiePrime.map((p) => p.nome_interno).filter(Boolean))].sort();
 
