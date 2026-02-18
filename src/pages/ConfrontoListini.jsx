@@ -482,8 +482,8 @@ export default function ConfrontoListini() {
           
           {showDetailsExpanded && (
             <div className="space-y-3 max-h-60 overflow-y-auto mt-4 pt-4 border-t border-orange-200">
-            {notOptimalProducts.map((issue, idx) =>
-          <div key={idx} className="neumorphic-pressed p-3 rounded-lg bg-white">
+              {notOptimalProducts.map((issue, idx) =>
+                <div key={idx} className="neumorphic-pressed p-3 rounded-lg bg-white">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <p className="font-bold text-slate-700 text-sm">{issue.nomeInterno}</p>
