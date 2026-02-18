@@ -269,8 +269,8 @@ export default function ConfrontoListini() {
 
   const allFornitori = [...new Set(materiePrime.map(p => p.fornitore).filter(Boolean))].sort();
 
-  // Calcola confezioni vendute nell'ultimo mese per nome_interno
-  const confezioniVenduteMensili = React.useMemo(() => {
+  // Calcola confezioni e unità vendute nell'ultimo mese per nome_interno
+  const venduteMensili = React.useMemo(() => {
     const map = {};
     
     prodottiVenduti.forEach(vendita => {
@@ -282,9 +282,10 @@ export default function ConfrontoListini() {
         const confezioniVendute = unitaVendute / materiaPrimaDiretta.unita_per_confezione;
         
         if (!map[nomeInterno]) {
-          map[nomeInterno] = 0;
+          map[nomeInterno] = { confezioni: 0, unita: 0 };
         }
-        map[nomeInterno] += confezioniVendute;
+        map[nomeInterno].confezioni += confezioniVendute;
+        map[nomeInterno].unita += unitaVendute;
         return;
       }
 
@@ -307,17 +308,20 @@ export default function ConfrontoListini() {
           quantitaInKgLitri = quantitaTotale / 1000;
         }
 
-        // Converti in confezioni usando normalizeToBaseUnit
-        const prodottoRiferimento = materiePrime.find(mp => mp.nome_interno === nomeInterno);
-        if (prodottoRiferimento) {
-          const kgPerConfezione = normalizeToBaseUnit(prodottoRiferimento);
-          if (kgPerConfezione) {
-            const confezioniNecessarie = quantitaInKgLitri / kgPerConfezione;
-            if (!map[nomeInterno]) {
-              map[nomeInterno] = 0;
-            }
-            map[nomeInterno] += confezioniNecessarie;
+        // Converti in confezioni
+        const kgPerConfezione = normalizeToBaseUnit(materiaPrima);
+        if (kgPerConfezione) {
+          const confezioniNecessarie = quantitaInKgLitri / kgPerConfezione;
+          
+          // Calcola unità (se disponibile unita_per_confezione)
+          const unitaTotali = materiaPrima.unita_per_confezione ? 
+            confezioniNecessarie * materiaPrima.unita_per_confezione : 0;
+
+          if (!map[nomeInterno]) {
+            map[nomeInterno] = { confezioni: 0, unita: 0 };
           }
+          map[nomeInterno].confezioni += confezioniNecessarie;
+          map[nomeInterno].unita += unitaTotali;
         }
       });
     });
@@ -327,8 +331,9 @@ export default function ConfrontoListini() {
 
   // Calcola risparmio mensile potenziale
   const calcolaRisparmioMensile = (nomeInterno, products) => {
-    const confezioniMensili = confezioniVenduteMensili[nomeInterno] || 0;
-    if (confezioniMensili === 0) return 0;
+    const venduteDati = venduteMensili[nomeInterno];
+    if (!venduteDati || venduteDati.confezioni === 0) return 0;
+    const confezioniMensili = venduteDati.confezioni;
 
     // Trova il prodotto in uso
     const productInUse = products.find(p => {
@@ -438,9 +443,10 @@ export default function ConfrontoListini() {
               {/* Risparmio mensile totale */}
               {(() => {
                 const risparmioTotale = notOptimalProducts.reduce((sum, issue) => {
-                  const confezioniMensili = confezioniVenduteMensili[issue.nomeInterno] || 0;
+                  const venduteDati = venduteMensili[issue.nomeInterno];
+                  if (!venduteDati) return sum;
                   const risparmioPerConfezione = issue.productInUse.prezzo_unitario - issue.bestProduct.prezzo_unitario;
-                  return sum + (risparmioPerConfezione * confezioniMensili);
+                  return sum + (risparmioPerConfezione * venduteDati.confezioni);
                 }, 0);
                 
                 if (risparmioTotale > 0) {
@@ -471,13 +477,13 @@ export default function ConfrontoListini() {
                       Miglior prezzo: <strong>{issue.bestProduct.nome_prodotto}</strong> ({issue.bestProduct.fornitore || 'N/D'})
                     </p>
                     {(() => {
-                      const confezioniMensili = confezioniVenduteMensili[issue.nomeInterno] || 0;
-                      if (confezioniMensili > 0) {
+                      const venduteDati = venduteMensili[issue.nomeInterno];
+                      if (venduteDati && venduteDati.confezioni > 0) {
                         const risparmioPerConfezione = issue.productInUse.prezzo_unitario - issue.bestProduct.prezzo_unitario;
-                        const risparmioMensile = risparmioPerConfezione * confezioniMensili;
+                        const risparmioMensile = risparmioPerConfezione * venduteDati.confezioni;
                         return (
                           <p className="text-xs text-blue-600 mt-1">
-                            📊 {confezioniMensili.toFixed(1)} confezioni vendute → Risparmio mensile: <strong>€{risparmioMensile.toFixed(2)}</strong>
+                            📊 {venduteDati.confezioni.toFixed(1)} confezioni ({venduteDati.unita > 0 ? `${Math.round(venduteDati.unita)} unità` : ''}) → Risparmio: <strong>€{risparmioMensile.toFixed(2)}/mese</strong>
                           </p>
                         );
                       }
@@ -545,7 +551,7 @@ export default function ConfrontoListini() {
             const savingsPercent = getSavingsPercentage(products);
 
             const risparmioMensile = calcolaRisparmioMensile(nomeInterno, products);
-            const confezioniMensili = confezioniVenduteMensili[nomeInterno] || 0;
+            const venduteDati = venduteMensili[nomeInterno];
 
             return (
               <div key={nomeInterno} className="neumorphic-pressed p-5 rounded-xl">
@@ -555,10 +561,10 @@ export default function ConfrontoListini() {
                       <p className="text-sm text-[#9b9b9b]">
                         {products[0].categoria} • {products.length} {products.length === 1 ? 'fornitore' : 'fornitori'}
                       </p>
-                      {confezioniMensili > 0 && (
+                      {venduteDati && venduteDati.confezioni > 0 && (
                         <div className="mt-2 flex items-center gap-2 text-xs flex-wrap">
                           <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
-                            📊 {confezioniMensili.toFixed(1)} confezioni vendute (ultimo mese)
+                            📊 {venduteDati.confezioni.toFixed(1)} confezioni ({venduteDati.unita > 0 ? `${Math.round(venduteDati.unita)} unità` : 'ultimo mese'})
                           </span>
                           {risparmioMensile > 0 && (
                             <span className="px-2 py-1 rounded-full bg-green-100 text-green-700 font-bold">
