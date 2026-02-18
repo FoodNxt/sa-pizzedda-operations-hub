@@ -2,13 +2,14 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ProtectedPage from '../components/ProtectedPage';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
-import { Settings, Package, AlertTriangle, ChefHat, TrendingUp, BarChart3, Truck } from 'lucide-react';
+import { Settings, Package, AlertTriangle, ChefHat, TrendingUp, BarChart3, Truck, Link as LinkIcon } from 'lucide-react';
 
 const sectionAdminPages = [
   { title: 'Analisi Sprechi', page: 'AnalisiSprechi', icon: AlertTriangle, description: 'Configura e monitora sprechi' },
   { title: 'Ricette', page: 'Ricette', icon: ChefHat, description: 'Gestione ricette e ingredienti' },
   { title: 'Materie Prime', page: 'MateriePrime', icon: Package, description: 'Catalogo materie prime' },
   { title: 'Confronto Listini', page: 'ConfrontoListini', icon: BarChart3, description: 'Confronta prezzi fornitori' },
+  { title: 'Mapping Prodotti', page: 'MappingProdottiVenduti', icon: LinkIcon, description: 'Collega prodotti venduti e materie prime' },
   { title: 'Ordini Fornitori', page: 'OrdiniAdmin', icon: Truck, description: 'Gestione ordini' },
   { title: 'Controllo Consumi', page: 'ControlloConsumi', icon: TrendingUp, description: 'Analizza consumi vs vendite' }
 ];
