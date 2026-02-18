@@ -302,15 +302,18 @@ export default function ConfrontoListini() {
       }
       
       // Caso 1: Prodotto venduto direttamente (es. Acqua)
-      if (materiaPrimaDiretta?.nome_interno && materiaPrimaDiretta.unita_per_confezione) {
+      if (materiaPrimaDiretta?.nome_interno) {
         const nomeInterno = materiaPrimaDiretta.nome_interno;
         const unitaVendute = vendita.total_pizzas_sold || 0;
-        const confezioniVendute = unitaVendute / materiaPrimaDiretta.unita_per_confezione;
         
         if (!map[nomeInterno]) {
           map[nomeInterno] = { confezioni: 0, unita: 0 };
         }
-        map[nomeInterno].confezioni += confezioniVendute;
+        
+        if (materiaPrimaDiretta.unita_per_confezione) {
+          const confezioniVendute = unitaVendute / materiaPrimaDiretta.unita_per_confezione;
+          map[nomeInterno].confezioni += confezioniVendute;
+        }
         map[nomeInterno].unita += unitaVendute;
         return;
       }
