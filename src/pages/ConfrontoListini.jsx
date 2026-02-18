@@ -273,7 +273,17 @@ export default function ConfrontoListini() {
   const venduteMensili = React.useMemo(() => {
     const map = {};
     
-    prodottiVenduti.forEach(vendita => {
+    // Filtra solo ultimi 30 giorni
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+    
+    const prodottiUltimi30Giorni = prodottiVenduti.filter(v => {
+      const dataStr = v.data_vendita?.split('T')[0] || v.data_vendita;
+      return dataStr >= thirtyDaysAgoStr;
+    });
+    
+    prodottiUltimi30Giorni.forEach(vendita => {
       // Caso 1: Prodotto venduto direttamente (es. Acqua)
       const materiaPrimaDiretta = materiePrime.find(mp => mp.nome_prodotto === vendita.flavor);
       if (materiaPrimaDiretta?.nome_interno && materiaPrimaDiretta.unita_per_confezione) {
