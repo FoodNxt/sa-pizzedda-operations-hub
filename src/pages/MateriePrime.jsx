@@ -763,15 +763,19 @@ export default function MateriePrime() {
                           )}
                         </td>
                         <td className="p-3 text-center">
-                          {!stats.inUso && stats.count > 0 && (
+                          {!stats.inUso && (
                             <button
                               onClick={async () => {
-                                if (!confirm(`Vuoi cancellare il nome interno "${nomeInterno}"?\n\nQuesto rimuoverà il nome interno da ${stats.count} prodotti.`)) {
+                                const msg = stats.count === 0 
+                                  ? `Vuoi eliminare il nome interno "${nomeInterno}"?`
+                                  : `Vuoi cancellare il nome interno "${nomeInterno}"?\n\nQuesto rimuoverà il nome interno da ${stats.count} prodotti.`;
+                                
+                                if (!confirm(msg)) {
                                   return;
                                 }
                                 
                                 try {
-                                  // Update all products with this nome_interno
+                                  // Update all products with this nome_interno (if any)
                                   for (const product of stats.products) {
                                     await base44.entities.MateriePrime.update(product.id, {
                                       nome_interno: ''
@@ -785,15 +789,10 @@ export default function MateriePrime() {
                                 }
                               }}
                               className="p-2 rounded-lg hover:bg-red-100 transition-colors"
-                              title="Rimuovi nome interno da tutti i prodotti"
+                              title={stats.count === 0 ? "Elimina nome interno" : "Rimuovi nome interno da tutti i prodotti"}
                             >
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </button>
-                          )}
-                          {stats.count === 0 && (
-                            <span className="text-xs text-slate-400 italic">
-                              Da Prodotti Venduti
-                            </span>
                           )}
                         </td>
                       </tr>
