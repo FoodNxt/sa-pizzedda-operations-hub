@@ -146,11 +146,14 @@ export default function ConfrontoListini() {
     return sum + savingsForThisProduct;
   }, 0);
 
-  // Find products in use that are not the best price - grouped by product, not by store
+  // Find products in use that are not the best price - one entry per product max
   const getProductsNotOptimal = () => {
     const issuesMap = {};
 
     filteredGrouped.forEach(([nomeInterno, products]) => {
+      // Se già aggiunto, skip
+      if (issuesMap[nomeInterno]) return;
+
       const bestPriceProduct = products.reduce((best, p) => {
         const currentPrice = getNormalizedPrice(p);
         const bestPrice = getNormalizedPrice(best);
@@ -161,49 +164,47 @@ export default function ConfrontoListini() {
 
       const bestPrice = getNormalizedPrice(bestPriceProduct);
 
+      // Trova il prodotto in uso (quello con in_uso_per_store non vuoto)
+      let productInUse = null;
+      let storeIds = [];
+
       products.forEach((product) => {
         const productPrice = getNormalizedPrice(product);
-        if (!productPrice || !bestPrice) return;
+        if (!productPrice || !bestPrice || productPrice === bestPrice) return; // Skip se non è un problema
 
         const inUsoPerStore = product.in_uso_per_store || {};
-        let hasIssue = false;
-        let storeIds = [];
 
         if (selectedStore === 'all') {
-          // Check all stores
+          // Trova tutti gli store dove è in uso questo prodotto
           stores.forEach((store) => {
-            if (inUsoPerStore[store.id] && productPrice > bestPrice) {
-              hasIssue = true;
-              storeIds.push(store.id);
+            if (inUsoPerStore[store.id]) {
+              if (!productInUse) productInUse = product;
+              if (!storeIds.includes(store.id)) {
+                storeIds.push(store.id);
+              }
             }
           });
         } else {
           // Check specific store
-          if (inUsoPerStore[selectedStore] && productPrice > bestPrice) {
-            hasIssue = true;
-            storeIds.push(selectedStore);
-          }
-        }
-
-        // Se il prodotto ha un problema, aggiungilo/aggiornalo nella mappa
-        if (hasIssue) {
-          if (!issuesMap[nomeInterno]) {
-            issuesMap[nomeInterno] = {
-              nomeInterno,
-              productInUse: product,
-              bestProduct: bestPriceProduct,
-              priceDiff: productPrice - bestPrice,
-              storeIds: storeIds,
-              storeCount: storeIds.length
-            };
-          } else {
-            // Accumula gli storeIds per evitare duplicati
-            const allStoreIds = [...new Set([...issuesMap[nomeInterno].storeIds, ...storeIds])];
-            issuesMap[nomeInterno].storeIds = allStoreIds;
-            issuesMap[nomeInterno].storeCount = allStoreIds.length;
+          if (inUsoPerStore[selectedStore]) {
+            productInUse = product;
+            storeIds = [selectedStore];
           }
         }
       });
+
+      // Se trovato un prodotto in uso con problema, aggiungilo una sola volta
+      if (productInUse && storeIds.length > 0) {
+        const productPrice = getNormalizedPrice(productInUse);
+        issuesMap[nomeInterno] = {
+          nomeInterno,
+          productInUse,
+          bestProduct: bestPriceProduct,
+          priceDiff: productPrice - bestPrice,
+          storeIds,
+          storeCount: storeIds.length
+        };
+      }
     });
 
     return Object.values(issuesMap);
