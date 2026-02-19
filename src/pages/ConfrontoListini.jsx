@@ -1294,6 +1294,8 @@ export default function ConfrontoListini() {
           </NeumorphicCard>
         </div>
       )}
+        </>
+      )}
     </div>);
 
 }
