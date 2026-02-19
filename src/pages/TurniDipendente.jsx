@@ -1736,7 +1736,7 @@ export default function TurniDipendente() {
                     </div>
                     <div className="space-y-3">
                       {/* Unifica form e attività - mostra solo attività con relativi bottoni */}
-                      {attivita.map((att, idx) => {
+                      {attivita.filter(att => !att.isPagamentoStraordinari).map((att, idx) => {
                       const isFormActivity = att.form_page || att.richiede_form;
                       const isCorsoActivity = att.corsi_ids?.length > 0;
                       const isCompleted = isFormActivity ?
