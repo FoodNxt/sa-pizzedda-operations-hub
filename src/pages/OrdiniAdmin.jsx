@@ -283,25 +283,27 @@ export default function OrdiniAdmin() {
 
           const targetKey = `${reading.store_id}-${ricetta.somma_a_materia_prima_id}`;
           
-          // DEBUG
-          if (reading.nome_prodotto?.toLowerCase().includes('patata')) {
-            console.log(`🔍 SOMMA SEMILAVORATO - ${reading.nome_prodotto}:`, {
-              semilavorato: reading.nome_prodotto,
-              quantita_semilavorato: reading.quantita_rilevata,
-              unita_semilavorato: reading.unita_misura,
-              materia_prima_target: ricetta.somma_a_materia_prima_nome,
-              peso_dimensione_unita: materiaPrimaTarget?.peso_dimensione_unita,
-              ingrediente_quantita: ingrediente.quantita,
-              ingrediente_unita: ingrediente.unita_misura,
-              quantita_prodotta: ricetta.quantita_prodotta,
-              unita_prodotta: ricetta.unita_misura_prodotta,
-              moltiplicatore,
-              quantita_da_sommare: quantitaDaSommare,
-              targetKey,
-              prima: aggregatedQuantities[targetKey],
-              dopo_somma: (aggregatedQuantities[targetKey] || 0) + quantitaDaSommare
-            });
-          }
+          console.log(`🔍 SOMMA SEMILAVORATO - ${reading.nome_prodotto}:`, {
+            semilavorato: reading.nome_prodotto,
+            quantita_semilavorato: reading.quantita_rilevata,
+            unita_semilavorato: reading.unita_misura,
+            quantita_in_grammi: quantitaSemilavoratoInGrammi,
+            materia_prima_target: ricetta.somma_a_materia_prima_nome,
+            peso_dimensione_unita: materiaPrimaTarget?.peso_dimensione_unita,
+            ingrediente_quantita: ingrediente.quantita,
+            ingrediente_unita: ingrediente.unita_misura,
+            ingrediente_in_grammi: quantitaIngredienteInGrammi,
+            quantita_prodotta: ricetta.quantita_prodotta,
+            quantita_prodotta_grammi: quantitaProdottaInGrammi,
+            unita_prodotta: ricetta.unita_misura_prodotta,
+            moltiplicatore,
+            quantita_materia_prima_necessaria_grammi: quantitaMateriaPrimaNecessariaInGrammi,
+            quantita_da_sommare: quantitaDaSommare,
+            unita_misura_target: materiaPrimaTarget.unita_misura,
+            targetKey,
+            prima: aggregatedQuantities[targetKey],
+            dopo_somma: (aggregatedQuantities[targetKey] || 0) + quantitaDaSommare
+          });
           
           aggregatedQuantities[targetKey] = (aggregatedQuantities[targetKey] || 0) + quantitaDaSommare;
         }
