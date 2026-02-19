@@ -271,10 +271,13 @@ export default function OrdiniAdmin() {
           let quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi;
           
           if (materiaPrimaTarget.unita_misura === 'sacchi' && materiaPrimaTarget.peso_dimensione_unita) {
-            // Convert grams to sacchi
-            const grammiPerSacco = materiaPrimaTarget.peso_dimensione_unita * 1000; // kg to grams
+            // Convert grams to sacchi: (grams / (kg_per_sacco * 1000))
+            const kgPerSacco = materiaPrimaTarget.peso_dimensione_unita; // e.g., 5 kg
+            const grammiPerSacco = kgPerSacco * 1000; // e.g., 5000 grams
             quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi / grammiPerSacco;
           } else if (materiaPrimaTarget.unita_misura === 'kg') {
+            quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi / 1000;
+          } else if (materiaPrimaTarget.unita_misura === 'litri') {
             quantitaDaSommare = quantitaMateriaPrimaNecessariaInGrammi / 1000;
           }
 
