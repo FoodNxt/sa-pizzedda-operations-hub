@@ -1162,6 +1162,11 @@ export default function TurniDipendente() {
     const tipoConfig = tipoTurnoConfigs.find((tc) => tc.tipo_turno === tipoTurno);
     if (tipoConfig && tipoConfig.mostra_attivita === false) return [];
 
+    // CRITICAL: NON mostrare MAI pagamento straordinari ai dipendenti
+    const userType = currentUser?.user_type;
+    const normalizedUserType = userType === 'admin' || userType === 'manager' ? userType : 'dipendente';
+    const isPagamentoAbilitatoPerRuolo = normalizedUserType !== 'dipendente';
+
     // Orari del turno per filtro
     const turnoInizio = turno.ora_inizio;
     const turnoFine = turno.ora_fine;
