@@ -567,6 +567,276 @@ export default function ConfrontoListini() {
         </div>
       </div>
 
+      {/* VISTA: COMPARAZIONE RAPIDA */}
+      {activeView === 'comparazione' && (
+        <div className="space-y-6">
+          {/* Step 1: Upload CSV */}
+          {!uploadedFile && (
+            <NeumorphicCard className="p-8">
+              <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Upload className="w-6 h-6 text-blue-600" />
+                Carica Listino CSV
+              </h2>
+              <p className="text-sm text-slate-600 mb-6">
+                Carica un file CSV del fornitore per confrontare i prezzi con i tuoi prodotti esistenti
+              </p>
+              
+              <label className="block">
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-12 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
+                  <Upload className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-700 font-medium">Clicca per caricare il CSV</p>
+                  <p className="text-sm text-slate-500 mt-2">oppure trascina il file qui</p>
+                </div>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+            </NeumorphicCard>
+          )}
+
+          {/* Step 2: Column Mapping */}
+          {uploadedFile && !comparisonResults && (
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <FileText className="w-6 h-6 text-blue-600" />
+                  Mappa le Colonne - {uploadedFile.name}
+                </h2>
+                <button
+                  onClick={() => {
+                    setUploadedFile(null);
+                    setCsvHeaders([]);
+                    setCsvData([]);
+                    setColumnMapping({
+                      nome_interno: { column: '', useAI: false },
+                      unita_misura: { column: '', useAI: false },
+                      prezzo: { column: '', useAI: false },
+                      peso_per_unita: { column: '', useAI: false },
+                      unita_misura_peso: { column: '', useAI: false },
+                      unita_per_confezione: { column: '', useAI: false }
+                    });
+                  }}
+                  className="text-red-600 hover:bg-red-50 p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <p className="text-sm text-slate-600 mb-6">
+                Indica quale colonna corrisponde ad ogni campo, oppure usa l'AI per estrarre i dati
+              </p>
+
+              <div className="space-y-4">
+                {Object.entries(columnMapping).map(([field, mapping]) => (
+                  <div key={field} className="neumorphic-pressed p-4 rounded-xl">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-1">
+                        <label className="block text-sm font-bold text-slate-800 mb-2 capitalize">
+                          {field.replace(/_/g, ' ')}
+                        </label>
+                        
+                        {!mapping.useAI ? (
+                          <select
+                            value={mapping.column}
+                            onChange={(e) => setColumnMapping(prev => ({
+                              ...prev,
+                              [field]: { ...prev[field], column: e.target.value }
+                            }))}
+                            className="w-full neumorphic-flat px-4 py-2 rounded-lg outline-none text-slate-700">
+                            <option value="">-- Seleziona colonna --</option>
+                            {csvHeaders.map(header => (
+                              <option key={header} value={header}>{header}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="neumorphic-flat px-4 py-2 rounded-lg bg-purple-50 border border-purple-200">
+                            <p className="text-sm text-purple-700 flex items-center gap-2">
+                              <Zap className="w-4 h-4" />
+                              L'AI estrarrà questo dato automaticamente
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => setColumnMapping(prev => ({
+                          ...prev,
+                          [field]: { ...prev[field], useAI: !prev[field].useAI, column: '' }
+                        }))}
+                        className={`mt-7 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          mapping.useAI 
+                            ? 'bg-purple-500 text-white' 
+                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                        }`}>
+                        {mapping.useAI ? '🤖 AI Attiva' : 'Usa AI'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  <strong>ℹ️ Anteprima dati ({csvData.length} righe caricate)</strong>
+                </p>
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-blue-200">
+                        {csvHeaders.slice(0, 5).map(h => (
+                          <th key={h} className="p-2 text-left text-blue-700">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvData.slice(0, 3).map((row, idx) => (
+                        <tr key={idx} className="border-b border-blue-100">
+                          {csvHeaders.slice(0, 5).map(h => (
+                            <td key={h} className="p-2 text-slate-700">{row[h]}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <NeumorphicButton
+                onClick={handleProcessComparison}
+                variant="primary"
+                className="w-full mt-6 py-4 text-lg flex items-center justify-center gap-2"
+                disabled={processingComparison || !Object.values(columnMapping).some(m => m.column || m.useAI)}>
+                {processingComparison ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing con AI...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-5 h-5" />
+                    Analizza e Confronta
+                  </>
+                )}
+              </NeumorphicButton>
+            </NeumorphicCard>
+          )}
+
+          {/* Step 3: Results */}
+          {comparisonResults && (
+            <div className="space-y-4">
+              <NeumorphicCard className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-slate-800">Risultati Comparazione</h2>
+                  <button
+                    onClick={() => {
+                      setComparisonResults(null);
+                      setUploadedFile(null);
+                      setCsvData([]);
+                      setCsvHeaders([]);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600">
+                    Nuova Comparazione
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                    <p className="text-3xl font-bold text-blue-600">
+                      {comparisonResults.filter(r => r.isBetter).length}
+                    </p>
+                    <p className="text-sm text-slate-600">Prezzi Migliori</p>
+                  </div>
+                  <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                    <p className="text-3xl font-bold text-orange-600">
+                      {comparisonResults.filter(r => !r.isBetter && r.bestExistingPrice).length}
+                    </p>
+                    <p className="text-sm text-slate-600">Prezzi Peggiori</p>
+                  </div>
+                  <div className="neumorphic-pressed p-4 rounded-xl text-center">
+                    <p className="text-3xl font-bold text-green-600">
+                      {comparisonResults.filter(r => r.isBetter).reduce((sum, r) => sum + r.savingsPercent, 0).toFixed(1)}%
+                    </p>
+                    <p className="text-sm text-slate-600">Risparmio Medio</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {comparisonResults.map((result, idx) => (
+                    <div key={idx} className={`neumorphic-pressed p-4 rounded-xl ${
+                      result.isBetter ? 'border-2 border-green-300 bg-green-50' : 
+                      result.bestExistingPrice ? 'border-2 border-red-300 bg-red-50' : 
+                      'bg-slate-50'
+                    }`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-bold text-slate-800">{result.nomeInterno}</h3>
+                            {result.isBetter && (
+                              <span className="px-2 py-1 bg-green-500 text-white rounded-full text-xs font-bold">
+                                ✓ CONVENIENTE
+                              </span>
+                            )}
+                            {!result.isBetter && result.bestExistingPrice && (
+                              <span className="px-2 py-1 bg-red-500 text-white rounded-full text-xs font-bold">
+                                ✗ PIÙ CARO
+                              </span>
+                            )}
+                            {!result.bestExistingPrice && (
+                              <span className="px-2 py-1 bg-slate-400 text-white rounded-full text-xs font-bold">
+                                NUOVO
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {/* Nuovo listino */}
+                            <div className="bg-white p-3 rounded-lg">
+                              <p className="text-xs text-slate-500 mb-1">Nuovo Listino:</p>
+                              <p className="font-bold text-lg text-blue-600">
+                                €{result.newNormalizedPrice?.toFixed(2) || 'N/D'}/kg
+                              </p>
+                              <p className="text-xs text-slate-600 mt-1">
+                                {result.newProduct.unita_misura} • {result.newProduct.peso_per_unita} {result.newProduct.unita_misura_peso}
+                              </p>
+                            </div>
+
+                            {/* Miglior prezzo esistente */}
+                            {result.bestExistingPrice && (
+                              <div className="bg-white p-3 rounded-lg">
+                                <p className="text-xs text-slate-500 mb-1">Miglior Prezzo Attuale:</p>
+                                <p className="font-bold text-lg text-slate-700">
+                                  €{result.bestExistingPrice.toFixed(2)}/kg
+                                </p>
+                                <p className="text-xs text-slate-600 mt-1">
+                                  {result.existingProducts.length} fornitori esistenti
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {result.isBetter && (
+                            <div className="mt-3 p-2 bg-green-100 rounded-lg">
+                              <p className="text-sm font-bold text-green-800">
+                                💰 Risparmio: {Math.abs(result.savingsPercent).toFixed(1)}%
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </NeumorphicCard>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VISTA: CONFRONTO LISTINI */}
+      {activeView === 'confronto' && (
+        <>
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <NeumorphicCard className="px-4 py-2">
