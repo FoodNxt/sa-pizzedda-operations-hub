@@ -1251,11 +1251,8 @@ export default function TurniDipendente() {
     // Ordina slot normali per ora
     const attivitaNormali = Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
 
-    // Aggiungi attività "Pagamento straordinari" SOLO per admin e manager (NON per dipendenti)
-    const userType = currentUser?.user_type;
-    const isAdminOrManager = userType === 'admin' || userType === 'manager';
-    
-    if (attivitaPagamentoAbilitata && isAdminOrManager && turno.ruolo === 'Cassiere' && turno.timbratura_entrata && !turno.timbratura_uscita) {
+    // Aggiungi attività "Pagamento straordinari" SOLO se abilitato per questo tipo di utente (NON dipendenti)
+    if (attivitaPagamentoAbilitata && isPagamentoAbilitatoPerRuolo && turno.ruolo === 'Cassiere' && turno.timbratura_entrata && !turno.timbratura_uscita) {
       const turnoInizio = moment(`${turno.data} ${turno.ora_inizio}`);
       const turnoFine = moment(`${turno.data} ${turno.ora_fine}`);
 
