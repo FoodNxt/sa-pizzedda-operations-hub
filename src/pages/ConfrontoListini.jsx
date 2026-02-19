@@ -1296,6 +1296,6 @@ export default function ConfrontoListini() {
       )}
         </>
       )}
-    </div>);
-
+    </div>
+  );
 }
