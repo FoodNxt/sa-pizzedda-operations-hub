@@ -339,6 +339,7 @@ export default function OrdiniAdmin() {
         orders.push({
           ...reading,
           quantita_rilevata: quantitaEffettiva,
+          quantita_aggregata: quantitaEffettiva, // Include semilavorati sommati
           product,
           store,
           quantita_critica: quantitaCritica,
@@ -385,6 +386,7 @@ export default function OrdiniAdmin() {
           prodotto_id: prodottoId,
           nome_prodotto: product.nome_prodotto,
           quantita_rilevata: quantitaAggregata,
+          quantita_aggregata: quantitaAggregata, // Include semilavorati sommati
           unita_misura: product.unita_misura,
           data_rilevazione: new Date().toISOString(),
           product,
@@ -1164,7 +1166,7 @@ Sa Pizzedda`,
                                                     })()}
                                                 </td>
                                                 <td className="p-2 text-sm text-right text-red-600 font-bold">
-                                                  {order.quantita_rilevata} {order.unita_misura}
+                                                  {(order.quantita_aggregata ?? order.quantita_rilevata).toFixed(1)} {order.unita_misura}
                                                 </td>
                                                 <td className="p-2 text-sm text-right text-slate-500">
                                                   {order.quantita_critica} {order.unita_misura}
@@ -1474,7 +1476,7 @@ Sa Pizzedda`,
                                         <tr key={idx} className="border-b border-slate-200">
                                           <td className="p-2 text-sm text-slate-700">{order.nome_prodotto}</td>
                                           <td className="p-2 text-sm text-right text-red-600 font-bold">
-                                            {order.quantita_rilevata} {order.unita_misura}
+                                            {(order.quantita_aggregata ?? order.quantita_rilevata).toFixed(1)} {order.unita_misura}
                                           </td>
                                           <td className="p-2 text-sm text-right text-slate-500">
                                             {order.quantita_critica} {order.unita_misura}
