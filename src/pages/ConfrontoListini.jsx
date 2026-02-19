@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingDown, TrendingUp, Package, DollarSign, Building2, AlertTriangle, Store, Download, X } from 'lucide-react';
+import { TrendingDown, TrendingUp, Package, DollarSign, Building2, AlertTriangle, Store, Download, X, Upload, FileText, Loader2, Zap, CheckCircle } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ResponsiveTable from "../components/ui/ResponsiveTable";
 
 export default function ConfrontoListini() {
