@@ -202,6 +202,7 @@ const navigationStructure = [
       },
       {
         title: "Preparazioni",
+        page: "PreparazioniAdmin",
         url: createPageUrl("PreparazioniAdmin"),
         icon: ChefHat,
       },

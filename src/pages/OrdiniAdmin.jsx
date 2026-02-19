@@ -1110,7 +1110,7 @@ Sa Pizzedda`,
                                           </tr>
                                         </thead>
                                         <tbody>
-                                          {prodottiNormali.map((order, idx) => {
+                                         {prodottiNormali.sort((a, b) => a.nome_prodotto.localeCompare(b.nome_prodotto)).map((order, idx) => {
                                       const prezzoUnitario = order.product.prezzo_unitario || 0;
                                       const ivaPerc = order.product.iva_percentuale ?? 22;
                                       const prezzoUnitarioConIVA = prezzoUnitario * (1 + ivaPerc / 100);
@@ -1464,7 +1464,7 @@ Sa Pizzedda`,
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {prodottiNormali.map((order, idx) => {
+                                    {prodottiNormali.sort((a, b) => a.nome_prodotto.localeCompare(b.nome_prodotto)).map((order, idx) => {
                                       const prezzoUnitario = order.product.prezzo_unitario || 0;
                                       const ivaPerc = order.product.iva_percentuale ?? 22;
                                       const prezzoUnitarioConIVA = prezzoUnitario * (1 + ivaPerc / 100);
@@ -4239,6 +4239,43 @@ Sa Pizzedda`,
                     <p className="text-xs text-yellow-700">
                       Verifica che le quantità ricevute corrispondano a quelle ordinate prima di completare.
                     </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Totali Unità */}
+              <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <h3 className="font-bold text-blue-800 text-sm mb-3">📊 Riepilogo Unità Totali</h3>
+                <div className="space-y-2">
+                  {confirmingOrder.prodotti
+                    .filter((p) => p.quantita_ordinata > 0)
+                    .map((prod) => {
+                      const materiaPrima = products.find((m) => m.id === prod.prodotto_id);
+                      const unitaPerConfezione = materiaPrima?.unita_per_confezione || null;
+                      const totalUnits = unitaPerConfezione ? prod.quantita_ordinata * unitaPerConfezione : null;
+                      
+                      return (
+                        <div key={prod.prodotto_id} className="flex items-center justify-between text-xs">
+                          <span className="text-blue-700">{prod.nome_prodotto}</span>
+                          <span className="font-bold text-blue-800">
+                            {totalUnits ? `${Math.round(totalUnits)} unità` : `${prod.quantita_ordinata} ${prod.unita_misura}`}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  <div className="border-t border-blue-300 pt-2 mt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-blue-800">Totale Unità:</span>
+                      <span className="text-lg font-bold text-blue-800">
+                        {confirmingOrder.prodotti
+                          .filter((p) => p.quantita_ordinata > 0)
+                          .reduce((sum, prod) => {
+                            const materiaPrima = products.find((m) => m.id === prod.prodotto_id);
+                            const unitaPerConfezione = materiaPrima?.unita_per_confezione || 0;
+                            return sum + (unitaPerConfezione > 0 ? prod.quantita_ordinata * unitaPerConfezione : 0);
+                          }, 0)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
