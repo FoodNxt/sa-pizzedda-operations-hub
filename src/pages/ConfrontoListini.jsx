@@ -6,6 +6,7 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ResponsiveTable from "../components/ui/ResponsiveTable";
 
 export default function ConfrontoListini() {
+  const [activeView, setActiveView] = useState('confronto'); // 'confronto' or 'comparazione'
   const [selectedNomeInterno, setSelectedNomeInterno] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStore, setSelectedStore] = useState('all');
@@ -16,6 +17,21 @@ export default function ConfrontoListini() {
   const [selectedProductForMatch, setSelectedProductForMatch] = useState(null);
   const [matchFormData, setMatchFormData] = useState({ ricetta_id: '' });
   const [showDetailsExpanded, setShowDetailsExpanded] = useState(false);
+  
+  // Comparazione rapida states
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [csvHeaders, setCsvHeaders] = useState([]);
+  const [csvData, setCsvData] = useState([]);
+  const [columnMapping, setColumnMapping] = useState({
+    nome_interno: { column: '', useAI: false },
+    unita_misura: { column: '', useAI: false },
+    prezzo: { column: '', useAI: false },
+    peso_per_unita: { column: '', useAI: false },
+    unita_misura_peso: { column: '', useAI: false },
+    unita_per_confezione: { column: '', useAI: false }
+  });
+  const [processingComparison, setProcessingComparison] = useState(false);
+  const [comparisonResults, setComparisonResults] = useState(null);
 
   const { data: materiePrime = [], isLoading } = useQuery({
     queryKey: ['materie-prime'],
