@@ -318,22 +318,10 @@ export default function OrdiniAdmin() {
 
       // Get aggregated quantity (including summed semilavorati)
       const key = `${reading.store_id}-${reading.prodotto_id}`;
-      const quantitaEffettiva = aggregatedQuantities[key] || reading.quantita_rilevata || 0;
+      const quantitaEffettiva = aggregatedQuantities[key] !== undefined ? aggregatedQuantities[key] : (reading.quantita_rilevata || 0);
 
       const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
-
-      // DEBUG
-      if (product.nome_prodotto?.toLowerCase().includes('patate') && reading.store_id === '690907bd20c125326dda4db5') {
-        console.log(`🔍 CHECK ORDINE:`, {
-          prodotto: product.nome_prodotto,
-          quantita_effettiva: quantitaEffettiva,
-          quantita_critica: quantitaCritica,
-          quantita_ordine: quantitaOrdine,
-          sotto_minimo: quantitaEffettiva <= quantitaCritica,
-          aggiungi_ordine: quantitaEffettiva <= quantitaCritica && quantitaOrdine > 0
-        });
-      }
 
       if (quantitaEffettiva <= quantitaCritica && quantitaOrdine > 0) {
         orders.push({
