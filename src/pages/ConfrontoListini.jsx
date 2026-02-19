@@ -422,6 +422,112 @@ export default function ConfrontoListini() {
     return totalSavings;
   };
 
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const lines = text.split('\n').filter(line => line.trim());
+      if (lines.length === 0) return;
+
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const data = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        const row = {};
+        headers.forEach((h, i) => {
+          row[h] = values[i] || '';
+        });
+        return row;
+      });
+
+      setCsvHeaders(headers);
+      setCsvData(data);
+      setUploadedFile(file);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleProcessComparison = async () => {
+    setProcessingComparison(true);
+    try {
+      const processedData = [];
+
+      for (const row of csvData) {
+        const processedRow = {};
+
+        // Process each field
+        for (const [field, mapping] of Object.entries(columnMapping)) {
+          if (!mapping.column && !mapping.useAI) continue;
+
+          if (mapping.useAI) {
+            // Use AI to extract the field
+            const rowText = Object.entries(row).map(([k, v]) => `${k}: ${v}`).join('\n');
+            const prompt = `Estrai il campo "${field}" da questi dati:\n\n${rowText}\n\nRestituisci SOLO il valore estratto, senza spiegazioni.`;
+            
+            const result = await base44.integrations.Core.InvokeLLM({ prompt });
+            processedRow[field] = result.trim();
+          } else {
+            // Direct column mapping
+            processedRow[field] = row[mapping.column] || '';
+          }
+        }
+
+        processedData.push(processedRow);
+      }
+
+      // Compare with existing products
+      const comparison = processedData.map(newProduct => {
+        const nomeInterno = newProduct.nome_interno;
+        const existingProducts = materiePrime.filter(p => p.nome_interno === nomeInterno);
+        
+        const newPrice = parseFloat(newProduct.prezzo);
+        const newWeight = parseFloat(newProduct.peso_per_unita) || 1;
+        const newUnitsPerPack = parseFloat(newProduct.unita_per_confezione) || 1;
+        
+        // Calculate normalized price (price per kg/liter)
+        let newNormalizedPrice = null;
+        if (newPrice && newWeight) {
+          const unitaMisuraPeso = newProduct.unita_misura_peso?.toLowerCase();
+          let weightInKg = newWeight;
+          if (unitaMisuraPeso === 'g' || unitaMisuraPeso === 'ml') {
+            weightInKg = newWeight / 1000;
+          }
+          const totalWeight = weightInKg * newUnitsPerPack;
+          newNormalizedPrice = newPrice / totalWeight;
+        }
+
+        const bestExisting = existingProducts.reduce((best, p) => {
+          const price = getNormalizedPrice(p);
+          const bestPrice = getNormalizedPrice(best);
+          if (!price) return best;
+          if (!bestPrice) return p;
+          return price < bestPrice ? p : best;
+        }, existingProducts[0]);
+
+        const bestExistingPrice = bestExisting ? getNormalizedPrice(bestExisting) : null;
+
+        return {
+          nomeInterno,
+          newProduct,
+          existingProducts,
+          newNormalizedPrice,
+          bestExistingPrice,
+          isBetter: newNormalizedPrice && bestExistingPrice && newNormalizedPrice < bestExistingPrice,
+          savingsPercent: newNormalizedPrice && bestExistingPrice ? 
+            ((bestExistingPrice - newNormalizedPrice) / bestExistingPrice * 100) : 0
+        };
+      });
+
+      setComparisonResults(comparison);
+    } catch (error) {
+      console.error('Error processing comparison:', error);
+      alert('Errore durante il processing: ' + error.message);
+    }
+    setProcessingComparison(false);
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -440,6 +546,24 @@ export default function ConfrontoListini() {
             <Download className="w-5 h-5" />
             <span className="hidden md:inline">Scarica Listino</span>
           </button>
+        </div>
+
+        {/* View Tabs */}
+        <div className="flex gap-2 mt-4">
+          <NeumorphicButton
+            onClick={() => setActiveView('confronto')}
+            variant={activeView === 'confronto' ? 'primary' : 'default'}
+            className="flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            Confronto Listini
+          </NeumorphicButton>
+          <NeumorphicButton
+            onClick={() => setActiveView('comparazione')}
+            variant={activeView === 'comparazione' ? 'primary' : 'default'}
+            className="flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            Comparazione Rapida
+          </NeumorphicButton>
         </div>
       </div>
 
