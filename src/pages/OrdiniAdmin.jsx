@@ -384,6 +384,13 @@ export default function OrdiniAdmin() {
       const quantitaCritica = product.store_specific_quantita_critica?.[storeId] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[storeId] || product.quantita_ordine || 0;
 
+      console.log(`🔍 FASE 2 - ${product.nome_prodotto}:`, {
+        quantitaAggregata,
+        quantitaCritica,
+        quantitaOrdine,
+        sotto_critico: quantitaAggregata <= quantitaCritica
+      });
+
       if (quantitaAggregata <= quantitaCritica && quantitaOrdine > 0) {
         orders.push({
           store_id: storeId,
