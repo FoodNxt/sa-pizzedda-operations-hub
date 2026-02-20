@@ -290,31 +290,22 @@ export default function OrdiniAdmin() {
       });
     });
 
-    // FASE 1: Controlla prodotti rilevati nell'inventario
+    // PHASE 1: Check all products from inventory readings and apply aggregation
     Object.values(latestByProduct).forEach((reading) => {
       const product = products.find((p) => p.id === reading.prodotto_id);
-      if (!product) return;
-
-      // Escludi prodotti non attivi
-      if (product.attivo === false) return;
+      if (!product || product.attivo === false) return;
 
       const store = stores.find((s) => s.id === reading.store_id);
       if (!store) return;
 
-      // Verifica se il prodotto è assegnato a questo store
-      const isAssignedToStore = !product.assigned_stores ||
-      product.assigned_stores.length === 0 ||
-      product.assigned_stores.includes(reading.store_id);
+      const isAssignedToStore = !product.assigned_stores || product.assigned_stores.length === 0 || product.assigned_stores.includes(reading.store_id);
       if (!isAssignedToStore) return;
 
-      // Verifica se il prodotto è in uso per questo store
-      const isInUsoForStore = product.in_uso_per_store?.[reading.store_id] === true ||
-      !product.in_uso_per_store?.[reading.store_id] && product.in_uso === true;
+      const isInUsoForStore = product.in_uso_per_store?.[reading.store_id] === true || (!product.in_uso_per_store?.[reading.store_id] && product.in_uso === true);
       if (!isInUsoForStore) return;
 
-      // Get aggregated quantity (including summed semilavorati)
       const key = `${reading.store_id}-${reading.prodotto_id}`;
-      const quantitaEffettiva = aggregatedQuantities[key] !== undefined ? aggregatedQuantities[key] : (reading.quantita_rilevata || 0);
+      const quantitaEffettiva = aggregatedQuantities[key] || (reading.quantita_rilevata || 0);
 
       const quantitaCritica = product.store_specific_quantita_critica?.[reading.store_id] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[reading.store_id] || product.quantita_ordine || 0;
@@ -323,7 +314,7 @@ export default function OrdiniAdmin() {
         orders.push({
           ...reading,
           quantita_rilevata: quantitaEffettiva,
-          quantita_aggregata: quantitaEffettiva, // Include semilavorati sommati
+          quantita_aggregata: quantitaEffettiva,
           product,
           store,
           quantita_critica: quantitaCritica,
@@ -333,42 +324,31 @@ export default function OrdiniAdmin() {
       }
     });
 
-    // FASE 2: Controlla materie prime che hanno ricevuto somme da semilavorati ma non sono in latestByProduct
-    // (es. patate a rondelle che non vengono mai rilevate direttamente ma solo come patate cotte)
+    // PHASE 2: Check raw materials that received contributions from semilavorati but weren't directly measured
     Object.entries(aggregatedQuantities).forEach(([key, quantitaAggregata]) => {
+      if (latestByProduct[key]) return; // Already checked in PHASE 1
+      
       const [storeId, prodottoId] = key.split('-');
-      
-      // Salta se questo prodotto è già stato controllato nella FASE 1
-      if (latestByProduct[key]) return;
-      
       const product = products.find((p) => p.id === prodottoId);
-      if (!product) return;
-
-      // Escludi prodotti non attivi
-      if (product.attivo === false) return;
+      if (!product || product.attivo === false) return;
 
       const store = stores.find((s) => s.id === storeId);
       if (!store) return;
 
-      // Verifica se il prodotto è assegnato a questo store
-      const isAssignedToStore = !product.assigned_stores ||
-      product.assigned_stores.length === 0 ||
-      product.assigned_stores.includes(storeId);
+      const isAssignedToStore = !product.assigned_stores || product.assigned_stores.length === 0 || product.assigned_stores.includes(storeId);
       if (!isAssignedToStore) return;
 
-      // Verifica se il prodotto è in uso per questo store
-      const isInUsoForStore = product.in_uso_per_store?.[storeId] === true ||
-      !product.in_uso_per_store?.[storeId] && product.in_uso === true;
+      const isInUsoForStore = product.in_uso_per_store?.[storeId] === true || (!product.in_uso_per_store?.[storeId] && product.in_uso === true);
       if (!isInUsoForStore) return;
 
       const quantitaCritica = product.store_specific_quantita_critica?.[storeId] || product.quantita_critica || product.quantita_minima || 0;
       const quantitaOrdine = product.store_specific_quantita_ordine?.[storeId] || product.quantita_ordine || 0;
 
-      console.log(`🔍 FASE 2 - ${product.nome_prodotto}:`, {
-        quantitaAggregata,
-        quantitaCritica,
-        quantitaOrdine,
-        sotto_critico: quantitaAggregata <= quantitaCritica
+      console.log(`✅ PHASE 2 - ${product.nome_prodotto} (${store.name}):`, {
+        qty: quantitaAggregata.toFixed(4),
+        critical: quantitaCritica,
+        order_qty: quantitaOrdine,
+        needs_order: quantitaAggregata <= quantitaCritica
       });
 
       if (quantitaAggregata <= quantitaCritica && quantitaOrdine > 0) {
@@ -377,7 +357,7 @@ export default function OrdiniAdmin() {
           prodotto_id: prodottoId,
           nome_prodotto: product.nome_prodotto,
           quantita_rilevata: quantitaAggregata,
-          quantita_aggregata: quantitaAggregata, // Include semilavorati sommati
+          quantita_aggregata: quantitaAggregata,
           unita_misura: product.unita_misura,
           data_rilevazione: new Date().toISOString(),
           product,
