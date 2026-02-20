@@ -622,7 +622,7 @@ export default function Assenze() {
                         <Check className="w-5 h-5 text-green-600" />
                         <span className="font-bold text-slate-800">Confermate</span>
                         <span className="bg-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                          {richiesteFerie.filter((r) => r.stato === 'approvata').length}
+                          {filteredFerie.filter((r) => r.stato === 'approvata').length}
                         </span>
                       </div>
                       {expandedSections.ferie_approvate ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -630,7 +630,7 @@ export default function Assenze() {
 
                     {expandedSections.ferie_approvate &&
             <div className="space-y-3 ml-4">
-                        {richiesteFerie.filter((r) => r.stato === 'approvata').map((request) =>
+                        {filteredFerie.filter((r) => r.stato === 'approvata').map((request) =>
               <div key={request.id} className="neumorphic-pressed p-4 rounded-xl opacity-80">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
@@ -659,7 +659,7 @@ export default function Assenze() {
           }
 
                 {/* Rifiutate */}
-                {richiesteFerie.filter((r) => r.stato === 'rifiutata').length > 0 &&
+                {filteredFerie.filter((r) => r.stato === 'rifiutata').length > 0 &&
           <div>
                     <button
               onClick={() => setExpandedSections((prev) => ({ ...prev, ferie_rifiutate: !prev.ferie_rifiutate }))}
@@ -669,7 +669,7 @@ export default function Assenze() {
                         <X className="w-5 h-5 text-red-600" />
                         <span className="font-bold text-slate-800">Rifiutate</span>
                         <span className="bg-red-200 text-red-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                          {richiesteFerie.filter((r) => r.stato === 'rifiutata').length}
+                          {filteredFerie.filter((r) => r.stato === 'rifiutata').length}
                         </span>
                       </div>
                       {expandedSections.ferie_rifiutate ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -677,7 +677,7 @@ export default function Assenze() {
 
                     {expandedSections.ferie_rifiutate &&
             <div className="space-y-3 ml-4">
-                        {richiesteFerie.filter((r) => r.stato === 'rifiutata').map((request) =>
+                        {filteredFerie.filter((r) => r.stato === 'rifiutata').map((request) =>
               <div key={request.id} className="neumorphic-pressed p-4 rounded-xl opacity-70">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
@@ -717,19 +717,29 @@ export default function Assenze() {
         <div className="text-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-red-500 mx-auto" />
               </div> :
-        richiesteMalattia.length === 0 ?
+        filteredMalattia.length === 0 ?
         <p className="text-slate-500 text-center py-8">Nessuna richiesta di malattia</p> :
 
         <div className="space-y-3">
                  {/* Sezione Certificate */}
-                 {richiesteMalattia.filter((r) => r.stato === 'certificata').length > 0 &&
+                 {filteredMalattia.filter((r) => r.stato === 'certificata').length > 0 &&
           <div>
-                     <h3 className="text-lg font-bold text-green-600 mb-3 flex items-center gap-2">
-                       <CheckCircle className="w-5 h-5" />
-                       Certificate ({richiesteMalattia.filter((r) => r.stato === 'certificata').length})
-                     </h3>
-                     <div className="space-y-3">
-                       {richiesteMalattia.filter((r) => r.stato === 'certificata').map((request) =>
+                     <button
+                       onClick={() => setExpandedSections((prev) => ({ ...prev, malattia_certificate: !prev.malattia_certificate }))}
+                       className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-green-50 border-2 border-green-200 hover:bg-green-100 transition-all mb-2">
+                       <div className="flex items-center gap-3">
+                         <CheckCircle className="w-5 h-5 text-green-600" />
+                         <span className="font-bold text-slate-800">Certificate</span>
+                         <span className="bg-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium">
+                           {filteredMalattia.filter((r) => r.stato === 'certificata').length}
+                         </span>
+                       </div>
+                       {expandedSections.malattia_certificate ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                     </button>
+                     
+                     {expandedSections.malattia_certificate && (
+                     <div className="space-y-3 ml-4">
+                       {filteredMalattia.filter((r) => r.stato === 'certificata').map((request) =>
               <div key={request.id} className="neumorphic-pressed p-4 rounded-xl">
                            <div className="flex items-start justify-between">
                              <div className="flex-1">
@@ -773,18 +783,29 @@ export default function Assenze() {
                          </div>
               )}
                      </div>
+                     )}
                    </div>
           }
 
                  {/* Sezione Non Certificate */}
-                 {richiesteMalattia.filter((r) => r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica').length > 0 &&
+                 {filteredMalattia.filter((r) => r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica').length > 0 &&
           <div>
-                     <h3 className="text-lg font-bold text-orange-600 mb-3 flex items-center gap-2">
-                       <AlertCircle className="w-5 h-5" />
-                       Non Certificate ({richiesteMalattia.filter((r) => r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica').length})
-                     </h3>
-                     <div className="space-y-3">
-                       {richiesteMalattia.filter((r) => r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica').map((request) =>
+                     <button
+                       onClick={() => setExpandedSections((prev) => ({ ...prev, malattia_non_certificate: !prev.malattia_non_certificate }))}
+                       className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-orange-50 border-2 border-orange-200 hover:bg-orange-100 transition-all mb-2">
+                       <div className="flex items-center gap-3">
+                         <AlertCircle className="w-5 h-5 text-orange-600" />
+                         <span className="font-bold text-slate-800">Non Certificate</span>
+                         <span className="bg-orange-200 text-orange-800 text-xs px-2 py-0.5 rounded-full font-medium">
+                           {filteredMalattia.filter((r) => r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica').length}
+                         </span>
+                       </div>
+                       {expandedSections.malattia_non_certificate ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                     </button>
+                     
+                     {expandedSections.malattia_non_certificate && (
+                     <div className="space-y-3 ml-4">
+                       {filteredMalattia.filter((r) => r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica').map((request) =>
               <div key={request.id} className="neumorphic-pressed p-4 rounded-xl">
                            <div className="flex items-start justify-between">
                              <div className="flex-1">
@@ -858,18 +879,29 @@ export default function Assenze() {
                          </div>
               )}
                      </div>
+                     )}
                    </div>
           }
 
                  {/* Sezione Rifiutate/Eliminate */}
-                 {richiesteMalattia.filter((r) => r.stato === 'rifiutata' || r.stato === 'eliminata').length > 0 &&
+                 {filteredMalattia.filter((r) => r.stato === 'rifiutata' || r.stato === 'eliminata').length > 0 &&
           <div>
-                     <h3 className="text-lg font-bold text-red-600 mb-3 flex items-center gap-2">
-                       <X className="w-5 h-5" />
-                       Rifiutate/Eliminate ({richiesteMalattia.filter((r) => r.stato === 'rifiutata' || r.stato === 'eliminata').length})
-                     </h3>
-                     <div className="space-y-3">
-                       {richiesteMalattia.filter((r) => r.stato === 'rifiutata' || r.stato === 'eliminata').map((request) =>
+                     <button
+                       onClick={() => setExpandedSections((prev) => ({ ...prev, malattia_rifiutate: !prev.malattia_rifiutate }))}
+                       className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-red-50 border-2 border-red-200 hover:bg-red-100 transition-all mb-2">
+                       <div className="flex items-center gap-3">
+                         <X className="w-5 h-5 text-red-600" />
+                         <span className="font-bold text-slate-800">Rifiutate/Eliminate</span>
+                         <span className="bg-red-200 text-red-800 text-xs px-2 py-0.5 rounded-full font-medium">
+                           {filteredMalattia.filter((r) => r.stato === 'rifiutata' || r.stato === 'eliminata').length}
+                         </span>
+                       </div>
+                       {expandedSections.malattia_rifiutate ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                     </button>
+                     
+                     {expandedSections.malattia_rifiutate && (
+                     <div className="space-y-3 ml-4">
+                       {filteredMalattia.filter((r) => r.stato === 'rifiutata' || r.stato === 'eliminata').map((request) =>
               <div key={request.id} className="neumorphic-pressed p-4 rounded-xl opacity-70">
                            <div className="flex items-start justify-between">
                              <div className="flex-1">
@@ -889,6 +921,7 @@ export default function Assenze() {
                          </div>
               )}
                      </div>
+                     )}
                    </div>
           }
                </div>
@@ -906,19 +939,19 @@ export default function Assenze() {
         <div className="text-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto" />
               </div> :
-        turniConScambio.length === 0 ?
+        filteredScambi.length === 0 ?
         <p className="text-slate-500 text-center py-8">Nessuna richiesta di scambio</p> :
 
         <>
                 {/* Da Approvare */}
-                {turniConScambio.filter((t) => t.richiesta_scambio?.stato === 'accepted_by_colleague').length > 0 &&
+                {filteredScambi.filter((t) => t.richiesta_scambio?.stato === 'accepted_by_colleague').length > 0 &&
           <div className="mb-6">
                     <h3 className="text-lg font-bold text-orange-600 mb-3 flex items-center gap-2">
                       <Clock className="w-5 h-5" />
-                      Da Approvare ({turniConScambio.filter((t) => t.richiesta_scambio?.stato === 'accepted_by_colleague').length})
+                      Da Approvare ({filteredScambi.filter((t) => t.richiesta_scambio?.stato === 'accepted_by_colleague').length})
                     </h3>
                     <div className="space-y-3">
-                      {turniConScambio.
+                      {filteredScambi.
               filter((t) => t.richiesta_scambio?.stato === 'accepted_by_colleague').
               sort((a, b) => new Date(b.richiesta_scambio?.data_richiesta) - new Date(a.richiesta_scambio?.data_richiesta)).
               map((turnoRichiedente) => {
@@ -1072,7 +1105,7 @@ export default function Assenze() {
           }
 
                 {/* Approvate */}
-                {turniConScambio.filter((t) =>
+                {filteredScambi.filter((t) =>
           t.richiesta_scambio?.stato === 'approved_by_manager' ||
           t.richiesta_scambio?.stato === 'rejected_by_manager' ||
           t.richiesta_scambio?.stato === 'rejected_by_colleague'
@@ -1080,14 +1113,14 @@ export default function Assenze() {
           <div>
                     <h3 className="text-lg font-bold text-green-600 mb-3 flex items-center gap-2">
                       <CheckCircle className="w-5 h-5" />
-                      Archiviate ({turniConScambio.filter((t) =>
+                      Archiviate ({filteredScambi.filter((t) =>
               t.richiesta_scambio?.stato === 'approved_by_manager' ||
               t.richiesta_scambio?.stato === 'rejected_by_manager' ||
               t.richiesta_scambio?.stato === 'rejected_by_colleague'
               ).length})
                     </h3>
                     <div className="space-y-3">
-                      {turniConScambio.
+                      {filteredScambi.
               filter((t) =>
               t.richiesta_scambio?.stato === 'approved_by_manager' ||
               t.richiesta_scambio?.stato === 'rejected_by_manager' ||
