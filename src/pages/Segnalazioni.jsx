@@ -355,9 +355,9 @@ export default function Segnalazioni() {
 
       {/* Form Modal */}
       {showForm &&
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto pt-20 pb-20">
-          <div className="max-w-2xl w-full my-auto">
-            <NeumorphicCard className="p-4 sm:p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto" onClick={resetForm}>
+          <div className="min-h-full flex items-center justify-center p-4">
+            <NeumorphicCard className="p-4 sm:p-6 max-w-2xl w-full my-8" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-[#6b6b6b]">Nuova Segnalazione</h2>
                 <button onClick={resetForm} className="text-[#9b9b9b] hover:text-[#6b6b6b]">
