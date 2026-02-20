@@ -212,10 +212,15 @@ export default function OrdiniAdmin() {
 
     // Build aggregated quantities (sum semilavorati to their materie prime)
     const aggregatedQuantities = {};
+    
+    // PASSO 1: Inizializza TUTTE le quantità dirette PRIMA
     Object.values(latestByProduct).forEach((reading) => {
       const key = `${reading.store_id}-${reading.prodotto_id}`;
       aggregatedQuantities[key] = reading.quantita_rilevata || 0;
+    });
 
+    // PASSO 2: Somma DOPO i semilavorati (così non vengono sovrascritti)
+    Object.values(latestByProduct).forEach((reading) => {
       // Check if this reading is a semilavorato that should be summed to a materia prima
       const ricetta = ricette.find((r) =>
       r.nome_prodotto?.toLowerCase() === reading.nome_prodotto?.toLowerCase() &&
