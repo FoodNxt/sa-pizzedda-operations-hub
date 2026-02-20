@@ -46,6 +46,7 @@ export default function Activation() {
     nome: '',
     descrizione: '',
     data_evento: '',
+    orario_evento: '',
     store_id: '',
     store_name: '',
     contatto_id: '',
@@ -268,6 +269,7 @@ export default function Activation() {
       nome: '',
       descrizione: '',
       data_evento: '',
+      orario_evento: '',
       store_id: '',
       store_name: '',
       contatto_id: '',
@@ -285,6 +287,7 @@ export default function Activation() {
       nome: evento.nome,
       descrizione: evento.descrizione || '',
       data_evento: evento.data_evento,
+      orario_evento: evento.orario_evento || '',
       store_id: evento.store_id || '',
       store_name: evento.store_name || '',
       contatto_id: evento.contatto_id || '',
@@ -1786,12 +1789,12 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                         <div
                           key={evento.id}
                           className="text-xs px-2 py-1 rounded bg-purple-500 text-white cursor-pointer hover:bg-purple-600 transition-colors"
-                          title={evento.nome}
+                          title={`${evento.nome}${evento.orario_evento ? ` - ${evento.orario_evento}` : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleEditEvent(evento);
                           }}>
-                          {evento.nome}
+                          {evento.orario_evento ? `${evento.orario_evento} ` : ''}{evento.nome}
                         </div>
                       ))}
                     </div>
@@ -1831,16 +1834,28 @@ Concentrati su eventi che possono essere utili per attività di marketing di una
                     placeholder="es. Inaugurazione, Evento Speciale" />
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block">
-                    Data Evento *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={eventFormData.data_evento}
-                    onChange={(e) => setEventFormData({ ...eventFormData, data_evento: e.target.value })}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Data Evento *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={eventFormData.data_evento}
+                      onChange={(e) => setEventFormData({ ...eventFormData, data_evento: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">
+                      Orario (opzionale)
+                    </label>
+                    <input
+                      type="time"
+                      value={eventFormData.orario_evento}
+                      onChange={(e) => setEventFormData({ ...eventFormData, orario_evento: e.target.value })}
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none" />
+                  </div>
                 </div>
 
                 <div>
