@@ -26,6 +26,7 @@ export default function ControlloConsumi() {
   const [expandedProducts, setExpandedProducts] = useState({});
   const [prodottiChiaveViewMode, setProdottiChiaveViewMode] = useState('daily'); // 'daily', 'weekly', 'monthly'
   const [expandedConsumiTeoruiDettagli, setExpandedConsumiTeoriciDettagli] = useState({});
+  const [consumiTeoriciViewMode, setConsumiTeoriciViewMode] = useState('dettaglio'); // 'dettaglio' o 'media'
 
   // Fetch data
   const { data: stores = [] } = useQuery({
@@ -983,6 +984,60 @@ export default function ControlloConsumi() {
 
   const mozzarellaDetails = calcProdottiChiaveData(prodottiChiaveViewMode);
 
+  // Calcola medie per consumi teorici
+  const calculateMediaConsumi = () => {
+    const medie = {};
+    
+    // Raggruppa consumi per prodotto
+    const consumiPerProdotto = {};
+    Object.keys(consumiTeoriciPerGiorno).forEach((date) => {
+      Object.keys(consumiTeoriciPerGiorno[date]).forEach((prodId) => {
+        if (!consumiPerProdotto[prodId]) {
+          consumiPerProdotto[prodId] = {
+            nome: consumiTeoriciPerGiorno[date][prodId].nome,
+            unita_misura: consumiTeoriciPerGiorno[date][prodId].unita_misura,
+            peso_dimensione_unita: consumiTeoriciPerGiorno[date][prodId].peso_dimensione_unita,
+            unita_misura_peso: consumiTeoriciPerGiorno[date][prodId].unita_misura_peso,
+            quantitaTotale: 0,
+            giorni: 0,
+            settimane: new Set(),
+            mesi: new Set()
+          };
+        }
+        consumiPerProdotto[prodId].quantitaTotale += consumiTeoriciPerGiorno[date][prodId].quantita;
+        consumiPerProdotto[prodId].giorni += 1;
+        
+        const d = parseISO(date);
+        const weekStart = format(startOfWeek(d, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+        const monthKey = format(d, 'yyyy-MM');
+        
+        consumiPerProdotto[prodId].settimane.add(weekStart);
+        consumiPerProdotto[prodId].mesi.add(monthKey);
+      });
+    });
+
+    // Calcola medie
+    Object.keys(consumiPerProdotto).forEach((prodId) => {
+      const prod = consumiPerProdotto[prodId];
+      medie[prodId] = {
+        nome: prod.nome,
+        unita_misura: prod.unita_misura,
+        peso_dimensione_unita: prod.peso_dimensione_unita,
+        unita_misura_peso: prod.unita_misura_peso,
+        mediaGiornaliera: prod.giorni > 0 ? prod.quantitaTotale / prod.giorni : 0,
+        mediaSettimanale: prod.settimane.size > 0 ? prod.quantitaTotale / prod.settimane.size : 0,
+        mediaMensile: prod.mesi.size > 0 ? prod.quantitaTotale / prod.mesi.size : 0,
+        totaleDays: prod.giorni,
+        totaleWeeks: prod.settimane.size,
+        totaleMonths: prod.mesi.size
+      };
+    });
+
+    return medie;
+  };
+
+  const mediaConsumi = calculateMediaConsumi();
+
   return (
     <ProtectedPage pageName="ControlloConsumi">
       <div className="max-w-7xl mx-auto space-y-4">
@@ -1466,57 +1521,170 @@ export default function ControlloConsumi() {
                 <h2 className="text-xl font-bold text-slate-700">
                   Consumi Teorici per {viewMode === 'daily' ? 'Giorno' : viewMode === 'weekly' ? 'Settimana' : 'Mese'}
                 </h2>
-                <div className="text-sm text-slate-600">
-                  {debugStats.pizzeConRicetta} / {debugStats.totalePizzeVendute} pizze processate
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-slate-600">
+                    {debugStats.pizzeConRicetta} / {debugStats.totalePizzeVendute} pizze processate
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConsumiTeoriciViewMode('dettaglio')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        consumiTeoriciViewMode === 'dettaglio' ?
+                        'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                        'neumorphic-flat text-slate-600'
+                      }`}>
+                      Dettaglio
+                    </button>
+                    <button
+                      onClick={() => setConsumiTeoriciViewMode('media')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        consumiTeoriciViewMode === 'media' ?
+                        'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+                        'neumorphic-flat text-slate-600'
+                      }`}>
+                      Media
+                    </button>
+                  </div>
                 </div>
               </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-slate-300">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
-                      {viewMode === 'daily' ? 'Data' : viewMode === 'weekly' ? 'Settimana' : 'Mese'}
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Materia Prima</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Quantità Consumata</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">UM</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Confezione/Pezzo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {datesConsumiSorted.map((date) => {
-                    const prodotti = consumiAggregati[date] || {};
+            {consumiTeoriciViewMode === 'dettaglio' ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-slate-300">
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">
+                        {viewMode === 'daily' ? 'Data' : viewMode === 'weekly' ? 'Settimana' : 'Mese'}
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Materia Prima</th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Quantità Consumata</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">UM</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Confezione/Pezzo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {datesConsumiSorted.map((date) => {
+                      const prodotti = consumiAggregati[date] || {};
 
-                    return Object.keys(prodotti).map((prodId) => {
-                      const prod = prodotti[prodId];
-                      const rowKey = `${date}-${prodId}`;
-                      const isExpanded = expandedConsumiTeoruiDettagli[rowKey];
-                      
-                      // Aggrega dettagli quando viewMode !== 'daily'
-                      let dettagliRiga = [];
-                      if (viewMode === 'daily' && consumiTeoriciDettagli[date]) {
-                        dettagliRiga = consumiTeoriciDettagli[date][prodId] || [];
-                      }
+                      return Object.keys(prodotti).map((prodId) => {
+                        const prod = prodotti[prodId];
+                        const rowKey = `${date}-${prodId}`;
+                        const isExpanded = expandedConsumiTeoruiDettagli[rowKey];
+                        
+                        // Aggrega dettagli quando viewMode !== 'daily'
+                        let dettagliRiga = [];
+                        if (viewMode === 'daily' && consumiTeoriciDettagli[date]) {
+                          dettagliRiga = consumiTeoriciDettagli[date][prodId] || [];
+                        }
 
-                      return (
-                        <React.Fragment key={rowKey}>
-                          <tr className="border-b border-slate-100 hover:bg-slate-50">
-                            <td className="py-3 px-4 text-sm text-slate-600">
-                              <button
-                                onClick={() => setExpandedConsumiTeoriciDettagli((prev) => ({ ...prev, [rowKey]: !prev[rowKey] }))}
-                                className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
-                                <span className="text-xs">{dettagliRiga.length > 0 && isExpanded ? '▼' : dettagliRiga.length > 0 ? '▶' : '•'}</span>
-                                {viewMode === 'daily' ?
-                                format(parseISO(date), 'dd/MM/yyyy') :
-                                viewMode === 'weekly' ?
-                                `${format(parseISO(date), 'dd/MM/yyyy')}` :
-                                format(parseISO(date + '-01'), 'MMMM yyyy', { locale: it })
+                        return (
+                          <React.Fragment key={rowKey}>
+                            <tr className="border-b border-slate-100 hover:bg-slate-50">
+                              <td className="py-3 px-4 text-sm text-slate-600">
+                                <button
+                                  onClick={() => setExpandedConsumiTeoriciDettagli((prev) => ({ ...prev, [rowKey]: !prev[rowKey] }))}
+                                  className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
+                                  <span className="text-xs">{dettagliRiga.length > 0 && isExpanded ? '▼' : dettagliRiga.length > 0 ? '▶' : '•'}</span>
+                                  {viewMode === 'daily' ?
+                                  format(parseISO(date), 'dd/MM/yyyy') :
+                                  viewMode === 'weekly' ?
+                                  `${format(parseISO(date), 'dd/MM/yyyy')}` :
+                                  format(parseISO(date + '-01'), 'MMMM yyyy', { locale: it })
+                                  }
+                                </button>
+                              </td>
+                              <td className="py-3 px-4 text-sm text-slate-700 font-medium">{prod.nome}</td>
+                              <td className="py-3 px-4 text-sm text-blue-600 text-right font-bold">
+                                {prod.quantita.toFixed(2)}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-slate-500">{prod.unita_misura}</td>
+                              <td className="py-3 px-4 text-sm text-slate-500">
+                                {prod.peso_dimensione_unita && prod.unita_misura_peso ?
+                                `${prod.peso_dimensione_unita} ${prod.unita_misura_peso}` :
+                                '-'
                                 }
-                              </button>
-                            </td>
+                              </td>
+                            </tr>
+                            {isExpanded && dettagliRiga.length > 0 &&
+                              <tr className="bg-slate-50 border-b border-slate-100">
+                                <td colSpan="5" className="p-4">
+                                  <div className="ml-6">
+                                    <p className="font-bold text-slate-700 mb-3">📋 Dettaglio Calcolo:</p>
+                                    <div className="space-y-2">
+                                      {dettagliRiga.map((item, idx) => (
+                                        <div key={idx} className="flex items-center justify-between text-sm text-slate-600 bg-white p-2 rounded border border-slate-200">
+                                          <div className="flex-1">
+                                            <span className="font-medium text-slate-800">{item.nomeProdotto}</span>
+                                            <span className="text-slate-500"> × </span>
+                                            <span className="font-medium text-blue-600">{item.quantitaVenduta}</span>
+                                            <span className="text-slate-500"> pezzi × </span>
+                                            <span className="text-orange-600">{item.ingredientePerUnita.toFixed(2)} {item.unitaMisura}/pezzo</span>
+                                          </div>
+                                          <div className="font-bold text-orange-700 ml-4">
+                                            = {item.consumoTotale.toFixed(2)} {item.unitaMisura}
+                                          </div>
+                                        </div>
+                                      ))}
+                                      <div className="border-t border-slate-300 mt-2 pt-2 flex justify-between font-bold text-slate-800 bg-white p-2 rounded">
+                                        <span>TOTALE:</span>
+                                        <span className="text-orange-700">{prod.quantita.toFixed(2)} {prod.unita_misura}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            }
+                          </React.Fragment>
+                        );
+                      });
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-slate-300">
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Materia Prima</th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">
+                        Media Giornaliera
+                        <div className="text-xs font-normal text-slate-500">
+                          ({Object.keys(consumiTeoriciPerGiorno).length} giorni)
+                        </div>
+                      </th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">
+                        Media Settimanale
+                        <div className="text-xs font-normal text-slate-500">
+                          ({mediaConsumi[Object.keys(mediaConsumi)[0]]?.totaleWeeks || 0} settimane)
+                        </div>
+                      </th>
+                      <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">
+                        Media Mensile
+                        <div className="text-xs font-normal text-slate-500">
+                          ({mediaConsumi[Object.keys(mediaConsumi)[0]]?.totaleMonths || 0} mesi)
+                        </div>
+                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">UM</th>
+                      <th className="text-left py-3 px-4 text-sm font-semibold text-slate-700">Confezione/Pezzo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.keys(mediaConsumi)
+                      .sort((a, b) => mediaConsumi[b].mediaGiornaliera - mediaConsumi[a].mediaGiornaliera)
+                      .map((prodId) => {
+                        const prod = mediaConsumi[prodId];
+
+                        return (
+                          <tr key={prodId} className="border-b border-slate-100 hover:bg-slate-50">
                             <td className="py-3 px-4 text-sm text-slate-700 font-medium">{prod.nome}</td>
                             <td className="py-3 px-4 text-sm text-blue-600 text-right font-bold">
-                              {prod.quantita.toFixed(2)}
+                              {prod.mediaGiornaliera.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-purple-600 text-right font-bold">
+                              {prod.mediaSettimanale.toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-green-600 text-right font-bold">
+                              {prod.mediaMensile.toFixed(2)}
                             </td>
                             <td className="py-3 px-4 text-sm text-slate-500">{prod.unita_misura}</td>
                             <td className="py-3 px-4 text-sm text-slate-500">
@@ -1526,48 +1694,19 @@ export default function ControlloConsumi() {
                               }
                             </td>
                           </tr>
-                          {isExpanded && dettagliRiga.length > 0 &&
-                            <tr className="bg-slate-50 border-b border-slate-100">
-                              <td colSpan="5" className="p-4">
-                                <div className="ml-6">
-                                  <p className="font-bold text-slate-700 mb-3">📋 Dettaglio Calcolo:</p>
-                                  <div className="space-y-2">
-                                    {dettagliRiga.map((item, idx) => (
-                                      <div key={idx} className="flex items-center justify-between text-sm text-slate-600 bg-white p-2 rounded border border-slate-200">
-                                        <div className="flex-1">
-                                          <span className="font-medium text-slate-800">{item.nomeProdotto}</span>
-                                          <span className="text-slate-500"> × </span>
-                                          <span className="font-medium text-blue-600">{item.quantitaVenduta}</span>
-                                          <span className="text-slate-500"> pezzi × </span>
-                                          <span className="text-orange-600">{item.ingredientePerUnita.toFixed(2)} {item.unitaMisura}/pezzo</span>
-                                        </div>
-                                        <div className="font-bold text-orange-700 ml-4">
-                                          = {item.consumoTotale.toFixed(2)} {item.unitaMisura}
-                                        </div>
-                                      </div>
-                                    ))}
-                                    <div className="border-t border-slate-300 mt-2 pt-2 flex justify-between font-bold text-slate-800 bg-white p-2 rounded">
-                                      <span>TOTALE:</span>
-                                      <span className="text-orange-700">{prod.quantita.toFixed(2)} {prod.unita_misura}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          }
-                        </React.Fragment>
-                      );
-                    });
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-            {datesConsumiSorted.length === 0 &&
-            <div className="text-center py-8 text-slate-500">
+            {(consumiTeoriciViewMode === 'dettaglio' && datesConsumiSorted.length === 0) || 
+             (consumiTeoriciViewMode === 'media' && Object.keys(mediaConsumi).length === 0) ? (
+              <div className="text-center py-8 text-slate-500">
                 Nessun dato disponibile per il periodo selezionato
               </div>
-            }
+            ) : null}
             </NeumorphicCard>
           </>
         }
