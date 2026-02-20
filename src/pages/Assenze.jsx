@@ -97,8 +97,12 @@ export default function Assenze() {
   const [expandedSections, setExpandedSections] = useState({
     ferie_attesa: true,
     ferie_approvate: false,
-    ferie_rifiutate: false
+    ferie_rifiutate: false,
+    malattia_certificate: false,
+    malattia_non_certificate: false,
+    malattia_rifiutate: false
   });
+  const [selectedDipendente, setSelectedDipendente] = useState('all');
   const queryClient = useQueryClient();
 
   // Richieste turni liberi
@@ -389,14 +393,46 @@ export default function Assenze() {
     }
   };
 
-  const ferieInAttesa = richiesteFerie.filter((r) => r.stato === 'in_attesa').length;
-  const malattiaInAttesa = richiesteMalattia.filter((r) =>
+  // Get unique dipendenti from all requests
+  const allDipendenti = React.useMemo(() => {
+    const dipendentiSet = new Set();
+    richiesteFerie.forEach(r => dipendentiSet.add(JSON.stringify({ id: r.dipendente_id, nome: r.dipendente_nome })));
+    richiesteMalattia.forEach(r => dipendentiSet.add(JSON.stringify({ id: r.dipendente_id, nome: r.dipendente_nome })));
+    turniConScambio.forEach(t => {
+      if (t.richiesta_scambio?.richiesto_da_id) {
+        dipendentiSet.add(JSON.stringify({ id: t.richiesta_scambio.richiesto_da_id, nome: t.richiesta_scambio.richiesto_da_nome }));
+      }
+      if (t.richiesta_scambio?.richiesto_a_id) {
+        dipendentiSet.add(JSON.stringify({ id: t.richiesta_scambio.richiesto_a_id, nome: t.richiesta_scambio.richiesto_a_nome }));
+      }
+    });
+    return Array.from(dipendentiSet).map(s => JSON.parse(s)).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [richiesteFerie, richiesteMalattia, turniConScambio]);
+
+  // Filtered requests based on selected dipendente
+  const filteredFerie = selectedDipendente === 'all' 
+    ? richiesteFerie 
+    : richiesteFerie.filter(r => r.dipendente_id === selectedDipendente);
+  
+  const filteredMalattia = selectedDipendente === 'all'
+    ? richiesteMalattia
+    : richiesteMalattia.filter(r => r.dipendente_id === selectedDipendente);
+  
+  const filteredScambi = selectedDipendente === 'all'
+    ? turniConScambio
+    : turniConScambio.filter(t => 
+        t.richiesta_scambio?.richiesto_da_id === selectedDipendente || 
+        t.richiesta_scambio?.richiesto_a_id === selectedDipendente
+      );
+
+  const ferieInAttesa = filteredFerie.filter((r) => r.stato === 'in_attesa').length;
+  const malattiaInAttesa = filteredMalattia.filter((r) =>
   (r.stato === 'non_certificata' || r.stato === 'in_attesa_verifica') &&
   Array.isArray(r.turni_coinvolti) &&
   r.turni_coinvolti.length > 0
   ).length;
-  const scambiInAttesa = turniConScambio.filter((t) => t.richiesta_scambio?.stato === 'accepted').length;
-  const scambiPending = turniConScambio.filter((t) => t.richiesta_scambio?.stato === 'pending').length;
+  const scambiInAttesa = filteredScambi.filter((t) => t.richiesta_scambio?.stato === 'accepted').length;
+  const scambiPending = filteredScambi.filter((t) => t.richiesta_scambio?.stato === 'pending').length;
   const turniLiberiInAttesa = richiesteTurniLiberi.filter((r) => r.stato === 'in_attesa').length;
 
   return (
@@ -435,6 +471,24 @@ export default function Assenze() {
             <p className="text-xs text-slate-500">Scambi da Approvare</p>
           </NeumorphicCard>
         </div>
+
+        {/* Filtro Dipendente */}
+        {allDipendenti.length > 0 && (
+          <NeumorphicCard className="p-4">
+            <div className="flex items-center gap-3">
+              <Users className="w-5 h-5 text-slate-600" />
+              <select
+                value={selectedDipendente}
+                onChange={(e) => setSelectedDipendente(e.target.value)}
+                className="flex-1 bg-transparent text-slate-700 outline-none font-medium">
+                <option value="all">Tutti i Dipendenti</option>
+                {allDipendenti.map((dip) => (
+                  <option key={dip.id} value={dip.id}>{dip.nome}</option>
+                ))}
+              </select>
+            </div>
+          </NeumorphicCard>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2">
@@ -493,12 +547,12 @@ export default function Assenze() {
         <div className="text-center py-8">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto" />
               </div> :
-        richiesteFerie.length === 0 ?
+        filteredFerie.length === 0 ?
         <p className="text-slate-500 text-center py-8">Nessuna richiesta di ferie</p> :
 
         <div className="space-y-4">
                 {/* In Attesa */}
-                {richiesteFerie.filter((r) => r.stato === 'in_attesa').length > 0 &&
+                {filteredFerie.filter((r) => r.stato === 'in_attesa').length > 0 &&
           <div>
                     <button
               onClick={() => setExpandedSections((prev) => ({ ...prev, ferie_attesa: !prev.ferie_attesa }))}
@@ -508,7 +562,7 @@ export default function Assenze() {
                         <Clock className="w-5 h-5 text-yellow-600" />
                         <span className="font-bold text-slate-800">In Attesa</span>
                         <span className="bg-yellow-200 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                          {richiesteFerie.filter((r) => r.stato === 'in_attesa').length}
+                          {filteredFerie.filter((r) => r.stato === 'in_attesa').length}
                         </span>
                       </div>
                       {expandedSections.ferie_attesa ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -516,7 +570,7 @@ export default function Assenze() {
 
                     {expandedSections.ferie_attesa &&
             <div className="space-y-3 ml-4">
-                        {richiesteFerie.filter((r) => r.stato === 'in_attesa').map((request) =>
+                        {filteredFerie.filter((r) => r.stato === 'in_attesa').map((request) =>
               <div key={request.id} className="neumorphic-pressed p-4 rounded-xl">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
@@ -558,7 +612,7 @@ export default function Assenze() {
           }
 
                 {/* Confermate */}
-                {richiesteFerie.filter((r) => r.stato === 'approvata').length > 0 &&
+                {filteredFerie.filter((r) => r.stato === 'approvata').length > 0 &&
           <div>
                     <button
               onClick={() => setExpandedSections((prev) => ({ ...prev, ferie_approvate: !prev.ferie_approvate }))}
