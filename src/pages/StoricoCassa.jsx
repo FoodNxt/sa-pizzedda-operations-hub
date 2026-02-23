@@ -141,8 +141,9 @@ export default function StoricoCassa() {
       // Recupera i dati aggiornati dalla cache
       const currentPrelievi = queryClient.getQueryData(['prelievi']) || [];
       const currentDepositi = queryClient.getQueryData(['depositi']) || [];
+      const currentPagamentiStraordinari = queryClient.getQueryData(['pagamenti-straordinari']) || [];
       
-      // Calcola il saldo attuale
+      // Calcola il saldo attuale (esclusi aggiustamenti manuali precedenti)
       let prelievi = 0;
       let depositi = 0;
       let pagamentiStraordinari = 0;
@@ -157,22 +158,42 @@ export default function StoricoCassa() {
         if (d.rilevato_da === dipendente) {
           if (d.store_id === 'pagamento_straordinario') {
             pagamentiStraordinari += d.importo || 0;
-          } else if (d.store_id !== 'manual_adjustment') {
+          } else {
+            // Includi TUTTI i depositi (anche manual_adjustment) nel calcolo attuale
             depositi += d.importo || 0;
           }
         }
       });
       
+      // Aggiungi pagamenti straordinari dall'entità dedicata (se non già presenti come depositi)
+      currentPagamentiStraordinari.filter(p => p.pagato && p.pagato_da === dipendente).forEach((pagamento) => {
+        const depositoEsistente = currentDepositi.find(d => 
+          d.store_id === 'pagamento_straordinario' &&
+          d.rilevato_da === dipendente &&
+          Math.abs(d.importo - pagamento.importo_totale) < 0.01 &&
+          Math.abs(new Date(d.data_deposito) - new Date(pagamento.data_pagamento)) < 60000
+        );
+        
+        if (!depositoEsistente) {
+          pagamentiStraordinari += pagamento.importo_totale || 0;
+        }
+      });
+      
       const saldoAttuale = prelievi - depositi - pagamentiStraordinari;
-      const differenza = nuovoSaldo - saldoAttuale;
       
-      console.log('Impostazione saldo:', { dipendente, saldoAttuale, nuovoSaldo, differenza });
+      console.log('Impostazione saldo:', { 
+        dipendente, 
+        prelievi, 
+        depositi, 
+        pagamentiStraordinari, 
+        saldoAttuale, 
+        nuovoSaldo 
+      });
       
-      // Crea un deposito di aggiustamento per portare il saldo al valore desiderato
-      // Formula: saldo = prelievi - depositi - pagamentiStraordinari
-      // Per portare il saldo da saldoAttuale a nuovoSaldo:
-      // nuovoSaldo = prelievi - (depositi + aggiustamento) - pagamentiStraordinari
-      // aggiustamento = prelievi - depositi - pagamentiStraordinari - nuovoSaldo = saldoAttuale - nuovoSaldo
+      // Crea un deposito di aggiustamento per portare il saldo ESATTAMENTE a nuovoSaldo
+      // Formula: saldoFinale = prelievi - (depositi + aggiustamento) - pagamentiStraordinari
+      // Vogliamo: nuovoSaldo = prelievi - (depositi + aggiustamento) - pagamentiStraordinari
+      // Quindi: aggiustamento = prelievi - depositi - pagamentiStraordinari - nuovoSaldo
       const aggiustamento = saldoAttuale - nuovoSaldo;
       
       const result = await base44.entities.Deposito.create({
@@ -182,7 +203,7 @@ export default function StoricoCassa() {
         importo: aggiustamento,
         banca: 'BPM',
         data_deposito: new Date().toISOString(),
-        note: `Impostazione saldo manuale a €${nuovoSaldo.toFixed(2)} (da €${saldoAttuale.toFixed(2)})`,
+        note: `Saldo impostato a €${nuovoSaldo.toFixed(2)} (da €${saldoAttuale.toFixed(2)}, aggiustamento: ${aggiustamento >= 0 ? '+' : ''}€${aggiustamento.toFixed(2)})`,
         impostato_da: currentUser?.email || ''
       });
       
