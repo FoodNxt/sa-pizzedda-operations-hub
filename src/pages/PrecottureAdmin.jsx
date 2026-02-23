@@ -96,7 +96,7 @@ export default function PrecottureAdmin() {
         }
       });
     },
-    enabled: activeTab === 'teglie-vendute' || activeTab === 'configurazione' || activeTab === 'delta-teglie'
+    enabled: activeTab === 'teglie-vendute' || activeTab === 'configurazione' || activeTab === 'delta-teglie' || activeTab === 'revenue-teglia'
   });
 
   // Prodotti venduti per Delta (con range personalizzato)
@@ -133,16 +133,7 @@ export default function PrecottureAdmin() {
 
   const { data: iPratico = [] } = useQuery({
     queryKey: ['ipratico-revenue'],
-    queryFn: () => {
-      const last100days = moment().subtract(100, 'days').format('YYYY-MM-DD');
-      const today = moment().format('YYYY-MM-DD');
-      return base44.entities.iPratico.filter({
-        data: {
-          $gte: last100days,
-          $lte: today
-        }
-      });
-    },
+    queryFn: () => base44.entities.iPratico.list('-data', 500),
     enabled: activeTab === 'revenue-teglia'
   });
 
