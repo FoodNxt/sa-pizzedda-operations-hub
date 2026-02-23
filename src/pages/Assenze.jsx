@@ -217,6 +217,8 @@ export default function Assenze() {
     queryFn: () => base44.auth.me()
   });
 
+  const isStoreManager = user?.user_type === 'manager';
+
   const updateFerieMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.RichiestaFerie.update(id, data),
     onSuccess: () => {
@@ -766,19 +768,20 @@ export default function Assenze() {
                       }
                                </div>
                              </div>
-                             <button
-                    onClick={() => {
-                      if (confirm('Eliminare questa richiesta di malattia?')) {
-                        updateMalattiaMutation.mutate({
-                          id: request.id,
-                          data: { stato: 'eliminata' }
-                        });
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1">
-
-                               <X className="w-3 h-3" /> Elimina
-                             </button>
+                             {!isStoreManager && (
+                               <button
+                                 onClick={() => {
+                                   if (confirm('Eliminare questa richiesta di malattia?')) {
+                                     updateMalattiaMutation.mutate({
+                                       id: request.id,
+                                       data: { stato: 'eliminata' }
+                                     });
+                                   }
+                                 }}
+                                 className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1">
+                                 <X className="w-3 h-3" /> Elimina
+                               </button>
+                             )}
                            </div>
                          </div>
               )}
@@ -833,48 +836,46 @@ export default function Assenze() {
                                </div>
                              </div>
 
-                             <div className="flex flex-col gap-2">
-                               {request.turni_coinvolti && request.turni_coinvolti.length > 0 &&
-                    <button
-                      onClick={() => {
-                        setChangingTipoTurno(request);
-                        setNewTipoTurno('');
-                      }}
-                      className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center gap-1">
-
-                                   <Edit className="w-3 h-3" /> Modifica Tipo
+                             {!isStoreManager && (
+                               <div className="flex flex-col gap-2">
+                                 {request.turni_coinvolti && request.turni_coinvolti.length > 0 && (
+                                   <button
+                                     onClick={() => {
+                                       setChangingTipoTurno(request);
+                                       setNewTipoTurno('');
+                                     }}
+                                     className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center gap-1">
+                                     <Edit className="w-3 h-3" /> Modifica Tipo
+                                   </button>
+                                 )}
+                                 {(request.stato === 'non_certificata' || request.stato === 'in_attesa_verifica') && request.certificato_url && (
+                                   <>
+                                     <button
+                                       onClick={() => handleVerifyMalattia(request, true)}
+                                       className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1">
+                                       <Check className="w-3 h-3" /> Certifica
+                                     </button>
+                                     <button
+                                       onClick={() => handleVerifyMalattia(request, false)}
+                                       className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1">
+                                       <X className="w-3 h-3" /> Rifiuta
+                                     </button>
+                                   </>
+                                 )}
+                                 <button
+                                   onClick={() => {
+                                     if (confirm('Eliminare questa richiesta di malattia?')) {
+                                       updateMalattiaMutation.mutate({
+                                         id: request.id,
+                                         data: { stato: 'eliminata' }
+                                       });
+                                     }
+                                   }}
+                                   className="px-3 py-1.5 bg-slate-500 text-white rounded-lg text-sm font-medium hover:bg-slate-600 flex items-center gap-1">
+                                   <X className="w-3 h-3" /> Elimina
                                  </button>
-                    }
-                               {(request.stato === 'non_certificata' || request.stato === 'in_attesa_verifica') && request.certificato_url &&
-                    <>
-                                   <button
-                        onClick={() => handleVerifyMalattia(request, true)}
-                        className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1">
-
-                                     <Check className="w-3 h-3" /> Certifica
-                                   </button>
-                                   <button
-                        onClick={() => handleVerifyMalattia(request, false)}
-                        className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1">
-
-                                     <X className="w-3 h-3" /> Rifiuta
-                                   </button>
-                                 </>
-                    }
-                               <button
-                      onClick={() => {
-                        if (confirm('Eliminare questa richiesta di malattia?')) {
-                          updateMalattiaMutation.mutate({
-                            id: request.id,
-                            data: { stato: 'eliminata' }
-                          });
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-slate-500 text-white rounded-lg text-sm font-medium hover:bg-slate-600 flex items-center gap-1">
-
-                                 <X className="w-3 h-3" /> Elimina
-                               </button>
-                             </div>
+                               </div>
+                             )}
                            </div>
                          </div>
               )}
