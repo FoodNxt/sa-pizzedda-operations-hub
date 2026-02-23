@@ -13,14 +13,20 @@ export default function RevenueTeglia({ stores, iPratico, prodottiVenduti, tegli
   const analysis = useMemo(() => {
     // Filtra iPratico per periodo e filtri
     const filteredIPratico = iPratico.filter(i => {
-      if (i.data < revenueStartDate || i.data > revenueEndDate) return false;
+      if (!i.order_date) return false;
+      if (i.order_date < revenueStartDate || i.order_date > revenueEndDate) return false;
       if (revenueSelectedStore && i.store_id !== revenueSelectedStore) return false;
-      if (revenueSelectedApp && i.app !== revenueSelectedApp) return false;
+      if (revenueSelectedApp) {
+        // Check across all sourceApp fields
+        const appRevenue = (i[`sourceApp_${revenueSelectedApp.toLowerCase()}`] || 0);
+        if (appRevenue === 0) return false;
+      }
       return true;
     });
 
     // Filtra prodotti venduti per periodo e calcola teglie
     const filteredProdottiVenduti = prodottiVenduti.filter(p => {
+      if (!p.data_vendita) return false;
       if (p.data_vendita < revenueStartDate || p.data_vendita > revenueEndDate) return false;
       if (revenueSelectedStore && p.store_id !== revenueSelectedStore) return false;
       if (!teglieConfig.categorie.includes(p.category)) return false;
@@ -33,7 +39,7 @@ export default function RevenueTeglia({ stores, iPratico, prodottiVenduti, tegli
     }, 0) / teglieConfig.unita_per_teglia;
 
     // Calcola revenue totale
-    const revenueTotale = filteredIPratico.reduce((sum, i) => sum + (i.revenue || 0), 0);
+    const revenueTotale = filteredIPratico.reduce((sum, i) => sum + (i.total_revenue || 0), 0);
 
     // Revenue per teglia
     const revenuePerTeglia = teglieTotali > 0 ? revenueTotale / teglieTotali : 0;
@@ -44,7 +50,7 @@ export default function RevenueTeglia({ stores, iPratico, prodottiVenduti, tegli
       if (!revenueByStore[i.store_id]) {
         revenueByStore[i.store_id] = { revenue: 0, store_name: i.store_name };
       }
-      revenueByStore[i.store_id].revenue += i.revenue || 0;
+      revenueByStore[i.store_id].revenue += i.total_revenue || 0;
     });
 
     const teglieByStore = {};
@@ -64,14 +70,27 @@ export default function RevenueTeglia({ stores, iPratico, prodottiVenduti, tegli
         revenueByStore[storeId].revenue / teglieByStore[storeId].teglie : 0
     })).sort((a, b) => b.revenuePerTeglia - a.revenuePerTeglia);
 
-    // Breakdown per app
+    // Breakdown per app - somma da tutti i campi sourceApp
     const revenueByApp = {};
     filteredIPratico.forEach(i => {
-      const app = i.app || 'Altro';
-      if (!revenueByApp[app]) {
-        revenueByApp[app] = 0;
-      }
-      revenueByApp[app] += i.revenue || 0;
+      const apps = [
+        { key: 'Glovo', revenue: i.sourceApp_glovo || 0 },
+        { key: 'Deliveroo', revenue: i.sourceApp_deliveroo || 0 },
+        { key: 'JustEat', revenue: i.sourceApp_justeat || 0 },
+        { key: 'OnlineOrdering', revenue: i.sourceApp_onlineordering || 0 },
+        { key: 'OrderTable', revenue: i.sourceApp_ordertable || 0 },
+        { key: 'Tabesto', revenue: i.sourceApp_tabesto || 0 },
+        { key: 'Store', revenue: i.sourceApp_store || 0 }
+      ];
+      
+      apps.forEach(app => {
+        if (app.revenue > 0) {
+          if (!revenueByApp[app.key]) {
+            revenueByApp[app.key] = 0;
+          }
+          revenueByApp[app.key] += app.revenue;
+        }
+      });
     });
 
     const appBreakdown = Object.entries(revenueByApp).map(([app, revenue]) => ({
@@ -83,10 +102,12 @@ export default function RevenueTeglia({ stores, iPratico, prodottiVenduti, tegli
     // Trend temporale
     const dailyRevenue = {};
     filteredIPratico.forEach(i => {
-      if (!dailyRevenue[i.data]) {
-        dailyRevenue[i.data] = 0;
+      const date = i.order_date;
+      if (!date) return;
+      if (!dailyRevenue[date]) {
+        dailyRevenue[date] = 0;
       }
-      dailyRevenue[i.data] += i.revenue || 0;
+      dailyRevenue[date] += i.total_revenue || 0;
     });
 
     const dailyTeglie = {};
@@ -97,11 +118,13 @@ export default function RevenueTeglia({ stores, iPratico, prodottiVenduti, tegli
       dailyTeglie[p.data_vendita] += (p.total_pizzas_sold || 0) / teglieConfig.unita_per_teglia;
     });
 
-    const trendData = Object.keys(dailyRevenue).map(date => ({
+    // Crea lista di tutte le date nel range per avere dati completi
+    const allDates = new Set([...Object.keys(dailyRevenue), ...Object.keys(dailyTeglie)]);
+    const trendData = Array.from(allDates).map(date => ({
       date,
-      revenue: dailyRevenue[date],
+      revenue: dailyRevenue[date] || 0,
       teglie: dailyTeglie[date] || 0,
-      revenuePerTeglia: (dailyTeglie[date] || 0) > 0 ? dailyRevenue[date] / dailyTeglie[date] : 0
+      revenuePerTeglia: (dailyTeglie[date] || 0) > 0 ? (dailyRevenue[date] || 0) / dailyTeglie[date] : 0
     })).sort((a, b) => a.date.localeCompare(b.date));
 
     return {
@@ -161,7 +184,7 @@ export default function RevenueTeglia({ stores, iPratico, prodottiVenduti, tegli
               className="w-full neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none"
             >
               <option value="">Tutte le app</option>
-              {Array.from(new Set(iPratico.map(i => i.app).filter(Boolean))).sort().map(app => (
+              {['Glovo', 'Deliveroo', 'JustEat', 'OnlineOrdering', 'OrderTable', 'Tabesto', 'Store'].map(app => (
                 <option key={app} value={app}>{app}</option>
               ))}
             </select>
