@@ -10,6 +10,7 @@ const sectionAdminPages = [
   { title: 'Materie Prime', page: 'MateriePrime', icon: Package, description: 'Catalogo materie prime' },
   { title: 'Confronto Listini', page: 'ConfrontoListini', icon: BarChart3, description: 'Confronta prezzi fornitori' },
   { title: 'Mapping Prodotti', page: 'MappingProdottiVenduti', icon: LinkIcon, description: 'Collega prodotti venduti e materie prime' },
+  { title: 'Impasto', page: 'StoricoImpasti', icon: ChefHat, description: 'Storico e configurazione impasti' },
   { title: 'Ordini Fornitori', page: 'OrdiniAdmin', icon: Truck, description: 'Gestione ordini' },
   { title: 'Controllo Consumi', page: 'ControlloConsumi', icon: TrendingUp, description: 'Analizza consumi vs vendite' }
 ];
