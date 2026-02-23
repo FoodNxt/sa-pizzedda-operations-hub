@@ -767,23 +767,9 @@ export default function Assenze() {
                                    </a>
                       }
                                </div>
-                             </div>
-                             {!isStoreManager && (
-                               <button
-                                 onClick={() => {
-                                   if (confirm('Eliminare questa richiesta di malattia?')) {
-                                     updateMalattiaMutation.mutate({
-                                       id: request.id,
-                                       data: { stato: 'eliminata' }
-                                     });
-                                   }
-                                 }}
-                                 className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1">
-                                 <X className="w-3 h-3" /> Elimina
-                               </button>
-                             )}
-                           </div>
-                         </div>
+                               </div>
+                               </div>
+                               </div>
               )}
                      </div>
                      )}
