@@ -32,6 +32,7 @@ export default function PagamentoStraordinari() {
   const [editingDefaultRate, setEditingDefaultRate] = useState(false);
   const [showCostiForm, setShowCostiForm] = useState(false);
   const [editingCostoId, setEditingCostoId] = useState(null);
+  const [chartView, setChartView] = useState('weekly'); // 'daily', 'weekly', 'monthly'
   const [costoFormData, setCostoFormData] = useState({
     dipendente_id: '',
     dipendente_nome: '',
@@ -322,29 +323,43 @@ export default function PagamentoStraordinari() {
 
   // Chart data for overtime paid vs to pay over time
   const chartData = useMemo(() => {
-    const dataByDate = {};
+    const dataByPeriod = {};
     
     allStraordinari.forEach((s) => {
       const dateStr = s.data_turno;
       if (!dateStr) return;
       
-      if (!dataByDate[dateStr]) {
-        dataByDate[dateStr] = { date: format(parseISO(dateStr), 'dd/MM', { locale: it }), pagati: 0, daPagare: 0 };
+      const date = parseISO(dateStr);
+      let periodKey, periodLabel;
+      
+      if (chartView === 'daily') {
+        periodKey = dateStr;
+        periodLabel = format(date, 'dd/MM', { locale: it });
+      } else if (chartView === 'weekly') {
+        // Calculate week number and year
+        const weekNum = Math.floor((date - new Date(date.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000)) + 1;
+        periodKey = `${date.getFullYear()}-W${weekNum}`;
+        periodLabel = `Sett. ${weekNum}`;
+      } else { // monthly
+        periodKey = format(date, 'yyyy-MM', { locale: it });
+        periodLabel = format(date, 'MMM yyyy', { locale: it });
+      }
+      
+      if (!dataByPeriod[periodKey]) {
+        dataByPeriod[periodKey] = { period: periodLabel, pagati: 0, daPagare: 0 };
       }
       
       if (s.pagato) {
-        dataByDate[dateStr].pagati += s.importo_totale || 0;
+        dataByPeriod[periodKey].pagati += s.importo_totale || 0;
       } else {
-        dataByDate[dateStr].daPagare += s.importo_totale || 0;
+        dataByPeriod[periodKey].daPagare += s.importo_totale || 0;
       }
     });
     
-    return Object.values(dataByDate).sort((a, b) => {
-      const dateA = new Date(Object.keys(dataByDate).find(k => dataByDate[k].date === a.date));
-      const dateB = new Date(Object.keys(dataByDate).find(k => dataByDate[k].date === b.date));
-      return dateA - dateB;
-    });
-  }, [allStraordinari]);
+    return Object.entries(dataByPeriod)
+      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+      .map(([, value]) => value);
+  }, [allStraordinari, chartView]);
 
   const handleEffettuaPagamento = async (straordinario) => {
     if (!confirm(`Confermare il pagamento di €${straordinario.importo_totale.toFixed(2)} a ${straordinario.dipendente_nome}?`)) {
@@ -605,14 +620,39 @@ export default function PagamentoStraordinari() {
         {/* Chart */}
         {chartData.length > 0 && (
           <NeumorphicCard className="p-4 lg:p-6">
-            <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-blue-600" />
-              Andamento Straordinari
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base lg:text-lg font-bold text-slate-800 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-blue-600" />
+                Andamento Straordinari
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setChartView('daily')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    chartView === 'daily' ? 'bg-blue-500 text-white' : 'neumorphic-flat text-slate-600 hover:bg-slate-100'
+                  }`}>
+                  Giornaliero
+                </button>
+                <button
+                  onClick={() => setChartView('weekly')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    chartView === 'weekly' ? 'bg-blue-500 text-white' : 'neumorphic-flat text-slate-600 hover:bg-slate-100'
+                  }`}>
+                  Settimanale
+                </button>
+                <button
+                  onClick={() => setChartView('monthly')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    chartView === 'monthly' ? 'bg-blue-500 text-white' : 'neumorphic-flat text-slate-600 hover:bg-slate-100'
+                  }`}>
+                  Mensile
+                </button>
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
+                <XAxis dataKey="period" />
                 <YAxis />
                 <Tooltip formatter={(value) => `€${value.toFixed(2)}`} />
                 <Legend />
