@@ -591,20 +591,20 @@ export default function Assenze() {
                                 </div>
                               </div>
 
-                              <div className="flex flex-col gap-2">
-                                <button
-                      onClick={() => {setSelectedRequest(request);setApprovalMode('select');}}
-                      className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1">
-
-                                  <Check className="w-3 h-3" /> Approva
-                                </button>
-                                <button
-                      onClick={() => handleRejectFerie(request)}
-                      className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1">
-
-                                  <X className="w-3 h-3" /> Rifiuta
-                                </button>
-                              </div>
+                              {!isStoreManager && (
+                                <div className="flex flex-col gap-2">
+                                  <button
+                                    onClick={() => {setSelectedRequest(request);setApprovalMode('select');}}
+                                    className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1">
+                                    <Check className="w-3 h-3" /> Approva
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectFerie(request)}
+                                    className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1">
+                                    <X className="w-3 h-3" /> Rifiuta
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
               )}
