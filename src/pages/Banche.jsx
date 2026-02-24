@@ -24,6 +24,8 @@ export default function Banche() {
   const [expandedSpendingSubcategories, setExpandedSpendingSubcategories] = useState({});
   const [newSubcategoryInput, setNewSubcategoryInput] = useState('');
   const [editingSubcategoryInput, setEditingSubcategoryInput] = useState('');
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [editingCategoryInput, setEditingCategoryInput] = useState('');
   const [incomeView, setIncomeView] = useState('category'); // category, subcategory
   const [incomeDateRange, setIncomeDateRange] = useState('currentMonth');
   const [uncategorizedExpanded, setUncategorizedExpanded] = useState(false);
@@ -1204,16 +1206,47 @@ export default function Banche() {
                   value={newRule.pattern}
                   onChange={(e) => setNewRule({ ...newRule, pattern: e.target.value })}
                 />
-                <Select value={newRule.category} onValueChange={(v) => setNewRule({ ...newRule, category: v, subcategory: '' })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Categoria..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  {!newCategoryInput ? (
+                    <>
+                      <Select value={newRule.category} onValueChange={(v) => setNewRule({ ...newRule, category: v, subcategory: '' })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Categoria..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <button
+                        onClick={() => setNewCategoryInput('input')}
+                        className="px-2 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+                        title="Crea nuova categoria"
+                      >
+                        +
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Input
+                        placeholder="Nuova categoria..."
+                        value={newRule.category}
+                        onChange={(e) => setNewRule({ ...newRule, category: e.target.value, subcategory: '' })}
+                        className="flex-1"
+                      />
+                      <button
+                        onClick={() => {
+                          setNewCategoryInput('');
+                        }}
+                        className="px-2 py-1 bg-slate-400 text-white rounded-lg text-sm hover:bg-slate-500"
+                        title="Annulla"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
                 <div className="flex gap-2">
                   {!newSubcategoryInput ? (
                     <>
@@ -1319,16 +1352,47 @@ export default function Banche() {
                               onChange={(e) => setEditingRule({ ...editingRule, pattern: e.target.value })}
                               placeholder="Pattern"
                             />
-                            <Select value={editingRule.category} onValueChange={(v) => setEditingRule({ ...editingRule, category: v, subcategory: '' })}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {categories.map((cat) => (
-                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <div className="flex gap-2">
+                              {!editingCategoryInput ? (
+                                <>
+                                  <Select value={editingRule.category} onValueChange={(v) => setEditingRule({ ...editingRule, category: v, subcategory: '' })}>
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {categories.map((cat) => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <button
+                                    onClick={() => setEditingCategoryInput('input')}
+                                    className="px-2 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+                                    title="Crea nuova categoria"
+                                  >
+                                    +
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <Input
+                                    placeholder="Nuova categoria..."
+                                    value={editingRule.category}
+                                    onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value, subcategory: '' })}
+                                    className="flex-1"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      setEditingCategoryInput('');
+                                    }}
+                                    className="px-2 py-1 bg-slate-400 text-white rounded-lg text-sm hover:bg-slate-500"
+                                    title="Annulla"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                             <div className="flex gap-2">
                               {!editingSubcategoryInput ? (
                                 <>
