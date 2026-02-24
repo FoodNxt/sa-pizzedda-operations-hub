@@ -3,10 +3,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user || user.user_type !== 'admin') {
-      return Response.json({ error: 'Unauthorized' }, { status: 403 });
+    
+    // Check if called by automation (no user context) or by admin user
+    const isAuthenticated = await base44.auth.isAuthenticated();
+    
+    if (isAuthenticated) {
+      const user = await base44.auth.me();
+      if (!user || user.user_type !== 'admin') {
+        return Response.json({ error: 'Unauthorized' }, { status: 403 });
+      }
     }
 
     // Fetch all rules (sorted by priority)
@@ -78,8 +83,8 @@ Deno.serve(async (req) => {
     
     // Log error
     try {
-      const base44 = createClientFromRequest(req);
-      await base44.asServiceRole.entities.BankImportLog.create({
+      const errorBase44 = createClientFromRequest(req);
+      await errorBase44.asServiceRole.entities.BankImportLog.create({
         action_type: 'matching',
         timestamp: new Date().toISOString(),
         status: 'error',
