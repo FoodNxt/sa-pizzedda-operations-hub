@@ -16,6 +16,7 @@ export default function Sconti() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [channelFilter, setChannelFilter] = useState('all');
+  const [isImporting, setIsImporting] = useState(false);
 
   const { data: sconti = [], isLoading, refetch: refetchSconti } = useQuery({
     queryKey: ['sconti'],
@@ -414,13 +415,24 @@ export default function Sconti() {
               </div>
             )}
             <NeumorphicButton 
-              onClick={() => {
-                refetchSconti();
-                queryClient.invalidateQueries(['sconti-import-logs']);
+              onClick={async () => {
+                setIsImporting(true);
+                try {
+                  await base44.functions.invoke('importScontiFromGoogleSheets');
+                  await refetchSconti();
+                  await queryClient.invalidateQueries(['sconti-import-logs']);
+                  await queryClient.refetchQueries(['sconti-import-logs']);
+                } catch (error) {
+                  console.error('Import error:', error);
+                  alert('Errore durante l\'import');
+                } finally {
+                  setIsImporting(false);
+                }
               }}
+              disabled={isImporting}
               className="px-4 py-2"
             >
-              Aggiorna
+              {isImporting ? 'Importazione...' : 'Importa Ora'}
             </NeumorphicButton>
           </div>
         </div>
