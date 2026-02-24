@@ -118,6 +118,17 @@ Deno.serve(async (req) => {
         avgByDayOfWeek[dayOfWeek] = avg;
       });
       
+      // Calculate total seasonality weight
+      let totalSeasonalityWeight = 0;
+      for (let i = 0; i < totalDays; i++) {
+        const currentDate = new Date(periodStart);
+        currentDate.setDate(periodStart.getDate() + i);
+        const dayOfWeek = currentDate.getDay();
+        totalSeasonalityWeight += avgByDayOfWeek[dayOfWeek] || 0;
+      }
+      
+      const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+      
       // Calculate growth rate
       let dailyGrowthRate = 0;
       if (target.growth_rate_period_days > 0) {
@@ -145,11 +156,10 @@ Deno.serve(async (req) => {
         }
       }
       
-      // Freeze predictions for past days
+      // Freeze predictions and required values for past days
       const dailyPredictions = target.daily_predictions || {};
+      const dailyRequired = target.daily_required || {};
       let hasNewFrozenDays = false;
-      
-      const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
       
       for (let i = 0; i < totalDays; i++) {
         const currentDate = new Date(periodStart);
@@ -158,12 +168,21 @@ Deno.serve(async (req) => {
         if (currentDate <= today) {
           const dateStr = currentDate.toISOString().split('T')[0];
           
-          // Only freeze if not already frozen
+          // Freeze prediction if not already frozen
           if (dailyPredictions[dateStr] === undefined) {
             const dayOfWeek = currentDate.getDay();
             const baseRevenue = avgByDayOfWeek[dayOfWeek] || 0;
             const growthAdjustment = dailyGrowthRate * i;
             dailyPredictions[dateStr] = baseRevenue + growthAdjustment;
+            hasNewFrozenDays = true;
+          }
+          
+          // Freeze required if not already frozen
+          if (dailyRequired[dateStr] === undefined) {
+            const dayOfWeek = currentDate.getDay();
+            const dayWeight = avgByDayOfWeek[dayOfWeek] || 0;
+            const requiredRevenue = totalSeasonalityWeight > 0 ? (target.target_revenue * (dayWeight / totalSeasonalityWeight)) : (target.target_revenue / totalDays);
+            dailyRequired[dateStr] = requiredRevenue;
             hasNewFrozenDays = true;
           }
         }
@@ -172,7 +191,8 @@ Deno.serve(async (req) => {
       // Update target if new days were frozen
       if (hasNewFrozenDays) {
         await base44.asServiceRole.entities.Target.update(target.id, {
-          daily_predictions: dailyPredictions
+          daily_predictions: dailyPredictions,
+          daily_required: dailyRequired
         });
         updatedCount++;
       }
