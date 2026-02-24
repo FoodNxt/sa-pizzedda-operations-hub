@@ -14,19 +14,36 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'GOOGLE_SHEET_SCONTI_ID not configured' }, { status: 500 });
     }
 
-    // Get access token
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
-
-    // Fetch sheet data
-    const range = 'Discount_calculation_daily!A:U'; // Covers all columns from order_date to moneyType_fidelity_card_points
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`,
+    // Fetch sheet data - since the sheet is public, try without auth first
+    const range = 'Discount_calculation_daily!A:U';
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=AIzaSyDummyKeyNotNeeded`;
+    
+    console.log('Attempting to fetch from URL:', url);
+    console.log('Sheet ID:', sheetId);
+    
+    // Try public access first (since user says it's a public link)
+    let response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`,
       {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json',
         },
       }
     );
+    
+    // If public access fails, try with auth token
+    if (!response.ok) {
+      console.log('Public access failed, trying with auth token...');
+      const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+      response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+    }
 
     if (!response.ok) {
       const error = await response.text();
