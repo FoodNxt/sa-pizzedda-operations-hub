@@ -62,6 +62,7 @@ import AssignReviews from './pages/AssignReviews';
 import AssistenteDipendente from './pages/AssistenteDipendente';
 import Attrezzature from './pages/Attrezzature';
 import Banche from './pages/Banche';
+import BigQueryAI from './pages/BigQueryAI';
 import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
 import BulkImportProduttivita from './pages/BulkImportProduttivita';
 import BulkImportSconti from './pages/BulkImportSconti';
@@ -182,7 +183,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import BigQueryAI from './pages/BigQueryAI';
 import __Layout from './Layout.jsx';
 
 
@@ -202,6 +202,7 @@ export const PAGES = {
     "AssistenteDipendente": AssistenteDipendente,
     "Attrezzature": Attrezzature,
     "Banche": Banche,
+    "BigQueryAI": BigQueryAI,
     "BulkImportProdottiVenduti": BulkImportProdottiVenduti,
     "BulkImportProduttivita": BulkImportProduttivita,
     "BulkImportSconti": BulkImportSconti,
@@ -322,7 +323,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "BigQueryAI": BigQueryAI,
 }
 
 export const pagesConfig = {

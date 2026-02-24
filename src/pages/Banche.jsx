@@ -208,21 +208,24 @@ export default function Banche() {
     if (!tx.madeOn) return acc;
     
     const date = new Date(tx.madeOn);
-    let key;
+    let key, sortKey;
 
     if (trendView === 'daily') {
        key = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+       sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
      } else if (trendView === 'weekly') {
        const weekStart = new Date(date);
        weekStart.setDate(date.getDate() - date.getDay());
        const weekDate = new Date(weekStart);
        key = `${String(weekDate.getDate()).padStart(2, '0')}/${String(weekDate.getMonth() + 1).padStart(2, '0')}`;
+       sortKey = `${weekDate.getFullYear()}-${String(weekDate.getMonth() + 1).padStart(2, '0')}-${String(weekDate.getDate()).padStart(2, '0')}`;
      } else if (trendView === 'monthly') {
        key = `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getFullYear()).slice(-2)}`;
+       sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
      }
     
     if (!acc[key]) {
-      acc[key] = { date: key, entrate: 0, uscite: 0 };
+      acc[key] = { date: key, sortKey, entrate: 0, uscite: 0 };
     }
     
     if (tx.amount > 0) {
@@ -234,7 +237,7 @@ export default function Banche() {
     return acc;
   }, {});
 
-  const trendChartData = Object.values(trendData).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const trendChartData = Object.values(trendData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
   // Calculate spending date range
   const getSpendingDateRange = () => {
