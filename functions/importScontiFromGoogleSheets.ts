@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
 
     // Fetch sheet data
-    const range = 'Discount calculation daily!A:U'; // Covers all columns from order_date to moneyType_fidelity_card_points
+    const range = 'Discount_calculation_daily!A:U'; // Covers all columns from order_date to moneyType_fidelity_card_points
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`,
       {
