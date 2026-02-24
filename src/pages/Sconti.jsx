@@ -10,13 +10,14 @@ import { it } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
 
 export default function Sconti() {
+  const queryClient = useQueryClient();
   const [activeView, setActiveView] = useState('sconti');
   const [dateFilter, setDateFilter] = useState('month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [channelFilter, setChannelFilter] = useState('all');
 
-  const { data: sconti = [], isLoading } = useQuery({
+  const { data: sconti = [], isLoading, refetch: refetchSconti } = useQuery({
     queryKey: ['sconti'],
     queryFn: () => base44.entities.Sconto.list('-order_date')
   });
@@ -392,16 +393,35 @@ export default function Sconti() {
   return (
     <ProtectedPage pageName="Sconti">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Analisi Sconti</h1>
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Analisi Sconti</h1>
             <p style={{ color: '#000000' }}>Monitora gli sconti applicati agli ordini • Import automatico da Google Sheet ogni ora</p>
+          </div>
+          <div className="flex items-center gap-3">
             {importLogs.length > 0 && (
-              <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
-                Ultimo import: {format(parseISO(importLogs[0].timestamp), 'dd/MM/yy HH:mm', { locale: it })}
-                {importLogs[0].status === 'success' && ` • ${importLogs[0].imported_count} importati`}
-              </span>
+              <div className="text-right">
+                <p className="text-xs text-slate-500 font-medium">Ultimo import</p>
+                <p className="text-sm font-bold text-slate-700">
+                  {format(parseISO(importLogs[0].timestamp), 'dd/MM/yy HH:mm', { locale: it })}
+                </p>
+                {importLogs[0].status === 'success' && (
+                  <p className="text-xs text-green-600">✓ {importLogs[0].imported_count} importati</p>
+                )}
+                {importLogs[0].status === 'error' && (
+                  <p className="text-xs text-red-600">✗ Errore</p>
+                )}
+              </div>
             )}
+            <NeumorphicButton 
+              onClick={() => {
+                refetchSconti();
+                queryClient.invalidateQueries(['sconti-import-logs']);
+              }}
+              className="px-4 py-2"
+            >
+              Aggiorna
+            </NeumorphicButton>
           </div>
         </div>
 
