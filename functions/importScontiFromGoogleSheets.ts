@@ -47,7 +47,16 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const error = await response.text();
-      return Response.json({ error: 'Failed to fetch sheet data', details: error }, { status: 500 });
+      console.error('Sheet fetch failed. Status:', response.status);
+      console.error('Response:', error);
+      console.error('Tried URL:', `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`);
+      return Response.json({ 
+        error: 'Failed to fetch sheet data', 
+        details: error,
+        sheetId,
+        range,
+        url: `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`
+      }, { status: 500 });
     }
 
     const data = await response.json();
