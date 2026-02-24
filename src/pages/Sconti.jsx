@@ -38,6 +38,14 @@ export default function Sconti() {
     queryFn: () => base44.entities.ScontiImportLog.list('-timestamp', 1)
   });
 
+  const { data: automations = [] } = useQuery({
+    queryKey: ['sconti-automations'],
+    queryFn: async () => {
+      const allAutomations = await base44.functions.invoke('listAllAutomations');
+      return allAutomations.data?.filter(a => a.name?.includes('Sconti') && a.is_active) || [];
+    }
+  });
+
   const [channelMapping, setChannelMapping] = React.useState({});
   const [appMapping, setAppMapping] = React.useState({});
 
@@ -400,16 +408,29 @@ export default function Sconti() {
             <p style={{ color: '#000000' }}>Monitora gli sconti applicati agli ordini • Import automatico da Google Sheet ogni ora</p>
           </div>
           <div className="flex items-center gap-3">
-            {importLogs.length > 0 && (
+            {(importLogs.length > 0 || automations.length > 0) && (
               <div className="text-right">
-                <p className="text-xs text-slate-500 font-medium">Ultimo import</p>
-                <p className="text-sm font-bold text-slate-700">
-                  {format(parseISO(importLogs[0].timestamp), 'dd/MM/yy HH:mm', { locale: it })}
+                <p className="text-xs text-slate-500 font-medium">
+                  {importLogs.length > 0 ? 'Ultimo import completato' : 'Ultima esecuzione automatica'}
                 </p>
-                {importLogs[0].status === 'success' && (
+                <p className="text-sm font-bold text-slate-700">
+                  {importLogs.length > 0 
+                    ? format(parseISO(importLogs[0].timestamp), 'dd/MM/yy HH:mm', { locale: it })
+                    : automations[0]?.last_run_at 
+                      ? format(parseISO(automations[0].last_run_at), 'dd/MM/yy HH:mm', { locale: it })
+                      : 'Mai eseguito'
+                  }
+                </p>
+                {importLogs.length > 0 && importLogs[0].status === 'success' && (
                   <p className="text-xs text-green-600">✓ {importLogs[0].imported_count} importati</p>
                 )}
-                {importLogs[0].status === 'error' && (
+                {importLogs.length > 0 && importLogs[0].status === 'error' && (
+                  <p className="text-xs text-red-600">✗ Errore</p>
+                )}
+                {importLogs.length === 0 && automations[0]?.last_run_status === 'success' && (
+                  <p className="text-xs text-green-600">✓ Completato</p>
+                )}
+                {importLogs.length === 0 && automations[0]?.last_run_status === 'failed' && (
                   <p className="text-xs text-red-600">✗ Errore</p>
                 )}
               </div>
