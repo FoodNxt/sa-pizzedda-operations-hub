@@ -31,6 +31,11 @@ export default function Sconti() {
     queryFn: () => base44.entities.FinanceConfig.list()
   });
 
+  const { data: importLogs = [] } = useQuery({
+    queryKey: ['sconti-import-logs'],
+    queryFn: () => base44.entities.ScontiImportLog.list('-timestamp', 1)
+  });
+
   const [channelMapping, setChannelMapping] = React.useState({});
   const [appMapping, setAppMapping] = React.useState({});
 
@@ -389,7 +394,15 @@ export default function Sconti() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
           <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Analisi Sconti</h1>
-          <p style={{ color: '#000000' }}>Monitora gli sconti applicati agli ordini • Import automatico da Google Sheet ogni 30 minuti</p>
+          <div className="flex items-center gap-3">
+            <p style={{ color: '#000000' }}>Monitora gli sconti applicati agli ordini • Import automatico da Google Sheet ogni ora</p>
+            {importLogs.length > 0 && (
+              <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
+                Ultimo import: {format(parseISO(importLogs[0].timestamp), 'dd/MM/yy HH:mm', { locale: it })}
+                {importLogs[0].status === 'success' && ` • ${importLogs[0].imported_count} importati`}
+              </span>
+            )}
+          </div>
         </div>
 
         <NeumorphicCard className="p-2">
