@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
-import { Clock, TrendingUp, User, MapPin, Calendar, AlertTriangle } from 'lucide-react';
+import { Clock, TrendingUp, User, MapPin, Calendar, AlertTriangle, FileText, X } from 'lucide-react';
 import { format, parseISO, startOfMonth, subMonths } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -12,6 +12,11 @@ export default function Ritardi() {
   const [selectedStore, setSelectedStore] = useState("all");
   const [dateRange, setDateRange] = useState('30'); // 30, month, 180, 365
   const [viewMode, setViewMode] = useState('store'); // 'store' or 'dipendente'
+  const [showLetteraModal, setShowLetteraModal] = useState(false);
+  const [selectedDipendente, setSelectedDipendente] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [motivazione, setMotivazione] = useState("");
+  const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
@@ -50,6 +55,26 @@ export default function Ritardi() {
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list()
+  });
+
+  const { data: letteraTemplates = [] } = useQuery({
+    queryKey: ['lettera-templates'],
+    queryFn: () => base44.entities.LetteraRichiamoTemplate.list()
+  });
+
+  const createLetteraMutation = useMutation({
+    mutationFn: async (data) => {
+      const lettera = await base44.entities.LetteraRichiamo.create(data);
+      return lettera;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['lettere-richiamo']);
+      alert('✅ Lettera di richiamo inviata con successo');
+      setShowLetteraModal(false);
+      setSelectedDipendente(null);
+      setSelectedTemplate("");
+      setMotivazione("");
+    }
   });
 
   // Calculate date range filter
@@ -235,6 +260,52 @@ export default function Ritardi() {
     })).
     sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [filteredTurni]);
+
+  // Get detailed delays for selected dipendente
+  const selectedDipendenteDelays = useMemo(() => {
+    if (!selectedDipendente) return [];
+    
+    return filteredTurni
+      .filter(t => t.dipendente_id === selectedDipendente.dipendenteId)
+      .sort((a, b) => new Date(b.data) - new Date(a.data))
+      .map(turno => ({
+        data: turno.data,
+        ora_prevista: turno.ora_inizio,
+        ora_effettiva: turno.timbratura_entrata ? format(parseISO(turno.timbratura_entrata), 'HH:mm') : '-',
+        minuti_ritardo: turno.minuti_ritardo_reale || 0,
+        store_name: stores.find(s => s.id === turno.store_id)?.name || 'Sconosciuto'
+      }));
+  }, [selectedDipendente, filteredTurni, stores]);
+
+  const handleOpenLetteraModal = (dipendente) => {
+    setSelectedDipendente(dipendente);
+    setShowLetteraModal(true);
+  };
+
+  const handleSendLettera = async () => {
+    if (!selectedTemplate) {
+      alert('⚠️ Seleziona un template');
+      return;
+    }
+    
+    const template = letteraTemplates.find(t => t.id === selectedTemplate);
+    if (!template) return;
+
+    const user = users.find(u => u.id === selectedDipendente.dipendenteId);
+    
+    const letteraData = {
+      dipendente_id: selectedDipendente.dipendenteId,
+      dipendente_nome: selectedDipendente.dipendenteNome,
+      tipo_lettera: 'richiamo',
+      template_id: selectedTemplate,
+      template_nome: template.nome,
+      motivazione: motivazione || `Ritardi ripetuti: ${selectedDipendente.totalRitardi} ritardi per un totale di ${selectedDipendente.minutiReali} minuti`,
+      data_invio: new Date().toISOString(),
+      dettaglio_ritardi: selectedDipendenteDelays
+    };
+
+    await createLetteraMutation.mutateAsync(letteraData);
+  };
 
   // Statistiche complessive
   const overallStats = useMemo(() => {
@@ -554,6 +625,7 @@ export default function Ritardi() {
                     <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Min. Reali Totali</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Ore Reali</th>
                     <th className="text-right py-3 px-4 text-sm font-semibold text-slate-700">Media per Ritardo</th>
+                    <th className="text-center py-3 px-4 text-sm font-semibold text-slate-700">Azioni</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -579,6 +651,15 @@ export default function Ritardi() {
                         </td>
                         <td className="py-3 px-4 text-sm text-blue-600 text-right font-bold">
                           {stat.mediaMinutiReali}m
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={() => handleOpenLetteraModal(stat)}
+                            className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-lg font-medium hover:shadow-lg transition-all flex items-center gap-1.5 mx-auto"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            Invia Lettera
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -715,6 +796,149 @@ export default function Ritardi() {
             </div>
           }
         </NeumorphicCard>
+
+        {/* Modal Lettera Richiamo */}
+        {showLetteraModal && selectedDipendente && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-slate-800">
+                  Lettera di Richiamo - {selectedDipendente.dipendenteNome}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowLetteraModal(false);
+                    setSelectedDipendente(null);
+                    setSelectedTemplate("");
+                    setMotivazione("");
+                  }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-600" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Riepilogo Ritardi */}
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                  <h3 className="font-bold text-red-800 mb-2">Riepilogo Ritardi</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div>
+                      <p className="text-slate-600">Totale Ritardi</p>
+                      <p className="text-xl font-bold text-red-600">{selectedDipendente.totalRitardi}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600">Minuti Totali</p>
+                      <p className="text-xl font-bold text-orange-600">{selectedDipendente.minutiReali}m</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600">Ore Totali</p>
+                      <p className="text-xl font-bold text-amber-600">{selectedDipendente.oreReali}h</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-600">Media per Ritardo</p>
+                      <p className="text-xl font-bold text-blue-600">{selectedDipendente.mediaMinutiReali}m</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dettaglio Ritardi */}
+                <div>
+                  <h3 className="font-bold text-slate-800 mb-3">Dettaglio Ritardi</h3>
+                  <div className="overflow-x-auto max-h-64 border border-slate-200 rounded-xl">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-100 sticky top-0">
+                        <tr>
+                          <th className="text-left py-2 px-3 text-slate-700 font-semibold">Data</th>
+                          <th className="text-left py-2 px-3 text-slate-700 font-semibold">Locale</th>
+                          <th className="text-right py-2 px-3 text-slate-700 font-semibold">Ora Prevista</th>
+                          <th className="text-right py-2 px-3 text-slate-700 font-semibold">Ora Effettiva</th>
+                          <th className="text-right py-2 px-3 text-slate-700 font-semibold">Ritardo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedDipendenteDelays.map((delay, idx) => (
+                          <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                            <td className="py-2 px-3 text-slate-700">
+                              {format(parseISO(delay.data), 'dd/MM/yyyy', { locale: it })}
+                            </td>
+                            <td className="py-2 px-3 text-slate-600">
+                              {delay.store_name}
+                            </td>
+                            <td className="py-2 px-3 text-right text-slate-700 font-medium">
+                              {delay.ora_prevista}
+                            </td>
+                            <td className="py-2 px-3 text-right text-blue-600 font-medium">
+                              {delay.ora_effettiva}
+                            </td>
+                            <td className="py-2 px-3 text-right text-red-600 font-bold">
+                              +{delay.minuti_ritardo}m
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Template Selection */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Template Lettera *
+                  </label>
+                  <select
+                    value={selectedTemplate}
+                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="">Seleziona un template...</option>
+                    {letteraTemplates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Motivazione */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Motivazione Aggiuntiva (opzionale)
+                  </label>
+                  <textarea
+                    value={motivazione}
+                    onChange={(e) => setMotivazione(e.target.value)}
+                    placeholder="Aggiungi dettagli o note specifiche per questa lettera..."
+                    rows={4}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4 border-t border-slate-200">
+                  <button
+                    onClick={() => {
+                      setShowLetteraModal(false);
+                      setSelectedDipendente(null);
+                      setSelectedTemplate("");
+                      setMotivazione("");
+                    }}
+                    className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    onClick={handleSendLettera}
+                    disabled={!selectedTemplate || createLetteraMutation.isPending}
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {createLetteraMutation.isPending ? 'Invio...' : 'Invia Lettera di Richiamo'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ProtectedPage>);
 
