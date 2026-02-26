@@ -869,7 +869,7 @@ export default function Layout({ children, currentPageName }) {
   }, [pageAccessConfig, isLoadingConfig]);
 
   useEffect(() => {
-    if (!allowedFullPaths || allowedFullPaths.length === 0) return;
+    if (allowedFullPaths === null) return;
     if (!allowedFullPaths.includes(location.pathname)) {
       navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
     }
