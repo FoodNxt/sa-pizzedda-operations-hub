@@ -677,7 +677,6 @@ export default function Layout({ children, currentPageName }) {
         const activeConfig = configs.find(c => c.is_active);
         setPageAccessConfig(activeConfig || null);
         
-        // Extract manager allowed pages
         if (activeConfig?.manager_pages) {
           const pages = activeConfig.manager_pages.map(p => typeof p === 'string' ? p : p.page);
           setManagerAllowedPages(pages);
