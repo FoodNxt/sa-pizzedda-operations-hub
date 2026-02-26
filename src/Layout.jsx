@@ -785,9 +785,7 @@ export default function Layout({ children, currentPageName }) {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
-
-        const needsProfile = !user.profile_manually_completed;
-        setShowProfileModal(needsProfile);
+        setShowProfileModal(!user.profile_manually_completed);
 
         const normalizedUserType = getNormalizedUserType(user.user_type);
 
@@ -799,18 +797,11 @@ export default function Layout({ children, currentPageName }) {
             const oggi = new Date();
             oggi.setHours(0, 0, 0, 0);
             dataUscita.setHours(0, 0, 0, 0);
-            
-                if (oggi > dataUscita) {
+            if (oggi > dataUscita) {
               base44.auth.redirectToLogin();
               setIsLoadingUser(false);
               return;
             }
-          }
-        }
-
-        if (normalizedUserType === 'dipendente') {
-          if (isLoadingConfig) {
-            return;
           }
 
           const userRoles = user.ruoli_dipendente || [];
@@ -818,11 +809,7 @@ export default function Layout({ children, currentPageName }) {
           if (userRoles.length === 0) {
             const allowedPagesConfig = pageAccessConfig?.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }];
             const allowedPages = allowedPagesConfig.map(p => typeof p === 'string' ? p : p.page);
-            const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
-            
-            if (!allowedFullPaths.includes(location.pathname)) {
-              navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
-            }
+            setAllowedFullPaths(allowedPages.map(p => createPageUrl(p)));
             setIsLoadingUser(false);
             return;
           }
@@ -834,9 +821,7 @@ export default function Layout({ children, currentPageName }) {
           let allowedPagesConfig = [];
 
           if (contractStarted && hasSignedContract) {
-            // Use role-specific pages directly
             allowedPagesConfig = [];
-
             if (userRoles.includes('Pizzaiolo')) {
               allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.pizzaiolo_pages || [])];
             }
@@ -846,8 +831,6 @@ export default function Layout({ children, currentPageName }) {
             if (userRoles.includes('Store Manager')) {
               allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.store_manager_pages || [])];
             }
-
-            // Remove duplicates by page name
             const seen = new Set();
             allowedPagesConfig = allowedPagesConfig.filter(p => {
               const pageName = typeof p === 'string' ? p : p.page;
@@ -855,8 +838,6 @@ export default function Layout({ children, currentPageName }) {
               seen.add(pageName);
               return true;
             });
-
-            // Fallback if no role-specific pages
             if (allowedPagesConfig.length === 0) {
               allowedPagesConfig = [
                 { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
@@ -873,23 +854,26 @@ export default function Layout({ children, currentPageName }) {
           }
 
           const allowedPages = allowedPagesConfig.map(p => typeof p === 'string' ? p : p.page);
+          setAllowedFullPaths(allowedPages.map(p => createPageUrl(p)));
+        }
 
-          const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
+        setIsLoadingUser(false);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setIsLoadingUser(false);
+      }
+    };
+    if (!isLoadingConfig) {
+      fetchUser();
+    }
+  }, [pageAccessConfig, isLoadingConfig]);
 
-          if (!allowedFullPaths.includes(location.pathname)) {
-            navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
-          }
-          }
-          setIsLoadingUser(false);
-          } catch (error) {
-          console.error('Error fetching user:', error);
-          setIsLoadingUser(false);
-          }
-          };
-          if (!isLoadingConfig) {
-          fetchUser();
-          }
-          }, [location.pathname, navigate, pageAccessConfig, isLoadingConfig]);
+  useEffect(() => {
+    if (allowedFullPaths === null) return;
+    if (!allowedFullPaths.includes(location.pathname)) {
+      navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
+    }
+  }, [location.pathname, allowedFullPaths]);
 
   useEffect(() => {
     if (currentUser && !isLoadingConfig && !isLoadingUser && pageAccessConfig) {
