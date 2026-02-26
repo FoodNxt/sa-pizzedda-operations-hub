@@ -790,7 +790,6 @@ export default function Layout({ children, currentPageName }) {
 
         const normalizedUserType = getNormalizedUserType(user.user_type);
 
-        // Check if employee has an exit record and if the exit date has passed
         if (normalizedUserType === 'dipendente') {
           const uscite = await base44.entities.Uscita.filter({ dipendente_id: user.id });
           if (uscite.length > 0) {
