@@ -878,22 +878,20 @@ export default function Layout({ children, currentPageName }) {
 
           const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
 
-          if (!allowedFullPaths.includes(location.pathname)) {
+          if (isUserDataReady && !allowedFullPaths.includes(location.pathname)) {
             navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
           }
-        }
-
-        setIsLoadingUser(false);
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        setIsLoadingUser(false);
-      }
-    };
-    
-    if (!isLoadingConfig) {
-      fetchUser();
-    }
-  }, [location.pathname, navigate, pageAccessConfig, isLoadingConfig]);
+          }
+          setIsUserDataReady(true); setIsLoadingUser(false);
+          } catch (error) {
+          console.error('Error fetching user:', error);
+          setIsUserDataReady(true); setIsLoadingUser(false);
+          }
+          };
+          if (!isLoadingConfig) {
+          fetchUser();
+          }
+          }, [location.pathname, navigate, pageAccessConfig, isLoadingConfig]);
 
   useEffect(() => {
     if (currentUser && !isLoadingConfig && !isLoadingUser && pageAccessConfig) {
