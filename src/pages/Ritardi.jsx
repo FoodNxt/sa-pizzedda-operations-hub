@@ -315,6 +315,11 @@ export default function Ritardi() {
     preview = preview.replace(/{{ore_totali}}/g, selectedDipendente.oreReali);
     preview = preview.replace(/{{dettaglio_ritardi}}/g, dettaglioRitardi);
     
+    // Aggiungi automaticamente il dettaglio alla fine se non già presente
+    if (!preview.includes(dettaglioRitardi)) {
+      preview += '\n\nDettaglio Ritardi:\n' + dettaglioRitardi;
+    }
+    
     setPreviewLettera(preview);
   };
 
@@ -948,15 +953,16 @@ export default function Ritardi() {
                 {previewLettera && (
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Anteprima Lettera
+                      Anteprima Lettera (modificabile)
                     </label>
-                    <div className="bg-slate-50 border border-slate-300 rounded-lg p-4 max-h-80 overflow-y-auto">
-                      <pre className="whitespace-pre-wrap text-xs text-slate-700 font-mono">
-                        {previewLettera}
-                      </pre>
-                    </div>
+                    <textarea
+                      value={previewLettera}
+                      onChange={(e) => setPreviewLettera(e.target.value)}
+                      rows={16}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none font-mono text-xs"
+                    />
                     <p className="text-xs text-slate-500 mt-2">
-                      💡 Puoi modificare la motivazione aggiuntiva qui sotto per personalizzare la lettera
+                      💡 Puoi modificare il testo direttamente nell'anteprima prima di inviare
                     </p>
                   </div>
                 )}
