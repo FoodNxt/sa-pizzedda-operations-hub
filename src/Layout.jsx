@@ -648,9 +648,9 @@ export default function Layout({ children, currentPageName }) {
   const [pageAccessConfig, setPageAccessConfig] = useState(null);
   const [compactMenu, setCompactMenu] = useState(false);
   const [menuStructure, setMenuStructure] = useState(null);
+  
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
-  const [isUserDataReady, setIsUserDataReady] = useState(false);
   const [notifications, setNotifications] = useState({});
   const [managerAllowedPages, setManagerAllowedPages] = useState([]);
 
