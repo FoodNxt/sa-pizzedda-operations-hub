@@ -878,14 +878,14 @@ export default function Layout({ children, currentPageName }) {
 
           const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
 
-          if (isUserDataReady && !allowedFullPaths.includes(location.pathname)) {
+          if (!allowedFullPaths.includes(location.pathname)) {
             navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
           }
           }
-          setIsUserDataReady(true); setIsLoadingUser(false);
+          setIsLoadingUser(false);
           } catch (error) {
           console.error('Error fetching user:', error);
-          setIsUserDataReady(true); setIsLoadingUser(false);
+          setIsLoadingUser(false);
           }
           };
           if (!isLoadingConfig) {
