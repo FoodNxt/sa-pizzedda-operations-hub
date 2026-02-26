@@ -16,6 +16,7 @@ export default function Ritardi() {
   const [selectedDipendente, setSelectedDipendente] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [motivazione, setMotivazione] = useState("");
+  const [previewLettera, setPreviewLettera] = useState("");
   const queryClient = useQueryClient();
 
   const { data: stores = [] } = useQuery({
@@ -59,7 +60,10 @@ export default function Ritardi() {
 
   const { data: letteraTemplates = [] } = useQuery({
     queryKey: ['lettera-templates'],
-    queryFn: () => base44.entities.LetteraRichiamoTemplate.list()
+    queryFn: async () => {
+      const templates = await base44.entities.LetteraRichiamoTemplate.list();
+      return templates.filter(t => t.tipo_lettera === 'lettera_richiamo' && t.attivo !== false);
+    }
   });
 
   const createLetteraMutation = useMutation({
@@ -279,7 +283,39 @@ export default function Ritardi() {
 
   const handleOpenLetteraModal = (dipendente) => {
     setSelectedDipendente(dipendente);
+    setSelectedTemplate("");
+    setMotivazione("");
+    setPreviewLettera("");
     setShowLetteraModal(true);
+  };
+
+  const handleTemplateChange = (templateId) => {
+    setSelectedTemplate(templateId);
+    
+    if (!templateId) {
+      setPreviewLettera("");
+      return;
+    }
+
+    const template = letteraTemplates.find(t => t.id === templateId);
+    if (!template) return;
+
+    const user = users.find(u => u.id === selectedDipendente.dipendenteId);
+    
+    // Build detailed delays list
+    const dettaglioRitardi = selectedDipendenteDelays.map(delay => 
+      `- ${format(parseISO(delay.data), 'dd/MM/yyyy', { locale: it })}: Previsto ${delay.ora_prevista}, Effettivo ${delay.ora_effettiva} (Ritardo: ${delay.minuti_ritardo} minuti) - ${delay.store_name}`
+    ).join('\n');
+
+    let preview = template.contenuto;
+    preview = preview.replace(/{{nome_dipendente}}/g, user?.nome_cognome || user?.full_name || selectedDipendente.dipendenteNome);
+    preview = preview.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
+    preview = preview.replace(/{{numero_ritardi}}/g, selectedDipendente.totalRitardi);
+    preview = preview.replace(/{{minuti_totali}}/g, selectedDipendente.minutiReali);
+    preview = preview.replace(/{{ore_totali}}/g, selectedDipendente.oreReali);
+    preview = preview.replace(/{{dettaglio_ritardi}}/g, dettaglioRitardi);
+    
+    setPreviewLettera(preview);
   };
 
   const handleSendLettera = async () => {
@@ -294,13 +330,16 @@ export default function Ritardi() {
     const user = users.find(u => u.id === selectedDipendente.dipendenteId);
     
     const letteraData = {
-      dipendente_id: selectedDipendente.dipendenteId,
-      dipendente_nome: selectedDipendente.dipendenteNome,
-      tipo_lettera: 'richiamo',
+      user_id: selectedDipendente.dipendenteId,
+      user_email: user?.email,
+      user_name: selectedDipendente.dipendenteNome,
+      tipo_lettera: 'lettera_richiamo',
       template_id: selectedTemplate,
-      template_nome: template.nome,
+      template_nome: template.nome_template,
+      contenuto_lettera: previewLettera,
       motivazione: motivazione || `Ritardi ripetuti: ${selectedDipendente.totalRitardi} ritardi per un totale di ${selectedDipendente.minutiReali} minuti`,
       data_invio: new Date().toISOString(),
+      status: 'inviata',
       dettaglio_ritardi: selectedDipendenteDelays
     };
 
@@ -888,17 +927,39 @@ export default function Ritardi() {
                   </label>
                   <select
                     value={selectedTemplate}
-                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                    onChange={(e) => handleTemplateChange(e.target.value)}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   >
                     <option value="">Seleziona un template...</option>
                     {letteraTemplates.map((template) => (
                       <option key={template.id} value={template.id}>
-                        {template.nome}
+                        {template.nome_template}
                       </option>
                     ))}
                   </select>
+                  {letteraTemplates.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-2">
+                      ⚠️ Nessun template disponibile. Crea dei template in HR &gt; Documenti &gt; Lettere Richiamo
+                    </p>
+                  )}
                 </div>
+
+                {/* Preview Lettera */}
+                {previewLettera && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Anteprima Lettera
+                    </label>
+                    <div className="bg-slate-50 border border-slate-300 rounded-lg p-4 max-h-80 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-xs text-slate-700 font-mono">
+                        {previewLettera}
+                      </pre>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      💡 Puoi modificare la motivazione aggiuntiva qui sotto per personalizzare la lettera
+                    </p>
+                  </div>
+                )}
 
                 {/* Motivazione */}
                 <div>
