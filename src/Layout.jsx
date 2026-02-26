@@ -800,8 +800,7 @@ export default function Layout({ children, currentPageName }) {
             oggi.setHours(0, 0, 0, 0);
             dataUscita.setHours(0, 0, 0, 0);
             
-            // Only redirect if exit date has passed
-            if (oggi > dataUscita) {
+                if (oggi > dataUscita) {
               base44.auth.redirectToLogin();
               setIsLoadingUser(false);
               return;
