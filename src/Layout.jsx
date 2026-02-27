@@ -648,8 +648,6 @@ export default function Layout({ children, currentPageName }) {
   const [pageAccessConfig, setPageAccessConfig] = useState(null);
   const [compactMenu, setCompactMenu] = useState(false);
   const [menuStructure, setMenuStructure] = useState(null);
-  const [allowedFullPaths, setAllowedFullPaths] = useState(null);
-
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingConfig, setIsLoadingConfig] = useState(true);
   const [notifications, setNotifications] = useState({});
@@ -809,7 +807,10 @@ export default function Layout({ children, currentPageName }) {
           if (userRoles.length === 0) {
             const allowedPagesConfig = pageAccessConfig?.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }];
             const allowedPages = allowedPagesConfig.map(p => typeof p === 'string' ? p : p.page);
-            setAllowedFullPaths(allowedPages.map(p => createPageUrl(p)));
+            const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
+            if (!allowedFullPaths.includes(location.pathname)) {
+              navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
+            }
             setIsLoadingUser(false);
             return;
           }
@@ -854,7 +855,10 @@ export default function Layout({ children, currentPageName }) {
           }
 
           const allowedPages = allowedPagesConfig.map(p => typeof p === 'string' ? p : p.page);
-          setAllowedFullPaths(allowedPages.map(p => createPageUrl(p)));
+          const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
+          if (!allowedFullPaths.includes(location.pathname)) {
+            navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
+          }
         }
 
         setIsLoadingUser(false);
@@ -868,12 +872,7 @@ export default function Layout({ children, currentPageName }) {
     }
   }, [pageAccessConfig, isLoadingConfig]);
 
-  useEffect(() => {
-    if (allowedFullPaths === null) return;
-    if (!allowedFullPaths.includes(location.pathname)) {
-      navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
-    }
-  }, [location.pathname, allowedFullPaths]);
+
 
   useEffect(() => {
     if (currentUser && !isLoadingConfig && !isLoadingUser && pageAccessConfig) {
