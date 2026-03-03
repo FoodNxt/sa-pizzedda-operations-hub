@@ -437,7 +437,6 @@ export default function Segnalazioni() {
                       <input
                       type="file"
                       accept="image/*"
-                      capture="environment"
                       onChange={handlePhotoUpload}
                       className="hidden" />
 
