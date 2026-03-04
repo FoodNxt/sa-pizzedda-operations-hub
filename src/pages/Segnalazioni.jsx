@@ -532,7 +532,7 @@ export default function Segnalazioni() {
                   <NeumorphicButton
                     type="submit"
                     variant="primary"
-                    disabled={createMutation.isPending || uploading}>
+                    disabled={createMutation.isPending || photos.some(p => p.uploading)}>
 
                     {createMutation.isPending ?
                     <Loader2 className="w-5 h-5 animate-spin" /> :
