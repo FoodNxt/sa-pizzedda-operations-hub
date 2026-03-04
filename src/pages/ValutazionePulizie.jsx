@@ -912,6 +912,14 @@ export default function ValutazionePulizie() {
                                     <p className="text-sm font-medium text-[#6b6b6b] mb-2">
                                       {domanda.domanda_testo}
                                     </p>
+                                    {domanda.foto_aggiuntiva && (
+                                      <img
+                                        src={domanda.foto_aggiuntiva}
+                                        alt="Foto allegata"
+                                        className="w-full h-40 object-cover rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                                        onClick={(e) => { e.stopPropagation(); setSelectedImage(domanda.foto_aggiuntiva); }}
+                                      />
+                                    )}
                                     {nomeAttrezzatura &&
                               <p className="text-xs text-purple-600 mb-2 font-medium">
                                         🔧 {nomeAttrezzatura}
