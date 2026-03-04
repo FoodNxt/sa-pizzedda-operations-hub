@@ -101,23 +101,39 @@ export default function Segnalazioni() {
     setShowForm(false);
   };
 
-  const compressImage = (file, maxWidth = 1280, quality = 0.7) => {
-    return new Promise((resolve) => {
+  const compressImage = (file, maxWidth = 1280, quality = 0.75) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
+      reader.onerror = reject;
       reader.onload = (e) => {
         const img = new Image();
+        img.onerror = reject;
         img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let { width, height } = img;
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
+          try {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            // White background for transparent PNGs
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              (blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error('Canvas toBlob failed'));
+              },
+              'image/jpeg',
+              quality
+            );
+          } catch (err) {
+            reject(err);
           }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
         };
         img.src = e.target.result;
       };
@@ -129,15 +145,30 @@ export default function Segnalazioni() {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Reset input so same file can be selected again if needed
+    e.target.value = '';
+
     setUploading(true);
     try {
-      const compressed = await compressImage(file);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: compressed });
+      let fileToUpload;
+      try {
+        fileToUpload = await compressImage(file);
+      } catch (compressError) {
+        console.warn('Compression failed, uploading original:', compressError);
+        fileToUpload = file;
+      }
+
+      // Show local preview immediately
+      const localPreview = URL.createObjectURL(fileToUpload);
+      setPhotoPreview(localPreview);
+
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: fileToUpload });
       setFormData((prev) => ({ ...prev, foto_url: file_url }));
       setPhotoPreview(file_url);
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Errore nel caricamento della foto');
+      setPhotoPreview(null);
+      alert('Errore nel caricamento della foto. Riprova.');
     } finally {
       setUploading(false);
     }
