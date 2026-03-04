@@ -146,7 +146,8 @@ export default function Segnalazioni() {
     try {
       let fileToUpload = file;
       try {
-        fileToUpload = await compressImage(file);
+        const blob = await compressImage(file);
+        fileToUpload = new File([blob], file.name || 'photo.jpg', { type: 'image/jpeg' });
       } catch {
         fileToUpload = file;
       }
