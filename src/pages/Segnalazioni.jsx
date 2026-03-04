@@ -148,22 +148,28 @@ export default function Segnalazioni() {
     setUploading(true);
 
     try {
+      // Try to compress first, but always fall back to original file
       let fileToUpload = file;
       try {
         fileToUpload = await compressImage(file);
+        console.log('Compressed:', fileToUpload.size, 'bytes');
       } catch (compressError) {
-        console.warn('Compression failed, uploading original:', compressError);
+        console.warn('Compression failed, using original:', compressError.message);
+        fileToUpload = file;
       }
 
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: fileToUpload });
+      console.log('Uploading file:', fileToUpload.size, 'bytes', fileToUpload.type);
+      const result = await base44.integrations.Core.UploadFile({ file: fileToUpload });
+      console.log('Upload result:', result);
+      const file_url = result?.file_url;
+      if (!file_url) throw new Error('No file_url in response');
       setFormData((prev) => ({ ...prev, foto_url: file_url }));
       setPhotoPreview(file_url);
-      URL.revokeObjectURL(localPreview);
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Upload error full:', error);
       setPhotoPreview(null);
       setFormData((prev) => ({ ...prev, foto_url: '' }));
-      alert('Errore nel caricamento della foto. Riprova.');
+      alert('Errore nel caricamento della foto: ' + (error?.message || 'Errore sconosciuto') + '. Riprova.');
     } finally {
       setUploading(false);
     }
