@@ -103,34 +103,37 @@ export default function Segnalazioni() {
 
   const compressImage = (file, maxWidth = 1280, quality = 0.75) => {
     return new Promise((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(file);
-      const img = new Image();
-      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')); };
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        try {
-          const canvas = document.createElement('canvas');
-          let { width, height } = img;
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('FileReader failed'));
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Image load failed'));
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(
+              (blob) => blob ? resolve(blob) : reject(new Error('toBlob failed')),
+              'image/jpeg',
+              quality
+            );
+          } catch (err) {
+            reject(err);
           }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, width, height);
-          ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob(
-            (blob) => blob ? resolve(blob) : reject(new Error('toBlob failed')),
-            'image/jpeg',
-            quality
-          );
-        } catch (err) {
-          reject(err);
-        }
+        };
+        img.src = e.target.result;
       };
-      img.src = objectUrl;
+      reader.readAsDataURL(file);
     });
   };
 
