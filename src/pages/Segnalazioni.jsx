@@ -103,71 +103,63 @@ export default function Segnalazioni() {
 
   const compressImage = (file, maxWidth = 1280, quality = 0.75) => {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = reject;
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onerror = reject;
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            let { width, height } = img;
-            if (width > maxWidth) {
-              height = Math.round((height * maxWidth) / width);
-              width = maxWidth;
-            }
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            // White background for transparent PNGs
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            canvas.toBlob(
-              (blob) => {
-                if (blob) resolve(blob);
-                else reject(new Error('Canvas toBlob failed'));
-              },
-              'image/jpeg',
-              quality
-            );
-          } catch (err) {
-            reject(err);
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')); };
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        try {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
           }
-        };
-        img.src = e.target.result;
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => blob ? resolve(blob) : reject(new Error('toBlob failed')),
+            'image/jpeg',
+            quality
+          );
+        } catch (err) {
+          reject(err);
+        }
       };
-      reader.readAsDataURL(file);
+      img.src = objectUrl;
     });
   };
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // Reset input so same file can be selected again if needed
     e.target.value = '';
 
+    // Show local preview immediately
+    const localPreview = URL.createObjectURL(file);
+    setPhotoPreview(localPreview);
     setUploading(true);
+
     try {
-      let fileToUpload;
+      let fileToUpload = file;
       try {
         fileToUpload = await compressImage(file);
       } catch (compressError) {
         console.warn('Compression failed, uploading original:', compressError);
-        fileToUpload = file;
       }
-
-      // Show local preview immediately
-      const localPreview = URL.createObjectURL(fileToUpload);
-      setPhotoPreview(localPreview);
 
       const { file_url } = await base44.integrations.Core.UploadFile({ file: fileToUpload });
       setFormData((prev) => ({ ...prev, foto_url: file_url }));
       setPhotoPreview(file_url);
+      URL.revokeObjectURL(localPreview);
     } catch (error) {
       console.error('Upload error:', error);
       setPhotoPreview(null);
+      setFormData((prev) => ({ ...prev, foto_url: '' }));
       alert('Errore nel caricamento della foto. Riprova.');
     } finally {
       setUploading(false);
