@@ -464,38 +464,52 @@ export default function Segnalazioni() {
 
                 <div>
                   <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Foto (opzionale)
+                    Foto (opzionale - puoi aggiungerne più di una)
                   </label>
-                  {photoPreview ?
-                  <div className="relative">
-                      <img src={photoPreview} alt="Preview" className="w-full h-64 object-cover rounded-xl" />
-                      <button
-                      type="button"
-                      onClick={() => {setPhotoPreview(null);setFormData({ ...formData, foto_url: '' });}}
-                      className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg">
+                  
+                  {/* Photo grid */}
+                  {photos.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {photos.map((photo, idx) => (
+                        <div key={idx} className="relative aspect-square">
+                          <img src={photo.localUrl} alt={`Foto ${idx+1}`} className="w-full h-full object-cover rounded-lg" />
+                          {photo.uploading && (
+                            <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
+                              <Loader2 className="w-6 h-6 text-white animate-spin" />
+                            </div>
+                          )}
+                          {photo.error && (
+                            <div className="absolute inset-0 bg-red-500/60 rounded-lg flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">Errore</span>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removePhoto(idx)}
+                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-md">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div> :
-
-                  <label className="neumorphic-pressed flex flex-col items-center justify-center h-48 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
-                      {uploading ?
-                    <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-2" /> :
-
+                  {/* Add photo button - always visible */}
+                  <label className="neumorphic-pressed flex flex-col items-center justify-center h-24 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
                     <>
-                          <Upload className="w-12 h-12 text-[#8b7355] mb-2" />
-                          <span className="text-[#6b6b6b] font-medium">Carica Foto</span>
-                          <span className="text-sm text-[#9b9b9b] mt-1">Clicca o trascina un'immagine</span>
-                        </>
-                    }
-                      <input
+                      <Upload className="w-8 h-8 text-[#8b7355] mb-1" />
+                      <span className="text-[#6b6b6b] font-medium text-sm">
+                        {photos.length === 0 ? 'Aggiungi foto' : 'Aggiungi altre foto'}
+                      </span>
+                      <span className="text-xs text-[#9b9b9b]">Galleria o fotocamera</span>
+                    </>
+                    <input
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={handlePhotoUpload}
                       className="hidden" />
-
-                    </label>
-                  }
+                  </label>
                 </div>
 
                 <div>
