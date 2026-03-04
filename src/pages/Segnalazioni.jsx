@@ -137,42 +137,62 @@ export default function Segnalazioni() {
     });
   };
 
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    e.target.value = '';
-
-    // Show local preview immediately
-    const localPreview = URL.createObjectURL(file);
-    setPhotoPreview(localPreview);
-    setUploading(true);
-
+  const uploadSingleFile = async (file, index) => {
+    setPhotos(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], uploading: true, error: false };
+      return updated;
+    });
     try {
-      // Try to compress first, but always fall back to original file
       let fileToUpload = file;
       try {
         fileToUpload = await compressImage(file);
-        console.log('Compressed:', fileToUpload.size, 'bytes');
-      } catch (compressError) {
-        console.warn('Compression failed, using original:', compressError.message);
+      } catch {
         fileToUpload = file;
       }
-
-      console.log('Uploading file:', fileToUpload.size, 'bytes', fileToUpload.type);
       const result = await base44.integrations.Core.UploadFile({ file: fileToUpload });
-      console.log('Upload result:', result);
       const file_url = result?.file_url;
       if (!file_url) throw new Error('No file_url in response');
-      setFormData((prev) => ({ ...prev, foto_url: file_url }));
-      setPhotoPreview(file_url);
+      setPhotos(prev => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], uploadedUrl: file_url, uploading: false };
+        return updated;
+      });
     } catch (error) {
-      console.error('Upload error full:', error);
-      setPhotoPreview(null);
-      setFormData((prev) => ({ ...prev, foto_url: '' }));
-      alert('Errore nel caricamento della foto: ' + (error?.message || 'Errore sconosciuto') + '. Riprova.');
-    } finally {
-      setUploading(false);
+      console.error('Upload error:', error);
+      setPhotos(prev => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], uploading: false, error: true };
+        return updated;
+      });
     }
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    e.target.value = '';
+
+    const startIndex = photos.length;
+    const newEntries = files.map(file => ({
+      localUrl: URL.createObjectURL(file),
+      uploadedUrl: null,
+      uploading: true,
+      error: false
+    }));
+    setPhotos(prev => [...prev, ...newEntries]);
+
+    // Upload all files in parallel
+    await Promise.all(files.map((file, i) => uploadSingleFile(file, startIndex + i)));
+  };
+
+  const removePhoto = (index) => {
+    setPhotos(prev => {
+      const updated = [...prev];
+      URL.revokeObjectURL(updated[index].localUrl);
+      updated.splice(index, 1);
+      return updated;
+    });
   };
 
   const handleSubmit = async (e) => {
