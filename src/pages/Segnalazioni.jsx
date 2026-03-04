@@ -97,7 +97,7 @@ export default function Segnalazioni() {
 
   const resetForm = () => {
     setFormData({ store_id: '', descrizione: '', foto_url: '' });
-    setPhotoPreview(null);
+    setPhotos([]);
     setShowForm(false);
   };
 
