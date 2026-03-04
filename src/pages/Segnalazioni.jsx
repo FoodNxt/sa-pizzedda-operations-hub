@@ -629,15 +629,19 @@ export default function Segnalazioni() {
                       {segnalazioniStore.map((segnalazione) =>
                     <div key={segnalazione.id} className="neumorphic-flat p-5 rounded-xl">
                 <div className="flex items-start gap-4">
-                  {/* Photo */}
-                  {segnalazione.foto_url &&
-                        <img
-                          src={segnalazione.foto_url}
-                          alt="Segnalazione"
-                          className="w-32 h-32 object-cover rounded-lg cursor-pointer hover:opacity-80"
-                          onClick={() => window.open(segnalazione.foto_url, '_blank')} />
-
-                        }
+                  {/* Photos */}
+                  {(() => {
+                    const urls = segnalazione.foto_urls?.length ? segnalazione.foto_urls : segnalazione.foto_url ? [segnalazione.foto_url] : [];
+                    return urls.length > 0 && (
+                      <div className="flex flex-wrap gap-2 flex-shrink-0">
+                        {urls.map((url, idx) => (
+                          <img key={idx} src={url} alt={`Foto ${idx+1}`}
+                            className="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-80"
+                            onClick={() => window.open(url, '_blank')} />
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   {/* Content */}
                   <div className="flex-1">
