@@ -18,7 +18,7 @@ export default function Segnalazioni() {
     foto_url: ''
   });
   const [uploading, setUploading] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photos, setPhotos] = useState([]); // [{localUrl, uploadedUrl, uploading, error}]
 
   const [showLetteraModal, setShowLetteraModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('');
