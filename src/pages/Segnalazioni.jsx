@@ -205,9 +205,11 @@ export default function Segnalazioni() {
 
     const store = stores.find((s) => s.id === formData.store_id);
 
+    const uploadedUrls = photos.filter(p => p.uploadedUrl).map(p => p.uploadedUrl);
     const data = {
       store_id: formData.store_id,
-      foto_url: formData.foto_url,
+      foto_url: uploadedUrls[0] || '',
+      foto_urls: uploadedUrls,
       descrizione: formData.descrizione,
       store_name: store?.name || '',
       dipendente_id: user.id,
