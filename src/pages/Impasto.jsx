@@ -168,7 +168,10 @@ export default function Impasto() {
       
       if (data) {
         giorniConfigurati++;
-        totaleProssimi3Giorni += (data.totale_giornata || 0);
+        totaleProssimi3Giorni += 
+          (data.pranzo_rosse || 0) +
+          (data.pomeriggio_rosse || 0) +
+          (data.cena_rosse || 0);
       }
     }
 
