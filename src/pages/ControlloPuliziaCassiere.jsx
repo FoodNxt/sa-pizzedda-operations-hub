@@ -313,23 +313,29 @@ export default function ControlloPuliziaCassiere() {
   };
 
   // Calculate if can submit
-  const canSubmit = () => {
+  const canSubmit = useMemo(() => {
     if (!selectedStore || !currentUser || uploading) return false;
     if (currentUser?.user_type === 'dipendente' && !(currentUser.ruoli_dipendente || []).includes('Cassiere')) return false;
-    
-    const domandeObbligatorie = domande.filter(d => d.obbligatoria !== false && d.richiesto !== false);
-    for (const domanda of domandeObbligatorie) {
-      if (domanda.tipo_controllo === 'foto' && !photos[domanda.id]) return false;
-      if (domanda.tipo_controllo === 'scelta_multipla' && !risposte[domanda.id]) return false;
-      // Check conditional photo
-      if (domanda.tipo_controllo === 'scelta_multipla' && domanda.richiedi_foto_multipla === 'sempre' && !photos[`${domanda.id}_foto`]) return false;
-      if (domanda.tipo_controllo === 'scelta_multipla' && 
-          domanda.richiedi_foto_multipla === 'condizionale' && 
-          risposte[domanda.id] === domanda.risposta_richiede_foto && 
-          !photos[`${domanda.id}_foto`]) return false;
+    if (domande.length === 0) return false;
+
+    for (const domanda of domande) {
+      // Determine if required: default to true if both fields are undefined
+      const isRequired = domanda.obbligatoria !== false && domanda.richiesto !== false;
+      if (!isRequired) continue;
+
+      if (domanda.tipo_controllo === 'foto' || domanda.tipo_controllo === 'photo') {
+        if (!photos[domanda.id]) return false;
+      } else if (domanda.tipo_controllo === 'scelta_multipla') {
+        if (!risposte[domanda.id]) return false;
+        // Check conditional photo
+        if (domanda.richiedi_foto_multipla === 'sempre' && !photos[`${domanda.id}_foto`]) return false;
+        if (domanda.richiedi_foto_multipla === 'condizionale' &&
+            risposte[domanda.id] === domanda.risposta_richiede_foto &&
+            !photos[`${domanda.id}_foto`]) return false;
+      }
     }
     return true;
-  };
+  }, [selectedStore, currentUser, uploading, domande, photos, risposte]);
 
   // Block access if wrong role
   if (currentUser?.user_type === 'dipendente') {
