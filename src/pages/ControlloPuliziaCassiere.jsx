@@ -315,11 +315,12 @@ export default function ControlloPuliziaCassiere() {
   // Calculate if can submit
   const canSubmit = useMemo(() => {
     if (!selectedStore || !currentUser || uploading) return false;
-    if (currentUser?.user_type === 'dipendente' && !(currentUser.ruoli_dipendente || []).includes('Cassiere')) return false;
-    if (domande.length === 0) return false;
+    // Only block Cassiere check for dipendenti, not admin/manager
+    if (currentUser.user_type === 'dipendente' && !(currentUser.ruoli_dipendente || []).includes('Cassiere')) return false;
+    // Don't block if domande haven't loaded yet (still loading)
+    if (!domande || domande.length === 0) return false;
 
     for (const domanda of domande) {
-      // Determine if required: default to true if both fields are undefined
       const isRequired = domanda.obbligatoria !== false && domanda.richiesto !== false;
       if (!isRequired) continue;
 
@@ -327,7 +328,6 @@ export default function ControlloPuliziaCassiere() {
         if (!photos[domanda.id]) return false;
       } else if (domanda.tipo_controllo === 'scelta_multipla') {
         if (!risposte[domanda.id]) return false;
-        // Check conditional photo
         if (domanda.richiedi_foto_multipla === 'sempre' && !photos[`${domanda.id}_foto`]) return false;
         if (domanda.richiedi_foto_multipla === 'condizionale' &&
             risposte[domanda.id] === domanda.risposta_richiede_foto &&
