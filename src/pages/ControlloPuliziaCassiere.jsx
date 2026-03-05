@@ -647,7 +647,7 @@ export default function ControlloPuliziaCassiere() {
                   ? 'shadow-lg hover:shadow-xl'
                   : 'text-[#9b9b9b] opacity-50 cursor-not-allowed'
               }`}
-              style={canSubmit() ? { background: 'linear-gradient(to right, #22c55e, #10b981)', color: '#ffffff' } : {}}
+              style={canSubmit() ? { background: 'linear-gradient(135deg, #3b82f6, #1e40af)', color: '#ffffff' } : {}}
             >
               {uploading ? (
                 <>
