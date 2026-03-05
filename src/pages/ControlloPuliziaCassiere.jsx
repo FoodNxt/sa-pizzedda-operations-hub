@@ -644,9 +644,10 @@ export default function ControlloPuliziaCassiere() {
               disabled={!canSubmit()}
               className={`flex-1 neumorphic-flat px-6 py-4 lg:py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 text-lg lg:text-base ${
                 canSubmit()
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg hover:shadow-xl'
+                  ? 'shadow-lg hover:shadow-xl'
                   : 'text-[#9b9b9b] opacity-50 cursor-not-allowed'
               }`}
+              style={canSubmit() ? { background: 'linear-gradient(to right, #22c55e, #10b981)', color: '#ffffff' } : {}}
             >
               {uploading ? (
                 <>
