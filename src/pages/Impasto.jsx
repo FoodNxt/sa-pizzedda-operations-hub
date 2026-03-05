@@ -161,7 +161,7 @@ export default function Impasto() {
     let totaleProssimi3Giorni = 0;
     let giorniConfigurati = 0;
     
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 0; i < 3; i++) {
       const giornoIdx = (oggi + i) % 7;
       const giornoNome = giorni[giornoIdx];
       const data = storeImpasti.find(imp => imp.giorno_settimana === giornoNome);
