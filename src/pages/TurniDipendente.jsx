@@ -309,11 +309,7 @@ export default function TurniDipendente() {
     staleTime: 300000
   });
 
-  const { data: straordinariDipendenti = [] } = useQuery({
-    queryKey: ['straordinari-dipendenti'],
-    queryFn: () => base44.entities.StraordinarioDipendente.list(),
-    staleTime: 300000
-  });
+
 
   const { data: allUsersData = [] } = useQuery({
     queryKey: ['all-users', currentUser?.id],
