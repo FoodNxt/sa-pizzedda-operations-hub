@@ -1783,7 +1783,7 @@ export default function Layout({ children, currentPageName }) {
         {/* Main Content */}
         <main className={`
           flex-1 min-h-screen compact-layout
-          ${normalizedUserType === 'dipendente' ? 'pt-24 pb-44 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-32 lg:pt-16' : 'pt-20 lg:pt-0'} 
+          ${normalizedUserType === 'dipendente' ? 'pt-28 pb-44 lg:pt-8 lg:pb-8 lg:ml-0' : normalizedUserType !== 'admin' ? 'pt-36 lg:pt-16' : 'pt-24 lg:pt-0'} 
           px-3 py-3 lg:px-6 lg:py-4
         `}>
           <PullToRefresh
