@@ -1251,49 +1251,7 @@ export default function TurniDipendente() {
     // Ordina slot normali per ora
     const attivitaNormali = Array.from(attivitaMap.values()).sort((a, b) => (a.ora_inizio || '').localeCompare(b.ora_inizio || ''));
 
-    // Aggiungi attività "Pagamento straordinari" SOLO se abilitato per questo tipo di utente (NON dipendenti)
-    if (attivitaPagamentoAbilitata && isPagamentoAbilitatoPerRuolo && turno.ruolo === 'Cassiere' && turno.timbratura_entrata && !turno.timbratura_uscita) {
-      const turnoInizio = moment(`${turno.data} ${turno.ora_inizio}`);
-      const turnoFine = moment(`${turno.data} ${turno.ora_fine}`);
 
-      // Trova tutti i turni straordinari in corso o completati nello stesso giorno e store
-      const straordinariIniziatiBefore = colleghiProssimoTurno.filter((t) => {
-        if (t.tipo_turno !== 'Straordinario') return false;
-        if (!t.timbratura_entrata) return false; // Solo se già iniziato
-
-        const straordInizio = moment(t.timbratura_entrata);
-
-        // Non ancora pagato
-        const giaPagato = attivitaCompletate.some((ac) =>
-        ac.attivita_nome === 'Pagamento straordinari' &&
-        ac.turno_straordinario_id === t.id
-        );
-
-        // Mostra straordinari iniziati in qualsiasi momento dello stesso giorno nello stesso store
-        return !giaPagato;
-      });
-
-      straordinariIniziatiBefore.forEach((straord) => {
-        const straordInizio = moment(straord.timbratura_entrata);
-        const straordFine = straord.timbratura_uscita ? moment(straord.timbratura_uscita) : moment(`${straord.data} ${straord.ora_fine}`);
-        const ore = straordFine.diff(straordInizio, 'hours', true);
-
-        // Cerca il costo orario specifico del dipendente in StraordinarioDipendente
-        const costoSpecifico = straordinariDipendenti?.find((s) => s.dipendente_id === straord.dipendente_id)?.costo_orario_straordinario;
-        const costoOrario = costoSpecifico || retribuzioneOraria;
-        const importo = Math.ceil(ore * costoOrario);
-
-        attivitaNormali.push({
-          nome: `Pagamento straordinari - ${straord.dipendente_nome}`,
-          ora_inizio: straordInizio.format('HH:mm'),
-          isPagamentoStraordinari: true,
-          turnoStraordinarioId: straord.id,
-          importoPagamento: importo,
-          dipendenteStraordinario: straord.dipendente_nome,
-          dipendenteStraordinarioId: straord.dipendente_id
-        });
-      });
-    }
 
     // Combina: inizio + normali + fine
     return [...attivitaInizio, ...attivitaNormali, ...attivitaFine];
