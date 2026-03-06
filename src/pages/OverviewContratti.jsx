@@ -596,14 +596,15 @@ export default function OverviewContratti() {
 
       // Prepare documents URLs
       const documentiUrls = [];
+      const dipendente = users.find((u) => u.id === sendingToPayroll.user_id);
 
       sendData.selectedDocuments.forEach((docId) => {
-        if (docId === 'documento_identita' && user?.documento_identita_url) {
-          documentiUrls.push({ nome: 'Documento d\'Identità', url: user.documento_identita_url });
-        } else if (docId === 'codice_fiscale_documento' && user?.codice_fiscale_documento_url) {
-          documentiUrls.push({ nome: 'Codice Fiscale', url: user.codice_fiscale_documento_url });
-        } else if (docId === 'permesso_soggiorno' && user?.permesso_soggiorno_url) {
-          documentiUrls.push({ nome: 'Permesso di Soggiorno', url: user.permesso_soggiorno_url });
+        if (docId === 'documento_identita' && dipendente?.documento_identita_url) {
+          documentiUrls.push({ nome: 'Documento d\'Identità', url: dipendente.documento_identita_url });
+        } else if (docId === 'codice_fiscale_documento' && dipendente?.codice_fiscale_documento_url) {
+          documentiUrls.push({ nome: 'Codice Fiscale', url: dipendente.codice_fiscale_documento_url });
+        } else if (docId === 'permesso_soggiorno' && dipendente?.permesso_soggiorno_url) {
+          documentiUrls.push({ nome: 'Permesso di Soggiorno', url: dipendente.permesso_soggiorno_url });
         }
       });
 
