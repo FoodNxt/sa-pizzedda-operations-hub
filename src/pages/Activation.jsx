@@ -130,8 +130,8 @@ export default function Activation() {
   const { data: allUsers = [] } = useQuery({
     queryKey: ['all-users'],
     queryFn: async () => {
-      const users = await base44.entities.User.list();
-      return users.filter((u) => u.user_type === 'admin' || u.user_type === 'manager');
+      const response = await base44.functions.invoke('getAdminAndManagerUsers');
+      return response.data.users || [];
     }
   });
 
