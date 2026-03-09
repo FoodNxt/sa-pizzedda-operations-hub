@@ -765,9 +765,8 @@ export default function Employees() {
       });
 
       // Calcola percentuale pulito come in PulizieMatch
-      const totalControlli = puliti + sporchi;
-      if (totalControlli > 0) {
-        const percentualePulito = puliti / totalControlli * 100;
+      if ((puliti + sporchi) > 0) {
+        const percentualePulito = puliti / (puliti + sporchi) * 100;
         if (percentualePulito < 80) {
           const cleaningPenalty = (80 - percentualePulito) * w_pulizie * 0.1;
           performanceScore -= cleaningPenalty;
