@@ -2215,54 +2215,13 @@ Sa Pizzedda`,
 
         {/* Analisi Ordini Tab */}
         {activeTab === 'analisi' &&
+        <AnalisiOrdiniTab ordiniInviati={ordiniInviati} ordiniCompletati={ordiniCompletati} selectedStore={selectedStore} />
+        }
+
+        {activeTab === 'analisi-DISABLED-REMOVE' &&
         <div className="space-y-6">
             <NeumorphicCard className="p-6">
-              <h2 className="text-xl font-bold text-slate-800 mb-6">📊 Analisi Ordini</h2>
-              
-              {/* Time Range and Product Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Periodo Temporale
-                  </label>
-                  <select
-                  value={timeRange}
-                  onChange={(e) => setTimeRange(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
-
-                    <option value="week">Ultima Settimana</option>
-                    <option value="month">Ultimo Mese</option>
-                    <option value="3months">Ultimi 3 Mesi</option>
-                    <option value="6months">Ultimi 6 Mesi</option>
-                    <option value="year">Ultimo Anno</option>
-                    <option value="all">Tutto il Periodo</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
-                    <Package className="w-4 h-4" />
-                    Prodotto Specifico
-                  </label>
-                  <select
-                  value={selectedProduct}
-                  onChange={(e) => setSelectedProduct(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none">
-
-                    <option value="all">Tutti i Prodotti</option>
-                    {(() => {
-                    const allOrders = [...ordiniInviati, ...ordiniCompletati];
-                    const productNames = new Set();
-                    allOrders.forEach((order) => {
-                      order.prodotti.forEach((prod) => productNames.add(prod.nome_prodotto));
-                    });
-                    return Array.from(productNames).sort().map((name) =>
-                    <option key={name} value={name}>{name}</option>
-                    );
-                  })()}
-                  </select>
-                </div>
-              </div>
+              <div />
               
               {(() => {
               const now = new Date();
