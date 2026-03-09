@@ -55,6 +55,47 @@ export default function TrovaInfluencers({ onAddContact }) {
   const [hasSearched, setHasSearched] = useState(false);
   const [addingId, setAddingId] = useState(null);
   const [addedIds, setAddedIds] = useState(new Set());
+  const [existingContacts, setExistingContacts] = useState([]);
+  const [scartatiIds, setScartatiIds] = useState(new Set());
+  const [scarcandiId, setScarcandiId] = useState(null);
+
+  // Carica contatti esistenti e scartati al mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [contatti, scartati] = await Promise.all([
+          base44.entities.ContattoMarketing.filter({ categoria: "Food influencers" }),
+          base44.entities.InfluencerScartato.list()
+        ]);
+        setExistingContacts(contatti.map(c => c.link?.split('/').pop() || ''));
+        setScartatiIds(new Set(scartati.map(s => s.username)));
+      } catch (err) {
+        console.error('Errore caricamento dati:', err);
+      }
+    };
+    loadData();
+  }, []);
+
+  const handleScarta = async (influencer) => {
+    setScarcandiId(influencer.username);
+    try {
+      await base44.entities.InfluencerScartato.create({
+        username: influencer.username,
+        platform: filters.platform,
+        full_name: influencer.full_name,
+        scartato_il: new Date().toISOString()
+      });
+      setScartatiIds(prev => new Set([...prev, influencer.username]));
+    } catch (err) {
+      console.error('Errore scarto:', err);
+    } finally {
+      setScarcandiId(null);
+    }
+  };
+
+  const isDuplicate = (influencer) => {
+    return existingContacts.includes(influencer.username);
+  };
 
   const handleSearch = async () => {
     setLoading(true);
