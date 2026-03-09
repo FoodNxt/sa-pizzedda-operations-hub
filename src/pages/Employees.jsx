@@ -1340,7 +1340,7 @@ export default function Employees() {
       let passFilter = true;
 
       if (selectedStore !== 'all') {
-        if (!e.assigned_stores || e.assigned_stores.length === 0) passFilter = true;else
+        if (!e.assigned_stores || !Array.isArray(e.assigned_stores) || e.assigned_stores.length === 0) passFilter = true;else
         {
           const hasStore = e.assigned_stores.some((storeName) => {
             const store = stores.find((s) => s.name === storeName);
