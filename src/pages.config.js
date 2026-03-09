@@ -81,6 +81,7 @@ import ControlloPuliziaPizzaiolo from './pages/ControlloPuliziaPizzaiolo';
 import ControlloPuliziaStoreManager from './pages/ControlloPuliziaStoreManager';
 import ControlloPulizieMaster from './pages/ControlloPulizieMaster';
 import ControlloStoreManager from './pages/ControlloStoreManager';
+import Correlazione from './pages/Correlazione';
 import Costi from './pages/Costi';
 import CreaCorso from './pages/CreaCorso';
 import DailyRevenueAggregation from './pages/DailyRevenueAggregation';
@@ -183,7 +184,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import Correlazione from './pages/Correlazione';
 import __Layout from './Layout.jsx';
 
 
@@ -222,6 +222,7 @@ export const PAGES = {
     "ControlloPuliziaStoreManager": ControlloPuliziaStoreManager,
     "ControlloPulizieMaster": ControlloPulizieMaster,
     "ControlloStoreManager": ControlloStoreManager,
+    "Correlazione": Correlazione,
     "Costi": Costi,
     "CreaCorso": CreaCorso,
     "DailyRevenueAggregation": DailyRevenueAggregation,
@@ -324,7 +325,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "Correlazione": Correlazione,
 }
 
 export const pagesConfig = {

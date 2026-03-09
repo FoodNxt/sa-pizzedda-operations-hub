@@ -324,14 +324,29 @@ export default function Segnalazioni() {
 
     const dipendente = dipendenti.find((d) => d.id === selectedDipendenteLettera);
     const dipendenteNome = dipendente?.nome_cognome || dipendente?.full_name || dipendente?.email || '';
+    const oggi = new Date().toLocaleDateString('it-IT');
+    const dataSegnalazione = new Date(selectedSegnalazione.data_segnalazione).toLocaleDateString('it-IT');
 
-    // Sostituisci placeholders nel template
+    // Sostituisci tutti i formati di placeholder: {{var}}, [VAR], {var}
     let testo = template.contenuto || '';
-    testo = testo.replace(/\[NOME_DIPENDENTE\]/g, dipendenteNome);
-    testo = testo.replace(/\[DATA\]/g, new Date().toLocaleDateString('it-IT'));
-    testo = testo.replace(/\[MOTIVO\]/g, selectedSegnalazione.descrizione);
-    testo = testo.replace(/\[STORE\]/g, selectedSegnalazione.store_name);
-    testo = testo.replace(/\[DATA_SEGNALAZIONE\]/g, new Date(selectedSegnalazione.data_segnalazione).toLocaleDateString('it-IT'));
+
+    // Formato {{variabile}}
+    testo = testo.replace(/\{\{nome_dipendente\}\}/gi, dipendenteNome);
+    testo = testo.replace(/\{\{data\}\}/gi, oggi);
+    testo = testo.replace(/\{\{data_invio_richiamo\}\}/gi, oggi);
+    testo = testo.replace(/\{\{data_visualizzazione_richiamo\}\}/gi, oggi);
+    testo = testo.replace(/\{\{data_segnalazione\}\}/gi, dataSegnalazione);
+    testo = testo.replace(/\{\{motivo\}\}/gi, selectedSegnalazione.descrizione);
+    testo = testo.replace(/\{\{store\}\}/gi, selectedSegnalazione.store_name);
+    testo = testo.replace(/\{\{testo_lettera_richiamo\}\}/gi, selectedSegnalazione.descrizione);
+    testo = testo.replace(/\{\{mese_firma_richiamo\}\}/gi, new Date().toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }));
+
+    // Formato [VARIABILE]
+    testo = testo.replace(/\[NOME_DIPENDENTE\]/gi, dipendenteNome);
+    testo = testo.replace(/\[DATA\]/gi, oggi);
+    testo = testo.replace(/\[MOTIVO\]/gi, selectedSegnalazione.descrizione);
+    testo = testo.replace(/\[STORE\]/gi, selectedSegnalazione.store_name);
+    testo = testo.replace(/\[DATA_SEGNALAZIONE\]/gi, dataSegnalazione);
 
     setTestoLettera(testo);
   };
