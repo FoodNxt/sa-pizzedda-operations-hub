@@ -183,7 +183,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import Correlazione from './pages/Correlazione';
 import __Layout from './Layout.jsx';
 
 
@@ -324,7 +323,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "Correlazione": Correlazione,
 }
 
 export const pagesConfig = {

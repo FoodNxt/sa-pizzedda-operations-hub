@@ -156,12 +156,6 @@ const navigationStructure = [
         url: createPageUrl("Banche"),
         icon: DollarSign,
         parent_admin_section: "Financials"
-      },
-      {
-        title: "Correlation",
-        page: "Correlazione",
-        url: createPageUrl("Correlazione"),
-        icon: Cloud,
       }
       ]
       },
