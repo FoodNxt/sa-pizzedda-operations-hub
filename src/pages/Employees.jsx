@@ -1240,15 +1240,7 @@ export default function Employees() {
     return { percentualePulito, count: totalControlli, puliti, sporchi };
   };
 
-  const getConfidenceBadgeColor = (confidence) => {
-    switch (confidence) {
-      case 'high':return 'bg-green-100 text-green-700';
-      case 'medium':return 'bg-yellow-100 text-yellow-700';
-      case 'low':return 'bg-orange-100 text-orange-700';
-      case 'manual':return 'bg-blue-100 text-blue-700';
-      default:return 'bg-gray-100 text-gray-700';
-    }
-  };
+  const getConfidenceBadgeColor = (c) => c === 'high' ? 'bg-green-100 text-green-700' : c === 'medium' ? 'bg-yellow-100 text-yellow-700' : c === 'low' ? 'bg-orange-100 text-orange-700' : c === 'manual' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
 
   const handleDateRangePreset = (preset) => {
     setDateRangePreset(preset);
