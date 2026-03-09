@@ -640,7 +640,8 @@ export default function Contatti() {
           }
         </NeumorphicCard>
 
-        </> /* end contatti view */}
+        </React.Fragment>
+        )} {/* end contatti view */}
 
         {/* Form Modal - always rendered outside conditional */}
         {showForm &&
