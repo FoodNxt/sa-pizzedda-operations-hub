@@ -1761,24 +1761,13 @@ export default function Employees() {
 
                   <div className="neumorphic-pressed p-1.5 rounded-lg text-center">
                     <Sparkles className="w-3 h-3 mx-auto mb-0.5 text-cyan-600" />
-                    {(() => {
-                  const cleaningData = getCleaningScoreForEmployee(employee.full_name);
-                  return cleaningData.count > 0 ?
-                  <>
-                          <p className={`text-xs font-bold ${
-                    cleaningData.percentualePulito >= 80 ? 'text-green-600' : 'text-red-600'}`
-                    }>
-                            {cleaningData.percentualePulito.toFixed(0)}%
-                          </p>
-                          <p className="text-[10px] text-slate-500 leading-tight">({cleaningData.count})</p>
-                        </> :
-
-                  <>
-                          <p className="text-xs font-bold text-slate-400">-</p>
-                          <p className="text-[10px] text-slate-500 leading-tight">(0)</p>
-                        </>;
-
-                })()}
+                    {employee.cleaningData?.count > 0 ? <>
+                      <p className={`text-xs font-bold ${employee.cleaningData.percentualePulito >= 80 ? 'text-green-600' : 'text-red-600'}`}>{employee.cleaningData.percentualePulito.toFixed(0)}%</p>
+                      <p className="text-[10px] text-slate-500 leading-tight">({employee.cleaningData.count})</p>
+                    </> : <>
+                      <p className="text-xs font-bold text-slate-400">-</p>
+                      <p className="text-[10px] text-slate-500 leading-tight">(0)</p>
+                    </>}
                   </div>
                 </div>
                 
