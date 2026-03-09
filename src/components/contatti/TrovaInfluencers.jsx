@@ -13,8 +13,11 @@ import {
   UserPlus,
   Star,
   Filter,
-  RefreshCw
+  RefreshCw,
+  X,
+  AlertCircle
 } from "lucide-react";
+import { useEffect } from "react";
 
 const PLATFORM_OPTIONS = [
   { value: "instagram", label: "Instagram", icon: "📸" },
