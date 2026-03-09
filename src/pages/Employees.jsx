@@ -1938,7 +1938,7 @@ export default function Employees() {
                       <p className="text-red-600"><strong>- Sotto Minimo Recensioni:</strong> ({selectedEmployee.weights.w_min_recensioni} - {selectedEmployee.googleReviewCount}) × {selectedEmployee.weights.w_malus_recensioni} = -{((selectedEmployee.weights.w_min_recensioni - selectedEmployee.googleReviewCount) * selectedEmployee.weights.w_malus_recensioni).toFixed(1)}</p>
                     }
                     {selectedEmployee.weights.w_pulizie > 0 && (() => {
-                      const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
+                      const cleaningData = selectedEmployee.cleaningData;
                       if (cleaningData.count > 0) {
                         if (cleaningData.percentualePulito < 80) {
                           const penalty = (80 - cleaningData.percentualePulito) * selectedEmployee.weights.w_pulizie * 0.1;
