@@ -349,7 +349,7 @@ export default function Inventory() {
     });
 
     return orders;
-  }, [inventory, inventoryCantina, products, stores, ricette]);
+  }, [inventory, inventoryCantina, products, allProducts, stores, ricette]);
 
   // Group orders by store and supplier
   const ordersByStoreAndSupplier = useMemo(() => {
