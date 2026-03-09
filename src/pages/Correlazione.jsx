@@ -65,17 +65,16 @@ const getCorrelationInfo = (r) => {
 
 const BAR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#ef4444'];
 
-export default function Correlation() {
+export default function Correlazione() {
   const [selectedStore, setSelectedStore] = useState('all');
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 31), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(subDays(new Date(), 1), 'yyyy-MM-dd'));
-  const [weatherData, setWeatherData] = useState(null); // { [date]: { temp_c, precip_mm, weathercode } }
+  const [weatherData, setWeatherData] = useState(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
   const [weatherError, setWeatherError] = useState(null);
   const [weatherStale, setWeatherStale] = useState(false);
-  const [activeMetric, setActiveMetric] = useState('temp'); // 'temp' | 'precip'
+  const [activeMetric, setActiveMetric] = useState('temp');
 
-  // Reuse shared React Query cache — no duplicate network requests if other tabs already loaded these
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list()
@@ -86,7 +85,6 @@ export default function Correlation() {
     queryFn: () => base44.entities.iPratico.list('-order_date', 1000)
   });
 
-  // Resolve geo-coordinates for selected store
   const storeLocation = useMemo(() => {
     if (selectedStore === 'all') {
       return { lat: 45.4642, lon: 9.1900, label: 'Milano (default per tutti i locali)' };
@@ -99,12 +97,10 @@ export default function Correlation() {
     return { lat: 45.4642, lon: 9.1900, label: `${store.city || store.name} (coords n.d. → Milano)` };
   }, [selectedStore, stores]);
 
-  // Mark weather data as stale when filters change
   useEffect(() => {
     if (weatherData) setWeatherStale(true);
   }, [startDate, endDate, selectedStore]);
 
-  // Aggregate revenue per day (read-only, does not touch any existing Financials logic)
   const revenueByDate = useMemo(() => {
     const map = {};
     iPraticoData.forEach(item => {
@@ -116,7 +112,6 @@ export default function Correlation() {
     return map;
   }, [iPraticoData, startDate, endDate, selectedStore]);
 
-  // Fetch historical weather from Open-Meteo (free, open-source, CORS-enabled)
   const fetchWeather = async () => {
     setIsLoadingWeather(true);
     setWeatherError(null);
@@ -147,7 +142,6 @@ export default function Correlation() {
     }
   };
 
-  // Build correlation metrics (isolated — no Financials logic touched)
   const correlationData = useMemo(() => {
     if (!weatherData || Object.keys(revenueByDate).length === 0) return null;
     const paired = [];
@@ -173,7 +167,6 @@ export default function Correlation() {
     const rTemp = pearsonCorrelation(temps, revenues);
     const rPrecip = pearsonCorrelation(precips, revenues);
 
-    // Group by weather condition for bar chart
     const conditionGroups = {};
     paired.forEach(p => {
       if (!conditionGroups[p.category]) conditionGroups[p.category] = [];
@@ -205,10 +198,9 @@ export default function Correlation() {
   const revenueDates = Object.keys(revenueByDate).length;
 
   return (
-    <ProtectedPage pageName="Correlation">
+    <ProtectedPage pageName="Correlazione">
       <div className="max-w-5xl mx-auto space-y-4 lg:space-y-6">
 
-        {/* Header */}
         <div className="mb-4">
           <h1 className="text-2xl font-bold lg:text-3xl" style={{ color: '#000000' }}>
             Correlazione Revenue
@@ -218,7 +210,6 @@ export default function Correlation() {
           </p>
         </div>
 
-        {/* Filters */}
         <NeumorphicCard className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -264,9 +255,7 @@ export default function Correlation() {
               {isLoadingWeather ? 'Caricamento meteo...' : 'Carica Dati Meteo'}
             </button>
 
-            <span className="text-xs text-slate-500">
-              📍 {storeLocation.label}
-            </span>
+            <span className="text-xs text-slate-500">📍 {storeLocation.label}</span>
 
             {!revenueLoading && (
               <span className="text-xs text-slate-400">
@@ -282,7 +271,6 @@ export default function Correlation() {
           </div>
         </NeumorphicCard>
 
-        {/* Error */}
         {weatherError && (
           <NeumorphicCard className="p-4 border border-red-200" style={{ background: '#fff5f5' }}>
             <div className="flex items-start gap-2 text-red-700">
@@ -292,7 +280,6 @@ export default function Correlation() {
           </NeumorphicCard>
         )}
 
-        {/* Placeholder */}
         {!weatherData && !isLoadingWeather && !weatherError && (
           <NeumorphicCard className="p-10 text-center">
             <Cloud className="w-14 h-14 text-slate-200 mx-auto mb-4" />
@@ -305,7 +292,6 @@ export default function Correlation() {
           </NeumorphicCard>
         )}
 
-        {/* Results */}
         {correlationData && !weatherStale && (
           <>
             {correlationData.insufficient ? (
@@ -318,10 +304,7 @@ export default function Correlation() {
               </NeumorphicCard>
             ) : (
               <>
-                {/* Correlation Score Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                  {/* Temperature */}
                   <NeumorphicCard className="p-5">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-md">
@@ -341,7 +324,6 @@ export default function Correlation() {
                             <p className="text-xs text-slate-400">Pearson r</p>
                           </div>
                         </div>
-                        {/* Visual bar */}
                         <div className="h-2 bg-slate-100 rounded-full mb-3 overflow-hidden">
                           <div
                             className={`h-full rounded-full ${tempInfo.bar} transition-all`}
@@ -359,7 +341,6 @@ export default function Correlation() {
                     </p>
                   </NeumorphicCard>
 
-                  {/* Precipitation */}
                   <NeumorphicCard className="p-5">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-md">
@@ -397,7 +378,6 @@ export default function Correlation() {
                   </NeumorphicCard>
                 </div>
 
-                {/* Scatter Plot */}
                 <NeumorphicCard className="p-5">
                   <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                     <div>
@@ -467,7 +447,6 @@ export default function Correlation() {
                   </ResponsiveContainer>
                 </NeumorphicCard>
 
-                {/* Revenue by Weather Condition */}
                 {correlationData.conditionData.length > 0 && (
                   <NeumorphicCard className="p-5">
                     <div className="flex items-center gap-3 mb-4">
@@ -482,18 +461,8 @@ export default function Correlation() {
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={correlationData.conditionData} margin={{ bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis
-                          dataKey="condition"
-                          tick={{ fontSize: 10 }}
-                          angle={-20}
-                          textAnchor="end"
-                          height={55}
-                        />
-                        <YAxis
-                          tickFormatter={v => `€${Math.round(v / 1000)}k`}
-                          tick={{ fontSize: 11 }}
-                          width={55}
-                        />
+                        <XAxis dataKey="condition" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={55} />
+                        <YAxis tickFormatter={v => `€${Math.round(v / 1000)}k`} tick={{ fontSize: 11 }} width={55} />
                         <RechartsTooltip
                           content={({ payload, label }) => {
                             if (!payload?.length) return null;
@@ -516,10 +485,7 @@ export default function Correlation() {
                     </ResponsiveContainer>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {correlationData.conditionData.map((d, i) => (
-                        <span
-                          key={i}
-                          className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600"
-                        >
+                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                           {d.condition}: {d.count}gg
                         </span>
                       ))}
@@ -527,7 +493,6 @@ export default function Correlation() {
                   </NeumorphicCard>
                 )}
 
-                {/* Methodology note */}
                 <NeumorphicCard className="p-4" style={{ background: '#f0f9ff' }}>
                   <div className="flex items-start gap-2">
                     <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />

@@ -152,8 +152,8 @@ const navigationStructure = [
       },
       {
         title: "Correlation",
-        page: "Correlation",
-        url: createPageUrl("Correlation"),
+        page: "Correlazione",
+        url: createPageUrl("Correlazione"),
         icon: BarChart3,
       },
       {
