@@ -158,11 +158,10 @@ const navigationStructure = [
         parent_admin_section: "Financials"
       },
       {
-        title: "Correlazione Meteo",
+        title: "Correlation",
         page: "Correlazione",
         url: createPageUrl("Correlazione"),
         icon: Cloud,
-        parent_admin_section: "Financials"
       }
       ]
       },
