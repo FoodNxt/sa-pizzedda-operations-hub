@@ -112,22 +112,23 @@ export default function TrovaInfluencers({ onAddContact }) {
 - Range follower: ${range?.label} (${range?.min?.toLocaleString()}${range?.max ? "–" + range?.max?.toLocaleString() : "+"} followers)
 - Lingua: Preferibilmente italiano
 
-Usa i risultati di ricerca Google e ${platform?.label} per trovare account REALI verificati.
+Usa SEMPRE i risultati di ricerca Google AGGIORNATI per trovare SOLO account REALI e verificati su ${platform?.label}.
+IMPORTANTE: Verifica ATTENTAMENTE il numero di follower da Google e ${platform?.label} - deve essere ESATTO e AGGIORNATO. Se non trovi i dati esatti su Google, NON INCLUDERE l'influencer.
 
-Per ogni influencer, fornire:
+Per ogni influencer, fornire DATI VERIFICATI DA INTERNET:
 - username (account reale verificato su ${platform?.label})
-- full_name (nome e cognome reale)
-- followers_count (numero follower reali)
-- city (città italiana)
-- niche (categoria contenuti)
-- bio (breve descrizione contenuti)
-- engagement_rate (media reale engagement %)
+- full_name (nome e cognome reale - verificare da profilo ${platform?.label})
+- followers_count (numero follower ESATTO e AGGIORNATO da Google/profilo ${platform?.label} - NO stime)
+- city (città italiana dal profilo)
+- niche (categoria contenuti effettivi)
+- bio (descrizione esatta dal profilo)
+- engagement_rate (engagement rate medio reale %)
 - profile_url (link diretto al profilo ${platform?.label})
-- contact_hint (come contattarli)
+- contact_hint (come contattarli - email, link contatti, DM, etc.)
 
 Restituisci un JSON array di 10 oggetti influencer con questi campi esatti.
 Focalizzati su creatori di contenuti food, lifestyle, locali rilevanti per attività pizza/ristorazione in Italia.
-I profili DEVONO essere verificati e reali.`;
+I profili DEVONO essere verificati e reali. I follower DEVONO essere accurati.`;
 
     try {
       const result = await base44.integrations.Core.InvokeLLM({
