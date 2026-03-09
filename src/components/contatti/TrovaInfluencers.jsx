@@ -62,32 +62,33 @@ export default function TrovaInfluencers({ onAddContact }) {
     const niche = NICHE_OPTIONS.find((n) => n.value === filters.niche);
     const platform = PLATFORM_OPTIONS.find((p) => p.value === filters.platform);
 
-    const prompt = `You are an influencer discovery tool similar to Modash.
-    
-Find 10 real or realistic ${platform?.label} influencers/content creators that match these criteria:
-- Niche/Category: ${niche?.label}
-- Location/City: ${filters.city || "Italy (any city)"}
-- Follower range: ${range?.label} (${range?.min?.toLocaleString()}${range?.max ? "–" + range?.max?.toLocaleString() : "+"} followers)
-- Language: Italian preferred
+    const prompt = `Cercare e trovare 10 VERI influencer su ${platform?.label} che corrispondono a questi criteri:
+- Niche/Categoria: ${niche?.label}
+- Città/Zona: ${filters.city || "Italia (qualsiasi città)"}
+- Range follower: ${range?.label} (${range?.min?.toLocaleString()}${range?.max ? "–" + range?.max?.toLocaleString() : "+"} followers)
+- Lingua: Preferibilmente italiano
 
-For each influencer, provide:
-- username (real or realistic Instagram/TikTok handle)
-- full_name (real or plausible name)
-- followers_count (number within the specified range)
-- city (Italian city)
-- niche (their specific niche/category)
-- bio (short 1-line description of their content)
-- engagement_rate (realistic %, e.g. 3.2)
-- profile_url (https://${filters.platform}.com/username)
-- contact_hint (e.g. "DM on ${platform?.label}" or email format if guessable)
+Usa i risultati di ricerca Google e ${platform?.label} per trovare account REALI verificati.
 
-Return a JSON array of 10 influencer objects with these exact fields.
-Focus on food, lifestyle, local content creators relevant to pizza/restaurant businesses in Italy.
-Make the data realistic and useful for a marketing team.`;
+Per ogni influencer, fornire:
+- username (account reale verificato su ${platform?.label})
+- full_name (nome e cognome reale)
+- followers_count (numero follower reali)
+- city (città italiana)
+- niche (categoria contenuti)
+- bio (breve descrizione contenuti)
+- engagement_rate (media reale engagement %)
+- profile_url (link diretto al profilo ${platform?.label})
+- contact_hint (come contattarli)
+
+Restituisci un JSON array di 10 oggetti influencer con questi campi esatti.
+Focalizzati su creatori di contenuti food, lifestyle, locali rilevanti per attività pizza/ristorazione in Italia.
+I profili DEVONO essere verificati e reali.`;
 
     try {
       const result = await base44.integrations.Core.InvokeLLM({
         prompt,
+        add_context_from_internet: true,
         response_json_schema: {
           type: "object",
           properties: {
