@@ -366,17 +366,36 @@ export default function Contatti() {
             <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>Contatti Marketing</h1>
             <p style={{ color: '#000000' }}>Gestisci i tuoi contatti per influencer, PR e advertising</p>
           </div>
-          <NeumorphicButton
-            onClick={() => {
-              setFormData({ ...formData, categoria: activeTab });
-              setShowForm(true);
-            }}
-            variant="primary"
-            className="flex items-center gap-2">
-
-            <Plus className="w-5 h-5" />
-            Nuovo Contatto
-          </NeumorphicButton>
+          <div className="flex items-center gap-3">
+            <div className="flex neumorphic-pressed rounded-xl p-1 gap-1">
+              <button
+                onClick={() => setMainView('contatti')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mainView === 'contatti' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                <Users className="w-4 h-4 inline mr-1.5" />
+                I miei Contatti
+              </button>
+              <button
+                onClick={() => setMainView('trova')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${mainView === 'trova' ? 'bg-white shadow text-purple-700' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                <Sparkles className="w-4 h-4 inline mr-1.5" />
+                Trova Influencers
+              </button>
+            </div>
+            {mainView === 'contatti' && (
+              <NeumorphicButton
+                onClick={() => {
+                  setFormData({ ...formData, categoria: activeTab });
+                  setShowForm(true);
+                }}
+                variant="primary"
+                className="flex items-center gap-2">
+                <Plus className="w-5 h-5" />
+                Nuovo Contatto
+              </NeumorphicButton>
+            )}
+          </div>
         </div>
 
         {/* Stats */}
