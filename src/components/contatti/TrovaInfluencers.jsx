@@ -380,26 +380,42 @@ I profili DEVONO essere verificati e reali.`;
                           </a>
                         </div>
 
-                        <button
-                          onClick={() => handleAddToContatti(influencer)}
-                          disabled={isAdded || isAdding}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                            isAdded
-                              ? "bg-green-100 text-green-700 cursor-default"
-                              : "bg-purple-100 text-purple-700 hover:bg-purple-200"
-                          }`}
-                        >
-                          {isAdding ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : isAdded ? (
-                            <>✓ Aggiunto</>
-                          ) : (
-                            <>
-                              <UserPlus className="w-3 h-3" />
-                              Aggiungi
-                            </>
-                          )}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleAddToContatti(influencer)}
+                            disabled={isAdded || isAdding || duplicate}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                              isAdded
+                                ? "bg-green-100 text-green-700 cursor-default"
+                                : duplicate
+                                ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                            }`}
+                          >
+                            {isAdding ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : isAdded ? (
+                              <>✓ Aggiunto</>
+                            ) : (
+                              <>
+                                <UserPlus className="w-3 h-3" />
+                                Aggiungi
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleScarta(influencer)}
+                            disabled={isScarcando}
+                            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-all"
+                            title="Scarta questo influencer"
+                          >
+                            {isScarcando ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <X className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
                       </div>
 
                       {/* Bio */}
