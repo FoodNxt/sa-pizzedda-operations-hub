@@ -2349,7 +2349,7 @@ export default function Planday() {
               </thead>
               <tbody>
                 {users.
-                  filter((u) => (u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0).
+                  filter((u) => ((u.user_type === 'dipendente' || u.user_type === 'user') && u.ruoli_dipendente?.length > 0) && !uscite.find((usc) => usc.dipendente_id === u.id)).
                   map((dipendente) => {
                     const turniSettimana = turni.filter((t) => t.dipendente_id === dipendente.id);
                     const orePianificate = turniSettimana.reduce((sum, t) => {
