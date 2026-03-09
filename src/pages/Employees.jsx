@@ -247,6 +247,78 @@ export default function Employees() {
     return Array.from(uniqueShiftsMap.values());
   };
 
+  // Memoized cleaning score map - computed ONCE per date range across all employees
+  const cleaningScoreMap = useMemo(() => {
+    const map = new Map();
+    const normalizeAttrName = (name) => {
+      const m = { 'Forno': 'forno', 'Impastatrice': 'impastatrice', 'Tavolo da lavoro': 'tavolo_lavoro', 'Frigo': 'frigo', 'Cassa': 'cassa', 'Lavandino': 'lavandino', 'Tavolette Takeaway': 'tavolette_takeaway' };
+      return m[name] || name?.toLowerCase().replace(/\s+/g, '_') || '';
+    };
+    cleaningInspections.forEach((inspection) => {
+      if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
+      if (startDate || endDate) {
+        if (!inspection.inspection_date) return;
+        const inspDate = safeParseDate(inspection.inspection_date);
+        if (!inspDate) return;
+        const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+        const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+        if (start && end && !isWithinInterval(inspDate, { start, end })) return;
+        else if (start && inspDate < start) return;
+        else if (end && inspDate > end) return;
+      }
+      const dataCompilazione = new Date(inspection.inspection_date);
+      const inspectionStoreId = inspection.store_id;
+      inspection.domande_risposte.forEach((domanda) => {
+        let nomeAttrezzatura = domanda.attrezzatura;
+        if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
+          const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
+          nomeAttrezzatura = originalQuestion?.attrezzatura;
+          if (!nomeAttrezzatura) {
+            const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
+            for (const attr of attrezzature) {
+              if (domandaLower.includes(attr.nome.toLowerCase())) { nomeAttrezzatura = attr.nome; break; }
+            }
+          }
+        }
+        if (!nomeAttrezzatura) return;
+        const attrezzatura = attrezzature.find((a) => a.nome === nomeAttrezzatura);
+        if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
+        let statoPulizia = null;
+        if (domanda.tipo_controllo === 'foto') {
+          const normalizedName = normalizeAttrName(nomeAttrezzatura);
+          statoPulizia = inspection[`${normalizedName}_corrected_status`] || inspection[`${normalizedName}_pulizia_status`];
+        } else if (domanda.tipo_controllo === 'scelta_multipla') {
+          const origQ = domande.find((d) => d.id === domanda.domanda_id);
+          statoPulizia = domanda.risposta?.toLowerCase() === origQ?.risposta_corretta?.toLowerCase() ? 'pulito' : 'sporco';
+        }
+        if (!statoPulizia) return;
+        attrezzatura.ruoli_responsabili.forEach((ruoloResponsabile) => {
+          const candidateShifts = shifts.filter((t) => {
+            if (t.store_id !== inspectionStoreId || t.ruolo !== ruoloResponsabile || !t.dipendente_nome || !t.data || !t.ora_fine) return false;
+            const shiftEndTime = t.timbratura_uscita ? new Date(t.timbratura_uscita) : new Date(t.data + 'T' + t.ora_fine);
+            return shiftEndTime <= dataCompilazione;
+          });
+          const lastShift = candidateShifts.sort((a, b) => {
+            const endA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
+            const endB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
+            return endB - endA;
+          })[0];
+          if (!lastShift) return;
+          const empName = lastShift.dipendente_nome;
+          if (!map.has(empName)) map.set(empName, { puliti: 0, sporchi: 0 });
+          const entry = map.get(empName);
+          if (statoPulizia === 'pulito') entry.puliti++; else entry.sporchi++;
+        });
+      });
+    });
+    const result = new Map();
+    map.forEach((counts, name) => {
+      const total = counts.puliti + counts.sporchi;
+      result.set(name, { percentualePulito: total > 0 ? counts.puliti / total * 100 : null, count: total, puliti: counts.puliti, sporchi: counts.sporchi });
+    });
+    return result;
+  }, [cleaningInspections, startDate, endDate, attrezzature, domande, shifts]);
+
   // Calculate employee metrics - UPDATED to work with User entity
   const employeeMetrics = useMemo(() => {
     let filteredReviews = reviews;
@@ -1127,130 +1199,7 @@ export default function Employees() {
   };
 
   const getCleaningScoreForEmployee = (employeeName) => {
-    const user = users.find((u) =>
-    (u.nome_cognome || u.full_name || u.email) === employeeName
-    );
-
-    if (!user) return { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
-
-    let puliti = 0;
-    let sporchi = 0;
-
-    cleaningInspections.forEach((inspection) => {
-      if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
-
-      // Filter by date if needed
-      if (startDate || endDate) {
-        if (!inspection.inspection_date) return;
-        const inspDate = safeParseDate(inspection.inspection_date);
-        if (!inspDate) return;
-        const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
-        const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
-        if (start && end && !isWithinInterval(inspDate, { start, end })) return;else
-        if (start && inspDate < start) return;else
-        if (end && inspDate > end) return;
-      }
-
-      const dataCompilazione = new Date(inspection.inspection_date);
-      const inspectionStoreId = inspection.store_id;
-
-      inspection.domande_risposte.forEach((domanda) => {
-        // Trova l'attrezzatura - per scelta multipla cerca nella domanda originale
-        let nomeAttrezzatura = domanda.attrezzatura;
-
-        if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
-          const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
-          nomeAttrezzatura = originalQuestion?.attrezzatura;
-
-          if (!nomeAttrezzatura) {
-            const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
-            for (const attr of attrezzature) {
-              const attrLower = attr.nome.toLowerCase();
-              if (domandaLower.includes(attrLower)) {
-                nomeAttrezzatura = attr.nome;
-                break;
-              }
-            }
-          }
-        }
-
-        if (!nomeAttrezzatura) return;
-
-        const attrezzatura = attrezzature.find((a) => a.nome === nomeAttrezzatura);
-        if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
-
-        // Determina lo stato in base al tipo di domanda
-        let statoPulizia = null;
-
-        if (domanda.tipo_controllo === 'foto') {
-          const normalizeAttrezzatura = (name) => {
-            const map = {
-              'Forno': 'forno',
-              'Impastatrice': 'impastatrice',
-              'Tavolo da lavoro': 'tavolo_lavoro',
-              'Frigo': 'frigo',
-              'Cassa': 'cassa',
-              'Lavandino': 'lavandino',
-              'Tavolette Takeaway': 'tavolette_takeaway'
-            };
-            return map[name] || name?.toLowerCase().replace(/\s+/g, '_') || '';
-          };
-
-          const normalizedName = normalizeAttrezzatura(nomeAttrezzatura);
-          const statusField = `${normalizedName}_pulizia_status`;
-          const correctedField = `${normalizedName}_corrected_status`;
-          statoPulizia = inspection[correctedField] || inspection[statusField];
-        } else if (domanda.tipo_controllo === 'scelta_multipla') {
-          const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
-          const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
-          statoPulizia = isCorrect ? 'pulito' : 'sporco';
-        }
-
-        if (!statoPulizia) return;
-
-        // Process each responsible role
-        attrezzatura.ruoli_responsabili.forEach((ruoloResponsabile) => {
-          const candidateShifts = shifts.filter((t) => {
-            if (t.store_id !== inspectionStoreId) return false;
-            if (t.ruolo !== ruoloResponsabile) return false;
-            if (!t.dipendente_nome) return false;
-            if (!t.data || !t.ora_fine) return false;
-
-            const shiftEndTime = t.timbratura_uscita ?
-            new Date(t.timbratura_uscita) :
-            new Date(t.data + 'T' + t.ora_fine);
-
-            return shiftEndTime <= dataCompilazione;
-          });
-
-          const lastShift = candidateShifts.sort((a, b) => {
-            const endA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
-            const endB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
-            return endB - endA;
-          })[0];
-
-          if (!lastShift) return;
-
-          // Verifica che questo dipendente sia il responsabile
-          if (lastShift.dipendente_nome !== employeeName) return;
-
-          const isPulito = statoPulizia === 'pulito';
-
-          if (isPulito) {
-            puliti++;
-          } else {
-            sporchi++;
-          }
-        });
-      });
-    });
-
-    const totalControlli = puliti + sporchi;
-
-    if (totalControlli === 0) return { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
-
-    const percentualePulito = puliti / totalControlli * 100;
-    return { percentualePulito, count: totalControlli, puliti, sporchi };
+    return cleaningScoreMap.get(employeeName) || { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
   };
 
   const getConfidenceBadgeColor = (confidence) => {
