@@ -80,6 +80,12 @@ export default function Inventory() {
     queryFn: () => base44.entities.MateriePrime.list()
   });
 
+  // Also load ALL products (including inactive) for nome_interno fallback mapping
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ['materie-prime-all'],
+    queryFn: () => base44.entities.MateriePrime.filter({})
+  });
+
   const { data: fornitori = [] } = useQuery({
     queryKey: ['fornitori'],
     queryFn: () => base44.entities.Fornitore.filter({ attivo: true })
