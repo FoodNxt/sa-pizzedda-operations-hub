@@ -933,6 +933,30 @@ export default function Segnalazioni() {
                 <p className="text-xs text-red-600 mt-2">
                   {selectedSegnalazione.store_name} • {format(new Date(selectedSegnalazione.data_segnalazione), 'dd/MM/yyyy HH:mm', { locale: it })}
                 </p>
+                {/* Foto segnalazione */}
+                {(() => {
+                  const urls = selectedSegnalazione.foto_urls?.length
+                    ? selectedSegnalazione.foto_urls
+                    : selectedSegnalazione.foto_url
+                    ? [selectedSegnalazione.foto_url]
+                    : [];
+                  return urls.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-red-700 font-medium mb-2">Foto allegate ({urls.length}):</p>
+                      <div className="flex flex-wrap gap-2">
+                        {urls.map((url, idx) => (
+                          <img
+                            key={idx}
+                            src={url}
+                            alt={`Foto ${idx + 1}`}
+                            className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 border border-red-200"
+                            onClick={() => window.open(url, '_blank')}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Selezione Dipendente */}
