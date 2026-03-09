@@ -828,7 +828,7 @@ export default function Employees() {
 
     if (selectedStore !== 'all') {
       filtered = filtered.filter((e) => {
-        if (!e.assigned_stores || e.assigned_stores.length === 0) return true;
+        if (!e.assigned_stores || !Array.isArray(e.assigned_stores) || e.assigned_stores.length === 0) return true;
         return e.assigned_stores.some((storeName) => {
           const store = stores.find((s) => s.name === storeName);
           return store && store.id === selectedStore;
