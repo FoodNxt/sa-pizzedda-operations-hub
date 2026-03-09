@@ -15,8 +15,10 @@ import {
   Building,
   Euro,
   X,
-  Search } from
+  Search,
+  Sparkles } from
 'lucide-react';
+import TrovaInfluencers from "../components/contatti/TrovaInfluencers";
 
 export default function Contatti() {
   const [showForm, setShowForm] = useState(false);
