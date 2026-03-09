@@ -425,6 +425,18 @@ export default function Contatti() {
           </NeumorphicCard>
         </div>
 
+        {/* Trova Influencers View */}
+        {mainView === 'trova' && (
+          <TrovaInfluencers
+            onAddContact={() => {
+              queryClient.invalidateQueries({ queryKey: ['contatti-marketing'] });
+            }}
+          />
+        )}
+
+        {/* Contatti View */}
+        {mainView === 'contatti' && <>
+
         {/* Category Tabs */}
         <NeumorphicCard className="p-6">
           <div className="flex gap-2 overflow-x-auto pb-2">
