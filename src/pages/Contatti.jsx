@@ -24,6 +24,7 @@ export default function Contatti() {
   const [showForm, setShowForm] = useState(false);
   const [editingContatto, setEditingContatto] = useState(null);
   const [activeTab, setActiveTab] = useState('Food influencers');
+  const [mainView, setMainView] = useState('contatti'); // 'contatti' | 'trova'
   const [searchQuery, setSearchQuery] = useState('');
   const [sortByVisit, setSortByVisit] = useState(false);
   const [filterMaiVisitato, setFilterMaiVisitato] = useState(false);
