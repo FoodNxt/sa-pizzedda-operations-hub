@@ -343,9 +343,20 @@ I profili DEVONO essere verificati e reali.`;
             {results.map((influencer, idx) => {
               const isAdded = addedIds.has(influencer.username);
               const isAdding = addingId === influencer.username;
+              const duplicate = isDuplicate(influencer);
+              const isScartato = scartatiIds.has(influencer.username);
+              const isScarcando = scarcandiId === influencer.username;
+
+              if (isScartato) return null;
 
               return (
-                <NeumorphicCard key={idx} className="p-5">
+                <NeumorphicCard key={idx} className={`p-5 ${duplicate ? 'border-2 border-orange-300' : ''}`}>
+                  {duplicate && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-2 mb-3 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                      <span className="text-xs text-orange-700 font-medium">Duplicato - già nei tuoi contatti</span>
+                    </div>
+                  )}
                   <div className="flex items-start justify-between gap-3">
                     {/* Avatar placeholder */}
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
