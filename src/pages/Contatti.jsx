@@ -435,7 +435,8 @@ export default function Contatti() {
         )}
 
         {/* Contatti View */}
-        {mainView === 'contatti' && <>
+        {mainView === 'contatti' && (
+        <React.Fragment>
 
         {/* Category Tabs */}
         <NeumorphicCard className="p-6">
