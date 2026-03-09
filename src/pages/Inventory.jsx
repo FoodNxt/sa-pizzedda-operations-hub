@@ -315,10 +315,11 @@ export default function Inventory() {
       // Find active product by ID first, fallback to nome_interno if not found or inactive
       let product = products.find((p) => p.id === reading.prodotto_id && p.attivo !== false);
       if (!product) {
-        // Try to find active replacement by nome_interno
-        const inactiveProduct = products.find((p) => p.id === reading.prodotto_id);
-        if (inactiveProduct?.nome_interno) {
-          product = products.find((p) => p.nome_interno === inactiveProduct.nome_interno && p.attivo !== false);
+        // Look up the original product (even if inactive) in allProducts to get nome_interno
+        const originalProduct = allProducts.find((p) => p.id === reading.prodotto_id);
+        if (originalProduct?.nome_interno) {
+          // Find active replacement with same nome_interno
+          product = products.find((p) => p.nome_interno === originalProduct.nome_interno && p.attivo !== false);
         }
       }
       if (!product) return;
