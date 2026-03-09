@@ -1111,15 +1111,7 @@ export default function Employees() {
     return getAllWrongOrders(employeeName).slice(0, 3);
   };
 
-  const getP2PFeedbackForEmployee = (employeeName) => {
-    return p2pResponses.
-    filter((r) => r.reviewed_name === employeeName).
-    sort((a, b) => {
-      const dateA = new Date(a.submitted_date || 0);
-      const dateB = new Date(b.submitted_date || 0);
-      return dateB.getTime() - dateA.getTime();
-    });
-  };
+  const getP2PFeedbackForEmployee = (employeeName) => p2pResponses.filter((r) => r.reviewed_name === employeeName).sort((a, b) => new Date(b.submitted_date || 0) - new Date(a.submitted_date || 0));
 
   const getCleaningScoreForEmployee = (employeeName) => {
     const user = users.find((u) =>
