@@ -306,7 +306,15 @@ export default function Inventory() {
 
     // Check each product against critical levels using aggregated quantities
     Object.values(latestByProduct).forEach((reading) => {
-      const product = products.find((p) => p.id === reading.prodotto_id);
+      // Find active product by ID first, fallback to nome_interno if not found or inactive
+      let product = products.find((p) => p.id === reading.prodotto_id && p.attivo !== false);
+      if (!product) {
+        // Try to find active replacement by nome_interno
+        const inactiveProduct = products.find((p) => p.id === reading.prodotto_id);
+        if (inactiveProduct?.nome_interno) {
+          product = products.find((p) => p.nome_interno === inactiveProduct.nome_interno && p.attivo !== false);
+        }
+      }
       if (!product) return;
 
       const store = stores.find((s) => s.id === reading.store_id);
