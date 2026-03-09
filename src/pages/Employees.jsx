@@ -782,6 +782,7 @@ export default function Employees() {
       performanceScore >= 40 ? 'needs_improvement' :
       'poor';
 
+      const totalControlli = puliti + sporchi;
       return {
         ...user,
         full_name: employeeName,
@@ -802,13 +803,8 @@ export default function Employees() {
         googleReviewCount: googleReviews.length,
         oreAssenzeNonGiustificate,
         oreMalattia,
-        weights: {
-          w_bonus_recensione,
-          w_min_recensioni,
-          w_malus_recensioni,
-          w_punteggio_recensioni,
-          w_pulizie
-        },
+        cleaningData: totalControlli > 0 ? { percentualePulito: puliti / totalControlli * 100, count: totalControlli, puliti, sporchi } : { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 },
+        weights: { w_bonus_recensione, w_min_recensioni, w_malus_recensioni, w_punteggio_recensioni, w_pulizie },
         scoreBreakdown
       };
     });
