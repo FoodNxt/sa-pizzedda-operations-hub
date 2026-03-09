@@ -2261,7 +2261,7 @@ export default function Employees() {
                     <h3 className="font-bold text-slate-800">Controlli Pulizia</h3>
                   </div>
                   {(() => {
-                  const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
+                  const cleaningData = selectedEmployee.cleaningData;
                   return cleaningData.count > 0 ?
                   <div className="neumorphic-pressed p-4 rounded-xl">
                         <div className="text-center mb-3">
