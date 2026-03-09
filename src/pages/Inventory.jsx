@@ -625,6 +625,7 @@ export default function Inventory() {
 
   const tabs = [
   { id: 'overview', label: 'Panoramica', icon: Package },
+  { id: 'orders', label: 'Ordini Suggeriti', icon: ShoppingCart },
   { id: 'history', label: 'Storico', icon: History },
   { id: 'optimizations', label: 'Ottimizzazioni', icon: TrendingUp }];
 
