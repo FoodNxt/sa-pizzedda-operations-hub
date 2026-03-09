@@ -765,8 +765,9 @@ export default function Employees() {
       });
 
       // Calcola percentuale pulito come in PulizieMatch
-      if ((puliti + sporchi) > 0) {
-        const percentualePulito = puliti / (puliti + sporchi) * 100;
+      const totalControlli = puliti + sporchi;
+      if (totalControlli > 0) {
+        const percentualePulito = puliti / totalControlli * 100;
         if (percentualePulito < 80) {
           const cleaningPenalty = (80 - percentualePulito) * w_pulizie * 0.1;
           performanceScore -= cleaningPenalty;
@@ -782,7 +783,6 @@ export default function Employees() {
       performanceScore >= 40 ? 'needs_improvement' :
       'poor';
 
-      const totalControlli = puliti + sporchi;
       return {
         ...user,
         full_name: employeeName,
@@ -803,8 +803,13 @@ export default function Employees() {
         googleReviewCount: googleReviews.length,
         oreAssenzeNonGiustificate,
         oreMalattia,
-        cleaningData: totalControlli > 0 ? { percentualePulito: puliti / totalControlli * 100, count: totalControlli, puliti, sporchi } : { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 },
-        weights: { w_bonus_recensione, w_min_recensioni, w_malus_recensioni, w_punteggio_recensioni, w_pulizie },
+        weights: {
+          w_bonus_recensione,
+          w_min_recensioni,
+          w_malus_recensioni,
+          w_punteggio_recensioni,
+          w_pulizie
+        },
         scoreBreakdown
       };
     });
@@ -1111,9 +1116,152 @@ export default function Employees() {
     return getAllWrongOrders(employeeName).slice(0, 3);
   };
 
-  const getP2PFeedbackForEmployee = (employeeName) => p2pResponses.filter((r) => r.reviewed_name === employeeName).sort((a, b) => new Date(b.submitted_date || 0) - new Date(a.submitted_date || 0));
+  const getP2PFeedbackForEmployee = (employeeName) => {
+    return p2pResponses.
+    filter((r) => r.reviewed_name === employeeName).
+    sort((a, b) => {
+      const dateA = new Date(a.submitted_date || 0);
+      const dateB = new Date(b.submitted_date || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
+  };
 
-  const getConfidenceBadgeColor = (c) => c === 'high' ? 'bg-green-100 text-green-700' : c === 'medium' ? 'bg-yellow-100 text-yellow-700' : c === 'low' ? 'bg-orange-100 text-orange-700' : c === 'manual' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700';
+  const getCleaningScoreForEmployee = (employeeName) => {
+    const user = users.find((u) =>
+    (u.nome_cognome || u.full_name || u.email) === employeeName
+    );
+
+    if (!user) return { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
+
+    let puliti = 0;
+    let sporchi = 0;
+
+    cleaningInspections.forEach((inspection) => {
+      if (!inspection.domande_risposte || inspection.analysis_status !== 'completed') return;
+
+      // Filter by date if needed
+      if (startDate || endDate) {
+        if (!inspection.inspection_date) return;
+        const inspDate = safeParseDate(inspection.inspection_date);
+        if (!inspDate) return;
+        const start = startDate ? safeParseDate(startDate + 'T00:00:00') : null;
+        const end = endDate ? safeParseDate(endDate + 'T23:59:59') : null;
+        if (start && end && !isWithinInterval(inspDate, { start, end })) return;else
+        if (start && inspDate < start) return;else
+        if (end && inspDate > end) return;
+      }
+
+      const dataCompilazione = new Date(inspection.inspection_date);
+      const inspectionStoreId = inspection.store_id;
+
+      inspection.domande_risposte.forEach((domanda) => {
+        // Trova l'attrezzatura - per scelta multipla cerca nella domanda originale
+        let nomeAttrezzatura = domanda.attrezzatura;
+
+        if (!nomeAttrezzatura && domanda.tipo_controllo === 'scelta_multipla') {
+          const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
+          nomeAttrezzatura = originalQuestion?.attrezzatura;
+
+          if (!nomeAttrezzatura) {
+            const domandaLower = domanda.domanda_testo?.toLowerCase() || '';
+            for (const attr of attrezzature) {
+              const attrLower = attr.nome.toLowerCase();
+              if (domandaLower.includes(attrLower)) {
+                nomeAttrezzatura = attr.nome;
+                break;
+              }
+            }
+          }
+        }
+
+        if (!nomeAttrezzatura) return;
+
+        const attrezzatura = attrezzature.find((a) => a.nome === nomeAttrezzatura);
+        if (!attrezzatura || !attrezzatura.ruoli_responsabili || attrezzatura.ruoli_responsabili.length === 0) return;
+
+        // Determina lo stato in base al tipo di domanda
+        let statoPulizia = null;
+
+        if (domanda.tipo_controllo === 'foto') {
+          const normalizeAttrezzatura = (name) => {
+            const map = {
+              'Forno': 'forno',
+              'Impastatrice': 'impastatrice',
+              'Tavolo da lavoro': 'tavolo_lavoro',
+              'Frigo': 'frigo',
+              'Cassa': 'cassa',
+              'Lavandino': 'lavandino',
+              'Tavolette Takeaway': 'tavolette_takeaway'
+            };
+            return map[name] || name?.toLowerCase().replace(/\s+/g, '_') || '';
+          };
+
+          const normalizedName = normalizeAttrezzatura(nomeAttrezzatura);
+          const statusField = `${normalizedName}_pulizia_status`;
+          const correctedField = `${normalizedName}_corrected_status`;
+          statoPulizia = inspection[correctedField] || inspection[statusField];
+        } else if (domanda.tipo_controllo === 'scelta_multipla') {
+          const originalQuestion = domande.find((d) => d.id === domanda.domanda_id);
+          const isCorrect = domanda.risposta?.toLowerCase() === originalQuestion?.risposta_corretta?.toLowerCase();
+          statoPulizia = isCorrect ? 'pulito' : 'sporco';
+        }
+
+        if (!statoPulizia) return;
+
+        // Process each responsible role
+        attrezzatura.ruoli_responsabili.forEach((ruoloResponsabile) => {
+          const candidateShifts = shifts.filter((t) => {
+            if (t.store_id !== inspectionStoreId) return false;
+            if (t.ruolo !== ruoloResponsabile) return false;
+            if (!t.dipendente_nome) return false;
+            if (!t.data || !t.ora_fine) return false;
+
+            const shiftEndTime = t.timbratura_uscita ?
+            new Date(t.timbratura_uscita) :
+            new Date(t.data + 'T' + t.ora_fine);
+
+            return shiftEndTime <= dataCompilazione;
+          });
+
+          const lastShift = candidateShifts.sort((a, b) => {
+            const endA = a.timbratura_uscita ? new Date(a.timbratura_uscita) : new Date(a.data + 'T' + a.ora_fine);
+            const endB = b.timbratura_uscita ? new Date(b.timbratura_uscita) : new Date(b.data + 'T' + b.ora_fine);
+            return endB - endA;
+          })[0];
+
+          if (!lastShift) return;
+
+          // Verifica che questo dipendente sia il responsabile
+          if (lastShift.dipendente_nome !== employeeName) return;
+
+          const isPulito = statoPulizia === 'pulito';
+
+          if (isPulito) {
+            puliti++;
+          } else {
+            sporchi++;
+          }
+        });
+      });
+    });
+
+    const totalControlli = puliti + sporchi;
+
+    if (totalControlli === 0) return { percentualePulito: null, count: 0, puliti: 0, sporchi: 0 };
+
+    const percentualePulito = puliti / totalControlli * 100;
+    return { percentualePulito, count: totalControlli, puliti, sporchi };
+  };
+
+  const getConfidenceBadgeColor = (confidence) => {
+    switch (confidence) {
+      case 'high':return 'bg-green-100 text-green-700';
+      case 'medium':return 'bg-yellow-100 text-yellow-700';
+      case 'low':return 'bg-orange-100 text-orange-700';
+      case 'manual':return 'bg-blue-100 text-blue-700';
+      default:return 'bg-gray-100 text-gray-700';
+    }
+  };
 
   const handleDateRangePreset = (preset) => {
     setDateRangePreset(preset);
@@ -1618,13 +1766,24 @@ export default function Employees() {
 
                   <div className="neumorphic-pressed p-1.5 rounded-lg text-center">
                     <Sparkles className="w-3 h-3 mx-auto mb-0.5 text-cyan-600" />
-                    {employee.cleaningData?.count > 0 ? <>
-                      <p className={`text-xs font-bold ${employee.cleaningData.percentualePulito >= 80 ? 'text-green-600' : 'text-red-600'}`}>{employee.cleaningData.percentualePulito.toFixed(0)}%</p>
-                      <p className="text-[10px] text-slate-500 leading-tight">({employee.cleaningData.count})</p>
-                    </> : <>
-                      <p className="text-xs font-bold text-slate-400">-</p>
-                      <p className="text-[10px] text-slate-500 leading-tight">(0)</p>
-                    </>}
+                    {(() => {
+                  const cleaningData = getCleaningScoreForEmployee(employee.full_name);
+                  return cleaningData.count > 0 ?
+                  <>
+                          <p className={`text-xs font-bold ${
+                    cleaningData.percentualePulito >= 80 ? 'text-green-600' : 'text-red-600'}`
+                    }>
+                            {cleaningData.percentualePulito.toFixed(0)}%
+                          </p>
+                          <p className="text-[10px] text-slate-500 leading-tight">({cleaningData.count})</p>
+                        </> :
+
+                  <>
+                          <p className="text-xs font-bold text-slate-400">-</p>
+                          <p className="text-[10px] text-slate-500 leading-tight">(0)</p>
+                        </>;
+
+                })()}
                   </div>
                 </div>
                 
@@ -1795,7 +1954,7 @@ export default function Employees() {
                       <p className="text-red-600"><strong>- Sotto Minimo Recensioni:</strong> ({selectedEmployee.weights.w_min_recensioni} - {selectedEmployee.googleReviewCount}) × {selectedEmployee.weights.w_malus_recensioni} = -{((selectedEmployee.weights.w_min_recensioni - selectedEmployee.googleReviewCount) * selectedEmployee.weights.w_malus_recensioni).toFixed(1)}</p>
                     }
                     {selectedEmployee.weights.w_pulizie > 0 && (() => {
-                      const cleaningData = selectedEmployee.cleaningData;
+                      const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
                       if (cleaningData.count > 0) {
                         if (cleaningData.percentualePulito < 80) {
                           const penalty = (80 - cleaningData.percentualePulito) * selectedEmployee.weights.w_pulizie * 0.1;
@@ -2118,7 +2277,7 @@ export default function Employees() {
                     <h3 className="font-bold text-slate-800">Controlli Pulizia</h3>
                   </div>
                   {(() => {
-                  const cleaningData = selectedEmployee.cleaningData;
+                  const cleaningData = getCleaningScoreForEmployee(selectedEmployee.full_name);
                   return cleaningData.count > 0 ?
                   <div className="neumorphic-pressed p-4 rounded-xl">
                         <div className="text-center mb-3">
