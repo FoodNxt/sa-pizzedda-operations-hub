@@ -1,20 +1,25 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { format, subDays } from 'date-fns';
+import { format, subDays, parseISO } from 'date-fns';
+import { it } from 'date-fns/locale';
 import ProtectedPage from '../components/ProtectedPage';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
 import {
-  ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  BarChart, Bar, ResponsiveContainer, Cell
+  ScatterChart, Scatter, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, BarChart, Bar, ResponsiveContainer, Cell
 } from 'recharts';
-import { BarChart3, Thermometer, Droplets, Cloud, Loader2, AlertTriangle, RefreshCw, Info } from 'lucide-react';
+import { Thermometer, Droplets, Cloud, Loader2, AlertTriangle, RefreshCw, Info } from 'lucide-react';
 import { formatCurrency } from '../components/utils/formatCurrency';
 
-// WMO weather code → readable category
-const WMO_CATEGORY = (code) => {
+// Open-Meteo archive API ha un ritardo di ~5 giorni
+const MAX_END_DATE = format(subDays(new Date(), 5), 'yyyy-MM-dd');
+const DEFAULT_START = format(subDays(new Date(), 35), 'yyyy-MM-dd');
+const DEFAULT_END = format(subDays(new Date(), 6), 'yyyy-MM-dd');
+
+const WMO_CATEGORIA = (code) => {
   if (code === 0) return 'Soleggiato';
-  if (code <= 2) return 'Parz. Nuvoloso';
+  if (code <= 2) return 'Parz. nuvoloso';
   if (code === 3) return 'Nuvoloso';
   if (code <= 48) return 'Nebbia';
   if (code <= 67) return 'Pioggia';
@@ -36,7 +41,6 @@ const WMO_EMOJI = (code) => {
   return '⛈️';
 };
 
-// Pearson correlation coefficient
 const pearsonCorrelation = (x, y) => {
   const n = x.length;
   if (n < 3) return null;
@@ -51,365 +55,442 @@ const pearsonCorrelation = (x, y) => {
 
 const getCorrelationInfo = (r) => {
   if (r === null || r === undefined)
-    return { label: 'N/D', color: 'text-slate-500', bg: 'bg-slate-100', strength: 'Insufficiente', bar: 'bg-slate-300' };
+    return { label: 'N/D', colore: 'text-slate-500', sfondo: 'bg-slate-100', forza: 'Dati insufficienti', barra: 'bg-slate-300' };
   const abs = Math.abs(r);
-  const dir = r > 0 ? 'Positiva' : 'Negativa';
+  const dir = r > 0 ? 'positiva' : 'negativa';
   if (abs >= 0.7)
-    return { label: r.toFixed(3), color: r > 0 ? 'text-green-700' : 'text-red-700', bg: r > 0 ? 'bg-green-100' : 'bg-red-100', strength: `Forte ${dir}`, bar: r > 0 ? 'bg-green-500' : 'bg-red-500' };
+    return { label: r.toFixed(3), colore: r > 0 ? 'text-green-700' : 'text-red-700', sfondo: r > 0 ? 'bg-green-50' : 'bg-red-50', forza: `Forte ${dir}`, barra: r > 0 ? 'bg-green-500' : 'bg-red-500' };
   if (abs >= 0.4)
-    return { label: r.toFixed(3), color: r > 0 ? 'text-emerald-600' : 'text-orange-600', bg: r > 0 ? 'bg-emerald-50' : 'bg-orange-50', strength: `Moderata ${dir}`, bar: r > 0 ? 'bg-emerald-400' : 'bg-orange-400' };
+    return { label: r.toFixed(3), colore: r > 0 ? 'text-emerald-600' : 'text-orange-600', sfondo: r > 0 ? 'bg-emerald-50' : 'bg-orange-50', forza: `Moderata ${dir}`, barra: r > 0 ? 'bg-emerald-400' : 'bg-orange-400' };
   if (abs >= 0.2)
-    return { label: r.toFixed(3), color: 'text-slate-600', bg: 'bg-slate-100', strength: `Debole ${dir}`, bar: 'bg-slate-400' };
-  return { label: r.toFixed(3), color: 'text-slate-400', bg: 'bg-slate-50', strength: 'Trascurabile', bar: 'bg-slate-200' };
+    return { label: r.toFixed(3), colore: 'text-slate-600', sfondo: 'bg-slate-100', forza: `Debole ${dir}`, barra: 'bg-slate-400' };
+  return { label: r.toFixed(3), colore: 'text-slate-400', sfondo: 'bg-slate-50', forza: 'Trascurabile', barra: 'bg-slate-200' };
 };
 
-const BAR_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#ef4444'];
+const COLORI = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#ef4444'];
 
 export default function Correlazione() {
-  const [selectedStore, setSelectedStore] = useState('all');
-  const [startDate, setStartDate] = useState(format(subDays(new Date(), 31), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(subDays(new Date(), 1), 'yyyy-MM-dd'));
-  const [weatherData, setWeatherData] = useState(null);
-  const [isLoadingWeather, setIsLoadingWeather] = useState(false);
-  const [weatherError, setWeatherError] = useState(null);
-  const [weatherStale, setWeatherStale] = useState(false);
-  const [activeMetric, setActiveMetric] = useState('temp');
+  const [localeSelezionato, setLocaleSelezionato] = useState('all');
+  const [dataInizio, setDataInizio] = useState(DEFAULT_START);
+  const [dataFine, setDataFine] = useState(DEFAULT_END);
+  const [datiMeteo, setDatiMeteo] = useState(null);
+  const [caricandoMeteo, setCaricandoMeteo] = useState(false);
+  const [erroreMeteo, setErroreMeteo] = useState(null);
+  const [meteoObsoleto, setMeteoObsoleto] = useState(false);
+  const [metricaAttiva, setMetricaAttiva] = useState('temp');
 
-  const { data: stores = [] } = useQuery({
+  const { data: locali = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list()
   });
 
-  const { data: iPraticoData = [], isLoading: revenueLoading } = useQuery({
+  const { data: iPraticoData = [], isLoading: caricandoRicavi } = useQuery({
     queryKey: ['iPratico'],
     queryFn: () => base44.entities.iPratico.list('-order_date', 1000)
   });
 
-  const storeLocation = useMemo(() => {
-    if (selectedStore === 'all') {
-      return { lat: 45.4642, lon: 9.1900, label: 'Milano (default per tutti i locali)' };
+  const posizioneLocale = useMemo(() => {
+    if (localeSelezionato === 'all') {
+      return { lat: 45.4642, lon: 9.1900, etichetta: 'Milano (default — tutti i locali)', hasCoords: true };
     }
-    const store = stores.find(s => s.id === selectedStore);
-    if (!store) return { lat: 45.4642, lon: 9.1900, label: 'Milano (default)' };
+    const store = locali.find(s => s.id === localeSelezionato);
+    if (!store) return { lat: 45.4642, lon: 9.1900, etichetta: 'Locale non trovato (default Milano)', hasCoords: false };
     if (store.latitude && store.longitude) {
-      return { lat: store.latitude, lon: store.longitude, label: store.city || store.name };
+      return { lat: store.latitude, lon: store.longitude, etichetta: store.city || store.name, hasCoords: true };
     }
-    return { lat: 45.4642, lon: 9.1900, label: `${store.city || store.name} (coords n.d. → Milano)` };
-  }, [selectedStore, stores]);
+    return { lat: 45.4642, lon: 9.1900, etichetta: `${store.name} (coordinate non disponibili — default Milano)`, hasCoords: false };
+  }, [localeSelezionato, locali]);
 
   useEffect(() => {
-    if (weatherData) setWeatherStale(true);
-  }, [startDate, endDate, selectedStore]);
+    if (datiMeteo) setMeteoObsoleto(true);
+  }, [dataInizio, dataFine, localeSelezionato]);
 
-  const revenueByDate = useMemo(() => {
-    const map = {};
+  // Clamp end date: non oltre MAX_END_DATE (ritardo archivio Open-Meteo ~5 giorni)
+  const dataFineEffettiva = dataFine > MAX_END_DATE ? MAX_END_DATE : dataFine;
+
+  const ricaviPerData = useMemo(() => {
+    const mappa = {};
     iPraticoData.forEach(item => {
       if (!item.order_date) return;
-      if (item.order_date < startDate || item.order_date > endDate) return;
-      if (selectedStore !== 'all' && item.store_id !== selectedStore) return;
-      map[item.order_date] = (map[item.order_date] || 0) + (item.total_revenue || 0);
+      if (item.order_date < dataInizio || item.order_date > dataFineEffettiva) return;
+      if (localeSelezionato !== 'all' && item.store_id !== localeSelezionato) return;
+      mappa[item.order_date] = (mappa[item.order_date] || 0) + (item.total_revenue || 0);
     });
-    return map;
-  }, [iPraticoData, startDate, endDate, selectedStore]);
+    return mappa;
+  }, [iPraticoData, dataInizio, dataFineEffettiva, localeSelezionato]);
 
-  const fetchWeather = async () => {
-    setIsLoadingWeather(true);
-    setWeatherError(null);
+  const caricaMeteo = async () => {
+    setCaricandoMeteo(true);
+    setErroreMeteo(null);
     try {
-      const { lat, lon } = storeLocation;
+      const { lat, lon } = posizioneLocale;
+      // FIX: parametro corretto è "weather_code" (non "weathercode") in Open-Meteo v2
+      // FIX: end_date viene clamped a MAX_END_DATE per evitare errore 400
+      const fineRichiesta = dataFine > MAX_END_DATE ? MAX_END_DATE : dataFine;
+      if (dataInizio > fineRichiesta) {
+        throw new Error(`Il periodo selezionato è troppo recente. I dati meteo storici sono disponibili fino al ${fineRichiesta}. Seleziona una data di fine precedente.`);
+      }
       const url =
-        `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}` +
-        `&start_date=${startDate}&end_date=${endDate}` +
-        `&daily=temperature_2m_mean,precipitation_sum,weathercode&timezone=Europe%2FRome`;
+        `https://archive-api.open-meteo.com/v1/archive` +
+        `?latitude=${lat}&longitude=${lon}` +
+        `&start_date=${dataInizio}&end_date=${fineRichiesta}` +
+        `&daily=temperature_2m_mean,precipitation_sum,weather_code` +
+        `&timezone=Europe%2FRome`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`Errore API meteo (${res.status})`);
+      if (!res.ok) {
+        const testo = await res.text().catch(() => '');
+        throw new Error(`Errore API meteo (codice ${res.status}). ${testo.includes('No data') ? 'Nessun dato per questo periodo o coordinate.' : 'Controlla le date selezionate.'}`);
+      }
       const data = await res.json();
-      if (!data.daily?.time) throw new Error('Nessun dato meteo per il periodo selezionato. I dati Open-Meteo hanno un ritardo di circa 5 giorni.');
-      const map = {};
-      data.daily.time.forEach((date, i) => {
-        map[date] = {
+      if (!data.daily?.time?.length) {
+        throw new Error('Nessun dato meteo disponibile per il periodo e la posizione selezionati.');
+      }
+      const mappa = {};
+      data.daily.time.forEach((data_giorno, i) => {
+        mappa[data_giorno] = {
           temp_c: data.daily.temperature_2m_mean[i],
           precip_mm: data.daily.precipitation_sum[i] ?? 0,
-          weathercode: data.daily.weathercode[i] ?? 0
+          codice_meteo: data.daily.weather_code[i] ?? 0
         };
       });
-      setWeatherData(map);
-      setWeatherStale(false);
+      setDatiMeteo(mappa);
+      setMeteoObsoleto(false);
     } catch (e) {
-      setWeatherError(e.message);
+      setErroreMeteo(e.message);
     } finally {
-      setIsLoadingWeather(false);
+      setCaricandoMeteo(false);
     }
   };
 
-  const correlationData = useMemo(() => {
-    if (!weatherData || Object.keys(revenueByDate).length === 0) return null;
-    const paired = [];
-    Object.keys(revenueByDate).forEach(date => {
-      const w = weatherData[date];
-      if (w && w.temp_c !== null && w.temp_c !== undefined) {
-        paired.push({
-          date,
-          revenue: revenueByDate[date],
-          temp_c: w.temp_c,
-          precip_mm: w.precip_mm,
-          weathercode: w.weathercode,
-          category: `${WMO_EMOJI(w.weathercode)} ${WMO_CATEGORY(w.weathercode)}`
+  const datiCorrelazione = useMemo(() => {
+    if (!datiMeteo || Object.keys(ricaviPerData).length === 0) return null;
+    const accoppiati = [];
+    Object.keys(ricaviPerData).forEach(data => {
+      const m = datiMeteo[data];
+      if (m && m.temp_c !== null && m.temp_c !== undefined) {
+        accoppiati.push({
+          data,
+          ricavi: ricaviPerData[data],
+          temp_c: m.temp_c,
+          precip_mm: m.precip_mm,
+          codice_meteo: m.codice_meteo,
+          categoria: `${WMO_EMOJI(m.codice_meteo)} ${WMO_CATEGORIA(m.codice_meteo)}`
         });
       }
     });
-    if (paired.length < 3) return { paired, insufficient: true };
+    if (accoppiati.length < 3) return { accoppiati, insufficiente: true };
 
-    const revenues = paired.map(p => p.revenue);
-    const temps = paired.map(p => p.temp_c);
-    const precips = paired.map(p => p.precip_mm);
+    const ricavi = accoppiati.map(p => p.ricavi);
+    const temperature = accoppiati.map(p => p.temp_c);
+    const precipitazioni = accoppiati.map(p => p.precip_mm);
 
-    const rTemp = pearsonCorrelation(temps, revenues);
-    const rPrecip = pearsonCorrelation(precips, revenues);
+    const rTemp = pearsonCorrelation(temperature, ricavi);
+    const rPrecip = pearsonCorrelation(precipitazioni, ricavi);
 
-    const conditionGroups = {};
-    paired.forEach(p => {
-      if (!conditionGroups[p.category]) conditionGroups[p.category] = [];
-      conditionGroups[p.category].push(p.revenue);
+    const gruppiCondizione = {};
+    accoppiati.forEach(p => {
+      if (!gruppiCondizione[p.categoria]) gruppiCondizione[p.categoria] = [];
+      gruppiCondizione[p.categoria].push(p.ricavi);
     });
-    const conditionData = Object.entries(conditionGroups)
+    const datiCondizione = Object.entries(gruppiCondizione)
       .map(([cat, revs]) => ({
-        condition: cat,
-        avg_revenue: Math.round(revs.reduce((a, b) => a + b, 0) / revs.length),
-        count: revs.length
+        condizione: cat,
+        media_ricavi: Math.round(revs.reduce((a, b) => a + b, 0) / revs.length),
+        conteggio: revs.length
       }))
-      .sort((a, b) => b.avg_revenue - a.avg_revenue);
+      .sort((a, b) => b.media_ricavi - a.media_ricavi);
 
-    return { paired, rTemp, rPrecip, conditionData, n: paired.length };
-  }, [weatherData, revenueByDate]);
+    const tempMin = Math.min(...temperature);
+    const tempMax = Math.max(...temperature);
+    const precipTotale = precipitazioni.reduce((a, b) => a + b, 0);
 
-  const tempInfo = correlationData?.rTemp !== undefined ? getCorrelationInfo(correlationData.rTemp) : null;
-  const precipInfo = correlationData?.rPrecip !== undefined ? getCorrelationInfo(correlationData.rPrecip) : null;
+    return { accoppiati, rTemp, rPrecip, datiCondizione, n: accoppiati.length, tempMin, tempMax, precipTotale };
+  }, [datiMeteo, ricaviPerData]);
 
-  const scatterData = useMemo(() => {
-    if (!correlationData?.paired) return [];
-    return correlationData.paired.map(p => ({
-      x: activeMetric === 'temp' ? p.temp_c : p.precip_mm,
-      y: p.revenue,
-      date: p.date
+  const infoTemp = datiCorrelazione?.rTemp !== undefined ? getCorrelationInfo(datiCorrelazione.rTemp) : null;
+  const infoPrecip = datiCorrelazione?.rPrecip !== undefined ? getCorrelationInfo(datiCorrelazione.rPrecip) : null;
+
+  const datiScatter = useMemo(() => {
+    if (!datiCorrelazione?.accoppiati) return [];
+    return datiCorrelazione.accoppiati.map(p => ({
+      x: metricaAttiva === 'temp' ? p.temp_c : p.precip_mm,
+      y: p.ricavi,
+      data: p.data
     }));
-  }, [correlationData, activeMetric]);
+  }, [datiCorrelazione, metricaAttiva]);
 
-  const revenueDates = Object.keys(revenueByDate).length;
+  const giorniConRicavi = Object.keys(ricaviPerData).length;
+  const nomeLocale = localeSelezionato === 'all'
+    ? 'Tutti i locali'
+    : locali.find(s => s.id === localeSelezionato)?.name || '—';
+
+  const dataFineVisibile = dataFine > MAX_END_DATE
+    ? <span className="text-orange-600 font-medium">Clamped a {MAX_END_DATE} (ritardo archivio)</span>
+    : dataFine;
 
   return (
     <ProtectedPage pageName="Correlazione">
-      <div className="max-w-5xl mx-auto space-y-4 lg:space-y-6">
+      <div className="max-w-5xl mx-auto space-y-4 lg:space-y-5">
 
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold lg:text-3xl" style={{ color: '#000000' }}>
-            Correlazione Revenue
-          </h1>
+        {/* Intestazione */}
+        <div>
+          <p className="text-2xl font-bold lg:text-3xl text-slate-900">Correlazione Ricavi–Meteo</p>
           <p className="text-sm text-slate-500 mt-1">
-            Analisi della relazione tra ricavi e condizioni meteo storiche
+            Analizza la relazione statistica tra i ricavi giornalieri e le condizioni meteorologiche storiche
           </p>
         </div>
 
+        {/* Filtri */}
         <NeumorphicCard className="p-4">
+          <p className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">Filtri</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-xs text-slate-600 mb-1.5 block font-medium">Locale</label>
+              <label className="text-xs text-slate-500 mb-1 block">Locale</label>
               <select
-                value={selectedStore}
-                onChange={e => setSelectedStore(e.target.value)}
+                value={localeSelezionato}
+                onChange={e => setLocaleSelezionato(e.target.value)}
                 className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
               >
-                <option value="all">Tutti i Locali</option>
-                {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                <option value="all">Tutti i locali</option>
+                {locali.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs text-slate-600 mb-1.5 block font-medium">Data Inizio</label>
+              <label className="text-xs text-slate-500 mb-1 block">Dal</label>
               <input
                 type="date"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
+                value={dataInizio}
+                max={MAX_END_DATE}
+                onChange={e => setDataInizio(e.target.value)}
                 className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-600 mb-1.5 block font-medium">Data Fine</label>
+              <label className="text-xs text-slate-500 mb-1 block">
+                Al {dataFine > MAX_END_DATE && <span className="text-orange-500">(max: {MAX_END_DATE})</span>}
+              </label>
               <input
                 type="date"
-                value={endDate}
-                onChange={e => setEndDate(e.target.value)}
+                value={dataFine}
+                max={MAX_END_DATE}
+                onChange={e => setDataFine(e.target.value)}
                 className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm"
               />
             </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-3 flex-wrap">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             <button
-              onClick={fetchWeather}
-              disabled={isLoadingWeather}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-all disabled:opacity-50"
+              onClick={caricaMeteo}
+              disabled={caricandoMeteo}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-all disabled:opacity-50"
             >
-              {isLoadingWeather
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Cloud className="w-4 h-4" />}
-              {isLoadingWeather ? 'Caricamento meteo...' : 'Carica Dati Meteo'}
+              {caricandoMeteo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
+              {caricandoMeteo ? 'Caricamento...' : 'Carica dati meteo'}
             </button>
 
-            <span className="text-xs text-slate-500">📍 {storeLocation.label}</span>
-
-            {!revenueLoading && (
-              <span className="text-xs text-slate-400">
-                {revenueDates} giorni con ricavi nel periodo
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="px-2 py-1 bg-slate-100 rounded-lg text-slate-600">
+                📍 {posizioneLocale.etichetta}
               </span>
-            )}
-
-            {weatherStale && weatherData && !isLoadingWeather && (
-              <span className="text-xs text-orange-600 flex items-center gap-1">
-                <RefreshCw className="w-3 h-3" /> Filtri cambiati — ricarica il meteo
-              </span>
-            )}
+              {!caricandoRicavi && (
+                <span className="px-2 py-1 bg-slate-100 rounded-lg text-slate-600">
+                  {giorniConRicavi} giorni con ricavi
+                </span>
+              )}
+              {meteoObsoleto && datiMeteo && !caricandoMeteo && (
+                <span className="px-2 py-1 bg-orange-100 rounded-lg text-orange-700 flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> Filtri modificati — ricarica il meteo
+                </span>
+              )}
+            </div>
           </div>
+
+          {dataFine > MAX_END_DATE && (
+            <div className="mt-2 text-xs text-orange-600 flex items-center gap-1">
+              <Info className="w-3 h-3" />
+              I dati meteo storici Open-Meteo hanno un ritardo di circa 5 giorni. La data di fine verrà automaticamente impostata al {MAX_END_DATE}.
+            </div>
+          )}
         </NeumorphicCard>
 
-        {weatherError && (
-          <NeumorphicCard className="p-4 border border-red-200" style={{ background: '#fff5f5' }}>
-            <div className="flex items-start gap-2 text-red-700">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <p className="text-sm">{weatherError}</p>
+        {/* Errore */}
+        {erroreMeteo && (
+          <NeumorphicCard className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-red-700 mb-0.5">Errore nel caricamento meteo</p>
+                <p className="text-xs text-red-600">{erroreMeteo}</p>
+              </div>
             </div>
           </NeumorphicCard>
         )}
 
-        {!weatherData && !isLoadingWeather && !weatherError && (
+        {/* Stato vuoto */}
+        {!datiMeteo && !caricandoMeteo && !erroreMeteo && (
           <NeumorphicCard className="p-10 text-center">
-            <Cloud className="w-14 h-14 text-slate-200 mx-auto mb-4" />
-            <p className="text-slate-500 text-sm font-medium mb-1">
-              Seleziona il periodo e clicca "Carica Dati Meteo"
+            <Cloud className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+            <p className="text-slate-600 text-sm font-semibold mb-1">Nessun dato meteo caricato</p>
+            <p className="text-slate-400 text-xs mb-3">
+              Seleziona il periodo e il locale, poi clicca "Carica dati meteo"
             </p>
-            <p className="text-slate-400 text-xs">
-              Dati meteo forniti da <strong>Open-Meteo</strong> (open-source, gratuito, nessuna API key richiesta)
+            <p className="text-slate-300 text-xs">
+              Dati forniti da Open-Meteo · open-source · gratuito · nessuna API key richiesta
             </p>
           </NeumorphicCard>
         )}
 
-        {correlationData && !weatherStale && (
+        {/* Riepilogo analisi */}
+        {datiCorrelazione && !meteoObsoleto && (
           <>
-            {correlationData.insufficient ? (
+            {datiCorrelazione.insufficiente ? (
               <NeumorphicCard className="p-8 text-center">
                 <AlertTriangle className="w-10 h-10 text-orange-400 mx-auto mb-3" />
-                <p className="text-slate-600 text-sm">
-                  Dati insufficienti ({correlationData.paired.length} giorn{correlationData.paired.length === 1 ? 'o' : 'i'} con dati meteo e ricavi).
+                <p className="text-slate-700 text-sm font-semibold mb-1">Dati insufficienti per l'analisi</p>
+                <p className="text-slate-500 text-xs">
+                  Trovati solo {datiCorrelazione.accoppiati.length} giorn{datiCorrelazione.accoppiati.length === 1 ? 'o' : 'i'} con corrispondenza tra ricavi e dati meteo.
                   Sono necessari almeno 3 giorni.
                 </p>
               </NeumorphicCard>
             ) : (
               <>
+                {/* Scheda riepilogo periodo */}
+                <NeumorphicCard className="p-4">
+                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">Riepilogo periodo analizzato</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="neumorphic-pressed rounded-xl p-3 text-center">
+                      <p className="text-2xl font-bold text-slate-800">{datiCorrelazione.n}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Giorni analizzati</p>
+                    </div>
+                    <div className="neumorphic-pressed rounded-xl p-3 text-center">
+                      <p className="text-lg font-bold text-slate-800">{nomeLocale}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Locale</p>
+                    </div>
+                    <div className="neumorphic-pressed rounded-xl p-3 text-center">
+                      <p className="text-lg font-bold text-slate-800">
+                        {datiCorrelazione.tempMin?.toFixed(1)}° / {datiCorrelazione.tempMax?.toFixed(1)}°C
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">Temperatura min/max</p>
+                    </div>
+                    <div className="neumorphic-pressed rounded-xl p-3 text-center">
+                      <p className="text-lg font-bold text-slate-800">{datiCorrelazione.precipTotale?.toFixed(0)} mm</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Precipitazioni totali</p>
+                    </div>
+                  </div>
+                </NeumorphicCard>
+
+                {/* Schede correlazione */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Temperatura */}
                   <NeumorphicCard className="p-5">
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-md">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center flex-shrink-0">
                         <Thermometer className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-800 text-sm">Revenue vs Temperatura</h3>
-                        <p className="text-xs text-slate-500">{correlationData.n} giorni analizzati</p>
+                        <p className="font-bold text-slate-800 text-sm">Ricavi vs Temperatura</p>
+                        <p className="text-xs text-slate-500">Correlazione lineare (Pearson r)</p>
                       </div>
                     </div>
-                    {tempInfo && (
+                    {infoTemp && (
                       <>
-                        <div className={`inline-flex items-center gap-3 px-4 py-3 rounded-xl ${tempInfo.bg} mb-3`}>
-                          <span className={`text-3xl font-bold ${tempInfo.color}`}>{tempInfo.label}</span>
+                        <div className={`flex items-center gap-4 px-4 py-3 rounded-xl ${infoTemp.sfondo} mb-3`}>
+                          <span className={`text-4xl font-bold ${infoTemp.colore}`}>{infoTemp.label}</span>
                           <div>
-                            <p className={`text-xs font-bold ${tempInfo.color}`}>{tempInfo.strength}</p>
-                            <p className="text-xs text-slate-400">Pearson r</p>
+                            <p className={`text-sm font-bold ${infoTemp.colore}`}>{infoTemp.forza}</p>
+                            <p className="text-xs text-slate-400">Coefficiente r</p>
                           </div>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full mb-3 overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${tempInfo.bar} transition-all`}
-                            style={{ width: `${Math.min(Math.abs(correlationData.rTemp) * 100, 100)}%` }}
+                            className={`h-full rounded-full ${infoTemp.barra} transition-all duration-500`}
+                            style={{ width: `${Math.min(Math.abs(datiCorrelazione.rTemp) * 100, 100)}%` }}
                           />
                         </div>
                       </>
                     )}
                     <p className="text-xs text-slate-500">
-                      {correlationData.rTemp > 0.3
-                        ? '📈 I ricavi tendono ad aumentare con temperature più alte.'
-                        : correlationData.rTemp < -0.3
-                        ? '📉 I ricavi tendono a diminuire con temperature più alte.'
-                        : '↔️ Nessuna correlazione significativa tra temperatura e ricavi.'}
+                      {datiCorrelazione.rTemp > 0.3
+                        ? '📈 Con temperature più alte i ricavi tendono ad aumentare.'
+                        : datiCorrelazione.rTemp < -0.3
+                        ? '📉 Con temperature più alte i ricavi tendono a diminuire.'
+                        : '↔️ Nessuna relazione lineare significativa tra temperatura e ricavi.'}
                     </p>
                   </NeumorphicCard>
 
+                  {/* Precipitazioni */}
                   <NeumorphicCard className="p-5">
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-md">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0">
                         <Droplets className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-800 text-sm">Revenue vs Precipitazioni</h3>
-                        <p className="text-xs text-slate-500">{correlationData.n} giorni analizzati</p>
+                        <p className="font-bold text-slate-800 text-sm">Ricavi vs Precipitazioni</p>
+                        <p className="text-xs text-slate-500">Correlazione lineare (Pearson r)</p>
                       </div>
                     </div>
-                    {precipInfo && (
+                    {infoPrecip && (
                       <>
-                        <div className={`inline-flex items-center gap-3 px-4 py-3 rounded-xl ${precipInfo.bg} mb-3`}>
-                          <span className={`text-3xl font-bold ${precipInfo.color}`}>{precipInfo.label}</span>
+                        <div className={`flex items-center gap-4 px-4 py-3 rounded-xl ${infoPrecip.sfondo} mb-3`}>
+                          <span className={`text-4xl font-bold ${infoPrecip.colore}`}>{infoPrecip.label}</span>
                           <div>
-                            <p className={`text-xs font-bold ${precipInfo.color}`}>{precipInfo.strength}</p>
-                            <p className="text-xs text-slate-400">Pearson r</p>
+                            <p className={`text-sm font-bold ${infoPrecip.colore}`}>{infoPrecip.forza}</p>
+                            <p className="text-xs text-slate-400">Coefficiente r</p>
                           </div>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full mb-3 overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${precipInfo.bar} transition-all`}
-                            style={{ width: `${Math.min(Math.abs(correlationData.rPrecip) * 100, 100)}%` }}
+                            className={`h-full rounded-full ${infoPrecip.barra} transition-all duration-500`}
+                            style={{ width: `${Math.min(Math.abs(datiCorrelazione.rPrecip) * 100, 100)}%` }}
                           />
                         </div>
                       </>
                     )}
                     <p className="text-xs text-slate-500">
-                      {correlationData.rPrecip > 0.3
-                        ? '🌧️ I ricavi tendono ad aumentare nei giorni di pioggia.'
-                        : correlationData.rPrecip < -0.3
-                        ? '☀️ I ricavi tendono a diminuire nei giorni di pioggia.'
-                        : '↔️ Nessuna correlazione significativa tra precipitazioni e ricavi.'}
+                      {datiCorrelazione.rPrecip > 0.3
+                        ? '🌧️ Nei giorni di pioggia i ricavi tendono ad essere più alti.'
+                        : datiCorrelazione.rPrecip < -0.3
+                        ? '☀️ Nei giorni di pioggia i ricavi tendono a calare.'
+                        : '↔️ Nessuna relazione lineare significativa tra pioggia e ricavi.'}
                     </p>
                   </NeumorphicCard>
                 </div>
 
+                {/* Scatter plot */}
                 <NeumorphicCard className="p-5">
-                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
                     <div>
-                      <h3 className="font-bold text-slate-800 text-sm">Scatter Plot</h3>
-                      <p className="text-xs text-slate-500">Ogni punto = un giorno</p>
+                      <p className="font-bold text-slate-800 text-sm">Dispersione ricavi–meteo</p>
+                      <p className="text-xs text-slate-500">Ogni punto rappresenta un giorno — asse X: variabile meteo, asse Y: ricavi</p>
                     </div>
                     <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
                       <button
-                        onClick={() => setActiveMetric('temp')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${activeMetric === 'temp' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'}`}
+                        onClick={() => setMetricaAttiva('temp')}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${metricaAttiva === 'temp' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                       >
                         Temperatura
                       </button>
                       <button
-                        onClick={() => setActiveMetric('precip')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${activeMetric === 'precip' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-600'}`}
+                        onClick={() => setMetricaAttiva('precip')}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${metricaAttiva === 'precip' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                       >
                         Precipitazioni
                       </button>
                     </div>
                   </div>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 10 }}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <ScatterChart margin={{ top: 10, right: 20, bottom: 35, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis
                         dataKey="x"
                         type="number"
-                        name={activeMetric === 'temp' ? 'Temperatura (°C)' : 'Precipitazioni (mm)'}
                         label={{
-                          value: activeMetric === 'temp' ? 'Temperatura (°C)' : 'Precipitazioni (mm)',
+                          value: metricaAttiva === 'temp' ? 'Temperatura (°C)' : 'Precipitazioni (mm)',
                           position: 'insideBottom',
-                          offset: -15,
+                          offset: -20,
                           style: { fontSize: 11, fill: '#64748b' }
                         }}
                         tick={{ fontSize: 11 }}
@@ -417,7 +498,6 @@ export default function Correlazione() {
                       <YAxis
                         dataKey="y"
                         type="number"
-                        name="Revenue (€)"
                         tickFormatter={v => `€${Math.round(v / 1000)}k`}
                         tick={{ fontSize: 11 }}
                         width={55}
@@ -429,39 +509,42 @@ export default function Correlazione() {
                           const d = payload[0].payload;
                           return (
                             <div className="bg-white p-3 rounded-xl shadow-lg border border-slate-200 text-xs">
-                              <p className="font-bold text-slate-700 mb-1">{d.date}</p>
-                              <p className="text-slate-600">Revenue: €{formatCurrency(d.y)}</p>
+                              <p className="font-bold text-slate-700 mb-1">{d.data}</p>
+                              <p className="text-slate-600">Ricavi: €{formatCurrency(d.y)}</p>
                               <p className="text-slate-600">
-                                {activeMetric === 'temp' ? `Temperatura: ${d.x?.toFixed(1)}°C` : `Precipitazioni: ${d.x?.toFixed(1)}mm`}
+                                {metricaAttiva === 'temp'
+                                  ? `Temperatura: ${d.x?.toFixed(1)} °C`
+                                  : `Precipitazioni: ${d.x?.toFixed(1)} mm`}
                               </p>
                             </div>
                           );
                         }}
                       />
                       <Scatter
-                        data={scatterData}
-                        fill={activeMetric === 'temp' ? '#f97316' : '#3b82f6'}
+                        data={datiScatter}
+                        fill={metricaAttiva === 'temp' ? '#f97316' : '#3b82f6'}
                         fillOpacity={0.65}
                       />
                     </ScatterChart>
                   </ResponsiveContainer>
                 </NeumorphicCard>
 
-                {correlationData.conditionData.length > 0 && (
+                {/* Ricavi per condizione meteo */}
+                {datiCorrelazione.datiCondizione.length > 0 && (
                   <NeumorphicCard className="p-5">
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-md">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
                         <Cloud className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-800 text-sm">Revenue Medio per Condizione Meteo</h3>
-                        <p className="text-xs text-slate-500">Revenue medio giornaliero per tipo di cielo</p>
+                        <p className="font-bold text-slate-800 text-sm">Ricavi medi per condizione meteo</p>
+                        <p className="text-xs text-slate-500">Media giornaliera raggruppata per tipo di cielo</p>
                       </div>
                     </div>
                     <ResponsiveContainer width="100%" height={220}>
-                      <BarChart data={correlationData.conditionData} margin={{ bottom: 20 }}>
+                      <BarChart data={datiCorrelazione.datiCondizione} margin={{ bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="condition" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={55} />
+                        <XAxis dataKey="condizione" tick={{ fontSize: 10 }} angle={-15} textAnchor="end" height={55} />
                         <YAxis tickFormatter={v => `€${Math.round(v / 1000)}k`} tick={{ fontSize: 11 }} width={55} />
                         <RechartsTooltip
                           content={({ payload, label }) => {
@@ -470,46 +553,50 @@ export default function Correlazione() {
                             return (
                               <div className="bg-white p-3 rounded-xl shadow-lg border border-slate-200 text-xs">
                                 <p className="font-bold text-slate-700 mb-1">{label}</p>
-                                <p className="text-slate-600">Rev. medio: €{formatCurrency(d.avg_revenue)}</p>
-                                <p className="text-slate-500">{d.count} giorn{d.count === 1 ? 'o' : 'i'}</p>
+                                <p className="text-slate-600">Media ricavi: €{formatCurrency(d.media_ricavi)}</p>
+                                <p className="text-slate-500">{d.conteggio} giorn{d.conteggio === 1 ? 'o' : 'i'}</p>
                               </div>
                             );
                           }}
                         />
-                        <Bar dataKey="avg_revenue" radius={[6, 6, 0, 0]}>
-                          {correlationData.conditionData.map((_, idx) => (
-                            <Cell key={idx} fill={BAR_COLORS[idx % BAR_COLORS.length]} />
+                        <Bar dataKey="media_ricavi" radius={[6, 6, 0, 0]}>
+                          {datiCorrelazione.datiCondizione.map((_, idx) => (
+                            <Cell key={idx} fill={COLORI[idx % COLORI.length]} />
                           ))}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {correlationData.conditionData.map((d, i) => (
-                        <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                          {d.condition}: {d.count}gg
-                        </span>
+                    <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {datiCorrelazione.datiCondizione.map((d, i) => (
+                        <div key={i} className="neumorphic-flat rounded-lg p-2 text-center">
+                          <p className="text-xs font-semibold text-slate-700">{d.condizione}</p>
+                          <p className="text-sm font-bold text-slate-800">€{formatCurrency(d.media_ricavi)}</p>
+                          <p className="text-xs text-slate-400">{d.conteggio} gg</p>
+                        </div>
                       ))}
                     </div>
                   </NeumorphicCard>
                 )}
 
-                <NeumorphicCard className="p-4" style={{ background: '#f0f9ff' }}>
+                {/* Legenda metodologia */}
+                <NeumorphicCard className="p-4" style={{ background: '#f8faff' }}>
                   <div className="flex items-start gap-2">
                     <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                    <div className="text-xs text-slate-600 space-y-1">
+                    <div className="text-xs text-slate-600 space-y-1.5">
+                      <p className="font-semibold text-slate-700">Come leggere i risultati</p>
                       <p>
-                        <strong>Correlazione di Pearson (r)</strong>: misura la relazione lineare tra due variabili numeriche.
-                        Varia da -1 (correlazione negativa perfetta) a +1 (correlazione positiva perfetta).
+                        Il <strong>coefficiente di Pearson (r)</strong> misura la relazione lineare tra due variabili.
+                        Va da <strong>-1</strong> (relazione inversa perfetta) a <strong>+1</strong> (relazione diretta perfetta).
+                        Un valore vicino a 0 indica nessuna correlazione lineare.
                       </p>
-                      <p>
-                        |r| ≥ 0.7 = <span className="text-green-700 font-semibold">Forte</span> &nbsp;·&nbsp;
-                        0.4 ≤ |r| &lt; 0.7 = <span className="text-emerald-600 font-semibold">Moderata</span> &nbsp;·&nbsp;
-                        0.2 ≤ |r| &lt; 0.4 = <span className="text-slate-600 font-semibold">Debole</span> &nbsp;·&nbsp;
-                        |r| &lt; 0.2 = <span className="text-slate-400 font-semibold">Trascurabile</span>
-                      </p>
-                      <p>
-                        Dati meteo: <strong>Open-Meteo</strong> (open-source, gratuito) ·
-                        Temperatura media giornaliera a 2m · Precipitazioni totali giornaliere · Codice WMO
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded font-semibold">|r| ≥ 0.7 — Forte</span>
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-semibold">0.4–0.7 — Moderata</span>
+                        <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded font-semibold">0.2–0.4 — Debole</span>
+                        <span className="px-2 py-0.5 bg-slate-50 text-slate-400 rounded font-semibold">&lt;0.2 — Trascurabile</span>
+                      </div>
+                      <p className="text-slate-400 pt-1">
+                        Dati meteo: Open-Meteo Archive API · temperatura media a 2m · precipitazioni totali · classificazione WMO
                       </p>
                     </div>
                   </div>
