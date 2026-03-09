@@ -639,6 +639,8 @@ export default function Contatti() {
           }
         </NeumorphicCard>
 
+        </> /* end contatti view */}
+
         {/* Form Modal */}
         {showForm &&
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
