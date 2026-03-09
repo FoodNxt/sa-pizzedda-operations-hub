@@ -2218,13 +2218,13 @@ Sa Pizzedda`,
         <AnalisiOrdiniTab ordiniInviati={ordiniInviati} ordiniCompletati={ordiniCompletati} selectedStore={selectedStore} />
         }
 
-        {activeTab === 'analisi-DISABLED-REMOVE' &&
+        {false &&
         <div className="space-y-6">
             <NeumorphicCard className="p-6">
               <div />
-              
+
               {(() => {
-              const now = new Date();
+               const now = new Date();
               let startDate = new Date(0); // Default: all time
 
               switch (timeRange) {
