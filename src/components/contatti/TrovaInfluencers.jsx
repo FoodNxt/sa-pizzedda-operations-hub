@@ -120,72 +120,39 @@ export default function TrovaInfluencers({ onAddContact }) {
 Restituisci gli username (senza @), city e niche stimata. Devono essere account reali esistenti su Instagram. Sii meno restrittivo possibile sulle nicchie - includi anche account tangenziali che potrebbero interessare.`;
 
     try {
-      // Step 1: LLM suggerisce gli username (più generoso - richiede 50 invece di 15)
-      const llmResult = await base44.integrations.Core.InvokeLLM({
-        prompt,
-        add_context_from_internet: true,
-        model: "gemini_3_flash",
-        response_json_schema: {
-          type: "object",
-          properties: {
-            influencers: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  username: { type: "string" },
-                  city: { type: "string" },
-                  niche: { type: "string" },
-                  contact_hint: { type: "string" },
-                },
-              },
-            },
-          },
-        },
+      // Chiama la funzione backend per cercare influencer basati su niches/hashtag
+      const followerRangeStrs = selectedRanges.map(r => `${r.min}-${r.max || 'inf'}`);
+      
+      const backendResponse = await base44.functions.invoke('instagramInfluencerSearch', {
+        niches: filters.niches,
+        followerRanges: followerRangeStrs,
+        city: filters.city
       });
 
-      const suggested = llmResult?.influencers || [];
-      if (suggested.length === 0) { 
+      const results = backendResponse?.data?.results || [];
+      if (results.length === 0) { 
         setLoading(false); 
         alert("Nessun influencer trovato. Prova con filtri diversi.");
         return; 
       }
 
-      // Step 2: verifica dati reali tramite Instagram Scraper Stable API (via backend)
-      const usernames = suggested.map(i => i.username.replace('@', '').trim()).filter(Boolean);
-      const apiResponse = await base44.functions.invoke('instagramInfluencerSearch', { usernames });
-      const apiData = apiResponse?.data?.results || {};
+      // Mappa i risultati al formato atteso
+      const mapped = results.map(item => ({
+        username: item.username,
+        full_name: item.full_name,
+        followers_count: item.followers_count,
+        biography: item.biography,
+        verified: item.verified,
+        profile_pic_url: item.profile_pic_url,
+        engagement_rate: item.avg_er ? parseFloat((item.avg_er * 100).toFixed(2)) : 0,
+        tags: item.tags || [],
+        city: filters.city,
+        niche: item.tags?.[0] || 'food',
+        contact_hint: '',
+        profile_url: item.profile_url || `https://www.instagram.com/${item.username}/`,
+      }));
 
-      // Step 3: unisci dati reali con suggerimenti LLM, filtra per range follower e account non trovati
-      const merged = suggested
-        .map(item => {
-          const username = item.username.replace('@', '').trim();
-          const real = apiData[username];
-          if (!real || !real.exists) return null;
-          const followers = real.followers_count;
-          
-          // Verifica che sia nel range di almeno uno dei range selezionati
-          const inRange = selectedRanges.some(r => followers >= r.min && (!r.max || followers <= r.max));
-          if (!inRange) return null;
-          
-          return {
-            username,
-            full_name: real.full_name || item.full_name || username,
-            followers_count: followers,
-            biography: real.biography,
-            verified: real.verified,
-            profile_pic_url: real.profile_pic_url,
-            engagement_rate: real.avg_er ? parseFloat((real.avg_er * 100).toFixed(2)) : null,
-            tags: real.tags || [],
-            city: item.city,
-            niche: item.niche,
-            contact_hint: item.contact_hint,
-            profile_url: `https://www.instagram.com/${username}/`,
-          };
-        })
-        .filter(Boolean);
-
-      setResults(merged);
+      setResults(mapped);
     } catch (err) {
       console.error(err);
     } finally {
