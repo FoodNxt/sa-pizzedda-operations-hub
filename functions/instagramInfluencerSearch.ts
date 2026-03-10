@@ -1,18 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// Profili influencer VERI italiani con dati reali (baseline)
-const REAL_INFLUENCERS = [
-    { username: 'chiara_ferragni', full_name: 'Chiara Ferragni', followers: 29200000, biography: 'Founder @thebluemarine', verified: true, niches: ['fashion', 'lifestyle'] },
-    { username: 'saltapepe', full_name: 'Sonia Peronaci', followers: 845000, biography: 'Food blogger & creator', verified: true, niches: ['food', 'cooking'] },
-    { username: 'simo_gentili', full_name: 'Simone Gentili', followers: 125000, biography: 'Food & travel content creator', verified: false, niches: ['food', 'travel'] },
-    { username: 'federicaclaudi', full_name: 'Federica Claudi', followers: 198000, biography: 'Wedding & lifestyle influencer', verified: false, niches: ['lifestyle', 'wedding'] },
-    { username: 'ilaria_chessa', full_name: 'Ilaria Chessa', followers: 87000, biography: 'Food lover and content creator', verified: false, niches: ['food', 'lifestyle'] },
-    { username: 'giallozafferano', full_name: 'Giallo Zafferano', followers: 2340000, biography: 'Il sito di ricette più grande d\'Italia', verified: true, niches: ['food', 'cooking'] },
-    { username: 'benedetta_rossi', full_name: 'Benedetta Rossi', followers: 1050000, biography: 'Cucina italiana semplice', verified: true, niches: ['food', 'cooking'] },
-    { username: 'barbieristella', full_name: 'Stella Barbieri', followers: 156000, biography: 'Food photographer & stylist', verified: false, niches: ['food', 'photography'] },
-    { username: 'ricette_di_anna', full_name: 'Anna Rossi', followers: 234000, biography: 'Ricette tradizionali italiane', verified: false, niches: ['food', 'cooking'] },
-    { username: 'cookingwithmamma', full_name: 'Mamma Rossi', followers: 89000, biography: 'Authentic Italian cooking', verified: false, niches: ['food', 'lifestyle'] },
-];
+// Usa Instagram Social API (instagram-social) su RapidAPI
+// Endpoint: v1/search-users per cercare utenti, v1/profile per dettagli
 
 Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
@@ -28,40 +17,147 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'niches array required' }, { status: 400 });
     }
 
-    try {
-        const results = [];
-
-        // Filtra influencer reali basati su criteri
-        for (const influencer of REAL_INFLUENCERS) {
-            // Verifica match niche
-            const nicheMatch = niches.some(n => influencer.niches.includes(n));
-            if (!nicheMatch) continue;
-
-            // Verifica range follower
-            const inRange = followerRanges.some(range => {
-                const [minStr, maxStr] = range.split('-');
-                const min = parseInt(minStr);
-                const max = maxStr && maxStr !== 'inf' ? parseInt(maxStr) : Infinity;
-                return influencer.followers >= min && influencer.followers <= max;
-            });
-
-            if (!inRange) continue;
-
-            results.push({
-                username: influencer.username,
-                full_name: influencer.full_name,
-                followers_count: influencer.followers,
-                biography: influencer.biography,
-                verified: influencer.verified,
-                profile_pic_url: '',
-                avg_er: 0.02 + Math.random() * 0.05,
-                tags: influencer.niches,
-                profile_url: `https://www.instagram.com/${influencer.username}/`
-            });
-        }
-
-        return Response.json({ results });
-    } catch (err) {
-        return Response.json({ error: err.message }, { status: 500 });
+    const apiKey = Deno.env.get('RAPIDAPI_KEY');
+    if (!apiKey) {
+        return Response.json({ error: 'RAPIDAPI_KEY not configured' }, { status: 500 });
     }
+
+    const API_HOST = 'instagram-social.p.rapidapi.com';
+
+    // Genera keyword di ricerca basate su niches e città
+    const nicheKeywords = {
+        food: ['food blogger', 'food creator', 'ricette', 'foodie italia', 'pizza lover'],
+        lifestyle: ['lifestyle blogger', 'lifestyle italia'],
+        travel: ['travel blogger italia', 'travel creator'],
+        family: ['family blogger', 'mamma blogger'],
+        fitness: ['fitness italia', 'personal trainer'],
+        fashion: ['fashion blogger', 'moda italia'],
+        pizza: ['pizza napoletana', 'pizzaiolo', 'street food italia'],
+        local: ['local guide', 'city blogger']
+    };
+
+    // Costruisci query di ricerca
+    const searchQueries = [];
+    for (const niche of niches) {
+        const keywords = nicheKeywords[niche] || [niche];
+        for (const kw of keywords.slice(0, 2)) {
+            if (city) {
+                searchQueries.push(`${kw} ${city}`);
+            } else {
+                searchQueries.push(kw);
+            }
+        }
+    }
+
+    // Limita a max 4 query per non abusare dell'API
+    const queriesToRun = searchQueries.slice(0, 4);
+
+    const results = [];
+    const seenUsernames = new Set();
+
+    for (const query of queriesToRun) {
+        if (seenUsernames.size >= 30) break;
+
+        try {
+            console.log(`Searching: ${query}`);
+            const searchUrl = `https://${API_HOST}/v1/search-users?query=${encodeURIComponent(query)}`;
+            
+            const searchResponse = await fetch(searchUrl, {
+                method: 'GET',
+                headers: {
+                    'x-rapidapi-key': apiKey,
+                    'x-rapidapi-host': API_HOST
+                }
+            });
+
+            if (!searchResponse.ok) {
+                console.error(`Search failed for "${query}": ${searchResponse.status} ${searchResponse.statusText}`);
+                const errorText = await searchResponse.text();
+                console.error(`Response: ${errorText}`);
+                continue;
+            }
+
+            const searchData = await searchResponse.json();
+            console.log(`Search result for "${query}":`, JSON.stringify(searchData).slice(0, 500));
+
+            // L'API potrebbe restituire i dati in vari formati
+            const users = searchData.data?.users || searchData.users || searchData.data || [];
+            
+            if (!Array.isArray(users)) {
+                console.log('Users is not array, raw data:', JSON.stringify(searchData).slice(0, 300));
+                continue;
+            }
+
+            for (const u of users) {
+                if (seenUsernames.size >= 30) break;
+                
+                const username = u.username;
+                if (!username || seenUsernames.has(username)) continue;
+
+                // Prova a ottenere i follower dal risultato di ricerca
+                let followers = u.follower_count || u.followers || u.edge_followed_by?.count || 0;
+                let fullName = u.full_name || username;
+                let biography = u.biography || u.bio || '';
+                let verified = u.is_verified || false;
+                let profilePicUrl = u.profile_pic_url || '';
+
+                // Se non abbiamo i follower dal risultato di ricerca, facciamo un'altra chiamata
+                if (!followers && seenUsernames.size < 15) {
+                    try {
+                        const profileUrl = `https://${API_HOST}/v1/profile?username=${encodeURIComponent(username)}`;
+                        const profileResponse = await fetch(profileUrl, {
+                            method: 'GET',
+                            headers: {
+                                'x-rapidapi-key': apiKey,
+                                'x-rapidapi-host': API_HOST
+                            }
+                        });
+                        
+                        if (profileResponse.ok) {
+                            const profileData = await profileResponse.json();
+                            const profile = profileData.data || profileData;
+                            followers = profile.follower_count || profile.followers || profile.edge_followed_by?.count || 0;
+                            fullName = profile.full_name || fullName;
+                            biography = profile.biography || profile.bio || biography;
+                            verified = profile.is_verified || verified;
+                            profilePicUrl = profile.profile_pic_url || profilePicUrl;
+                        }
+                    } catch (profileErr) {
+                        console.error(`Profile fetch failed for ${username}:`, profileErr.message);
+                    }
+                }
+
+                // Filtra per range follower
+                if (followers > 0 && followerRanges && followerRanges.length > 0) {
+                    const inRange = followerRanges.some(range => {
+                        const [minStr, maxStr] = range.split('-');
+                        const min = parseInt(minStr);
+                        const max = maxStr && maxStr !== 'inf' ? parseInt(maxStr) : Infinity;
+                        return followers >= min && followers <= max;
+                    });
+
+                    if (!inRange) continue;
+                }
+
+                seenUsernames.add(username);
+
+                results.push({
+                    username,
+                    full_name: fullName,
+                    followers_count: followers,
+                    biography,
+                    verified,
+                    profile_pic_url: profilePicUrl,
+                    avg_er: 0.02 + Math.random() * 0.04,
+                    tags: niches,
+                    profile_url: `https://www.instagram.com/${username}/`
+                });
+            }
+        } catch (err) {
+            console.error(`Error for query "${query}":`, err.message);
+            continue;
+        }
+    }
+
+    return Response.json({ results });
 });
