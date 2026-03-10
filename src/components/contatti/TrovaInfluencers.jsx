@@ -151,9 +151,9 @@ Restituisci gli username (senza @), city e niche stimata. Devono essere account 
         return; 
       }
 
-      // Step 2: verifica dati reali tramite Instagram Statistics API
+      // Step 2: verifica dati reali tramite Instagram Scraper Stable API (via backend)
       const usernames = suggested.map(i => i.username.replace('@', '').trim()).filter(Boolean);
-      const apiResponse = await base44.functions.invoke('instagramScraper', { usernames });
+      const apiResponse = await base44.functions.invoke('instagramInfluencerSearch', { usernames });
       const apiData = apiResponse?.data?.results || {};
 
       // Step 3: unisci dati reali con suggerimenti LLM, filtra per range follower e account non trovati
