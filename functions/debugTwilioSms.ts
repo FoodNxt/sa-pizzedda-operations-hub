@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Twilio credentials missing', accountSid: !!accountSid, authToken: !!authToken });
     }
 
-    const fromNumber = '+393515293557';
+    const fromNumber = '+393514031612';
     const toNumber = '+393399942256';
     const smsBody = `13505360969*RSLHSN96T01Z249C*15032026`;
 
