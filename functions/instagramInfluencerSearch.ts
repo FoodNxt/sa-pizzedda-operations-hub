@@ -22,33 +22,39 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'RAPIDAPI_KEY not configured' }, { status: 500 });
     }
 
-    // Test multiple APIs to find which one works with the user's key
-    const apisToTest = [
-        { host: 'instagram-scraper-stable-api.p.rapidapi.com', path: '/search?query=food+blogger' },
-        { host: 'instagram-scraper-stable-api.p.rapidapi.com', path: '/searchUser?query=food+blogger' },
-        { host: 'instagram-scraper-stable-api.p.rapidapi.com', path: '/user/food_blogger' },
-        { host: 'instagram203.p.rapidapi.com', path: '/search?query=food+blogger' },
+    const API_HOST = 'instagram-scraper-stable-api.p.rapidapi.com';
+    
+    // Test vari endpoint dell'API instagram-scraper-stable-api
+    const endpointsToTest = [
+        '/v1/search?query=food+blogger',
+        '/v1/search_users?query=food+blogger',
+        '/v1/hashtag?name=foodblogger',
+        '/v1/info?username=giallozafferano',
+        '/search?q=food+blogger',
+        '/ig/search?query=food+blogger',
+        '/v1/user_info?username=giallozafferano',
+        '/v1/similar?username=giallozafferano',
     ];
 
     const debugResults = [];
-    for (const api of apisToTest) {
+    for (const path of endpointsToTest) {
         try {
-            const url = `https://${api.host}${api.path}`;
+            const url = `https://${API_HOST}${path}`;
             const resp = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'x-rapidapi-key': apiKey,
-                    'x-rapidapi-host': api.host
+                    'x-rapidapi-host': API_HOST
                 }
             });
             const body = await resp.text();
             debugResults.push({
-                url,
+                path,
                 status: resp.status,
-                body: body.slice(0, 500)
+                body: body.slice(0, 400)
             });
         } catch (e) {
-            debugResults.push({ url: `https://${api.host}${api.path}`, error: e.message });
+            debugResults.push({ path, error: e.message });
         }
     }
     return Response.json({ debug: true, results: debugResults });
