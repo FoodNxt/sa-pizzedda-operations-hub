@@ -24,18 +24,18 @@ Deno.serve(async (req) => {
 
     const API_HOST = 'instagram-scraper-stable-api.p.rapidapi.com';
     
-    // Test ulteriori endpoint
+    // Test ulteriori endpoint - pattern con nomi dalla documentazione overview
     const endpointsToTest = [
-        '/instagram/search?query=food+blogger',
-        '/instagram/user/giallozafferano',
-        '/instagram/user?username=giallozafferano',
-        '/instagram/hashtag/foodblogger',
-        '/instagram/similar_accounts?username=giallozafferano',
-        '/user?username=giallozafferano',
-        '/profile?username=giallozafferano',
-        '/hashtag?tag=foodblogger',
-        '/search_user?q=food+blogger',
-        '/api/search?query=food+blogger',
+        '/search_instagram?query=food+blogger',
+        '/user_data?username=giallozafferano',
+        '/user_about?username=giallozafferano',
+        '/user_similar?username=giallozafferano',
+        '/similar_accounts?username=giallozafferano',
+        '/user_posts?username=giallozafferano',
+        '/user_followers?username=giallozafferano',
+        '/recent_hashtags?hashtag=foodblogger',
+        '/hashtag_posts?hashtag=foodblogger',
+        '/explore',
     ];
 
     const debugResults = [];
