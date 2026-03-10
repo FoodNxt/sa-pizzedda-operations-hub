@@ -1,7 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// Funzione che usa InvokeLLM per generare query di ricerca realistiche per hashtag/niche
-// e poi restituisce risultati simulati basati su criteri reali
+// Funzione che cerca VERI influencer su Instagram tramite RapidAPI
 Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -16,15 +15,19 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'niches array required' }, { status: 400 });
     }
 
-    // Usa InvokeLLM per generare hashtag di ricerca per ogni niche
-    const prompt = `Genera una lista di 30-40 hashtag Instagram reali e popolari (senza #) per trovare influencer nelle seguenti categorie:
+    const apiKey = Deno.env.get('RAPIDAPI_KEY');
+    if (!apiKey) {
+        return Response.json({ error: 'RAPIDAPI_KEY not configured' }, { status: 500 });
+    }
+
+    // Usa InvokeLLM per generare hashtag di ricerca reali
+    const prompt = `Genera una lista di 10 hashtag Instagram reali e MOLTO POPOLARI (senza #) per trovare creatori di contenuto nelle seguenti categorie:
 ${niches.join(', ')}
 
 Gli hashtag devono essere:
-- Reali e molto usati su Instagram
-- Mirati a creatori di contenuto, non semplici utenti
-- Includere mix di hashtag di nicchia specifici e hashtag più generali
-- Lingua italiana preferibilmente
+- Reali e molto usati su Instagram (migliaia/milioni di post)
+- Specifici per creatori/influencer, non generici
+- Lingua italiana
 
 Restituisci SOLO gli hashtag separati da virgola, senza # e senza spazi aggiuntivi.`;
 
@@ -36,49 +39,72 @@ Restituisci SOLO gli hashtag separati da virgola, senza # e senza spazi aggiunti
 
         const hashtags = (llmResult || '')
             .split(',')
-            .map(h => h.trim())
+            .map(h => h.trim().toLowerCase())
             .filter(h => h.length > 0)
-            .slice(0, 20);
+            .slice(0, 5);
 
         if (hashtags.length === 0) {
             return Response.json({ error: 'Could not generate hashtags' }, { status: 500 });
         }
 
-        // Genera risultati sintetici basati su criteri reali
-        // (In produzione, qui chiameresti l'API di Instagram per cercare per hashtag)
         const results = [];
-        
-        for (let i = 0; i < 30; i++) {
-            const randomHashtag = hashtags[Math.floor(Math.random() * hashtags.length)];
-            const randomFollowers = [
-                Math.floor(Math.random() * 9000) + 1000,      // nano
-                Math.floor(Math.random() * 90000) + 10000,    // micro
-                Math.floor(Math.random() * 400000) + 100000,  // mid-tier
-                Math.floor(Math.random() * 500000) + 500000   // macro
-            ];
-            const followers = randomFollowers[Math.floor(Math.random() * randomFollowers.length)];
+        const seenUsernames = new Set();
 
-            // Verifica che sia nel range richiesto
-            const inRange = followerRanges.some(range => {
-                const [minStr, maxStr] = range.split('-');
-                const min = parseInt(minStr);
-                const max = maxStr ? parseInt(maxStr) : Infinity;
-                return followers >= min && followers <= max;
-            });
+        // Per ogni hashtag, cerca i post e estrai gli utenti
+        for (const hashtag of hashtags) {
+            try {
+                const response = await fetch(`https://instagram-scraper-stable-api.p.rapidapi.com/hashtag/${hashtag}/posts`, {
+                    method: 'GET',
+                    headers: {
+                        'x-rapidapi-key': apiKey,
+                        'x-rapidapi-host': 'instagram-scraper-stable-api.p.rapidapi.com'
+                    }
+                });
 
-            if (!inRange) continue;
+                if (!response.ok) continue;
 
-            results.push({
-                username: `influencer_${randomHashtag}_${i}`,
-                full_name: `Creator ${i}`,
-                followers_count: followers,
-                biography: `📍 ${city || 'Italia'} | ${niches[0]}`,
-                verified: followers > 50000 && Math.random() > 0.7,
-                profile_pic_url: '',
-                avg_er: (Math.random() * 5 + 1) / 100,
-                tags: [randomHashtag, ...niches.slice(0, 2)],
-                profile_url: `https://www.instagram.com/influencer_${randomHashtag}_${i}/`
-            });
+                const data = await response.json();
+                const posts = data.data || [];
+
+                // Estrai profili dai post
+                for (const post of posts.slice(0, 10)) {
+                    if (seenUsernames.size >= 30) break;
+
+                    const owner = post.owner || {};
+                    const username = owner.username;
+                    
+                    if (!username || seenUsernames.has(username)) continue;
+
+                    const followers = owner.edge_followed_by?.count || owner.followers || 0;
+                    
+                    // Verifica range follower
+                    const inRange = followerRanges.some(range => {
+                        const [minStr, maxStr] = range.split('-');
+                        const min = parseInt(minStr);
+                        const max = maxStr && maxStr !== 'inf' ? parseInt(maxStr) : Infinity;
+                        return followers >= min && followers <= max;
+                    });
+
+                    if (!inRange) continue;
+
+                    seenUsernames.add(username);
+
+                    results.push({
+                        username,
+                        full_name: owner.full_name || username,
+                        followers_count: followers,
+                        biography: owner.biography || '',
+                        verified: owner.is_verified || false,
+                        profile_pic_url: owner.profile_pic_url || '',
+                        avg_er: (owner.engagement_rate || 0) / 100,
+                        tags: [hashtag, ...niches.slice(0, 1)],
+                        profile_url: `https://www.instagram.com/${username}/`
+                    });
+                }
+            } catch (err) {
+                console.error(`Error fetching hashtag ${hashtag}:`, err.message);
+                continue;
+            }
         }
 
         return Response.json({ results: results.slice(0, 30) });
