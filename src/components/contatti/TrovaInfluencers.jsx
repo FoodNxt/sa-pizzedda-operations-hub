@@ -435,8 +435,8 @@ Restituisci SOLO gli username Instagram (senza @), city e niche stimata. Devono 
                       </div>
 
                       {/* Bio */}
-                      {influencer.bio && (
-                        <p className="text-xs text-slate-500 mt-1.5 line-clamp-2">{influencer.bio}</p>
+                      {(influencer.biography || influencer.bio) && (
+                        <p className="text-xs text-slate-500 mt-1.5 line-clamp-2">{influencer.biography || influencer.bio}</p>
                       )}
 
                       {/* Stats row */}
