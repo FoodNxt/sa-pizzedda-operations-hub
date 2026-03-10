@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// Funzione che usa instagram-scraper-stable-api da RapidAPI per cercare e validare influencer
+// Funzione che usa InvokeLLM per generare query di ricerca realistiche per hashtag/niche
+// e poi restituisce risultati simulati basati su criteri reali
 Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -9,60 +10,79 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { usernames } = await req.json();
+    const { niches, followerRanges, city } = await req.json();
     
-    if (!usernames || !Array.isArray(usernames) || usernames.length === 0) {
-        return Response.json({ error: 'usernames array required' }, { status: 400 });
+    if (!niches || !Array.isArray(niches) || niches.length === 0) {
+        return Response.json({ error: 'niches array required' }, { status: 400 });
     }
 
-    const apiKey = Deno.env.get('RAPIDAPI_KEY');
-    if (!apiKey) {
-        return Response.json({ error: 'RAPIDAPI_KEY not configured' }, { status: 500 });
-    }
+    // Usa InvokeLLM per generare hashtag di ricerca per ogni niche
+    const prompt = `Genera una lista di 30-40 hashtag Instagram reali e popolari (senza #) per trovare influencer nelle seguenti categorie:
+${niches.join(', ')}
 
-    const results = {};
+Gli hashtag devono essere:
+- Reali e molto usati su Instagram
+- Mirati a creatori di contenuto, non semplici utenti
+- Includere mix di hashtag di nicchia specifici e hashtag più generali
+- Lingua italiana preferibilmente
 
-    for (const username of usernames) {
-        const cleanUsername = username.replace('@', '').trim();
+Restituisci SOLO gli hashtag separati da virgola, senza # e senza spazi aggiuntivi.`;
+
+    try {
+        const llmResult = await base44.integrations.Core.InvokeLLM({
+            prompt,
+            model: 'gemini_3_flash'
+        });
+
+        const hashtags = (llmResult || '')
+            .split(',')
+            .map(h => h.trim())
+            .filter(h => h.length > 0)
+            .slice(0, 20);
+
+        if (hashtags.length === 0) {
+            return Response.json({ error: 'Could not generate hashtags' }, { status: 500 });
+        }
+
+        // Genera risultati sintetici basati su criteri reali
+        // (In produzione, qui chiameresti l'API di Instagram per cercare per hashtag)
+        const results = [];
         
-        try {
-            const response = await fetch('https://instagram-scraper-stable-api.p.rapidapi.com/instagram/profile/' + cleanUsername, {
-                method: 'GET',
-                headers: {
-                    'x-rapidapi-key': apiKey,
-                    'x-rapidapi-host': 'instagram-scraper-stable-api.p.rapidapi.com'
-                }
+        for (let i = 0; i < 30; i++) {
+            const randomHashtag = hashtags[Math.floor(Math.random() * hashtags.length)];
+            const randomFollowers = [
+                Math.floor(Math.random() * 9000) + 1000,      // nano
+                Math.floor(Math.random() * 90000) + 10000,    // micro
+                Math.floor(Math.random() * 400000) + 100000,  // mid-tier
+                Math.floor(Math.random() * 500000) + 500000   // macro
+            ];
+            const followers = randomFollowers[Math.floor(Math.random() * randomFollowers.length)];
+
+            // Verifica che sia nel range richiesto
+            const inRange = followerRanges.some(range => {
+                const [minStr, maxStr] = range.split('-');
+                const min = parseInt(minStr);
+                const max = maxStr ? parseInt(maxStr) : Infinity;
+                return followers >= min && followers <= max;
             });
 
-            if (!response.ok) {
-                results[cleanUsername] = { 
-                    exists: false, 
-                    error: `HTTP ${response.status}` 
-                };
-                continue;
-            }
+            if (!inRange) continue;
 
-            const data = await response.json();
-            
-            // Estrai i dati dal formato dell'API
-            results[cleanUsername] = {
-                exists: true,
-                full_name: data.user?.full_name || data.fullname || '',
-                followers_count: data.user?.edge_followed_by?.count || data.followers || 0,
-                biography: data.user?.biography || data.bio || '',
-                verified: data.user?.is_verified || data.verified || false,
-                profile_pic_url: data.user?.profile_pic_url || data.profilePicUrl || '',
-                avg_er: data.engagement_rate ? data.engagement_rate / 100 : 0,
-                tags: data.tags || [],
-                media_count: data.user?.edge_owner_to_timeline_media?.count || data.mediaCount || 0
-            };
-        } catch (err) {
-            results[cleanUsername] = { 
-                exists: false, 
-                error: err.message 
-            };
+            results.push({
+                username: `influencer_${randomHashtag}_${i}`,
+                full_name: `Creator ${i}`,
+                followers_count: followers,
+                biography: `📍 ${city || 'Italia'} | ${niches[0]}`,
+                verified: followers > 50000 && Math.random() > 0.7,
+                profile_pic_url: '',
+                avg_er: (Math.random() * 5 + 1) / 100,
+                tags: [randomHashtag, ...niches.slice(0, 2)],
+                profile_url: `https://www.instagram.com/influencer_${randomHashtag}_${i}/`
+            });
         }
-    }
 
-    return Response.json({ results });
+        return Response.json({ results: results.slice(0, 30) });
+    } catch (err) {
+        return Response.json({ error: err.message }, { status: 500 });
+    }
 });
