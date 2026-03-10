@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   for (const username of usernames) {
     try {
       const body = new URLSearchParams({ username });
-      const res = await fetch('https://instagram-scraper-stable-api.p.rapidapi.com/get_ig_user_followers_v2.php', {
+      const res = await fetch('https://instagram-scraper-stable-api.p.rapidapi.com/get_ig_user_info_v2.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -26,15 +26,17 @@ Deno.serve(async (req) => {
         body: body.toString()
       });
       const data = await res.json();
-      console.log('API response for', username, JSON.stringify(data).slice(0, 500));
-      const followers = data?.followers ?? data?.follower_count ?? data?.data?.followers;
+      console.log('API response for', username, JSON.stringify(data).slice(0, 800));
+      const profile = data?.user || data?.data || data;
+      const followers = profile?.follower_count ?? profile?.followers ?? profile?.edge_followed_by?.count;
       if (followers !== undefined) {
         results[username] = {
           followers_count: followers,
-          full_name: data.full_name || data?.data?.full_name,
-          biography: data.biography || data?.data?.biography,
-          is_private: data.is_private,
-          verified: data.is_verified,
+          full_name: profile.full_name,
+          biography: profile.biography || profile.bio,
+          is_private: profile.is_private,
+          verified: profile.is_verified || profile.verified,
+          profile_pic_url: profile.profile_pic_url || profile.hd_profile_pic_url,
           exists: true
         };
       } else {
