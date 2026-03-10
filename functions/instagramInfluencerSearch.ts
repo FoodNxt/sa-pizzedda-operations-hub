@@ -22,29 +22,36 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'RAPIDAPI_KEY not configured' }, { status: 500 });
     }
 
-    const API_HOST = 'instagram-social.p.rapidapi.com';
+    // Test multiple APIs to find which one works with the user's key
+    const apisToTest = [
+        { host: 'instagram-scraper-stable-api.p.rapidapi.com', path: '/search?query=food+blogger' },
+        { host: 'instagram-scraper-stable-api.p.rapidapi.com', path: '/searchUser?query=food+blogger' },
+        { host: 'instagram-scraper-stable-api.p.rapidapi.com', path: '/user/food_blogger' },
+        { host: 'instagram203.p.rapidapi.com', path: '/search?query=food+blogger' },
+    ];
 
-    // DEBUG: test diretto - ritorna il risultato raw dell'API
-    try {
-        const testUrl = `https://${API_HOST}/v1/search-users?query=food+blogger+italia`;
-        const testResp = await fetch(testUrl, {
-            method: 'GET',
-            headers: {
-                'x-rapidapi-key': apiKey,
-                'x-rapidapi-host': API_HOST
-            }
-        });
-        const testBody = await testResp.text();
-        return Response.json({ 
-            debug: true, 
-            status: testResp.status, 
-            statusText: testResp.statusText,
-            body: testBody.slice(0, 3000),
-            url: testUrl
-        });
-    } catch (debugErr) {
-        return Response.json({ debug_error: debugErr.message });
+    const debugResults = [];
+    for (const api of apisToTest) {
+        try {
+            const url = `https://${api.host}${api.path}`;
+            const resp = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'x-rapidapi-key': apiKey,
+                    'x-rapidapi-host': api.host
+                }
+            });
+            const body = await resp.text();
+            debugResults.push({
+                url,
+                status: resp.status,
+                body: body.slice(0, 500)
+            });
+        } catch (e) {
+            debugResults.push({ url: `https://${api.host}${api.path}`, error: e.message });
+        }
     }
+    return Response.json({ debug: true, results: debugResults });
 
     // Genera keyword di ricerca basate su niches e città
     const nicheKeywords = {
