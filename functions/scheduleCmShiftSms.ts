@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
         const user = users[0];
 
         // Check employee group - only process CM - Chiamata
-        if (user.employee_group !== 'CM - Chiamata') {
+        if (user.employee_group !== 'CM') {
             return Response.json({ success: true, skipped: 'not_cm_chiamata', group: user.employee_group });
         }
 
