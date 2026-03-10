@@ -15,19 +15,20 @@ Deno.serve(async (req) => {
 
   for (const username of usernames) {
     try {
-      const res = await fetch(`https://instagram-scraper-stable-api.p.rapidapi.com/v1/info?username_or_id_or_url=${encodeURIComponent(username)}`, {
+      const res = await fetch(`https://instagram-scraper.p.rapidapi.com/v1/info?username=${encodeURIComponent(username)}`, {
         method: 'GET',
         headers: {
           'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': 'instagram-scraper-stable-api.p.rapidapi.com'
+          'x-rapidapi-host': 'instagram-scraper.p.rapidapi.com'
         }
       });
       const data = await res.json();
       console.log('API response for', username, JSON.stringify(data).slice(0, 500));
-      const profile = data?.data;
-      if (profile?.follower_count !== undefined) {
+      const profile = data?.user || data?.data || data;
+      const followers = profile?.edge_followed_by?.count ?? profile?.follower_count ?? profile?.followers;
+      if (followers !== undefined) {
         results[username] = {
-          followers_count: profile.follower_count,
+          followers_count: followers,
           full_name: profile.full_name,
           biography: profile.biography,
           is_private: profile.is_private,
