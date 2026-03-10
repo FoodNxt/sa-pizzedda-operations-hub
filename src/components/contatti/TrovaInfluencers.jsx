@@ -190,7 +190,7 @@ Restituisci SOLO gli username Instagram (senza @), city e niche stimata. Devono 
         cognome: nameParts.slice(1).join(" ") || "",
         link: influencer.profile_url || "",
         followers: influencer.followers_count || 0,
-        note: `${influencer.bio || ""}${influencer.city ? " | Città: " + influencer.city : ""}${influencer.niche ? " | Niche: " + influencer.niche : ""} | Engagement: ${influencer.engagement_rate || 0}%`,
+        note: `${influencer.biography || influencer.bio || ""}${influencer.city ? " | Città: " + influencer.city : ""}${influencer.niche ? " | Niche: " + influencer.niche : ""} | Engagement: ${influencer.engagement_rate || 0}%`,
         visite_negozio: [],
         proposte_commerciali: [],
         collaborazioni_completate: [],
