@@ -45,9 +45,9 @@ const FOLLOWER_RANGES = [
 
 export default function TrovaInfluencers({ onAddContact }) {
   const [filters, setFilters] = useState({
-    platform: "instagram",
-    niche: "food",
-    followerRange: "micro",
+    platforms: ["instagram"],
+    niches: ["food"],
+    followerRanges: ["micro"],
     city: "",
   });
   const [results, setResults] = useState([]);
@@ -102,20 +102,25 @@ export default function TrovaInfluencers({ onAddContact }) {
     setHasSearched(true);
     setResults([]);
 
-    const range = FOLLOWER_RANGES.find((r) => r.value === filters.followerRange);
-    const niche = NICHE_OPTIONS.find((n) => n.value === filters.niche);
-    const platform = PLATFORM_OPTIONS.find((p) => p.value === filters.platform);
+    const selectedPlatforms = PLATFORM_OPTIONS.filter(p => filters.platforms.includes(p.value));
+    const selectedNiches = NICHE_OPTIONS.filter(n => filters.niches.includes(n.value));
+    const selectedRanges = FOLLOWER_RANGES.filter(r => filters.followerRanges.includes(r.value));
 
-    const prompt = `Trova 15 username REALI di influencer su ${platform?.label} con questi criteri:
-- Niche: ${niche?.label}
+    const platformsStr = selectedPlatforms.map(p => p.label).join(", ");
+    const nichesStr = selectedNiches.map(n => n.label).join(", ");
+    const rangesStr = selectedRanges.map(r => `${r.label} (${r.min?.toLocaleString()}${r.max ? "–" + r.max?.toLocaleString() : "+"})`).join(" oppure ");
+
+    const prompt = `Trova 50 username REALI di influencer su ${platformsStr} con questi criteri:
+- Niches: ${nichesStr}
 - Città/Zona: ${filters.city || "Italia (qualsiasi città)"}
-- Range follower: ${range?.label} (${range?.min?.toLocaleString()}${range?.max ? "–" + range?.max?.toLocaleString() : "+"} followers)
+- Range follower: ${rangesStr}
 - Lingua: italiano
+- Devono avere engagement rate decente (almeno 1%)
 
-Restituisci SOLO gli username Instagram (senza @), city e niche stimata. Devono essere account reali esistenti su Instagram.`;
+Restituisci gli username (senza @), city e niche stimata. Devono essere account reali esistenti su Instagram. Sii meno restrittivo possibile sulle nicchie - includi anche account tangenziali che potrebbero interessare.`;
 
     try {
-      // Step 1: LLM suggerisce gli username
+      // Step 1: LLM suggerisce gli username (più generoso - richiede 50 invece di 15)
       const llmResult = await base44.integrations.Core.InvokeLLM({
         prompt,
         add_context_from_internet: true,
@@ -140,7 +145,11 @@ Restituisci SOLO gli username Instagram (senza @), city e niche stimata. Devono 
       });
 
       const suggested = llmResult?.influencers || [];
-      if (suggested.length === 0) { setLoading(false); return; }
+      if (suggested.length === 0) { 
+        setLoading(false); 
+        alert("Nessun influencer trovato. Prova con filtri diversi.");
+        return; 
+      }
 
       // Step 2: verifica dati reali tramite Instagram Statistics API
       const usernames = suggested.map(i => i.username.replace('@', '').trim()).filter(Boolean);
@@ -154,7 +163,11 @@ Restituisci SOLO gli username Instagram (senza @), city e niche stimata. Devono 
           const real = apiData[username];
           if (!real || !real.exists) return null;
           const followers = real.followers_count;
-          if (followers < range.min || (range.max && followers > range.max)) return null;
+          
+          // Verifica che sia nel range di almeno uno dei range selezionati
+          const inRange = selectedRanges.some(r => followers >= r.min && (!r.max || followers <= r.max));
+          if (!inRange) return null;
+          
           return {
             username,
             full_name: real.full_name || item.full_name || username,
