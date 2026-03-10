@@ -24,10 +24,9 @@ Deno.serve(async (req) => {
 
     const API_HOST = 'instagram-social.p.rapidapi.com';
 
-    // DEBUG: test singola chiamata per vedere il formato
+    // DEBUG: test diretto - ritorna il risultato raw dell'API
     try {
         const testUrl = `https://${API_HOST}/v1/search-users?query=food+blogger+italia`;
-        console.log('Testing URL:', testUrl);
         const testResp = await fetch(testUrl, {
             method: 'GET',
             headers: {
@@ -35,11 +34,16 @@ Deno.serve(async (req) => {
                 'x-rapidapi-host': API_HOST
             }
         });
-        console.log('Test status:', testResp.status);
         const testBody = await testResp.text();
-        console.log('Test response:', testBody.slice(0, 2000));
+        return Response.json({ 
+            debug: true, 
+            status: testResp.status, 
+            statusText: testResp.statusText,
+            body: testBody.slice(0, 3000),
+            url: testUrl
+        });
     } catch (debugErr) {
-        console.error('Debug test error:', debugErr.message);
+        return Response.json({ debug_error: debugErr.message });
     }
 
     // Genera keyword di ricerca basate su niches e città
