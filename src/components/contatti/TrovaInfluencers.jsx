@@ -106,32 +106,17 @@ export default function TrovaInfluencers({ onAddContact }) {
     const niche = NICHE_OPTIONS.find((n) => n.value === filters.niche);
     const platform = PLATFORM_OPTIONS.find((p) => p.value === filters.platform);
 
-    const prompt = `Cercare e trovare 10 VERI influencer su ${platform?.label} che corrispondono a questi criteri:
-- Niche/Categoria: ${niche?.label}
+    const prompt = `Trova 15 username REALI di influencer su ${platform?.label} con questi criteri:
+- Niche: ${niche?.label}
 - Città/Zona: ${filters.city || "Italia (qualsiasi città)"}
 - Range follower: ${range?.label} (${range?.min?.toLocaleString()}${range?.max ? "–" + range?.max?.toLocaleString() : "+"} followers)
-- Lingua: Preferibilmente italiano
+- Lingua: italiano
 
-Usa SEMPRE i risultati di ricerca Google AGGIORNATI per trovare SOLO account REALI e verificati su ${platform?.label}.
-IMPORTANTE: Verifica ATTENTAMENTE il numero di follower da Google e ${platform?.label} - deve essere ESATTO e AGGIORNATO. Se non trovi i dati esatti su Google, NON INCLUDERE l'influencer.
-
-Per ogni influencer, fornire DATI VERIFICATI DA INTERNET:
-- username (account reale verificato su ${platform?.label})
-- full_name (nome e cognome reale - verificare da profilo ${platform?.label})
-- followers_count (numero follower ESATTO e AGGIORNATO da Google/profilo ${platform?.label} - NO stime)
-- city (città italiana dal profilo)
-- niche (categoria contenuti effettivi)
-- bio (descrizione esatta dal profilo)
-- engagement_rate (engagement rate medio reale %)
-- profile_url (link diretto al profilo ${platform?.label})
-- contact_hint (come contattarli - email, link contatti, DM, etc.)
-
-Restituisci un JSON array di 10 oggetti influencer con questi campi esatti.
-Focalizzati su creatori di contenuti food, lifestyle, locali rilevanti per attività pizza/ristorazione in Italia.
-I profili DEVONO essere verificati e reali. I follower DEVONO essere accurati.`;
+Restituisci SOLO gli username Instagram (senza @), city e niche stimata. Devono essere account reali esistenti su Instagram.`;
 
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      // Step 1: LLM suggerisce gli username
+      const llmResult = await base44.integrations.Core.InvokeLLM({
         prompt,
         add_context_from_internet: true,
         model: "gemini_3_flash",
@@ -144,13 +129,8 @@ I profili DEVONO essere verificati e reali. I follower DEVONO essere accurati.`;
                 type: "object",
                 properties: {
                   username: { type: "string" },
-                  full_name: { type: "string" },
-                  followers_count: { type: "number" },
                   city: { type: "string" },
                   niche: { type: "string" },
-                  bio: { type: "string" },
-                  engagement_rate: { type: "number" },
-                  profile_url: { type: "string" },
                   contact_hint: { type: "string" },
                 },
               },
@@ -158,7 +138,41 @@ I profili DEVONO essere verificati e reali. I follower DEVONO essere accurati.`;
           },
         },
       });
-      setResults(result?.influencers || []);
+
+      const suggested = llmResult?.influencers || [];
+      if (suggested.length === 0) { setLoading(false); return; }
+
+      // Step 2: verifica dati reali tramite Instagram Statistics API
+      const usernames = suggested.map(i => i.username.replace('@', '').trim()).filter(Boolean);
+      const apiResponse = await base44.functions.invoke('instagramScraper', { usernames });
+      const apiData = apiResponse?.data?.results || {};
+
+      // Step 3: unisci dati reali con suggerimenti LLM, filtra per range follower e account non trovati
+      const merged = suggested
+        .map(item => {
+          const username = item.username.replace('@', '').trim();
+          const real = apiData[username];
+          if (!real || !real.exists) return null;
+          const followers = real.followers_count;
+          if (followers < range.min || (range.max && followers > range.max)) return null;
+          return {
+            username,
+            full_name: real.full_name || item.full_name || username,
+            followers_count: followers,
+            biography: real.biography,
+            verified: real.verified,
+            profile_pic_url: real.profile_pic_url,
+            engagement_rate: real.avg_er ? parseFloat((real.avg_er * 100).toFixed(2)) : null,
+            tags: real.tags || [],
+            city: item.city,
+            niche: item.niche,
+            contact_hint: item.contact_hint,
+            profile_url: `https://www.instagram.com/${username}/`,
+          };
+        })
+        .filter(Boolean);
+
+      setResults(merged);
     } catch (err) {
       console.error(err);
     } finally {
