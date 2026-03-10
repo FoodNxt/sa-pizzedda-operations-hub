@@ -240,19 +240,24 @@ Restituisci gli username (senza @), city e niche stimata. Devono essere account 
           <h2 className="text-lg font-bold text-slate-800">Filtri di Ricerca</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-          {/* Platform */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+          {/* Platforms - Multi-select */}
           <div>
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 block">
-              Piattaforma
+              Piattaforme (seleziona una o più)
             </label>
             <div className="flex gap-2 flex-wrap">
               {PLATFORM_OPTIONS.map((p) => (
                 <button
                   key={p.value}
-                  onClick={() => setFilters({ ...filters, platform: p.value })}
+                  onClick={() => {
+                    const updated = filters.platforms.includes(p.value)
+                      ? filters.platforms.filter(pl => pl !== p.value)
+                      : [...filters.platforms, p.value];
+                    setFilters({ ...filters, platforms: updated });
+                  }}
                   className={`px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 ${
-                    filters.platform === p.value
+                    filters.platforms.includes(p.value)
                       ? "border-purple-500 bg-purple-50 text-purple-700"
                       : "border-transparent neumorphic-pressed text-slate-600"
                   }`}
@@ -263,15 +268,20 @@ Restituisci gli username (senza @), city e niche stimata. Devono essere account 
             </div>
           </div>
 
-          {/* Niche */}
+          {/* Niches - Multi-select */}
           <div>
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 block">
-              Categoria / Niche
+              Categorie / Niches (seleziona una o più)
             </label>
             <select
-              value={filters.niche}
-              onChange={(e) => setFilters({ ...filters, niche: e.target.value })}
+              multiple
+              value={filters.niches}
+              onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions, option => option.value);
+                setFilters({ ...filters, niches: selected });
+              }}
               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm"
+              size={Math.min(5, NICHE_OPTIONS.length)}
             >
               {NICHE_OPTIONS.map((n) => (
                 <option key={n.value} value={n.value}>
@@ -279,20 +289,26 @@ Restituisci gli username (senza @), city e niche stimata. Devono essere account 
                 </option>
               ))}
             </select>
+            <p className="text-xs text-slate-400 mt-1">Ctrl+Click per multi-selezione</p>
           </div>
 
-          {/* Follower Range */}
+          {/* Follower Ranges - Multi-select */}
           <div>
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2 block">
-              Range Follower
+              Range Follower (seleziona uno o più)
             </label>
             <div className="flex flex-col gap-2">
               {FOLLOWER_RANGES.map((r) => (
                 <button
                   key={r.value}
-                  onClick={() => setFilters({ ...filters, followerRange: r.value })}
+                  onClick={() => {
+                    const updated = filters.followerRanges.includes(r.value)
+                      ? filters.followerRanges.filter(fr => fr !== r.value)
+                      : [...filters.followerRanges, r.value];
+                    setFilters({ ...filters, followerRanges: updated });
+                  }}
                   className={`px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 text-left ${
-                    filters.followerRange === r.value
+                    filters.followerRanges.includes(r.value)
                       ? "border-purple-500 bg-purple-50 text-purple-700"
                       : "border-transparent neumorphic-pressed text-slate-600"
                   }`}
@@ -325,7 +341,7 @@ Restituisci gli username (senza @), city e niche stimata. Devono essere account 
         <NeumorphicButton
           onClick={handleSearch}
           variant="primary"
-          disabled={loading}
+          disabled={loading || filters.platforms.length === 0 || filters.niches.length === 0 || filters.followerRanges.length === 0}
           className="flex items-center gap-2 px-8"
         >
           {loading ? (
@@ -335,6 +351,9 @@ Restituisci gli username (senza @), city e niche stimata. Devono essere account 
           )}
           {loading ? "Ricerca in corso..." : "Trova Influencers"}
         </NeumorphicButton>
+        {(filters.platforms.length === 0 || filters.niches.length === 0 || filters.followerRanges.length === 0) && (
+          <p className="text-sm text-red-600">⚠️ Seleziona almeno una piattaforma, categoria e range follower</p>
+        )}
       </NeumorphicCard>
 
       {/* Results */}
