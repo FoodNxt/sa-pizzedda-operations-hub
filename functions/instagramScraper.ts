@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   for (const username of usernames) {
     try {
       const body = new URLSearchParams({ username });
-      const res = await fetch('https://instagram-scraper-stable-api.p.rapidapi.com/get_ig_user_info_v2.php', {
+      const res = await fetch('https://instagram-scraper-stable-api.p.rapidapi.com/get_ig_profile.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
