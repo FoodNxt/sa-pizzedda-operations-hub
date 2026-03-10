@@ -30,11 +30,12 @@ Deno.serve(async (req) => {
       if (followers !== undefined) {
         results[username] = {
           followers_count: followers,
-          full_name: profile.title || profile.full_name,
+          full_name: profile.name || profile.full_name,
           biography: profile.description || profile.biography,
-          is_private: profile.is_private,
-          verified: profile.isVerified || profile.is_verified,
+          verified: profile.verified || profile.is_verified,
           profile_pic_url: profile.image || profile.profile_pic_url,
+          tags: profile.tags || [],
+          avg_er: profile.avgER,
           exists: true
         };
       } else {
