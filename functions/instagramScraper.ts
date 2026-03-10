@@ -15,22 +15,23 @@ Deno.serve(async (req) => {
 
   for (const username of usernames) {
     try {
-      const res = await fetch(`https://instagram-scraper-api2.p.rapidapi.com/v1/info?username_or_id_or_url=${username}`, {
+      const res = await fetch(`https://instagram-bulk-profile-scrapper.p.rapidapi.com/clients/api/ig/ig_profile?ig=${username}&response_type=short&corsEnabled=false`, {
         method: 'GET',
         headers: {
           'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': 'instagram-scraper-api2.p.rapidapi.com'
+          'x-rapidapi-host': 'instagram-bulk-profile-scrapper.p.rapidapi.com'
         }
       });
       const data = await res.json();
-      console.log('API response for', username, JSON.stringify(data).slice(0, 300));
-      if (data?.data) {
+      console.log('API response for', username, JSON.stringify(data).slice(0, 500));
+      const profile = Array.isArray(data) ? data[0] : data;
+      if (profile?.follower_count !== undefined || profile?.followers !== undefined) {
         results[username] = {
-          followers_count: data.data.follower_count,
-          full_name: data.data.full_name,
-          biography: data.data.biography,
-          is_private: data.data.is_private,
-          verified: data.data.is_verified,
+          followers_count: profile.follower_count ?? profile.followers,
+          full_name: profile.full_name,
+          biography: profile.biography,
+          is_private: profile.is_private,
+          verified: profile.is_verified,
           exists: true
         };
       } else {
