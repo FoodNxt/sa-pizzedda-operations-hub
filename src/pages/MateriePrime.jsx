@@ -35,6 +35,7 @@ import ProtectedPage from "../components/ProtectedPage";
 import ProgressBar from "../components/neumorphic/ProgressBar";
 import RicetteContent from "../components/inventory/RicetteContent";
 import FornitoriContent from "../components/inventory/FornitoriContent";
+import NomiInterniTab from "../components/inventory/NomiInterniTab";
 
 export default function MateriePrime() {
   const [activeTab, setActiveTab] = useState('materie_prime'); // materie_prime | ricette | fornitori | nomi_interni
