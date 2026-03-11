@@ -1249,18 +1249,11 @@ Sa Pizzedda`,
             let totalConIVA = 0;
             Object.values(supplierData.stores).forEach(storeData => {
               storeData.orders.forEach(order => {
-                const hasPendingOrder = ordiniInviati.some((o) =>
-                  o.store_id === storeData.store.id &&
-                  o.fornitore === fornitore &&
-                  o.prodotti.some((p) => p.prodotto_id === order.product.id)
-                );
+                const pIds = order.merged_product_ids || [order.product.id];
+                const hasPendingOrder = ordiniInviati.some((o) => o.store_id === storeData.store.id && o.fornitore === fornitore && o.prodotti.some((p) => pIds.includes(p.prodotto_id)));
                 const hasArrivedToday = ordiniCompletati.some((o) => {
-                  const completedToday = o.data_completamento &&
-                    new Date(o.data_completamento).toDateString() === new Date().toDateString();
-                  return completedToday &&
-                    o.store_id === storeData.store.id &&
-                    o.fornitore === fornitore &&
-                    o.prodotti.some((p) => p.prodotto_id === order.product.id);
+                  const ct = o.data_completamento && new Date(o.data_completamento).toDateString() === new Date().toDateString();
+                  return ct && o.store_id === storeData.store.id && o.fornitore === fornitore && o.prodotti.some((p) => pIds.includes(p.prodotto_id));
                 });
                 
                 if (!hasPendingOrder && !hasArrivedToday) {
