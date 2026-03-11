@@ -618,7 +618,7 @@ export default function OrdiniAdmin() {
     const fornitore = getFornitoreByName(supplierName);
     const prodotti = orders.map((order) => ({
       prodotto_id: order.product.id,
-      nome_prodotto: order.nome_prodotto,
+      nome_prodotto: order.product.nome_interno || order.nome_prodotto,
       quantita_ordinata: order.quantita_ordine,
       unita_misura: order.unita_misura,
       prezzo_unitario: order.product.prezzo_unitario || 0,
