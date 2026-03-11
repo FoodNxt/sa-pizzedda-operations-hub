@@ -1029,11 +1029,11 @@ Sa Pizzedda`,
                           const prodottiNormali = [];
 
                           orders.forEach((order) => {
-                            // Check if there's already an order for this product FROM THIS SUPPLIER with quantity > 0
+                            const productIds = order.merged_product_ids || [order.product.id];
                             const hasPendingOrder = ordiniInviati.some((o) =>
                             o.store_id === storeId &&
                             o.fornitore === supplier &&
-                            o.prodotti.some((p) => p.prodotto_id === order.product.id && p.quantita_ordinata > 0)
+                            o.prodotti.some((p) => productIds.includes(p.prodotto_id) && p.quantita_ordinata > 0)
                             );
 
                             const hasArrivedToday = ordiniCompletati.some((o) => {
@@ -1042,7 +1042,7 @@ Sa Pizzedda`,
                               return completedToday &&
                               o.store_id === storeId &&
                               o.fornitore === supplier &&
-                              o.prodotti.some((p) => p.prodotto_id === order.product.id && p.quantita_ordinata > 0);
+                              o.prodotti.some((p) => productIds.includes(p.prodotto_id) && p.quantita_ordinata > 0);
                             });
 
                             // Priority: arrived today > in progress > normal
