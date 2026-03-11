@@ -878,22 +878,14 @@ Sa Pizzedda`,
                     const isSending = sendingEmail[emailKey];
                     const wasSent = emailSent[emailKey];
 
-                    // Filter out products with pending orders or arrived today for totals
                     const ordersForTotal = orders.filter((order) => {
-                      const hasPendingOrder = ordiniInviati.some((o) =>
-                      o.store_id === storeId &&
-                      o.prodotti.some((p) => p.prodotto_id === order.product.id)
-                      );
-
-                      const hasArrivedToday = ordiniCompletati.some((o) => {
-                        const completedToday = o.data_completamento &&
-                        new Date(o.data_completamento).toDateString() === new Date().toDateString();
-                        return completedToday &&
-                        o.store_id === storeId &&
-                        o.prodotti.some((p) => p.prodotto_id === order.product.id);
+                      const pIds = order.merged_product_ids || [order.product.id];
+                      const hasPending = ordiniInviati.some((o) => o.store_id === storeId && o.prodotti.some((p) => pIds.includes(p.prodotto_id)));
+                      const hasArrived = ordiniCompletati.some((o) => {
+                        const ct = o.data_completamento && new Date(o.data_completamento).toDateString() === new Date().toDateString();
+                        return ct && o.store_id === storeId && o.prodotti.some((p) => pIds.includes(p.prodotto_id));
                       });
-
-                      return !hasPendingOrder && !hasArrivedToday;
+                      return !hasPending && !hasArrived;
                     });
 
                     const totaleOrdineNettoIVA = ordersForTotal.reduce((sum, order) => {
