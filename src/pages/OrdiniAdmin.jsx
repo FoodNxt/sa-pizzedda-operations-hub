@@ -735,9 +735,9 @@ Sa Pizzedda`,
 
               <tab.icon className="w-4 h-4" />
               {tab.label}
-              {tab.id === 'suggeriti' && ordersNeeded.length > 0 &&
+              {tab.id === 'suggeriti' && aggregatedOrdersNeeded.length > 0 &&
             <span className="px-2 py-0.5 rounded-full text-xs bg-red-500 text-white">
-                  {ordersNeeded.length}
+                  {aggregatedOrdersNeeded.length}
                 </span>
             }
               {tab.id === 'inviati' && ordiniInviati.length > 0 &&
