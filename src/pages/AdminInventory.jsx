@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ProtectedPage from '../components/ProtectedPage';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
-import { Settings, Package, AlertTriangle, ChefHat, TrendingUp, BarChart3, Truck, Link as LinkIcon } from 'lucide-react';
+import { Settings, Package, AlertTriangle, ChefHat, TrendingUp, BarChart3, Truck, Link as LinkIcon, MapPin } from 'lucide-react';
 
 const sectionAdminPages = [
   { title: 'Analisi Sprechi', page: 'AnalisiSprechi', icon: AlertTriangle, description: 'Configura e monitora sprechi' },
@@ -12,7 +12,8 @@ const sectionAdminPages = [
   { title: 'Mapping Prodotti', page: 'MappingProdottiVenduti', icon: LinkIcon, description: 'Collega prodotti venduti e materie prime' },
   { title: 'Impasto', page: 'StoricoImpasti', icon: ChefHat, description: 'Storico e configurazione impasti' },
   { title: 'Ordini Fornitori', page: 'OrdiniAdmin', icon: Truck, description: 'Gestione ordini' },
-  { title: 'Controllo Consumi', page: 'ControlloConsumi', icon: TrendingUp, description: 'Analizza consumi vs vendite' }
+  { title: 'Controllo Consumi', page: 'ControlloConsumi', icon: TrendingUp, description: 'Analizza consumi vs vendite' },
+  { title: 'Posizione Prodotti', page: 'PosizioniProdotti', icon: MapPin, description: 'Piantine locali e aree di stoccaggio' }
 ];
 
 export default function AdminInventory() {
