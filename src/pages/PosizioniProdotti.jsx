@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, Save, Loader2, ArrowLeft } from "lucide-react";
@@ -20,7 +20,7 @@ export default function PosizioniProdotti() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: mappe = [], isLoading } = useQuery({
+  const { data: mappe = [] } = useQuery({
     queryKey: ["mappe-locali"],
     queryFn: () => base44.entities.MappaLocale.list(),
   });
