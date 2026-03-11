@@ -1,294 +1,336 @@
-import React, { useState, useRef, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { useMutation } from "@tanstack/react-query";
-import { Plus, Save, Trash2, Upload, X, Move, Loader2 } from "lucide-react";
-import NeumorphicCard from "../neumorphic/NeumorphicCard";
-import NeumorphicButton from "../neumorphic/NeumorphicButton";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import { Plus, Trash2, RotateCw, Move, GripVertical } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-const COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'
-];
+const COLORS = ["#3B82F6", "#EF4444", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#06B6D4", "#F97316"];
 
-export default function StorageAreaEditor({ store, mappa, onSaved }) {
-  const [areas, setAreas] = useState([]);
-  const [bgImage, setBgImage] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [draggingIdx, setDraggingIdx] = useState(null);
-  const [resizingIdx, setResizingIdx] = useState(null);
-  const [editingName, setEditingName] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const canvasRef = useRef(null);
+function ResizeHandle({ position, onMouseDown, rotation }) {
+  const positionStyles = {
+    "top-left": { top: -5, left: -5, cursor: "nwse-resize" },
+    "top-right": { top: -5, right: -5, cursor: "nesw-resize" },
+    "bottom-left": { bottom: -5, left: -5, cursor: "nesw-resize" },
+    "bottom-right": { bottom: -5, right: -5, cursor: "nwse-resize" },
+    "top": { top: -5, left: "50%", transform: "translateX(-50%)", cursor: "ns-resize" },
+    "bottom": { bottom: -5, left: "50%", transform: "translateX(-50%)", cursor: "ns-resize" },
+    "left": { top: "50%", left: -5, transform: "translateY(-50%)", cursor: "ew-resize" },
+    "right": { top: "50%", right: -5, transform: "translateY(-50%)", cursor: "ew-resize" },
+  };
+
+  return (
+    <div
+      onMouseDown={(e) => { e.stopPropagation(); onMouseDown(e, position); }}
+      onTouchStart={(e) => { e.stopPropagation(); onMouseDown(e, position); }}
+      className="absolute w-3 h-3 bg-white border-2 border-blue-600 rounded-full z-20 hover:bg-blue-100"
+      style={positionStyles[position]}
+    />
+  );
+}
+
+function RotateHandle({ onMouseDown }) {
+  return (
+    <div
+      onMouseDown={(e) => { e.stopPropagation(); onMouseDown(e); }}
+      onTouchStart={(e) => { e.stopPropagation(); onMouseDown(e); }}
+      className="absolute -top-8 left-1/2 -translate-x-1/2 w-6 h-6 bg-white border-2 border-purple-500 rounded-full z-20 flex items-center justify-center cursor-grab hover:bg-purple-100"
+      title="Ruota"
+    >
+      <RotateCw className="w-3 h-3 text-purple-600" />
+    </div>
+  );
+}
+
+function StorageAreaBox({ area, isSelected, onSelect, onUpdate, onDelete, containerRef }) {
+  const boxRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+  const dragStart = useRef({});
+
+  const getContainerRect = () => containerRef.current?.getBoundingClientRect();
+  const getEventPos = (e) => {
+    const t = e.touches ? e.touches[0] : e;
+    return { clientX: t.clientX, clientY: t.clientY };
+  };
+
+  // DRAG
+  const handleDragStart = (e) => {
+    if (isResizing || isRotating) return;
+    e.preventDefault();
+    const pos = getEventPos(e);
+    const rect = getContainerRect();
+    dragStart.current = { startX: pos.clientX, startY: pos.clientY, origX: area.x, origY: area.y, rect };
+    setIsDragging(true);
+  };
 
   useEffect(() => {
-    if (mappa) {
-      setAreas(mappa.storage_areas || []);
-      setBgImage(mappa.background_image || '');
-    } else {
-      setAreas([]);
-      setBgImage('');
-    }
-  }, [mappa?.id, store?.id]);
+    if (!isDragging) return;
+    const handleMove = (e) => {
+      const pos = getEventPos(e);
+      const { startX, startY, origX, origY, rect } = dragStart.current;
+      const dx = ((pos.clientX - startX) / rect.width) * 100;
+      const dy = ((pos.clientY - startY) / rect.height) * 100;
+      onUpdate({ ...area, x: Math.max(0, Math.min(100 - area.width, origX + dx)), y: Math.max(0, Math.min(100 - area.height, origY + dy)) });
+    };
+    const handleUp = () => setIsDragging(false);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleMove);
+    window.addEventListener("touchend", handleUp);
+    return () => { window.removeEventListener("mousemove", handleMove); window.removeEventListener("mouseup", handleUp); window.removeEventListener("touchmove", handleMove); window.removeEventListener("touchend", handleUp); };
+  }, [isDragging]);
 
-  const saveMutation = useMutation({
-    mutationFn: async (data) => {
-      if (mappa) {
-        return base44.entities.MappaLocale.update(mappa.id, data);
-      } else {
-        return base44.entities.MappaLocale.create({
-          store_id: store.id,
-          store_name: store.name,
-          ...data
-        });
-      }
-    },
-    onSuccess: () => {
-      onSaved();
-      setSaving(false);
-    },
-    onError: () => setSaving(false)
-  });
-
-  const handleSave = () => {
-    setSaving(true);
-    saveMutation.mutate({
-      storage_areas: areas,
-      background_image: bgImage
-    });
+  // RESIZE
+  const handleResizeStart = (e, direction) => {
+    e.preventDefault();
+    const pos = getEventPos(e);
+    const rect = getContainerRect();
+    dragStart.current = { startX: pos.clientX, startY: pos.clientY, origX: area.x, origY: area.y, origW: area.width, origH: area.height, direction, rect };
+    setIsResizing(true);
   };
+
+  useEffect(() => {
+    if (!isResizing) return;
+    const handleMove = (e) => {
+      const pos = getEventPos(e);
+      const { startX, startY, origX, origY, origW, origH, direction, rect } = dragStart.current;
+      const dx = ((pos.clientX - startX) / rect.width) * 100;
+      const dy = ((pos.clientY - startY) / rect.height) * 100;
+      let newX = origX, newY = origY, newW = origW, newH = origH;
+
+      if (direction.includes("right")) newW = Math.max(3, origW + dx);
+      if (direction.includes("left")) { newW = Math.max(3, origW - dx); newX = origX + (origW - newW); }
+      if (direction.includes("bottom")) newH = Math.max(3, origH + dy);
+      if (direction.includes("top")) { newH = Math.max(3, origH - dy); newY = origY + (origH - newH); }
+
+      newX = Math.max(0, newX);
+      newY = Math.max(0, newY);
+      if (newX + newW > 100) newW = 100 - newX;
+      if (newY + newH > 100) newH = 100 - newY;
+
+      onUpdate({ ...area, x: newX, y: newY, width: newW, height: newH });
+    };
+    const handleUp = () => setIsResizing(false);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleMove);
+    window.addEventListener("touchend", handleUp);
+    return () => { window.removeEventListener("mousemove", handleMove); window.removeEventListener("mouseup", handleUp); window.removeEventListener("touchmove", handleMove); window.removeEventListener("touchend", handleUp); };
+  }, [isResizing]);
+
+  // ROTATE
+  const handleRotateStart = (e) => {
+    e.preventDefault();
+    const rect = getContainerRect();
+    const centerX = rect.left + (area.x + area.width / 2) / 100 * rect.width;
+    const centerY = rect.top + (area.y + area.height / 2) / 100 * rect.height;
+    dragStart.current = { centerX, centerY, origRotation: area.rotation || 0 };
+    const pos = getEventPos(e);
+    dragStart.current.startAngle = Math.atan2(pos.clientY - centerY, pos.clientX - centerX) * (180 / Math.PI);
+    setIsRotating(true);
+  };
+
+  useEffect(() => {
+    if (!isRotating) return;
+    const handleMove = (e) => {
+      const pos = getEventPos(e);
+      const { centerX, centerY, startAngle, origRotation } = dragStart.current;
+      const currentAngle = Math.atan2(pos.clientY - centerY, pos.clientX - centerX) * (180 / Math.PI);
+      let newRotation = origRotation + (currentAngle - startAngle);
+      // Snap to 15 degree increments if close
+      const snapped = Math.round(newRotation / 15) * 15;
+      if (Math.abs(newRotation - snapped) < 3) newRotation = snapped;
+      onUpdate({ ...area, rotation: newRotation });
+    };
+    const handleUp = () => setIsRotating(false);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleMove);
+    window.addEventListener("touchend", handleUp);
+    return () => { window.removeEventListener("mousemove", handleMove); window.removeEventListener("mouseup", handleUp); window.removeEventListener("touchmove", handleMove); window.removeEventListener("touchend", handleUp); };
+  }, [isRotating]);
+
+  const rotation = area.rotation || 0;
+
+  return (
+    <div
+      ref={boxRef}
+      onClick={(e) => { e.stopPropagation(); onSelect(area.id); }}
+      onMouseDown={handleDragStart}
+      onTouchStart={handleDragStart}
+      className={`absolute cursor-move select-none ${isSelected ? "z-10" : "z-5"}`}
+      style={{
+        left: `${area.x}%`, top: `${area.y}%`,
+        width: `${area.width}%`, height: `${area.height}%`,
+        transform: `rotate(${rotation}deg)`,
+        transformOrigin: "center center",
+      }}
+    >
+      <div
+        className={`w-full h-full rounded-md border-2 flex items-center justify-center transition-shadow ${isSelected ? "shadow-lg ring-2 ring-blue-400" : ""}`}
+        style={{
+          backgroundColor: `${area.colore || "#3B82F6"}30`,
+          borderColor: area.colore || "#3B82F6",
+        }}
+      >
+        <span className="text-xs font-bold text-center px-1 leading-tight truncate" style={{ color: area.colore || "#3B82F6" }}>
+          {area.nome || "Area"}
+        </span>
+      </div>
+
+      {isSelected && (
+        <>
+          <ResizeHandle position="top-left" onMouseDown={handleResizeStart} />
+          <ResizeHandle position="top-right" onMouseDown={handleResizeStart} />
+          <ResizeHandle position="bottom-left" onMouseDown={handleResizeStart} />
+          <ResizeHandle position="bottom-right" onMouseDown={handleResizeStart} />
+          <ResizeHandle position="top" onMouseDown={handleResizeStart} />
+          <ResizeHandle position="bottom" onMouseDown={handleResizeStart} />
+          <ResizeHandle position="left" onMouseDown={handleResizeStart} />
+          <ResizeHandle position="right" onMouseDown={handleResizeStart} />
+          <RotateHandle onMouseDown={handleRotateStart} />
+          <button
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onDelete(area.id); }}
+            className="absolute -top-3 -right-3 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center z-20 hover:bg-red-600"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function StorageAreaEditor({ areas = [], onChange, backgroundImage }) {
+  const containerRef = useRef(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [editingName, setEditingName] = useState("");
+
+  const selectedArea = areas.find((a) => a.id === selectedId);
+
+  useEffect(() => {
+    if (selectedArea) setEditingName(selectedArea.nome || "");
+  }, [selectedId]);
 
   const addArea = () => {
     const newArea = {
       id: `area_${Date.now()}`,
       nome: `Area ${areas.length + 1}`,
-      x: 10 + (areas.length * 5) % 60,
-      y: 10 + (areas.length * 5) % 60,
-      width: 20,
-      height: 15,
-      colore: COLORS[areas.length % COLORS.length]
+      x: 10, y: 10, width: 15, height: 15,
+      colore: COLORS[areas.length % COLORS.length],
+      rotation: 0,
     };
-    setAreas([...areas, newArea]);
+    onChange([...areas, newArea]);
+    setSelectedId(newArea.id);
   };
 
-  const removeArea = (idx) => {
-    setAreas(areas.filter((_, i) => i !== idx));
+  const updateArea = (updated) => {
+    onChange(areas.map((a) => (a.id === updated.id ? updated : a)));
   };
 
-  const updateAreaName = (idx, nome) => {
-    const updated = [...areas];
-    updated[idx] = { ...updated[idx], nome };
-    setAreas(updated);
+  const deleteArea = (id) => {
+    onChange(areas.filter((a) => a.id !== id));
+    if (selectedId === id) setSelectedId(null);
   };
 
-  const handleUploadBg = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setBgImage(file_url);
-    setUploading(false);
-  };
-
-  // Drag handling on the canvas
-  const handleMouseDown = (e, idx, type) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (type === 'move') setDraggingIdx(idx);
-    if (type === 'resize') setResizingIdx(idx);
-  };
-
-  const handleMouseMove = (e) => {
-    if (draggingIdx === null && resizingIdx === null) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
-    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-
-    if (draggingIdx !== null) {
-      const updated = [...areas];
-      const a = updated[draggingIdx];
-      updated[draggingIdx] = {
-        ...a,
-        x: Math.max(0, Math.min(100 - a.width, xPct - a.width / 2)),
-        y: Math.max(0, Math.min(100 - a.height, yPct - a.height / 2))
-      };
-      setAreas(updated);
-    }
-
-    if (resizingIdx !== null) {
-      const updated = [...areas];
-      const a = updated[resizingIdx];
-      const newW = Math.max(8, xPct - a.x);
-      const newH = Math.max(6, yPct - a.y);
-      updated[resizingIdx] = { ...a, width: Math.min(newW, 100 - a.x), height: Math.min(newH, 100 - a.y) };
-      setAreas(updated);
+  const handleNameSave = () => {
+    if (selectedArea && editingName.trim()) {
+      updateArea({ ...selectedArea, nome: editingName.trim() });
     }
   };
 
-  const handleMouseUp = () => {
-    setDraggingIdx(null);
-    setResizingIdx(null);
+  const handleColorChange = (color) => {
+    if (selectedArea) updateArea({ ...selectedArea, colore: color });
   };
 
-  // Touch support
-  const handleTouchMove = (e) => {
-    if (draggingIdx === null && resizingIdx === null) return;
-    const touch = e.touches[0];
-    handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
+  const handleRotationInput = (val) => {
+    if (selectedArea) {
+      const deg = parseInt(val) || 0;
+      updateArea({ ...selectedArea, rotation: deg });
+    }
   };
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <NeumorphicCard className="p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-sm font-medium cursor-pointer hover:bg-slate-200 transition-colors">
-            <Upload className="w-4 h-4" />
-            {uploading ? 'Caricamento...' : bgImage ? 'Cambia Piantina' : 'Carica Piantina'}
-            <input type="file" accept="image/*" onChange={handleUploadBg} className="hidden" disabled={uploading} />
-          </label>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-700">Aree di stoccaggio</h3>
+        <Button size="sm" variant="outline" onClick={addArea} className="gap-1">
+          <Plus className="w-4 h-4" /> Aggiungi area
+        </Button>
+      </div>
 
-          {bgImage && (
-            <button
-              onClick={() => setBgImage('')}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl bg-red-50 text-red-600 text-sm hover:bg-red-100"
-            >
-              <X className="w-4 h-4" /> Rimuovi
-            </button>
-          )}
-
-          <NeumorphicButton onClick={addArea} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Aggiungi Area
-          </NeumorphicButton>
-
-          <div className="ml-auto">
-            <NeumorphicButton
-              variant="primary"
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Salva
-            </NeumorphicButton>
+      <div
+        ref={containerRef}
+        className="relative w-full bg-slate-100 rounded-lg overflow-hidden border-2 border-slate-300"
+        style={{ aspectRatio: "16/10" }}
+        onClick={() => setSelectedId(null)}
+      >
+        {backgroundImage && (
+          <img src={backgroundImage} alt="Planimetria" className="absolute inset-0 w-full h-full object-contain opacity-50" />
+        )}
+        {!backgroundImage && (
+          <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-sm">
+            Carica una planimetria come sfondo
           </div>
-        </div>
-      </NeumorphicCard>
+        )}
+        {areas.map((area) => (
+          <StorageAreaBox
+            key={area.id}
+            area={area}
+            isSelected={selectedId === area.id}
+            onSelect={setSelectedId}
+            onUpdate={updateArea}
+            onDelete={deleteArea}
+            containerRef={containerRef}
+          />
+        ))}
+      </div>
 
-      {/* Canvas */}
-      <NeumorphicCard className="p-2">
-        <div
-          ref={canvasRef}
-          className="relative w-full bg-slate-100 rounded-xl overflow-hidden select-none"
-          style={{
-            paddingBottom: '60%',
-            backgroundImage: bgImage ? `url(${bgImage})` : 'none',
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-          }}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleMouseUp}
-        >
-          {!bgImage && areas.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center text-slate-400 text-sm">
-              Carica una piantina o aggiungi aree di stoccaggio
-            </div>
-          )}
-
-          {areas.map((area, idx) => (
-            <div
-              key={area.id}
-              className="absolute border-2 rounded-lg flex items-center justify-center cursor-move group"
-              style={{
-                left: `${area.x}%`,
-                top: `${area.y}%`,
-                width: `${area.width}%`,
-                height: `${area.height}%`,
-                borderColor: area.colore,
-                backgroundColor: `${area.colore}33`
-              }}
-              onMouseDown={(e) => handleMouseDown(e, idx, 'move')}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                setDraggingIdx(idx);
-              }}
-            >
-              <span
-                className="text-xs font-bold px-1 truncate max-w-full text-center"
-                style={{ color: area.colore }}
-              >
-                {area.nome}
-              </span>
-
-              {/* Resize handle */}
-              <div
-                className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ backgroundColor: area.colore, borderRadius: '2px 0 6px 0' }}
-                onMouseDown={(e) => handleMouseDown(e, idx, 'resize')}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setResizingIdx(idx);
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      </NeumorphicCard>
-
-      {/* Area list for editing names */}
-      {areas.length > 0 && (
-        <NeumorphicCard className="p-4">
-          <h3 className="font-bold text-slate-700 text-sm mb-3">Aree di Stoccaggio ({areas.length})</h3>
-          <div className="space-y-2">
-            {areas.map((area, idx) => (
-              <div key={area.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
-                <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: area.colore }} />
-                {editingName === idx ? (
-                  <input
-                    autoFocus
-                    value={area.nome}
-                    onChange={(e) => updateAreaName(idx, e.target.value)}
-                    onBlur={() => setEditingName(null)}
-                    onKeyDown={(e) => e.key === 'Enter' && setEditingName(null)}
-                    className="flex-1 px-3 py-1 rounded-lg border border-slate-300 text-sm outline-none"
-                  />
-                ) : (
-                  <span
-                    className="flex-1 text-sm font-medium text-slate-700 cursor-pointer hover:text-blue-600"
-                    onClick={() => setEditingName(idx)}
-                  >
-                    {area.nome}
-                  </span>
-                )}
-                <select
-                  value={area.colore}
-                  onChange={(e) => {
-                    const updated = [...areas];
-                    updated[idx] = { ...updated[idx], colore: e.target.value };
-                    setAreas(updated);
-                  }}
-                  className="text-xs bg-slate-100 rounded-lg px-2 py-1 border-none outline-none"
-                >
-                  {COLORS.map(c => (
-                    <option key={c} value={c}>{c === '#3b82f6' ? 'Blu' : c === '#10b981' ? 'Verde' : c === '#f59e0b' ? 'Giallo' : c === '#ef4444' ? 'Rosso' : c === '#8b5cf6' ? 'Viola' : c === '#ec4899' ? 'Rosa' : c === '#06b6d4' ? 'Ciano' : c === '#84cc16' ? 'Lime' : c === '#f97316' ? 'Arancio' : 'Indaco'}</option>
-                  ))}
-                </select>
+      {selectedArea && (
+        <div className="p-3 bg-slate-50 rounded-lg border space-y-3">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-slate-600 w-16">Nome:</label>
+            <Input
+              value={editingName}
+              onChange={(e) => setEditingName(e.target.value)}
+              onBlur={handleNameSave}
+              onKeyDown={(e) => e.key === "Enter" && handleNameSave()}
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-slate-600 w-16">Colore:</label>
+            <div className="flex gap-1">
+              {COLORS.map((c) => (
                 <button
-                  onClick={() => removeArea(idx)}
-                  className="p-1.5 rounded-lg hover:bg-red-100 text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+                  key={c}
+                  onClick={() => handleColorChange(c)}
+                  className={`w-6 h-6 rounded-full border-2 ${selectedArea.colore === c ? "border-slate-800 scale-110" : "border-transparent"}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
           </div>
-        </NeumorphicCard>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-slate-600 w-16">Rotazione:</label>
+            <Input
+              type="number"
+              value={Math.round(selectedArea.rotation || 0)}
+              onChange={(e) => handleRotationInput(e.target.value)}
+              className="h-8 text-sm w-24"
+              min={-360}
+              max={360}
+            />
+            <span className="text-xs text-slate-500">gradi</span>
+            <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => updateArea({ ...selectedArea, rotation: 0 })}>
+              Reset
+            </Button>
+          </div>
+          <div className="text-xs text-slate-400">
+            Trascina per spostare • 8 maniglie per ridimensionare • icona viola per ruotare
+          </div>
+        </div>
       )}
     </div>
   );
