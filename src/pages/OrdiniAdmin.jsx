@@ -818,7 +818,7 @@ Sa Pizzedda`,
         {/* Ordini Suggeriti Tab */}
         {activeTab === 'suggeriti' &&
         <div className="space-y-6">
-            {ordersNeeded.length === 0 ?
+            {aggregatedOrdersNeeded.length === 0 ?
           <NeumorphicCard className="p-12 text-center">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-slate-800 mb-2">Nessun ordine necessario</h3>
