@@ -680,7 +680,9 @@ export default function MateriePrime() {
           </div>
         </NeumorphicCard>
 
-        {activeTab === 'nomi_interni' && <NomiInterniTab products={products} stores={stores} />}
+        {activeTab === 'nomi_interni' && (
+          <NomiInterniTab products={products} stores={stores} nomiInterniUnici={nomiInterniUnici} />
+        )}
 
         {activeTab === 'ricette' && <RicetteContent />}
         {activeTab === 'fornitori' && <FornitoriContent />}
