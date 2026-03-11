@@ -1358,19 +1358,11 @@ Sa Pizzedda`,
                         const prodottiNormali = [];
 
                         ordersForStore.forEach((order) => {
-                          const hasPendingOrder = ordiniInviati.some((o) =>
-                            o.store_id === storeId &&
-                            o.fornitore === fornitore &&
-                            o.prodotti.some((p) => p.prodotto_id === order.product.id && p.quantita_ordinata > 0)
-                          );
-
+                          const pIds = order.merged_product_ids || [order.product.id];
+                          const hasPendingOrder = ordiniInviati.some((o) => o.store_id === storeId && o.fornitore === fornitore && o.prodotti.some((p) => pIds.includes(p.prodotto_id) && p.quantita_ordinata > 0));
                           const hasArrivedToday = ordiniCompletati.some((o) => {
-                            const completedToday = o.data_completamento &&
-                              new Date(o.data_completamento).toDateString() === new Date().toDateString();
-                            return completedToday &&
-                              o.store_id === storeId &&
-                              o.fornitore === fornitore &&
-                              o.prodotti.some((p) => p.prodotto_id === order.product.id && p.quantita_ordinata > 0);
+                            const ct = o.data_completamento && new Date(o.data_completamento).toDateString() === new Date().toDateString();
+                            return ct && o.store_id === storeId && o.fornitore === fornitore && o.prodotti.some((p) => pIds.includes(p.prodotto_id) && p.quantita_ordinata > 0);
                           });
 
                           if (hasArrivedToday) {
