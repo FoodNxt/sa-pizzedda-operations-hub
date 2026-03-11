@@ -373,57 +373,51 @@ export default function OrdiniAdmin() {
     return orders;
   }, [inventory, inventoryCantina, products, stores, ricette]);
 
+  // Aggregate by nome_interno to merge duplicates (e.g. same product with different supplier names)
+  const aggregatedOrdersNeeded = React.useMemo(() => {
+    const map = {};
+    ordersNeeded.forEach((order) => {
+      const nomeInterno = order.product?.nome_interno || order.nome_prodotto;
+      const key = `${order.store_id}-${order.fornitore}-${nomeInterno}`;
+      if (!map[key]) {
+        map[key] = { ...order, nome_prodotto: nomeInterno, merged_product_ids: [order.product.id] };
+      } else {
+        const e = map[key];
+        e.quantita_rilevata = (e.quantita_rilevata || 0) + (order.quantita_rilevata || 0);
+        e.quantita_aggregata = (e.quantita_aggregata || 0) + (order.quantita_aggregata || 0);
+        e.quantita_ordine = Math.max(e.quantita_ordine || 0, order.quantita_ordine || 0);
+        e.merged_product_ids.push(order.product.id);
+        if ((order.product.prezzo_unitario || 0) > (e.product.prezzo_unitario || 0)) e.product = order.product;
+      }
+    });
+    return Object.values(map);
+  }, [ordersNeeded]);
+
   // Group orders by store and supplier
   const ordersByStoreAndSupplier = React.useMemo(() => {
     const grouped = {};
-
-    ordersNeeded.forEach((order) => {
+    aggregatedOrdersNeeded.forEach((order) => {
       const storeKey = order.store_id;
       const supplierKey = order.fornitore;
-
-      if (!grouped[storeKey]) {
-        grouped[storeKey] = {
-          store: order.store,
-          suppliers: {}
-        };
-      }
-
-      if (!grouped[storeKey].suppliers[supplierKey]) {
-        grouped[storeKey].suppliers[supplierKey] = [];
-      }
-
+      if (!grouped[storeKey]) grouped[storeKey] = { store: order.store, suppliers: {} };
+      if (!grouped[storeKey].suppliers[supplierKey]) grouped[storeKey].suppliers[supplierKey] = [];
       grouped[storeKey].suppliers[supplierKey].push(order);
     });
-
     return grouped;
-  }, [ordersNeeded]);
+  }, [aggregatedOrdersNeeded]);
 
   // Group orders by supplier (for per_fornitore view)
   const ordersBySupplier = React.useMemo(() => {
     const grouped = {};
-
-    ordersNeeded.forEach((order) => {
+    aggregatedOrdersNeeded.forEach((order) => {
       const supplierKey = order.fornitore;
-
-      if (!grouped[supplierKey]) {
-        grouped[supplierKey] = {
-          stores: {}
-        };
-      }
-
+      if (!grouped[supplierKey]) grouped[supplierKey] = { stores: {} };
       const storeKey = order.store_id;
-      if (!grouped[supplierKey].stores[storeKey]) {
-        grouped[supplierKey].stores[storeKey] = {
-          store: order.store,
-          orders: []
-        };
-      }
-
+      if (!grouped[supplierKey].stores[storeKey]) grouped[supplierKey].stores[storeKey] = { store: order.store, orders: [] };
       grouped[supplierKey].stores[storeKey].orders.push(order);
     });
-
     return grouped;
-  }, [ordersNeeded]);
+  }, [aggregatedOrdersNeeded]);
 
   const getFornitoreByName = (name) => {
     return fornitori.find((f) =>
