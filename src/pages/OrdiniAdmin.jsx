@@ -537,12 +537,12 @@ export default function OrdiniAdmin() {
 
     // Filter out products that already have a pending order OR arrived today OR are inactive
     const prodottiSenzaOrdineInCorso = orders.filter((order) => {
-      // Escludi prodotti non attivi
       if (order.product.attivo === false) return false;
+      const productIds = order.merged_product_ids || [order.product.id];
 
       const hasPendingOrder = ordiniInviati.some((o) =>
       o.store_id === storeId &&
-      o.prodotti.some((p) => p.prodotto_id === order.product.id)
+      o.prodotti.some((p) => productIds.includes(p.prodotto_id))
       );
 
       const hasArrivedToday = ordiniCompletati.some((o) => {
@@ -550,7 +550,7 @@ export default function OrdiniAdmin() {
         new Date(o.data_completamento).toDateString() === new Date().toDateString();
         return completedToday &&
         o.store_id === storeId &&
-        o.prodotti.some((p) => p.prodotto_id === order.product.id);
+        o.prodotti.some((p) => productIds.includes(p.prodotto_id));
       });
 
       return !hasPendingOrder && !hasArrivedToday;
