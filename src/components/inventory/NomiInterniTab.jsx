@@ -1,18 +1,14 @@
 import React from "react";
-import { Trash2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import NomeInternoStorageAssignment from "./NomeInternoStorageAssignment";
 
-export default function NomiInterniTab({ products, stores }) {
+export default function NomiInterniTab({ products, stores, nomiInterniUnici }) {
   const queryClient = useQueryClient();
 
-  const nomiInterniUnici = [
-    ...new Set(products.map(p => p.nome_interno).filter(Boolean))
-  ].sort((a, b) => a.localeCompare(b, 'it'));
-
-  // Build stats
+  // Build stats for all nomi interni
   const nomiInterniStats = {};
   nomiInterniUnici.forEach(nome => {
     nomiInterniStats[nome] = { count: 0, inUso: false, products: [] };
@@ -33,7 +29,9 @@ export default function NomiInterniTab({ products, stores }) {
 
   return (
     <NeumorphicCard className="p-6">
-      <h2 className="text-xl font-bold text-slate-800 mb-4">📋 Nomi Interni - Gestione</h2>
+      <h2 className="text-xl font-bold text-slate-800 mb-4">
+        📋 Nomi Interni - Gestione
+      </h2>
       <p className="text-sm text-slate-600 mb-6">
         Elenco di tutti i nomi interni utilizzati nelle materie prime
       </p>
@@ -53,11 +51,13 @@ export default function NomiInterniTab({ products, stores }) {
               <tr key={nomeInterno} className="border-b border-slate-200 hover:bg-slate-50">
                 <td className="p-3">
                   <p className="font-medium text-slate-800">{nomeInterno}</p>
-                  <NomeInternoStorageAssignment
-                    nomeInterno={nomeInterno}
-                    products={stats.products}
-                    stores={stores}
-                  />
+                  {stats.count > 0 && (
+                    <NomeInternoStorageAssignment
+                      nomeInterno={nomeInterno}
+                      products={stats.products}
+                      stores={stores}
+                    />
+                  )}
                 </td>
                 <td className="p-3 text-center">
                   {stats.count > 0 ? (
