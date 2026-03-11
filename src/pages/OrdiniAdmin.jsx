@@ -558,7 +558,7 @@ export default function OrdiniAdmin() {
 
     const prodotti = prodottiSenzaOrdineInCorso.map((order) => ({
       prodotto_id: order.product.id,
-      nome_prodotto: order.nome_prodotto,
+      nome_prodotto: order.product.nome_interno || order.nome_prodotto,
       quantita_ordinata: order.quantita_ordine,
       quantita_ricevuta: 0,
       unita_misura: order.unita_misura,
