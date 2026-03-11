@@ -1,79 +1,120 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MapPin, Plus, Upload, Save, Trash2, X, GripVertical, Loader2 } from "lucide-react";
-import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
-import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import ProtectedPage from "../components/ProtectedPage";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Upload, Save, Loader2, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import StorageAreaEditor from "../components/inventory/StorageAreaEditor";
 
 export default function PosizioniProdotti() {
-  const [selectedStoreId, setSelectedStoreId] = useState(null);
   const queryClient = useQueryClient();
+  const [selectedStoreId, setSelectedStoreId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [localAreas, setLocalAreas] = useState([]);
+  const [localBg, setLocalBg] = useState("");
 
   const { data: stores = [] } = useQuery({
-    queryKey: ['stores'],
+    queryKey: ["stores"],
     queryFn: () => base44.entities.Store.list(),
-    staleTime: 5 * 60 * 1000
   });
 
-  const { data: mappe = [], isLoading: loadingMappe } = useQuery({
-    queryKey: ['mappe-locali'],
+  const { data: mappe = [], isLoading } = useQuery({
+    queryKey: ["mappe-locali"],
     queryFn: () => base44.entities.MappaLocale.list(),
-    staleTime: 2 * 60 * 1000
   });
 
-  const selectedStore = stores.find(s => s.id === selectedStoreId);
-  const selectedMappa = mappe.find(m => m.store_id === selectedStoreId);
+  const currentMappa = mappe.find((m) => m.store_id === selectedStoreId);
+
+  const handleStoreChange = (storeId) => {
+    setSelectedStoreId(storeId);
+    const mappa = mappe.find((m) => m.store_id === storeId);
+    setLocalAreas(mappa?.storage_areas || []);
+    setLocalBg(mappa?.background_image || "");
+  };
+
+  const handleUploadBg = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    setLocalBg(file_url);
+  };
+
+  const handleSave = async () => {
+    if (!selectedStoreId) return;
+    setSaving(true);
+    const store = stores.find((s) => s.id === selectedStoreId);
+    const data = {
+      store_id: selectedStoreId,
+      store_name: store?.name || "",
+      background_image: localBg,
+      storage_areas: localAreas,
+    };
+    if (currentMappa) {
+      await base44.entities.MappaLocale.update(currentMappa.id, data);
+    } else {
+      await base44.entities.MappaLocale.create(data);
+    }
+    queryClient.invalidateQueries({ queryKey: ["mappe-locali"] });
+    setSaving(false);
+  };
 
   return (
-    <ProtectedPage pageName="PosizioniProdotti">
-      <div className="max-w-6xl mx-auto space-y-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl">
-            <MapPin className="w-7 h-7 text-white" />
-          </div>
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          <Link to={createPageUrl("Inventory")}>
+            <Button variant="ghost" size="icon"><ArrowLeft className="w-5 h-5" /></Button>
+          </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Posizione Prodotti</h1>
-            <p className="text-sm text-slate-500">Crea piantine dei locali e posiziona aree di stoccaggio</p>
+            <h1 className="text-2xl font-bold text-slate-800">📍 Posizione Prodotti</h1>
+            <p className="text-sm text-slate-500">Gestisci le aree di stoccaggio sulla planimetria</p>
           </div>
         </div>
 
-        {/* Store selector */}
-        <NeumorphicCard className="p-4">
-          <label className="text-sm font-medium text-slate-700 mb-2 block">Seleziona Locale</label>
-          <div className="flex flex-wrap gap-2">
-            {stores.map(store => (
-              <button
-                key={store.id}
-                onClick={() => setSelectedStoreId(store.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  selectedStoreId === store.id
-                    ? 'bg-emerald-500 text-white shadow-lg'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {store.name}
-              </button>
-            ))}
+        <div className="bg-white rounded-xl border p-4 space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={selectedStoreId} onValueChange={handleStoreChange}>
+              <SelectTrigger className="w-60">
+                <SelectValue placeholder="Seleziona locale..." />
+              </SelectTrigger>
+              <SelectContent>
+                {stores.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {selectedStoreId && (
+              <>
+                <label className="cursor-pointer">
+                  <input type="file" accept="image/*" className="hidden" onChange={handleUploadBg} />
+                  <Button variant="outline" size="sm" asChild>
+                    <span className="gap-1"><Upload className="w-4 h-4" /> Carica planimetria</span>
+                  </Button>
+                </label>
+                <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Salva
+                </Button>
+              </>
+            )}
           </div>
-        </NeumorphicCard>
 
-        {selectedStoreId && (
-          <StorageAreaEditor
-            store={selectedStore}
-            mappa={selectedMappa}
-            onSaved={() => queryClient.invalidateQueries({ queryKey: ['mappe-locali'] })}
-          />
-        )}
-
-        {!selectedStoreId && (
-          <NeumorphicCard className="p-12 text-center">
-            <MapPin className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-500">Seleziona un locale per gestire le aree di stoccaggio</p>
-          </NeumorphicCard>
-        )}
+          {selectedStoreId ? (
+            <StorageAreaEditor
+              areas={localAreas}
+              onChange={setLocalAreas}
+              backgroundImage={localBg}
+            />
+          ) : (
+            <div className="h-64 flex items-center justify-center text-slate-400">
+              Seleziona un locale per iniziare
+            </div>
+          )}
+        </div>
       </div>
-    </ProtectedPage>
+    </div>
   );
 }
