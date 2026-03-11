@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { Thermometer, Droplets, Cloud, Loader2, AlertTriangle, RefreshCw, Info } from 'lucide-react';
 import { formatCurrency } from '../components/utils/formatCurrency';
+import WeatherAuditTable from '../components/correlation/WeatherAuditTable';
 
 // Open-Meteo archive API ha un ritardo di ~5 giorni
 const MAX_END_DATE = format(subDays(new Date(), 5), 'yyyy-MM-dd');
@@ -134,7 +135,7 @@ export default function Correlazione() {
         `https://archive-api.open-meteo.com/v1/archive` +
         `?latitude=${lat}&longitude=${lon}` +
         `&start_date=${dataInizio}&end_date=${fineRichiesta}` +
-        `&daily=temperature_2m_mean,precipitation_sum,weather_code` +
+        `&daily=temperature_2m_mean,temperature_2m_min,temperature_2m_max,precipitation_sum,weather_code` +
         `&timezone=Europe%2FRome`;
       const res = await fetch(url);
       if (!res.ok) {
@@ -149,6 +150,8 @@ export default function Correlazione() {
       data.daily.time.forEach((data_giorno, i) => {
         mappa[data_giorno] = {
           temp_c: data.daily.temperature_2m_mean[i],
+          temp_min: data.daily.temperature_2m_min?.[i] ?? null,
+          temp_max: data.daily.temperature_2m_max?.[i] ?? null,
           precip_mm: data.daily.precipitation_sum[i] ?? 0,
           codice_meteo: data.daily.weather_code[i] ?? 0
         };
@@ -172,6 +175,8 @@ export default function Correlazione() {
           data,
           ricavi: ricaviPerData[data],
           temp_c: m.temp_c,
+          temp_min: m.temp_min,
+          temp_max: m.temp_max,
           precip_mm: m.precip_mm,
           codice_meteo: m.codice_meteo,
           categoria: `${WMO_EMOJI(m.codice_meteo)} ${WMO_CATEGORIA(m.codice_meteo)}`
@@ -200,8 +205,10 @@ export default function Correlazione() {
       }))
       .sort((a, b) => b.media_ricavi - a.media_ricavi);
 
-    const tempMin = Math.min(...temperature);
-    const tempMax = Math.max(...temperature);
+    const allTempMin = accoppiati.map(p => p.temp_min).filter(v => v !== null && v !== undefined);
+    const allTempMax = accoppiati.map(p => p.temp_max).filter(v => v !== null && v !== undefined);
+    const tempMin = allTempMin.length > 0 ? Math.min(...allTempMin) : Math.min(...temperature);
+    const tempMax = allTempMax.length > 0 ? Math.max(...allTempMax) : Math.max(...temperature);
     const precipTotale = precipitazioni.reduce((a, b) => a + b, 0);
 
     return { accoppiati, rTemp, rPrecip, datiCondizione, n: accoppiati.length, tempMin, tempMax, precipTotale };
@@ -579,6 +586,12 @@ export default function Correlazione() {
                 )}
 
                 {/* Legenda metodologia */}
+                {/* Daily Audit Table */}
+                <WeatherAuditTable
+                  accoppiati={datiCorrelazione.accoppiati}
+                  posizioneLocale={posizioneLocale}
+                />
+
                 <NeumorphicCard className="p-4" style={{ background: '#f8faff' }}>
                   <div className="flex items-start gap-2">
                     <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
