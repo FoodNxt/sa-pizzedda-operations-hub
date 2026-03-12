@@ -229,14 +229,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    const pdfBytes = doc.output('arraybuffer');
+    const pdfBase64 = doc.output('datauristring').split(',')[1];
 
-    return new Response(pdfBytes, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename=posizioni-${(storeName || storeId).replace(/\s/g, '_')}.pdf`
-      }
+    return Response.json({
+      success: true,
+      pdf: pdfBase64,
+      filename: `posizioni-${(storeName || storeId).replace(/\s/g, '_')}.pdf`
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
