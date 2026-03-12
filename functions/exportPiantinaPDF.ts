@@ -281,21 +281,21 @@ Deno.serve(async (req) => {
       }
 
       doc.setFillColor(200, 200, 200);
-      doc.roundedRect(margin, y - 4, contentW, 7, 1, 1, 'F');
+      doc.roundedRect(margin, y, contentW, 7, 1, 1, 'F');
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(80, 80, 80);
-      doc.text(`Senza Area Assegnata (${unmapped.length})`, margin + 3, y);
+      doc.text(`Senza Area Assegnata (${unmapped.length})`, margin + 3, y + 5);
       doc.setTextColor(0, 0, 0);
-      y += 7;
+      y += 10;
 
       doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
       doc.setFillColor(240, 240, 240);
-      doc.rect(margin, y, contentW, 5, 'F');
-      doc.text('Nome Interno', colNome, y + 3.5);
-      doc.text('Categoria', colCat, y + 3.5);
-      y += 6;
+      doc.rect(margin, y, contentW, 6, 'F');
+      doc.text('Nome Interno', colNome, y + 4);
+      doc.text('Categoria', colCat, y + 4);
+      y += 8;
 
       doc.setFont('helvetica', 'normal');
       const sortedU = unmapped.sort((a, b) =>
@@ -307,12 +307,13 @@ Deno.serve(async (req) => {
           doc.addPage();
           y = 20;
         }
+        const rowY = y;
         if (i % 2 === 1) {
           doc.setFillColor(248, 250, 252);
-          doc.rect(margin, y - 3, contentW, 5, 'F');
+          doc.rect(margin, rowY - 1, contentW, 5, 'F');
         }
-        doc.text((sortedU[i].nome_interno || '-').substring(0, 60), colNome, y);
-        doc.text((sortedU[i].categoria || '-').substring(0, 30), colCat, y);
+        doc.text((sortedU[i].nome_interno || '-').substring(0, 60), colNome, rowY + 2.5);
+        doc.text((sortedU[i].categoria || '-').substring(0, 30), colCat, rowY + 2.5);
         y += 5;
       }
     }
