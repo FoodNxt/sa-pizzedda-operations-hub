@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
             const smsBody = `13505360969*${user.codice_fiscale}*${dateFormatted}`;
 
             // Twilio E.164 numbers (Italian prefix +39)
-            const fromNumber = '+15014437947';
+            const fromNumber = '+393514031612';
             const toNumber = '+393399942256';
 
             // Send via Twilio REST API (no npm package needed - use native fetch)
