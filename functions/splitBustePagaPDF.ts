@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import { PDFDocument } from 'npm:pdf-lib@1.17.1';
 
 Deno.serve(async (req) => {
