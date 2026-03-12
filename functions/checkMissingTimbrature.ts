@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 // Questa funzione deve essere schedulata per essere eseguita ogni 15 minuti
 // tramite un sistema di cron job esterno (es: cron-job.org, EasyCron, etc.)

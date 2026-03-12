@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import { format, parseISO, startOfDay, addDays } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
