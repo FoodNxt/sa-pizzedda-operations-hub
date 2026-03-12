@@ -146,6 +146,7 @@ import Payroll from './pages/Payroll';
 import PianoQuarter from './pages/PianoQuarter';
 import Planday from './pages/Planday';
 import PlandayStoreManager from './pages/PlandayStoreManager';
+import PosizioniProdotti from './pages/PosizioniProdotti';
 import Precotture from './pages/Precotture';
 import PrecottureAdmin from './pages/PrecottureAdmin';
 import Preparazioni from './pages/Preparazioni';
@@ -184,7 +185,6 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
-import PosizioniProdotti from './pages/PosizioniProdotti';
 import __Layout from './Layout.jsx';
 
 
@@ -288,6 +288,7 @@ export const PAGES = {
     "PianoQuarter": PianoQuarter,
     "Planday": Planday,
     "PlandayStoreManager": PlandayStoreManager,
+    "PosizioniProdotti": PosizioniProdotti,
     "Precotture": Precotture,
     "PrecottureAdmin": PrecottureAdmin,
     "Preparazioni": Preparazioni,
@@ -326,7 +327,6 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
-    "PosizioniProdotti": PosizioniProdotti,
 }
 
 export const pagesConfig = {
