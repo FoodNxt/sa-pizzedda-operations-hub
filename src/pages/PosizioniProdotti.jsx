@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Save, Loader2, ArrowLeft, FileDown } from "lucide-react";
+import { Upload, Save, Loader2, ArrowLeft, FileDown, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import StorageAreaEditor from "../components/inventory/StorageAreaEditor";
