@@ -99,6 +99,31 @@ export default function PosizioniProdotti() {
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Salva
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={exporting}
+                  className="gap-1"
+                  onClick={async () => {
+                    setExporting(true);
+                    const store = stores.find((s) => s.id === selectedStoreId);
+                    const response = await base44.functions.invoke("exportPiantinaPDF", {
+                      storeId: selectedStoreId,
+                      storeName: store?.name || "",
+                    });
+                    const blob = new Blob([response.data], { type: "application/pdf" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `posizioni-${(store?.name || "locale").replace(/\s/g, "_")}.pdf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setExporting(false);
+                  }}
+                >
+                  {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                  Scarica PDF
+                </Button>
               </>
             )}
           </div>
