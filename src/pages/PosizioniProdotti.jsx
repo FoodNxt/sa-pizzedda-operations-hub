@@ -110,14 +110,22 @@ export default function PosizioniProdotti() {
                     const response = await base44.functions.invoke("exportPiantinaPDF", {
                       storeId: selectedStoreId,
                       storeName: store?.name || "",
-                    }, { responseType: "blob" });
-                    const blob = new Blob([response.data], { type: "application/pdf" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `posizioni-${(store?.name || "locale").replace(/\s/g, "_")}.pdf`;
-                    a.click();
-                    URL.revokeObjectURL(url);
+                    });
+                    if (response.data.success) {
+                      const byteCharacters = atob(response.data.pdf);
+                      const byteNumbers = new Array(byteCharacters.length);
+                      for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                      }
+                      const byteArray = new Uint8Array(byteNumbers);
+                      const blob = new Blob([byteArray], { type: "application/pdf" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = response.data.filename;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }
                     setExporting(false);
                   }}
                 >
