@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { storeId, storeName } = await req.json();
+    const { storeId, storeName, format } = await req.json();
     if (!storeId) {
       return Response.json({ error: 'storeId richiesto' }, { status: 400 });
     }
@@ -30,11 +30,9 @@ Deno.serve(async (req) => {
     const unmapped = [];
 
     prodotti.forEach(p => {
-      // Check if product is assigned to this store
       if (p.assigned_stores && p.assigned_stores.length > 0 && !p.assigned_stores.includes(storeId)) {
         return;
       }
-
       const areaId = p.storage_area_per_store?.[storeId];
       if (areaId && areaProducts[areaId]) {
         areaProducts[areaId].products.push(p);
@@ -43,7 +41,40 @@ Deno.serve(async (req) => {
       }
     });
 
-    // Create PDF
+    const sortedAreas = Object.entries(areaProducts)
+      .filter(([_, data]) => data.products.length > 0)
+      .sort(([, a], [, b]) => a.nome.localeCompare(b.nome, 'it'));
+
+    const safeName = (storeName || storeId).replace(/\s/g, '_');
+
+    // ======================== CSV FORMAT ========================
+    if (format === 'csv') {
+      let csv = 'Area;Nome Interno;Categoria\n';
+      for (const [, data] of sortedAreas) {
+        const sorted = data.products.sort((a, b) =>
+          (a.nome_interno || '').localeCompare(b.nome_interno || '', 'it')
+        );
+        for (const p of sorted) {
+          csv += `"${data.nome}";"${p.nome_interno || '-'}";"${p.categoria || '-'}"\n`;
+        }
+      }
+      if (unmapped.length > 0) {
+        const sortedU = unmapped.sort((a, b) =>
+          (a.nome_interno || '').localeCompare(b.nome_interno || '', 'it')
+        );
+        for (const p of sortedU) {
+          csv += `"Senza Area";"${p.nome_interno || '-'}";"${p.categoria || '-'}"\n`;
+        }
+      }
+      return Response.json({
+        success: true,
+        data: csv,
+        filename: `posizioni-${safeName}.csv`,
+        mimeType: 'text/csv'
+      });
+    }
+
+    // ======================== PDF FORMAT ========================
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = 210;
     const margin = 15;
@@ -60,10 +91,88 @@ Deno.serve(async (req) => {
     doc.text(`Generato il ${new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, margin, 27);
     doc.setTextColor(0, 0, 0);
 
-    // Draw map representation (simplified boxes)
     let y = 35;
-    
-    if (areas.length > 0) {
+
+    // ---- Embed background planimetria image ----
+    if (mappa?.background_image) {
+      try {
+        const imgResp = await fetch(mappa.background_image);
+        if (imgResp.ok) {
+          const imgBuf = await imgResp.arrayBuffer();
+          const imgBytes = new Uint8Array(imgBuf);
+          
+          // Detect format from URL or content-type
+          const ct = imgResp.headers.get('content-type') || '';
+          let imgFormat = 'JPEG';
+          if (ct.includes('png') || mappa.background_image.toLowerCase().includes('.png')) {
+            imgFormat = 'PNG';
+          }
+
+          // Convert to base64
+          let binary = '';
+          for (let i = 0; i < imgBytes.length; i++) {
+            binary += String.fromCharCode(imgBytes[i]);
+          }
+          const imgBase64 = btoa(binary);
+          const dataUri = `data:${ct || 'image/jpeg'};base64,${imgBase64}`;
+
+          // Calculate dimensions to fit the page width while maintaining aspect ratio
+          const mapW = contentW;
+          const mapH = 90; // max height for the map
+
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Planimetria', margin, y);
+          y += 5;
+
+          // Draw the background image
+          doc.addImage(dataUri, imgFormat, margin, y, mapW, mapH);
+
+          // Overlay storage areas on top of the image
+          if (areas.length > 0) {
+            areas.forEach(area => {
+              const ax = margin + (area.x / 100) * mapW;
+              const ay = y + (area.y / 100) * mapH;
+              const aw = (area.width / 100) * mapW;
+              const ah = (area.height / 100) * mapH;
+
+              const hex = (area.colore || '#3B82F6').replace('#', '');
+              const r = parseInt(hex.substring(0, 2), 16);
+              const g = parseInt(hex.substring(2, 4), 16);
+              const b = parseInt(hex.substring(4, 6), 16);
+
+              // Semi-transparent fill
+              doc.setGState(new doc.GState({ opacity: 0.25 }));
+              doc.setFillColor(r, g, b);
+              doc.rect(ax, ay, aw, ah, 'F');
+              
+              // Border
+              doc.setGState(new doc.GState({ opacity: 0.8 }));
+              doc.setDrawColor(r, g, b);
+              doc.setLineWidth(0.5);
+              doc.rect(ax, ay, aw, ah, 'S');
+
+              // Area label
+              doc.setGState(new doc.GState({ opacity: 1 }));
+              doc.setFontSize(6);
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(r, g, b);
+              doc.text(area.nome || 'Area', ax + aw / 2, ay + ah / 2 + 1, { align: 'center' });
+            });
+          }
+
+          doc.setGState(new doc.GState({ opacity: 1 }));
+          doc.setTextColor(0, 0, 0);
+          y += mapH + 8;
+        }
+      } catch (imgErr) {
+        console.error('Error loading planimetria image:', imgErr.message);
+        // Fall through to draw areas without background
+      }
+    }
+
+    // If no background image was drawn but areas exist, draw simplified boxes
+    if (!mappa?.background_image && areas.length > 0) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text('Mappa Aree di Stoccaggio', margin, y);
@@ -71,56 +180,47 @@ Deno.serve(async (req) => {
 
       const mapH = 80;
       const mapW = contentW;
-      
-      // Background
       doc.setFillColor(245, 245, 245);
       doc.setDrawColor(200, 200, 200);
       doc.roundedRect(margin, y, mapW, mapH, 2, 2, 'FD');
 
-      // Draw each area on the map
       areas.forEach(area => {
         const ax = margin + (area.x / 100) * mapW;
         const ay = y + (area.y / 100) * mapH;
         const aw = (area.width / 100) * mapW;
         const ah = (area.height / 100) * mapH;
 
-        // Parse color
         const hex = (area.colore || '#3B82F6').replace('#', '');
         const r = parseInt(hex.substring(0, 2), 16);
         const g = parseInt(hex.substring(2, 4), 16);
         const b = parseInt(hex.substring(4, 6), 16);
 
-        doc.setFillColor(r, g, b, 0.15);
+        doc.setFillColor(r, g, b);
         doc.setDrawColor(r, g, b);
         doc.setLineWidth(0.5);
         doc.rect(ax, ay, aw, ah, 'FD');
 
-        // Area name
         doc.setFontSize(6);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(r, g, b);
-        const nameX = ax + aw / 2;
-        const nameY = ay + ah / 2 + 1;
-        doc.text(area.nome || 'Area', nameX, nameY, { align: 'center' });
+        doc.setTextColor(255, 255, 255);
+        doc.text(area.nome || 'Area', ax + aw / 2, ay + ah / 2 + 1, { align: 'center' });
       });
 
       doc.setTextColor(0, 0, 0);
       y += mapH + 10;
     }
 
-    // Product list per area
+    // ---- Product list per area (only nome_interno + categoria) ----
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Prodotti per Area', margin, y);
     y += 8;
 
-    const sortedAreas = Object.entries(areaProducts)
-      .filter(([_, data]) => data.products.length > 0)
-      .sort(([, a], [, b]) => a.nome.localeCompare(b.nome, 'it'));
+    const colNome = margin + 2;
+    const colCat = margin + 120;
 
     for (const [areaId, data] of sortedAreas) {
-      // Check page break
-      if (y > 265) {
+      if (y > 260) {
         doc.addPage();
         y = 20;
       }
@@ -136,13 +236,12 @@ Deno.serve(async (req) => {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255);
-      doc.text(`${data.nome} (${data.products.length} prodotti)`, margin + 3, y);
+      doc.text(`${data.nome} (${data.products.length})`, margin + 3, y);
       doc.setTextColor(0, 0, 0);
       y += 7;
 
-      // Sort products by nome_interno then nome_prodotto
-      const sorted = data.products.sort((a, b) => 
-        (a.nome_interno || a.nome_prodotto).localeCompare(b.nome_interno || b.nome_prodotto, 'it')
+      const sorted = data.products.sort((a, b) =>
+        (a.nome_interno || '').localeCompare(b.nome_interno || '', 'it')
       );
 
       // Table header
@@ -150,34 +249,26 @@ Deno.serve(async (req) => {
       doc.setFont('helvetica', 'bold');
       doc.setFillColor(240, 240, 240);
       doc.rect(margin, y, contentW, 5, 'F');
-      doc.text('Nome Interno', margin + 2, y + 3.5);
-      doc.text('Prodotto', margin + 55, y + 3.5);
-      doc.text('Fornitore', margin + 120, y + 3.5);
-      doc.text('Cat.', margin + 160, y + 3.5);
+      doc.text('Nome Interno', colNome, y + 3.5);
+      doc.text('Categoria', colCat, y + 3.5);
       y += 6;
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
-      
-      for (const p of sorted) {
+
+      for (let i = 0; i < sorted.length; i++) {
         if (y > 280) {
           doc.addPage();
           y = 20;
         }
-
-        // Alternate row color
-        if (sorted.indexOf(p) % 2 === 1) {
+        if (i % 2 === 1) {
           doc.setFillColor(248, 250, 252);
           doc.rect(margin, y - 3, contentW, 5, 'F');
         }
-
-        doc.text((p.nome_interno || '-').substring(0, 30), margin + 2, y);
-        doc.text((p.nome_prodotto || '-').substring(0, 35), margin + 55, y);
-        doc.text((p.fornitore || '-').substring(0, 22), margin + 120, y);
-        doc.text((p.categoria || '-').substring(0, 15), margin + 160, y);
+        doc.text((sorted[i].nome_interno || '-').substring(0, 60), colNome, y);
+        doc.text((sorted[i].categoria || '-').substring(0, 30), colCat, y);
         y += 5;
       }
-
       y += 5;
     }
 
@@ -193,7 +284,7 @@ Deno.serve(async (req) => {
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(80, 80, 80);
-      doc.text(`Senza Area Assegnata (${unmapped.length} prodotti)`, margin + 3, y);
+      doc.text(`Senza Area Assegnata (${unmapped.length})`, margin + 3, y);
       doc.setTextColor(0, 0, 0);
       y += 7;
 
@@ -201,30 +292,26 @@ Deno.serve(async (req) => {
       doc.setFont('helvetica', 'bold');
       doc.setFillColor(240, 240, 240);
       doc.rect(margin, y, contentW, 5, 'F');
-      doc.text('Nome Interno', margin + 2, y + 3.5);
-      doc.text('Prodotto', margin + 55, y + 3.5);
-      doc.text('Fornitore', margin + 120, y + 3.5);
-      doc.text('Cat.', margin + 160, y + 3.5);
+      doc.text('Nome Interno', colNome, y + 3.5);
+      doc.text('Categoria', colCat, y + 3.5);
       y += 6;
 
       doc.setFont('helvetica', 'normal');
-      const sortedUnmapped = unmapped.sort((a, b) => 
-        (a.nome_interno || a.nome_prodotto).localeCompare(b.nome_interno || b.nome_prodotto, 'it')
+      const sortedU = unmapped.sort((a, b) =>
+        (a.nome_interno || '').localeCompare(b.nome_interno || '', 'it')
       );
 
-      for (const p of sortedUnmapped) {
+      for (let i = 0; i < sortedU.length; i++) {
         if (y > 280) {
           doc.addPage();
           y = 20;
         }
-        if (sortedUnmapped.indexOf(p) % 2 === 1) {
+        if (i % 2 === 1) {
           doc.setFillColor(248, 250, 252);
           doc.rect(margin, y - 3, contentW, 5, 'F');
         }
-        doc.text((p.nome_interno || '-').substring(0, 30), margin + 2, y);
-        doc.text((p.nome_prodotto || '-').substring(0, 35), margin + 55, y);
-        doc.text((p.fornitore || '-').substring(0, 22), margin + 120, y);
-        doc.text((p.categoria || '-').substring(0, 15), margin + 160, y);
+        doc.text((sortedU[i].nome_interno || '-').substring(0, 60), colNome, y);
+        doc.text((sortedU[i].categoria || '-').substring(0, 30), colCat, y);
         y += 5;
       }
     }
@@ -234,9 +321,10 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       pdf: pdfBase64,
-      filename: `posizioni-${(storeName || storeId).replace(/\s/g, '_')}.pdf`
+      filename: `posizioni-${safeName}.pdf`
     });
   } catch (error) {
+    console.error('Export error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
