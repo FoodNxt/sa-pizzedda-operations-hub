@@ -110,6 +110,7 @@ export default function PosizioniProdotti() {
                     const response = await base44.functions.invoke("exportPiantinaPDF", {
                       storeId: selectedStoreId,
                       storeName: store?.name || "",
+                      format: "pdf",
                     });
                     if (response.data.success) {
                       const byteCharacters = atob(response.data.pdf);
@@ -130,7 +131,35 @@ export default function PosizioniProdotti() {
                   }}
                 >
                   {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-                  Scarica PDF
+                  PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={exporting}
+                  className="gap-1"
+                  onClick={async () => {
+                    setExporting(true);
+                    const store = stores.find((s) => s.id === selectedStoreId);
+                    const response = await base44.functions.invoke("exportPiantinaPDF", {
+                      storeId: selectedStoreId,
+                      storeName: store?.name || "",
+                      format: "csv",
+                    });
+                    if (response.data.success) {
+                      const blob = new Blob([response.data.data], { type: "text/csv;charset=utf-8;" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = response.data.filename;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }
+                    setExporting(false);
+                  }}
+                >
+                  <FileText className="w-4 h-4" />
+                  CSV
                 </Button>
               </>
             )}
