@@ -110,7 +110,7 @@ export default function PosizioniProdotti() {
                     const response = await base44.functions.invoke("exportPiantinaPDF", {
                       storeId: selectedStoreId,
                       storeName: store?.name || "",
-                    });
+                    }, { responseType: "blob" });
                     const blob = new Blob([response.data], { type: "application/pdf" });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
