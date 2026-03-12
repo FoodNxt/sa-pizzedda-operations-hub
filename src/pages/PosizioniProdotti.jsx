@@ -14,6 +14,7 @@ export default function PosizioniProdotti() {
   const [saving, setSaving] = useState(false);
   const [localAreas, setLocalAreas] = useState([]);
   const [localBg, setLocalBg] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   const { data: stores = [] } = useQuery({
     queryKey: ["stores"],
