@@ -1,5 +1,4 @@
-
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import { XMLParser } from 'npm:fast-xml-parser@4.3.4';
 
 Deno.serve(async (req) => {
