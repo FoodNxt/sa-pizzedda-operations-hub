@@ -480,13 +480,18 @@ export default function TrovaInfluencers({ onAddContact }) {
 
                       {/* Tags */}
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          influencer.platform === 'tiktok' ? 'bg-gray-100 text-gray-700' : 'bg-pink-50 text-pink-600'
+                        }`}>
+                          {influencer.platform === 'tiktok' ? '🎵 TikTok' : '📸 Instagram'}
+                        </span>
                         {influencer.niche && (
                           <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full text-xs font-medium">
                             {influencer.niche}
                           </span>
                         )}
                         {influencer.contact_hint && (
-                          <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs">
+                          <span className="px-2 py-0.5 bg-green-50 text-green-600 rounded-full text-xs font-medium">
                             {influencer.contact_hint}
                           </span>
                         )}
