@@ -398,13 +398,23 @@ export default function OverviewContratti() {
   };
 
   const dipendentiSenzaContratto = useMemo(() => {
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+    const uscitePassateIds = new Set(
+      uscite.filter(u => {
+        const dataUscita = new Date(u.data_uscita);
+        dataUscita.setHours(0, 0, 0, 0);
+        return dataUscita <= oggi;
+      }).map(u => u.dipendente_id)
+    );
     const dipendentiConContrattoIds = new Set(dipendentiConContratti.map((d) => d.user_id));
     return users.filter((u) =>
     (u.user_type === 'dipendente' || u.user_type === 'user') &&
     u.status === 'active' &&
-    !dipendentiConContrattoIds.has(u.id)
+    !dipendentiConContrattoIds.has(u.id) &&
+    !uscitePassateIds.has(u.id)
     );
-  }, [users, dipendentiConContratti]);
+  }, [users, dipendentiConContratti, uscite]);
 
   const contrattiAttivi = useMemo(() => {
     const oggi = new Date();
@@ -441,12 +451,25 @@ export default function OverviewContratti() {
     const activeConfig = periodoProvaConfig.find((c) => c.is_active);
     const turniProvaPerMese = activeConfig?.giorni_prova_per_mese || 10;
 
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+
+    // Build a set of user IDs that have a past exit (usciti)
+    const uscitePassateIds = new Set(
+      uscite.filter(u => {
+        const dataUscita = new Date(u.data_uscita);
+        dataUscita.setHours(0, 0, 0, 0);
+        return dataUscita <= oggi;
+      }).map(u => u.dipendente_id)
+    );
+
     const dipendentiConContratto = users.filter((u) => {
       if (u.user_type !== 'dipendente' && u.user_type !== 'user') return false;
       if (!u.data_inizio_contratto) return false;
+      // Exclude employees that have already exited
+      if (uscitePassateIds.has(u.id)) return false;
 
       const dataInizio = new Date(u.data_inizio_contratto);
-      const oggi = new Date();
       return dataInizio <= oggi;
     });
 
@@ -500,7 +523,7 @@ export default function OverviewContratti() {
       dipendenti: inPeriodoProva.sort((a, b) => a.turniRimanenti - b.turniRimanenti),
       turniProvaPerMese
     };
-  }, [users, turni, periodoProvaConfig, contratti]);
+  }, [users, turni, periodoProvaConfig, contratti, uscite]);
 
   const stats = useMemo(() => {
     const totale = dipendentiConContratti.length;
