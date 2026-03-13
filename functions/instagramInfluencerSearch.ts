@@ -1,8 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
-// Usa Instagram Social API (instagram-social) su RapidAPI
-// Endpoint: v1/search-users per cercare utenti, v1/profile per dettagli
-
 Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -11,190 +8,240 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { niches, followerRanges, city } = await req.json();
+    const { platforms, niches, followerRanges, city } = await req.json();
     
     if (!niches || !Array.isArray(niches) || niches.length === 0) {
         return Response.json({ error: 'niches array required' }, { status: 400 });
     }
 
-    const apiKey = Deno.env.get('RAPIDAPI_KEY');
-    if (!apiKey) {
-        return Response.json({ error: 'RAPIDAPI_KEY not configured' }, { status: 500 });
-    }
-
-    const API_HOST = 'instagram-scraper-stable-api.p.rapidapi.com';
+    const selectedPlatforms = platforms || ['instagram'];
+    const cityFilter = city || 'Italia';
     
-    // Test ulteriori endpoint - pattern con nomi dalla documentazione overview
-    const endpointsToTest = [
-        '/search_instagram?query=food+blogger',
-        '/user_data?username=giallozafferano',
-        '/user_about?username=giallozafferano',
-        '/user_similar?username=giallozafferano',
-        '/similar_accounts?username=giallozafferano',
-        '/user_posts?username=giallozafferano',
-        '/user_followers?username=giallozafferano',
-        '/recent_hashtags?hashtag=foodblogger',
-        '/hashtag_posts?hashtag=foodblogger',
-        '/explore',
-    ];
-
-    const debugResults = [];
-    for (const path of endpointsToTest) {
-        try {
-            const url = `https://${API_HOST}${path}`;
-            const resp = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'x-rapidapi-key': apiKey,
-                    'x-rapidapi-host': API_HOST
-                }
-            });
-            const body = await resp.text();
-            debugResults.push({
-                path,
-                status: resp.status,
-                body: body.slice(0, 400)
-            });
-        } catch (e) {
-            debugResults.push({ path, error: e.message });
-        }
+    // Build follower range description
+    let followerDesc = 'qualsiasi numero di follower';
+    if (followerRanges && followerRanges.length > 0) {
+        const rangeDescriptions = followerRanges.map(r => {
+            const [min, max] = r.split('-');
+            if (max === 'inf' || !max) return `più di ${parseInt(min).toLocaleString()}`;
+            return `tra ${parseInt(min).toLocaleString()} e ${parseInt(max).toLocaleString()}`;
+        });
+        followerDesc = rangeDescriptions.join(' oppure ');
     }
-    return Response.json({ debug: true, results: debugResults });
 
-    // Genera keyword di ricerca basate su niches e città
-    const nicheKeywords = {
-        food: ['food blogger', 'food creator', 'ricette', 'foodie italia', 'pizza lover'],
-        lifestyle: ['lifestyle blogger', 'lifestyle italia'],
-        travel: ['travel blogger italia', 'travel creator'],
-        family: ['family blogger', 'mamma blogger'],
-        fitness: ['fitness italia', 'personal trainer'],
-        fashion: ['fashion blogger', 'moda italia'],
-        pizza: ['pizza napoletana', 'pizzaiolo', 'street food italia'],
-        local: ['local guide', 'city blogger']
+    const nicheLabels = {
+        food: 'Food, cucina, ristoranti, ricette',
+        lifestyle: 'Lifestyle, vita quotidiana',
+        travel: 'Viaggi, turismo',
+        family: 'Famiglia, genitori, bambini',
+        fitness: 'Fitness, sport, wellness',
+        fashion: 'Moda, fashion, abbigliamento',
+        pizza: 'Pizza, street food, cibo di strada',
+        local: 'Local guide, city life, eventi locali'
     };
 
-    // Costruisci query di ricerca
-    const searchQueries = [];
-    for (const niche of niches) {
-        const keywords = nicheKeywords[niche] || [niche];
-        for (const kw of keywords.slice(0, 2)) {
-            if (city) {
-                searchQueries.push(`${kw} ${city}`);
-            } else {
-                searchQueries.push(kw);
-            }
-        }
-    }
+    const nicheStr = niches.map(n => nicheLabels[n] || n).join(', ');
+    const platformStr = selectedPlatforms.join(' e ');
 
-    // Limita a max 4 query per non abusare dell'API
-    const queriesToRun = searchQueries.slice(0, 4);
+    // Step 1: Use LLM with web search to discover real influencer usernames
+    const prompt = `Trova esattamente 30 profili REALI e ATTIVI di influencer/creator su ${platformStr} che corrispondono a questi criteri:
 
-    const results = [];
-    const seenUsernames = new Set();
+- Nicchie/categorie: ${nicheStr}
+- Zona geografica: ${cityFilter}
+- Range follower: ${followerDesc}
+- Lingua: italiano o basati in Italia
+- Devono essere account reali, attivi e verificabili
 
-    for (const query of queriesToRun) {
-        if (seenUsernames.size >= 30) break;
+Per OGNI profilo trovato, fornisci:
+- "username": lo username esatto (senza @)
+- "full_name": il nome completo o nome visualizzato
+- "platform": "${selectedPlatforms.length === 1 ? selectedPlatforms[0] : 'instagram o tiktok a seconda della piattaforma'}"
+- "followers_estimate": stima numerica dei follower (es: 50000)
+- "biography": breve descrizione del profilo (1-2 frasi)
+- "niche": la nicchia principale
+- "city": la città se nota, altrimenti "Italia"
+- "verified": true/false se è un account verificato
 
-        try {
-            console.log(`Searching: ${query}`);
-            const searchUrl = `https://${API_HOST}/v1/search-users?query=${encodeURIComponent(query)}`;
-            
-            const searchResponse = await fetch(searchUrl, {
-                method: 'GET',
-                headers: {
-                    'x-rapidapi-key': apiKey,
-                    'x-rapidapi-host': API_HOST
-                }
-            });
+IMPORTANTE: restituisci SOLO username che esistono davvero. Non inventare nomi. Cerca informazioni aggiornate dal web.`;
 
-            if (!searchResponse.ok) {
-                console.error(`Search failed for "${query}": ${searchResponse.status} ${searchResponse.statusText}`);
-                const errorText = await searchResponse.text();
-                console.error(`Response: ${errorText}`);
-                continue;
-            }
-
-            const searchData = await searchResponse.json();
-            console.log(`Search result for "${query}":`, JSON.stringify(searchData).slice(0, 500));
-
-            // L'API potrebbe restituire i dati in vari formati
-            const users = searchData.data?.users || searchData.users || searchData.data || [];
-            
-            if (!Array.isArray(users)) {
-                console.log('Users is not array, raw data:', JSON.stringify(searchData).slice(0, 300));
-                continue;
-            }
-
-            for (const u of users) {
-                if (seenUsernames.size >= 30) break;
-                
-                const username = u.username;
-                if (!username || seenUsernames.has(username)) continue;
-
-                // Prova a ottenere i follower dal risultato di ricerca
-                let followers = u.follower_count || u.followers || u.edge_followed_by?.count || 0;
-                let fullName = u.full_name || username;
-                let biography = u.biography || u.bio || '';
-                let verified = u.is_verified || false;
-                let profilePicUrl = u.profile_pic_url || '';
-
-                // Se non abbiamo i follower dal risultato di ricerca, facciamo un'altra chiamata
-                if (!followers && seenUsernames.size < 15) {
-                    try {
-                        const profileUrl = `https://${API_HOST}/v1/profile?username=${encodeURIComponent(username)}`;
-                        const profileResponse = await fetch(profileUrl, {
-                            method: 'GET',
-                            headers: {
-                                'x-rapidapi-key': apiKey,
-                                'x-rapidapi-host': API_HOST
+    try {
+        const llmResponse = await base44.integrations.Core.InvokeLLM({
+            prompt,
+            add_context_from_internet: true,
+            model: 'gemini_3_flash',
+            response_json_schema: {
+                type: 'object',
+                properties: {
+                    influencers: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                username: { type: 'string' },
+                                full_name: { type: 'string' },
+                                platform: { type: 'string' },
+                                followers_estimate: { type: 'number' },
+                                biography: { type: 'string' },
+                                niche: { type: 'string' },
+                                city: { type: 'string' },
+                                verified: { type: 'boolean' }
                             }
-                        });
-                        
-                        if (profileResponse.ok) {
-                            const profileData = await profileResponse.json();
-                            const profile = profileData.data || profileData;
-                            followers = profile.follower_count || profile.followers || profile.edge_followed_by?.count || 0;
-                            fullName = profile.full_name || fullName;
-                            biography = profile.biography || profile.bio || biography;
-                            verified = profile.is_verified || verified;
-                            profilePicUrl = profile.profile_pic_url || profilePicUrl;
                         }
-                    } catch (profileErr) {
-                        console.error(`Profile fetch failed for ${username}:`, profileErr.message);
                     }
                 }
+            }
+        });
 
-                // Filtra per range follower
-                if (followers > 0 && followerRanges && followerRanges.length > 0) {
-                    const inRange = followerRanges.some(range => {
-                        const [minStr, maxStr] = range.split('-');
-                        const min = parseInt(minStr);
-                        const max = maxStr && maxStr !== 'inf' ? parseInt(maxStr) : Infinity;
-                        return followers >= min && followers <= max;
+        let influencers = llmResponse?.influencers || [];
+        console.log(`LLM returned ${influencers.length} influencers`);
+
+        if (influencers.length === 0) {
+            return Response.json({ results: [], source: 'llm', message: 'Nessun influencer trovato' });
+        }
+
+        // Step 2: For Instagram profiles, try to verify/enrich with RapidAPI
+        const apiKey = Deno.env.get('RAPIDAPI_KEY');
+        const igProfiles = influencers.filter(i => (i.platform || 'instagram') === 'instagram');
+        const tiktokProfiles = influencers.filter(i => i.platform === 'tiktok');
+
+        // Verify Instagram profiles (max 15 to stay within rate limits)
+        const verifiedResults = [];
+
+        if (apiKey && igProfiles.length > 0) {
+            const profilesToVerify = igProfiles.slice(0, 15);
+            
+            for (const profile of profilesToVerify) {
+                try {
+                    const url = `https://instagram-statistics-api.p.rapidapi.com/community?url=https://www.instagram.com/${encodeURIComponent(profile.username)}/`;
+                    const res = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'x-rapidapi-key': apiKey,
+                            'x-rapidapi-host': 'instagram-statistics-api.p.rapidapi.com'
+                        }
                     });
-
-                    if (!inRange) continue;
+                    
+                    if (res.ok) {
+                        const data = await res.json();
+                        const p = data?.data || data;
+                        const followers = p?.usersCount ?? p?.followers ?? p?.follower_count;
+                        
+                        if (followers !== undefined && followers > 0) {
+                            verifiedResults.push({
+                                username: profile.username,
+                                full_name: p.name || p.full_name || profile.full_name,
+                                platform: 'instagram',
+                                followers_count: followers,
+                                biography: p.description || p.biography || profile.biography,
+                                verified: p.verified || p.is_verified || profile.verified || false,
+                                profile_pic_url: p.image || p.profile_pic_url || '',
+                                engagement_rate: p.avgER ? parseFloat((p.avgER * 100).toFixed(2)) : null,
+                                niche: profile.niche || niches[0],
+                                city: profile.city || cityFilter,
+                                profile_url: `https://www.instagram.com/${profile.username}/`,
+                                source: 'verified'
+                            });
+                            continue;
+                        }
+                    }
+                } catch (e) {
+                    console.log(`Verification failed for ${profile.username}: ${e.message}`);
                 }
 
-                seenUsernames.add(username);
-
-                results.push({
-                    username,
-                    full_name: fullName,
-                    followers_count: followers,
-                    biography,
-                    verified,
-                    profile_pic_url: profilePicUrl,
-                    avg_er: 0.02 + Math.random() * 0.04,
-                    tags: niches,
-                    profile_url: `https://www.instagram.com/${username}/`
+                // If verification fails, still include with LLM data
+                verifiedResults.push({
+                    username: profile.username,
+                    full_name: profile.full_name || profile.username,
+                    platform: 'instagram',
+                    followers_count: profile.followers_estimate || 0,
+                    biography: profile.biography || '',
+                    verified: profile.verified || false,
+                    profile_pic_url: '',
+                    engagement_rate: null,
+                    niche: profile.niche || niches[0],
+                    city: profile.city || cityFilter,
+                    profile_url: `https://www.instagram.com/${profile.username}/`,
+                    source: 'llm'
                 });
             }
-        } catch (err) {
-            console.error(`Error for query "${query}":`, err.message);
-            continue;
-        }
-    }
 
-    return Response.json({ results });
+            // Add remaining IG profiles that weren't verified
+            for (const profile of igProfiles.slice(15)) {
+                verifiedResults.push({
+                    username: profile.username,
+                    full_name: profile.full_name || profile.username,
+                    platform: 'instagram',
+                    followers_count: profile.followers_estimate || 0,
+                    biography: profile.biography || '',
+                    verified: profile.verified || false,
+                    profile_pic_url: '',
+                    engagement_rate: null,
+                    niche: profile.niche || niches[0],
+                    city: profile.city || cityFilter,
+                    profile_url: `https://www.instagram.com/${profile.username}/`,
+                    source: 'llm'
+                });
+            }
+        } else {
+            // No API key — use all IG profiles from LLM unverified
+            for (const profile of igProfiles) {
+                verifiedResults.push({
+                    username: profile.username,
+                    full_name: profile.full_name || profile.username,
+                    platform: 'instagram',
+                    followers_count: profile.followers_estimate || 0,
+                    biography: profile.biography || '',
+                    verified: profile.verified || false,
+                    profile_pic_url: '',
+                    engagement_rate: null,
+                    niche: profile.niche || niches[0],
+                    city: profile.city || cityFilter,
+                    profile_url: `https://www.instagram.com/${profile.username}/`,
+                    source: 'llm'
+                });
+            }
+        }
+
+        // Add TikTok profiles (no verification API available)
+        for (const profile of tiktokProfiles) {
+            verifiedResults.push({
+                username: profile.username,
+                full_name: profile.full_name || profile.username,
+                platform: 'tiktok',
+                followers_count: profile.followers_estimate || 0,
+                biography: profile.biography || '',
+                verified: profile.verified || false,
+                profile_pic_url: '',
+                engagement_rate: null,
+                niche: profile.niche || niches[0],
+                city: profile.city || cityFilter,
+                profile_url: `https://www.tiktok.com/@${profile.username}`,
+                source: 'llm'
+            });
+        }
+
+        // Apply follower range filter on final results
+        let filteredResults = verifiedResults;
+        if (followerRanges && followerRanges.length > 0) {
+            filteredResults = verifiedResults.filter(r => {
+                if (!r.followers_count || r.followers_count === 0) return true; // Keep unverified
+                return followerRanges.some(range => {
+                    const [minStr, maxStr] = range.split('-');
+                    const min = parseInt(minStr);
+                    const max = maxStr && maxStr !== 'inf' ? parseInt(maxStr) : Infinity;
+                    return r.followers_count >= min && r.followers_count <= max;
+                });
+            });
+        }
+
+        return Response.json({ 
+            results: filteredResults,
+            total: filteredResults.length,
+            verified_count: filteredResults.filter(r => r.source === 'verified').length,
+            llm_count: filteredResults.filter(r => r.source === 'llm').length
+        });
+
+    } catch (error) {
+        console.error('Search error:', error);
+        return Response.json({ error: error.message, results: [] }, { status: 500 });
+    }
 });
