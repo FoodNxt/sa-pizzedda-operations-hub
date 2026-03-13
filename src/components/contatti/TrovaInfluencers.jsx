@@ -361,9 +361,20 @@ export default function TrovaInfluencers({ onAddContact }) {
                     </div>
                   )}
                   <div className="flex items-start justify-between gap-3">
-                    {/* Avatar placeholder */}
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                      {(influencer.full_name || influencer.username || "?")[0].toUpperCase()}
+                    {/* Avatar */}
+                    <div className="relative flex-shrink-0">
+                      {influencer.profile_pic_url ? (
+                        <img src={influencer.profile_pic_url} alt={influencer.username} className="w-12 h-12 rounded-full object-cover" />
+                      ) : (
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${
+                          influencer.platform === 'tiktok' ? 'bg-gradient-to-br from-gray-800 to-black' : 'bg-gradient-to-br from-purple-400 to-pink-500'
+                        }`}>
+                          {(influencer.full_name || influencer.username || "?")[0].toUpperCase()}
+                        </div>
+                      )}
+                      <span className="absolute -bottom-1 -right-1 text-xs">
+                        {influencer.platform === 'tiktok' ? '🎵' : '📸'}
+                      </span>
                     </div>
 
                     <div className="flex-1 min-w-0">
