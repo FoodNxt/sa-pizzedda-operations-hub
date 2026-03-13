@@ -103,101 +103,75 @@ IMPORTANTE: restituisci SOLO username che esistono davvero. Non inventare nomi. 
         const igProfiles = influencers.filter(i => (i.platform || 'instagram') === 'instagram');
         const tiktokProfiles = influencers.filter(i => i.platform === 'tiktok');
 
-        // Verify Instagram profiles (max 15 to stay within rate limits)
+        // Verify top 5 Instagram profiles in parallel with timeout
         const verifiedResults = [];
 
+        const mapProfileToResult = (profile, platform, source, extra = {}) => ({
+            username: profile.username,
+            full_name: extra.full_name || profile.full_name || profile.username,
+            platform,
+            followers_count: extra.followers_count || profile.followers_estimate || 0,
+            biography: extra.biography || profile.biography || '',
+            verified: extra.verified || profile.verified || false,
+            profile_pic_url: extra.profile_pic_url || '',
+            engagement_rate: extra.engagement_rate || null,
+            niche: profile.niche || niches[0],
+            city: profile.city || cityFilter,
+            profile_url: platform === 'tiktok' 
+                ? `https://www.tiktok.com/@${profile.username}` 
+                : `https://www.instagram.com/${profile.username}/`,
+            source
+        });
+
         if (apiKey && igProfiles.length > 0) {
-            const profilesToVerify = igProfiles.slice(0, 15);
-            
-            for (const profile of profilesToVerify) {
+            // Verify top 5 profiles concurrently with 8s timeout each
+            const profilesToVerify = igProfiles.slice(0, 5);
+            const verifyPromises = profilesToVerify.map(async (profile) => {
                 try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 8000);
                     const url = `https://instagram-statistics-api.p.rapidapi.com/community?url=https://www.instagram.com/${encodeURIComponent(profile.username)}/`;
                     const res = await fetch(url, {
                         method: 'GET',
                         headers: {
                             'x-rapidapi-key': apiKey,
                             'x-rapidapi-host': 'instagram-statistics-api.p.rapidapi.com'
-                        }
+                        },
+                        signal: controller.signal
                     });
+                    clearTimeout(timeout);
                     
                     if (res.ok) {
                         const data = await res.json();
                         const p = data?.data || data;
                         const followers = p?.usersCount ?? p?.followers ?? p?.follower_count;
-                        
                         if (followers !== undefined && followers > 0) {
-                            verifiedResults.push({
-                                username: profile.username,
+                            return mapProfileToResult(profile, 'instagram', 'verified', {
                                 full_name: p.name || p.full_name || profile.full_name,
-                                platform: 'instagram',
                                 followers_count: followers,
                                 biography: p.description || p.biography || profile.biography,
-                                verified: p.verified || p.is_verified || profile.verified || false,
+                                verified: p.verified || p.is_verified || profile.verified,
                                 profile_pic_url: p.image || p.profile_pic_url || '',
-                                engagement_rate: p.avgER ? parseFloat((p.avgER * 100).toFixed(2)) : null,
-                                niche: profile.niche || niches[0],
-                                city: profile.city || cityFilter,
-                                profile_url: `https://www.instagram.com/${profile.username}/`,
-                                source: 'verified'
+                                engagement_rate: p.avgER ? parseFloat((p.avgER * 100).toFixed(2)) : null
                             });
-                            continue;
                         }
                     }
                 } catch (e) {
-                    console.log(`Verification failed for ${profile.username}: ${e.message}`);
+                    console.log(`Verification skipped for ${profile.username}: ${e.message}`);
                 }
+                return mapProfileToResult(profile, 'instagram', 'llm');
+            });
 
-                // If verification fails, still include with LLM data
-                verifiedResults.push({
-                    username: profile.username,
-                    full_name: profile.full_name || profile.username,
-                    platform: 'instagram',
-                    followers_count: profile.followers_estimate || 0,
-                    biography: profile.biography || '',
-                    verified: profile.verified || false,
-                    profile_pic_url: '',
-                    engagement_rate: null,
-                    niche: profile.niche || niches[0],
-                    city: profile.city || cityFilter,
-                    profile_url: `https://www.instagram.com/${profile.username}/`,
-                    source: 'llm'
-                });
-            }
+            const verified = await Promise.all(verifyPromises);
+            verifiedResults.push(...verified);
 
-            // Add remaining IG profiles that weren't verified
-            for (const profile of igProfiles.slice(15)) {
-                verifiedResults.push({
-                    username: profile.username,
-                    full_name: profile.full_name || profile.username,
-                    platform: 'instagram',
-                    followers_count: profile.followers_estimate || 0,
-                    biography: profile.biography || '',
-                    verified: profile.verified || false,
-                    profile_pic_url: '',
-                    engagement_rate: null,
-                    niche: profile.niche || niches[0],
-                    city: profile.city || cityFilter,
-                    profile_url: `https://www.instagram.com/${profile.username}/`,
-                    source: 'llm'
-                });
+            // Add remaining IG profiles unverified
+            for (const profile of igProfiles.slice(5)) {
+                verifiedResults.push(mapProfileToResult(profile, 'instagram', 'llm'));
             }
         } else {
-            // No API key — use all IG profiles from LLM unverified
             for (const profile of igProfiles) {
-                verifiedResults.push({
-                    username: profile.username,
-                    full_name: profile.full_name || profile.username,
-                    platform: 'instagram',
-                    followers_count: profile.followers_estimate || 0,
-                    biography: profile.biography || '',
-                    verified: profile.verified || false,
-                    profile_pic_url: '',
-                    engagement_rate: null,
-                    niche: profile.niche || niches[0],
-                    city: profile.city || cityFilter,
-                    profile_url: `https://www.instagram.com/${profile.username}/`,
-                    source: 'llm'
-                });
+                verifiedResults.push(mapProfileToResult(profile, 'instagram', 'llm'));
             }
         }
 
