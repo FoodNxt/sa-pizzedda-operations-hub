@@ -58,6 +58,7 @@ export default function TrovaInfluencers({ onAddContact }) {
   const [existingContacts, setExistingContacts] = useState([]);
   const [scartatiIds, setScartatiIds] = useState(new Set());
   const [scarcandiId, setScarcandiId] = useState(null);
+  const [searchError, setSearchError] = useState(null);
 
   // Carica contatti esistenti e scartati al mount
   useEffect(() => {
