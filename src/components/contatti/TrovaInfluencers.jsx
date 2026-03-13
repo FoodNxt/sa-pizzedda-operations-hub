@@ -82,7 +82,7 @@ export default function TrovaInfluencers({ onAddContact }) {
     try {
       await base44.entities.InfluencerScartato.create({
         username: influencer.username,
-        platform: filters.platform,
+        platform: influencer.platform || 'instagram',
         full_name: influencer.full_name,
         scartato_il: new Date().toISOString()
       });
