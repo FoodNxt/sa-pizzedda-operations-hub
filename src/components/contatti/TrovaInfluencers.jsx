@@ -315,15 +315,23 @@ export default function TrovaInfluencers({ onAddContact }) {
       {loading && (
         <div className="text-center py-16">
           <Loader2 className="w-12 h-12 text-purple-500 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 font-medium">Analisi dei profili in corso...</p>
-          <p className="text-slate-400 text-sm mt-1">Stiamo cercando influencer che corrispondono ai tuoi filtri</p>
+          <p className="text-slate-600 font-medium">Ricerca influencer in corso...</p>
+          <p className="text-slate-400 text-sm mt-1">Stiamo cercando profili reali su {filters.platforms.map(p => p === 'tiktok' ? 'TikTok' : p === 'youtube' ? 'YouTube' : 'Instagram').join(' e ')}. Può richiedere 15-30 secondi.</p>
         </div>
       )}
 
-      {!loading && hasSearched && results.length === 0 && (
+      {!loading && searchError && (
+        <div className="text-center py-12">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+          <p className="text-red-600 font-medium">{searchError}</p>
+          <button onClick={handleSearch} className="mt-3 text-sm text-purple-600 hover:text-purple-800 underline">Riprova</button>
+        </div>
+      )}
+
+      {!loading && !searchError && hasSearched && results.length === 0 && (
         <div className="text-center py-16">
           <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-500">Nessun risultato trovato. Prova con filtri diversi.</p>
+          <p className="text-slate-500">Nessun risultato trovato. Prova con filtri diversi o una città diversa.</p>
         </div>
       )}
 
