@@ -101,29 +101,14 @@ export default function TrovaInfluencers({ onAddContact }) {
     setLoading(true);
     setHasSearched(true);
     setResults([]);
+    setSearchError(null);
 
-    const selectedPlatforms = PLATFORM_OPTIONS.filter(p => filters.platforms.includes(p.value));
-    const selectedNiches = NICHE_OPTIONS.filter(n => filters.niches.includes(n.value));
     const selectedRanges = FOLLOWER_RANGES.filter(r => filters.followerRanges.includes(r.value));
-
-    const platformsStr = selectedPlatforms.map(p => p.label).join(", ");
-    const nichesStr = selectedNiches.map(n => n.label).join(", ");
-    const rangesStr = selectedRanges.map(r => `${r.label} (${r.min?.toLocaleString()}${r.max ? "–" + r.max?.toLocaleString() : "+"})`).join(" oppure ");
-
-    const prompt = `Trova 50 username REALI di influencer su ${platformsStr} con questi criteri:
-- Niches: ${nichesStr}
-- Città/Zona: ${filters.city || "Italia (qualsiasi città)"}
-- Range follower: ${rangesStr}
-- Lingua: italiano
-- Devono avere engagement rate decente (almeno 1%)
-
-Restituisci gli username (senza @), city e niche stimata. Devono essere account reali esistenti su Instagram. Sii meno restrittivo possibile sulle nicchie - includi anche account tangenziali che potrebbero interessare.`;
+    const followerRangeStrs = selectedRanges.map(r => `${r.min}-${r.max || 'inf'}`);
 
     try {
-      // Chiama la funzione backend per cercare influencer basati su niches/hashtag
-      const followerRangeStrs = selectedRanges.map(r => `${r.min}-${r.max || 'inf'}`);
-      
       const backendResponse = await base44.functions.invoke('instagramInfluencerSearch', {
+        platforms: filters.platforms,
         niches: filters.niches,
         followerRanges: followerRangeStrs,
         city: filters.city
@@ -132,29 +117,30 @@ Restituisci gli username (senza @), city e niche stimata. Devono essere account 
       const results = backendResponse?.data?.results || [];
       if (results.length === 0) { 
         setLoading(false); 
-        alert("Nessun influencer trovato. Prova con filtri diversi.");
         return; 
       }
 
-      // Mappa i risultati al formato atteso
       const mapped = results.map(item => ({
         username: item.username,
         full_name: item.full_name,
+        platform: item.platform || 'instagram',
         followers_count: item.followers_count,
         biography: item.biography,
         verified: item.verified,
         profile_pic_url: item.profile_pic_url,
-        engagement_rate: item.avg_er ? parseFloat((item.avg_er * 100).toFixed(2)) : 0,
-        tags: item.tags || [],
-        city: filters.city,
-        niche: item.tags?.[0] || 'food',
-        contact_hint: '',
-        profile_url: item.profile_url || `https://www.instagram.com/${item.username}/`,
+        engagement_rate: item.engagement_rate || 0,
+        niche: item.niche || 'food',
+        city: item.city || filters.city,
+        contact_hint: item.source === 'verified' ? '✓ Verificato' : '',
+        profile_url: item.profile_url || (item.platform === 'tiktok' 
+          ? `https://www.tiktok.com/@${item.username}` 
+          : `https://www.instagram.com/${item.username}/`),
       }));
 
       setResults(mapped);
     } catch (err) {
       console.error(err);
+      setSearchError("Errore durante la ricerca. Riprova tra qualche secondo.");
     } finally {
       setLoading(false);
     }
