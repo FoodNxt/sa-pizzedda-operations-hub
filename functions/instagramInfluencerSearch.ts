@@ -177,20 +177,7 @@ IMPORTANTE: restituisci SOLO username che esistono davvero. Non inventare nomi. 
 
         // Add TikTok profiles (no verification API available)
         for (const profile of tiktokProfiles) {
-            verifiedResults.push({
-                username: profile.username,
-                full_name: profile.full_name || profile.username,
-                platform: 'tiktok',
-                followers_count: profile.followers_estimate || 0,
-                biography: profile.biography || '',
-                verified: profile.verified || false,
-                profile_pic_url: '',
-                engagement_rate: null,
-                niche: profile.niche || niches[0],
-                city: profile.city || cityFilter,
-                profile_url: `https://www.tiktok.com/@${profile.username}`,
-                source: 'llm'
-            });
+            verifiedResults.push(mapProfileToResult(profile, 'tiktok', 'llm'));
         }
 
         // Apply follower range filter on final results
