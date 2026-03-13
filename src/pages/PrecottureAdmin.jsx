@@ -187,9 +187,8 @@ export default function PrecottureAdmin() {
 
   const getTotaleGiornaliero = (data) => {
     if (!data) return 0;
-    return (data.pranzo_rosse || 0) + (
-    data.pomeriggio_rosse || 0) + (
-    data.cena_rosse || 0);
+    // Usa totale_giornata come valore autoritativo per coerenza con il form Impasto
+    return data.totale_giornata || 0;
   };
 
   const getImpastoPer3Giorni = (giornoIndex) => {
