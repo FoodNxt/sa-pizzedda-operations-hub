@@ -335,11 +335,16 @@ export default function TrovaInfluencers({ onAddContact }) {
         </div>
       )}
 
-      {!loading && results.length > 0 && (
+      {!loading && !searchError && results.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-800">
               {results.length} Influencer Trovati
+              {results.some(r => r.contact_hint) && (
+                <span className="text-xs font-normal text-green-600 ml-2">
+                  ({results.filter(r => r.contact_hint).length} verificati)
+                </span>
+              )}
             </h3>
             <button
               onClick={handleSearch}
