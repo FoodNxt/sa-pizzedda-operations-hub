@@ -151,13 +151,14 @@ export default function TrovaInfluencers({ onAddContact }) {
     setAddingId(influencer.username);
     try {
       const nameParts = (influencer.full_name || influencer.username).split(" ");
+      const platformLabel = influencer.platform === 'tiktok' ? 'TikTok' : 'Instagram';
       await base44.entities.ContattoMarketing.create({
         categoria: "Food influencers",
         nome: nameParts[0] || influencer.username,
         cognome: nameParts.slice(1).join(" ") || "",
         link: influencer.profile_url || "",
         followers: influencer.followers_count || 0,
-        note: `${influencer.biography || influencer.bio || ""}${influencer.city ? " | Città: " + influencer.city : ""}${influencer.niche ? " | Niche: " + influencer.niche : ""} | Engagement: ${influencer.engagement_rate || 0}%`,
+        note: `[${platformLabel}] ${influencer.biography || ""}${influencer.city ? " | Città: " + influencer.city : ""}${influencer.niche ? " | Niche: " + influencer.niche : ""}${influencer.engagement_rate ? " | Engagement: " + influencer.engagement_rate + "%" : ""}`,
         visite_negozio: [],
         proposte_commerciali: [],
         collaborazioni_completate: [],
