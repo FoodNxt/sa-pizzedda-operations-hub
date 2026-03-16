@@ -12,6 +12,7 @@ import {
 import { Thermometer, Droplets, Cloud, Loader2, AlertTriangle, RefreshCw, Info } from 'lucide-react';
 import { formatCurrency } from '../components/utils/formatCurrency';
 import WeatherAuditTable from '../components/correlation/WeatherAuditTable';
+import WeekdayCorrelationTable from '../components/correlation/WeekdayCorrelationTable';
 
 // Open-Meteo archive API ha un ritardo di ~5 giorni
 const MAX_END_DATE = format(subDays(new Date(), 5), 'yyyy-MM-dd');
@@ -585,7 +586,9 @@ export default function Correlazione() {
                   </NeumorphicCard>
                 )}
 
-                {/* Legenda metodologia */}
+                {/* Weekday Correlation Analysis */}
+                <WeekdayCorrelationTable accoppiati={datiCorrelazione.accoppiati} />
+
                 {/* Daily Audit Table */}
                 <WeatherAuditTable
                   accoppiati={datiCorrelazione.accoppiati}
