@@ -13,6 +13,7 @@ import { Thermometer, Droplets, Cloud, Loader2, AlertTriangle, RefreshCw, Info }
 import { formatCurrency } from '../components/utils/formatCurrency';
 import WeatherAuditTable from '../components/correlation/WeatherAuditTable';
 import WeekdayCorrelationTable from '../components/correlation/WeekdayCorrelationTable';
+import WeekdayChannelDeepDive from '../components/correlation/WeekdayChannelDeepDive';
 
 // Open-Meteo archive API ha un ritardo di ~5 giorni
 const MAX_END_DATE = format(subDays(new Date(), 5), 'yyyy-MM-dd');
@@ -588,6 +589,15 @@ export default function Correlazione() {
 
                 {/* Weekday Correlation Analysis */}
                 <WeekdayCorrelationTable accoppiati={datiCorrelazione.accoppiati} />
+
+                {/* Deep Dive: Store vs Delivery × Meteo */}
+                <WeekdayChannelDeepDive
+                  iPraticoData={iPraticoData}
+                  datiMeteo={datiMeteo}
+                  localeSelezionato={localeSelezionato}
+                  dataInizio={dataInizio}
+                  dataFine={dataFineEffettiva}
+                />
 
                 {/* Daily Audit Table */}
                 <WeatherAuditTable
