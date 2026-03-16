@@ -779,7 +779,66 @@ export default function MatchingOrdiniSbagliati() {
         </NeumorphicCard>
       }
 
-      {/* NEW: Order Details Modal */}
+      {/* Contested Orders List */}
+      {viewMode === 'contested' &&
+      <NeumorphicCard className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-[#6b6b6b]">Ordini Contestati</h2>
+          </div>
+
+          {contestedOrders.length === 0 ?
+        <div className="text-center py-12">
+              <ShieldAlert className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
+              <p className="text-[#6b6b6b] font-medium">Nessun ordine contestato</p>
+            </div> :
+
+        <div className="space-y-4">
+              {contestedOrders.map((order) =>
+          <div
+            key={order.id}
+            className="neumorphic-flat p-5 rounded-xl border-2 border-red-200 cursor-pointer hover:shadow-lg transition-all"
+            onClick={() => setSelectedOrder(order)}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  order.platform === 'glovo' ?
+                  'bg-orange-100 text-orange-700' :
+                  'bg-teal-100 text-teal-700'}`}>
+                          {order.platform}
+                        </span>
+                        <span className="font-mono text-sm text-[#6b6b6b]">{order.order_id}</span>
+                        <span className="text-sm text-[#9b9b9b]">
+                          {format(new Date(order.order_date), 'dd/MM HH:mm', { locale: it })}
+                        </span>
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1">
+                          <ShieldAlert className="w-3 h-3" /> Contestato
+                        </span>
+                      </div>
+                      <p className="text-sm text-[#9b9b9b]">{order.store_name}</p>
+                      <p className="text-lg font-bold text-red-600 mt-2">
+                        Rimborso: €{order.refund_value?.toFixed(2) || '0.00'}
+                      </p>
+                    </div>
+                    <Eye className="w-5 h-5 text-[#8b7355]" />
+                  </div>
+                  <div className="neumorphic-pressed p-3 rounded-lg bg-red-50">
+                    <p className="text-xs font-bold text-red-700 mb-1">🚫 Ordine contestato — non assegnato ai dipendenti</p>
+                    {order.contestato_note && <p className="text-xs text-red-600 mt-1">{order.contestato_note}</p>}
+                    {order.contestato_foto_url && (
+                      <img src={order.contestato_foto_url} alt="Prova" className="mt-2 w-20 h-20 object-cover rounded-lg border border-red-200" />
+                    )}
+                    {order.contestato_da && <p className="text-xs text-red-400 mt-2">Da: {order.contestato_da}</p>}
+                    {order.contestato_data && <p className="text-xs text-red-400">Il: {format(new Date(order.contestato_data), 'dd/MM/yyyy HH:mm', { locale: it })}</p>}
+                  </div>
+                </div>
+          )}
+            </div>
+        }
+        </NeumorphicCard>
+      }
+
+      {/* Order Details Modal */}
       {selectedOrder &&
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <NeumorphicCard className="max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
