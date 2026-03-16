@@ -30,7 +30,7 @@ export default function MatchingOrdiniSbagliati() {
   const [matchResult, setMatchResult] = useState(null);
   const [editingMatch, setEditingMatch] = useState(null);
   const [newEmployeeName, setNewEmployeeName] = useState('');
-  const [viewMode, setViewMode] = useState('matched'); // 'matched' or 'unmatched'
+  const [viewMode, setViewMode] = useState('matched'); // 'matched', 'unmatched', or 'contested'
   const [showAllMatched, setShowAllMatched] = useState(false);
   const [showAllUnmatched, setShowAllUnmatched] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null); // NEW: for order details modal
@@ -394,16 +394,18 @@ export default function MatchingOrdiniSbagliati() {
     }
   };
 
-  // Get matched and unmatched orders
+  // Get matched, unmatched, and contested orders
   const matchedOrderIds = new Set(matches.map((m) => m.wrong_order_id));
-  const matchedOrders = wrongOrders.filter((o) => matchedOrderIds.has(o.id) || o.contestato);
+  const contestedOrders = wrongOrders.filter((o) => o.contestato);
+  const matchedOrders = wrongOrders.filter((o) => matchedOrderIds.has(o.id) && !o.contestato);
   const unmatchedOrders = wrongOrders.filter((o) => !matchedOrderIds.has(o.id) && !o.contestato);
 
   const stats = {
     totalOrders: wrongOrders.length,
-    matchedOrders: matchedOrders.length, // Count of unique orders that have at least one match
+    matchedOrders: matchedOrders.length,
     unmatchedOrders: unmatchedOrders.length,
-    totalMatches: matches.length, // Total number of match records (can be > matchedOrders if multiple employees per order)
+    contestedOrders: contestedOrders.length,
+    totalMatches: matches.length,
     highConfidence: matches.filter((m) => m.match_confidence === 'high').length,
     mediumConfidence: matches.filter((m) => m.match_confidence === 'medium').length,
     lowConfidence: matches.filter((m) => m.match_confidence === 'low').length,
@@ -503,10 +505,10 @@ export default function MatchingOrdiniSbagliati() {
 
         <NeumorphicCard className="p-6 text-center">
           <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Users className="w-8 h-8 text-blue-600" />
+            <ShieldAlert className="w-8 h-8 text-red-600" />
           </div>
-          <h3 className="text-3xl font-bold text-blue-600 mb-1">{stats.manualMatches}</h3>
-          <p className="text-sm text-[#9b9b9b]">Manuali</p>
+          <h3 className="text-3xl font-bold text-red-600 mb-1">{stats.contestedOrders}</h3>
+          <p className="text-sm text-[#9b9b9b]">Contestati</p>
         </NeumorphicCard>
       </div>
 
@@ -579,28 +581,35 @@ export default function MatchingOrdiniSbagliati() {
         </div>
       </NeumorphicCard>
 
-      {/* NEW: View Mode Slider */}
+      {/* View Mode Slider */}
       <NeumorphicCard className="p-6">
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center gap-3">
           <button
             onClick={() => setViewMode('matched')}
-            className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
+            className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
             viewMode === 'matched' ?
             'neumorphic-pressed text-[#8b7355]' :
             'neumorphic-flat text-[#9b9b9b]'}`
             }>
-
             ✅ Abbinati ({stats.matchedOrders})
           </button>
           <button
             onClick={() => setViewMode('unmatched')}
-            className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
+            className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
             viewMode === 'unmatched' ?
             'neumorphic-pressed text-[#8b7355]' :
             'neumorphic-flat text-[#9b9b9b]'}`
             }>
-
             ⚠️ Non Abbinati ({stats.unmatchedOrders})
+          </button>
+          <button
+            onClick={() => setViewMode('contested')}
+            className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${
+            viewMode === 'contested' ?
+            'neumorphic-pressed text-red-600' :
+            'neumorphic-flat text-[#9b9b9b]'}`
+            }>
+            🚫 Contestati ({stats.contestedOrders})
           </button>
         </div>
       </NeumorphicCard>
