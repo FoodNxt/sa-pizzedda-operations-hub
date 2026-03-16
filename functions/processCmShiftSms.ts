@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
 
             // Twilio E.164 numbers (Italian prefix +39)
             const fromNumber = '+393399908823';
-            const toNumber = '+393399942256';
+            const toNumber = '+393515293557';
 
             // Send via Twilio REST API (no npm package needed - use native fetch)
             const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
