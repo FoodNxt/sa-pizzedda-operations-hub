@@ -848,6 +848,27 @@ export default function MatchingOrdiniSbagliati() {
                 </div>
               </div>
 
+              {/* Contesta button in modal */}
+              {!selectedOrder.contestato && matchesByOrder[selectedOrder.id]?.length > 0 && (
+                <button
+                  onClick={() => { setContestaOrder(selectedOrder); setSelectedOrder(null); }}
+                  className="w-full px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 transition-all flex items-center justify-center gap-2"
+                >
+                  <ShieldAlert className="w-4 h-4" /> Contesta Ordine
+                </button>
+              )}
+
+              {selectedOrder.contestato && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                  <p className="text-sm font-bold text-red-700 flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Ordine Contestato</p>
+                  {selectedOrder.contestato_note && <p className="text-xs text-red-600 mt-1">{selectedOrder.contestato_note}</p>}
+                  {selectedOrder.contestato_foto_url && (
+                    <img src={selectedOrder.contestato_foto_url} alt="Prova contestazione" className="mt-2 w-full max-h-48 object-contain rounded-lg border border-red-200" />
+                  )}
+                  {selectedOrder.contestato_da && <p className="text-xs text-red-400 mt-2">Contestato da: {selectedOrder.contestato_da}</p>}
+                </div>
+              )}
+
               {/* Matched Employees */}
               {matchesByOrder[selectedOrder.id] && matchesByOrder[selectedOrder.id].length > 0 &&
             <div className="neumorphic-pressed p-4 rounded-xl">
