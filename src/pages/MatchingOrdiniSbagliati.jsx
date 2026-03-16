@@ -15,10 +15,13 @@ import {
   ChevronDown,
   ChevronUp,
   Trash,
-  Settings } from
+  Settings,
+  ShieldAlert,
+  Camera } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import ContestaOrdineModal from "../components/delivery/ContestaOrdineModal";
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -33,6 +36,7 @@ export default function MatchingOrdiniSbagliati() {
   const [selectedOrder, setSelectedOrder] = useState(null); // NEW: for order details modal
   const [debugLog, setDebugLog] = useState([]); // NEW: Debug log
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [contestaOrder, setContestaOrder] = useState(null); // order to contest
   const [settingsForm, setSettingsForm] = useState({
     excluded_shift_types: [],
     excluded_employee_groups: []
