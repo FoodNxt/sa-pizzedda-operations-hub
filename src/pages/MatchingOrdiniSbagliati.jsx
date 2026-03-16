@@ -973,6 +973,15 @@ export default function MatchingOrdiniSbagliati() {
         </div>
       </NeumorphicCard>
 
+      {/* Contesta Modal */}
+      {contestaOrder && (
+        <ContestaOrdineModal
+          order={contestaOrder}
+          orderMatches={matchesByOrder[contestaOrder.id] || []}
+          onClose={() => setContestaOrder(null)}
+        />
+      )}
+
       {/* Settings Modal */}
       {showSettingsModal &&
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
