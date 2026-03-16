@@ -39,6 +39,52 @@ const getCorrelationInfo = (r) => {
   return { label: r.toFixed(2), colore: 'text-slate-400', sfondo: 'bg-slate-50', forza: 'Trascurabile' };
 };
 
+const getWeekdayInsight = (rTemp, rPrecip, dayName) => {
+  if (rTemp === null && rPrecip === null) return { text: 'Dati insufficienti per generare insight.', icon: '⚠️' };
+
+  const parts = [];
+  let icon = '↔️';
+
+  // Temperature insight
+  if (rTemp !== null) {
+    const absT = Math.abs(rTemp);
+    if (absT >= 0.4 && rTemp > 0) {
+      parts.push('il caldo aumenta i ricavi');
+      icon = '🔥';
+    } else if (absT >= 0.4 && rTemp < 0) {
+      parts.push('il caldo riduce i ricavi');
+      icon = '❄️';
+    } else if (absT >= 0.2 && rTemp > 0) {
+      parts.push('lieve effetto positivo del caldo');
+    } else if (absT >= 0.2 && rTemp < 0) {
+      parts.push('lieve effetto negativo del caldo');
+    }
+  }
+
+  // Precipitation insight
+  if (rPrecip !== null) {
+    const absP = Math.abs(rPrecip);
+    if (absP >= 0.4 && rPrecip < 0) {
+      parts.push('la pioggia penalizza i ricavi');
+      icon = '🌧️';
+    } else if (absP >= 0.4 && rPrecip > 0) {
+      parts.push('la pioggia favorisce i ricavi');
+      icon = '🌧️';
+    } else if (absP >= 0.2 && rPrecip < 0) {
+      parts.push('lieve impatto negativo della pioggia');
+    } else if (absP >= 0.2 && rPrecip > 0) {
+      parts.push('lieve impatto positivo della pioggia');
+    }
+  }
+
+  if (parts.length === 0) {
+    return { text: `Il meteo non influenza significativamente i ricavi di ${dayName}.`, icon: '✅' };
+  }
+
+  const sentence = parts.join('; ');
+  return { text: `Di ${dayName}, ${sentence}.`, icon };
+};
+
 export default function WeekdayCorrelationTable({ accoppiati }) {
   if (!accoppiati || accoppiati.length < 3) return null;
 
@@ -82,7 +128,7 @@ export default function WeekdayCorrelationTable({ accoppiati }) {
       </div>
 
       <div className="overflow-x-auto -mx-2">
-        <table className="w-full text-xs min-w-[750px]">
+        <table className="w-full text-xs min-w-[900px]">
           <thead>
             <tr className="border-b-2 border-slate-200">
               <th className="text-left py-2 px-2 text-slate-600 font-semibold">Giorno</th>
@@ -92,6 +138,7 @@ export default function WeekdayCorrelationTable({ accoppiati }) {
               <th className="text-right py-2 px-2 text-slate-600 font-semibold">Pioggia media (mm)</th>
               <th className="text-center py-2 px-2 text-slate-600 font-semibold">r(Temp)</th>
               <th className="text-center py-2 px-2 text-slate-600 font-semibold">r(Pioggia)</th>
+              <th className="text-left py-2 px-2 text-slate-600 font-semibold">Insight</th>
             </tr>
           </thead>
           <tbody>
@@ -111,7 +158,7 @@ export default function WeekdayCorrelationTable({ accoppiati }) {
                   </td>
                   <td className="py-2.5 px-2 text-center text-slate-600">{day.n}</td>
                   {day.n === 0 ? (
-                    <td colSpan={5} className="py-2.5 px-2 text-center text-slate-400 italic">
+                    <td colSpan={6} className="py-2.5 px-2 text-center text-slate-400 italic">
                       Nessun dato
                     </td>
                   ) : (
@@ -134,6 +181,16 @@ export default function WeekdayCorrelationTable({ accoppiati }) {
                         <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold ${infoPrecip.sfondo} ${infoPrecip.colore}`}>
                           {infoPrecip.label}
                         </span>
+                      </td>
+                      <td className="py-2.5 px-2 text-left text-slate-600 max-w-[220px]">
+                        {(() => {
+                          const insight = getWeekdayInsight(day.rTemp, day.rPrecip, day.it);
+                          return (
+                            <span className="text-xs leading-snug">
+                              {insight.icon} {insight.text}
+                            </span>
+                          );
+                        })()}
                       </td>
                     </>
                   )}
