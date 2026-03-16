@@ -195,6 +195,12 @@ export default function MatchingOrdiniSbagliati() {
       log.push(`📊 Turni disponibili: ${shifts.length}`);
 
       for (const order of wrongOrders) {
+        // Skip if contested
+        if (order.contestato) {
+          log.push(`🚫 Ordine ${order.order_id} contestato, skip`);
+          continue;
+        }
+
         // Skip if already matched (i.e., this order ID has any match records)
         if (matches.some((m) => m.wrong_order_id === order.id)) {
           log.push(`⏭️ Ordine ${order.order_id} già abbinato, skip`);
