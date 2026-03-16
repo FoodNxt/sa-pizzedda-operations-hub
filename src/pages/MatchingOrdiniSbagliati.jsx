@@ -639,15 +639,16 @@ export default function MatchingOrdiniSbagliati() {
         <div className="space-y-4">
               {matchedOrders.slice(0, showAllMatched ? undefined : 10).map((order) => {
             const orderMatches = matchesByOrder[order.id] || [];
+            const isContestato = order.contestato;
             return (
               <div
                 key={order.id}
-                className="neumorphic-flat p-5 rounded-xl cursor-pointer hover:shadow-lg transition-all"
+                className={`neumorphic-flat p-5 rounded-xl cursor-pointer hover:shadow-lg transition-all ${isContestato ? 'border-2 border-red-300 bg-red-50/30' : ''}`}
                 onClick={() => setSelectedOrder(order)}>
 
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                       order.platform === 'glovo' ?
                       'bg-orange-100 text-orange-700' :
@@ -659,33 +660,58 @@ export default function MatchingOrdiniSbagliati() {
                           <span className="text-sm text-[#9b9b9b]">
                             {format(new Date(order.order_date), 'dd/MM HH:mm', { locale: it })}
                           </span>
+                          {isContestato && (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 flex items-center gap-1">
+                              <ShieldAlert className="w-3 h-3" /> Contestato
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-[#9b9b9b]">{order.store_name}</p>
                         <p className="text-lg font-bold text-red-600 mt-2">
                           Rimborso: €{order.refund_value?.toFixed(2) || '0.00'}
                         </p>
                       </div>
-                      <Eye className="w-5 h-5 text-[#8b7355]" />
-                    </div>
-
-                    {/* Show all matched employees for this order */}
-                    <div className="neumorphic-pressed p-3 rounded-lg">
-                      <p className="text-xs text-[#9b9b9b] mb-2">
-                        Abbinato a {orderMatches.length} dipendente/i:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {orderMatches.map((match) =>
-                    <span key={match.id} className="text-sm font-medium text-[#6b6b6b] bg-blue-100 px-3 py-1 rounded-full">
-                            {match.matched_employee_name}
-                            <span className={`ml-2 text-xs ${getConfidenceBadgeColor(match.match_confidence).split(' ')[1]}`}>
-                              ({match.match_confidence === 'high' ? 'Alta' :
-                        match.match_confidence === 'medium' ? 'Media' :
-                        match.match_confidence === 'low' ? 'Bassa' : 'Manuale'})
-                            </span>
-                          </span>
-                    )}
+                      <div className="flex items-center gap-2">
+                        {!isContestato && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setContestaOrder(order); }}
+                            className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                            title="Contesta ordine"
+                          >
+                            <ShieldAlert className="w-4 h-4 text-red-500" />
+                          </button>
+                        )}
+                        <Eye className="w-5 h-5 text-[#8b7355]" />
                       </div>
                     </div>
+
+                    {isContestato ? (
+                      <div className="neumorphic-pressed p-3 rounded-lg bg-red-50">
+                        <p className="text-xs font-bold text-red-700 mb-1">🚫 Ordine contestato — non assegnato ai dipendenti</p>
+                        {order.contestato_note && <p className="text-xs text-red-600">{order.contestato_note}</p>}
+                        {order.contestato_foto_url && (
+                          <img src={order.contestato_foto_url} alt="Prova" className="mt-2 w-20 h-20 object-cover rounded-lg border border-red-200" />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="neumorphic-pressed p-3 rounded-lg">
+                        <p className="text-xs text-[#9b9b9b] mb-2">
+                          Abbinato a {orderMatches.length} dipendente/i:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {orderMatches.map((match) =>
+                      <span key={match.id} className="text-sm font-medium text-[#6b6b6b] bg-blue-100 px-3 py-1 rounded-full">
+                              {match.matched_employee_name}
+                              <span className={`ml-2 text-xs ${getConfidenceBadgeColor(match.match_confidence).split(' ')[1]}`}>
+                                ({match.match_confidence === 'high' ? 'Alta' :
+                          match.match_confidence === 'medium' ? 'Media' :
+                          match.match_confidence === 'low' ? 'Bassa' : 'Manuale'})
+                              </span>
+                            </span>
+                      )}
+                        </div>
+                      </div>
+                    )}
                   </div>);
 
           })}
