@@ -396,8 +396,8 @@ export default function MatchingOrdiniSbagliati() {
 
   // Get matched and unmatched orders
   const matchedOrderIds = new Set(matches.map((m) => m.wrong_order_id));
-  const matchedOrders = wrongOrders.filter((o) => matchedOrderIds.has(o.id));
-  const unmatchedOrders = wrongOrders.filter((o) => !matchedOrderIds.has(o.id));
+  const matchedOrders = wrongOrders.filter((o) => matchedOrderIds.has(o.id) || o.contestato);
+  const unmatchedOrders = wrongOrders.filter((o) => !matchedOrderIds.has(o.id) && !o.contestato);
 
   const stats = {
     totalOrders: wrongOrders.length,
