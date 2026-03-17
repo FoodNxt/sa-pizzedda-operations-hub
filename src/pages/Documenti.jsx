@@ -2807,12 +2807,7 @@ function LettereSection() {
 
 }
 
-// Extracted sections - see components/documenti/
-
-            {selectedFile &&
-            <p className="text-xs text-green-600 mt-2">✓ {selectedFile.name}</p>
-            }
-          </div>
+// Extracted sections placeholder
 
           <NeumorphicButton
             onClick={handleUpload}
