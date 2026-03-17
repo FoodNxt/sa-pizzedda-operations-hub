@@ -2807,64 +2807,7 @@ function LettereSection() {
 
 }
 
-// BustePagaSection, UnilavSection, RegolamentoSection - extracted to components/documenti/
-// REMOVAL_MARKER_START
-const _REMOVED = true; if (_REMOVED) { /* placeholder */ } /* eslint-disable */
-
-  const _uploadMutation_removed = null;
-      const _file_url_removed = null;
-
-      // Create record
-      const busta = await base44.entities.BustaPaga.create({
-        mese,
-        pdf_completo_url: file_url,
-        status: 'processing'
-      });
-
-      // Call backend to split PDF
-      const response = await base44.functions.invoke('splitBustePagaPDF', {
-        bustaId: busta.id,
-        pdfUrl: file_url
-      });
-
-      return response;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['buste-paga'] });
-      setSelectedFile(null);
-      setUploadingFile(false);
-      alert('Buste paga elaborate con successo!');
-    },
-    onError: (error) => {
-      setUploadingFile(false);
-      console.error('Upload error:', error);
-      alert('Errore durante l\'elaborazione: ' + (error.response?.data?.error || error.message));
-    }
-  });
-
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setSelectedFile(file);
-    } else {
-      alert('Seleziona un file PDF');
-    }
-  };
-
-  const handleUpload = () => {
-    if (!selectedFile || !selectedMonth) {
-      alert('Seleziona file e mese');
-      return;
-    }
-    uploadMutation.mutate({ file: selectedFile, mese: selectedMonth });
-  };
-
-  const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.BustaPaga.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['buste-paga'] });
-    }
-  });
+// BustePagaSection, UnilavSection, RegolamentoSection - see components/documenti/
 
   const monthOptions = [];
   const now = new Date();
