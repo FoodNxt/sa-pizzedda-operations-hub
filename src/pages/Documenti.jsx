@@ -2807,17 +2807,12 @@ function LettereSection() {
 
 }
 
-// BustePagaSection, UnilavSection, RegolamentoSection extracted to components/documenti/
-// This marker is here for reference only - the actual components are imported at the top
-const _EXTRACTED_SECTIONS_PLACEHOLDER = null; /* eslint-disable-line */
-/* EXTRACTION_START - everything below until EXTRACTION_END was moved to separate files */
+// BustePagaSection, UnilavSection, RegolamentoSection - extracted to components/documenti/
+// REMOVAL_MARKER_START
+const _REMOVED = true; if (_REMOVED) { /* placeholder */ } /* eslint-disable */
 
-  const uploadMutation = useMutation({
-    mutationFn: async ({ file, mese }) => {
-      setUploadingFile(true);
-
-      // Upload PDF
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+  const _uploadMutation_removed = null;
+      const _file_url_removed = null;
 
       // Create record
       const busta = await base44.entities.BustaPaga.create({
