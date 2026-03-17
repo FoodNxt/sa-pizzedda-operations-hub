@@ -9,8 +9,10 @@ import {
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { isValid } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import BustePagaSection from "../components/documenti/BustePagaSection";
+import UnilavSection from "../components/documenti/UnilavSection";
+import RegolamentoSection from "../components/documenti/RegolamentoSection";
+import LettereSection from "../components/documenti/LettereSection";
 
 export default function Documenti() {
   const [activeTab, setActiveTab] = useState('contratti');
