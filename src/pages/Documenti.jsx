@@ -2807,18 +2807,7 @@ function LettereSection() {
 
 }
 
-// Extracted sections placeholder
-
-          <NeumorphicButton
-            onClick={handleUpload}
-            variant="primary"
-            disabled={!selectedFile || uploadingFile}
-            className="w-full flex items-center justify-center gap-2">
-
-            {uploadingFile ?
-            <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Elaborazione in corso...
+// Dead code removed
               </> :
 
             <>
