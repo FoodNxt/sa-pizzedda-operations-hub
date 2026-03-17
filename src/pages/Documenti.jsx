@@ -2809,22 +2809,8 @@ function LettereSection() {
 
 // BustePagaSection, UnilavSection, RegolamentoSection - see components/documenti/
 
-  const monthOptions = [];
-  const now = new Date();
-  for (let i = 0; i < 24; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const label = d.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
-    monthOptions.push({ value, label });
-  }
-
-  return (
-    <>
-      <NeumorphicCard className="p-6 mb-6">
-        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <Upload className="w-5 h-5 text-green-600" />
-          Carica Buste Paga
-        </h2>
+// Removed - extracted to components/documenti/BustePagaSection.jsx
+// BUSTA_PAGA_REMOVED_START
 
         <div className="space-y-4">
           <div>
