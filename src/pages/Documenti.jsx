@@ -2807,10 +2807,7 @@ function LettereSection() {
 
 }
 
-// Sections extracted to components/documenti/
-                    <p className="text-xs text-slate-500 mt-1">
-                      Caricato: {new Date(busta.created_date).toLocaleDateString('it-IT')}
-                    </p>
+// All below extracted
                     <div className="flex items-center gap-2 mt-2">
                       {busta.status === 'completed' &&
                   <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
