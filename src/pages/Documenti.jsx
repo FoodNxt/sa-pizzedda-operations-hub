@@ -2807,30 +2807,7 @@ function LettereSection() {
 
 }
 
-// BustePagaSection, UnilavSection, RegolamentoSection - see components/documenti/
-
-// Removed BustePaga - extracted
-// Start cleanup
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none">
-
-              {monthOptions.map((opt) =>
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-              )}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">
-              File PDF (tutte le buste paga)
-            </label>
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileSelect}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+// Extracted sections - see components/documenti/
 
             {selectedFile &&
             <p className="text-xs text-green-600 mt-2">✓ {selectedFile.name}</p>
