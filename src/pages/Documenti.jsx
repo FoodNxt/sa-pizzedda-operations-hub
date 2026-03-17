@@ -2896,28 +2896,7 @@ function LettereSection() {
 
 }
 
-// Unilav Section (Admin)
-function UnilavSection() {
-  const [uploadingFile, setUploadingFile] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [selectedUserId, setSelectedUserId] = useState('');
-  const [descrizione, setDescrizione] = useState('');
-  const [dataDocumento, setDataDocumento] = useState('');
-
-  const queryClient = useQueryClient();
-
-  const { data: unilavDocs = [], isLoading } = useQuery({
-    queryKey: ['unilav-docs-admin'],
-    queryFn: () => base44.entities.Unilav.list('-created_date')
-  });
-
-  const { data: users = [] } = useQuery({
-    queryKey: ['users-dipendenti-unilav'],
-    queryFn: async () => {
-      const allUsers = await base44.entities.User.list();
-      return allUsers.filter((u) => u.user_type === 'dipendente' || u.user_type === 'user');
-    }
-  });
+// UnilavSection extracted
 
   const uploadMutation = useMutation({
     mutationFn: async ({ file, userId, descrizione, dataDocumento }) => {
