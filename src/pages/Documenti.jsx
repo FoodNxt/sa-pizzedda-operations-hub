@@ -2809,14 +2809,8 @@ function LettereSection() {
 
 // BustePagaSection, UnilavSection, RegolamentoSection - see components/documenti/
 
-// Removed - extracted to components/documenti/BustePagaSection.jsx
-// BUSTA_PAGA_REMOVED_START
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">
-              Mese di Riferimento
-            </label>
+// Removed BustePaga - extracted
+// Start cleanup
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
