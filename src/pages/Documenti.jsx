@@ -2807,43 +2807,7 @@ function LettereSection() {
 
 }
 
-// Dead code removed
-              </> :
-
-            <>
-                <Upload className="w-5 h-5" />
-                Carica e Splitta PDF
-              </>
-            }
-          </NeumorphicButton>
-
-          <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50">
-            <p className="text-xs text-blue-800">
-              <strong>ℹ️ Come funziona:</strong> Il PDF verrà analizzato automaticamente.
-              Ogni pagina con un codice fiscale sarà assegnata al dipendente corrispondente.
-            </p>
-          </div>
-        </div>
-      </NeumorphicCard>
-
-      <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-slate-800 mb-4">Storico Buste Paga</h2>
-        
-        {isLoading ?
-        <div className="text-center py-8">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
-          </div> :
-        bustePaga.length === 0 ?
-        <p className="text-center text-slate-500 py-8">Nessuna busta paga caricata</p> :
-
-        <div className="space-y-3">
-            {bustePaga.map((busta) =>
-          <NeumorphicCard key={busta.id} className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-slate-800">
-                      {new Date(busta.mese + '-01').toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })}
-                    </h3>
+// Sections extracted to components/documenti/
                     <p className="text-xs text-slate-500 mt-1">
                       Caricato: {new Date(busta.created_date).toLocaleDateString('it-IT')}
                     </p>
