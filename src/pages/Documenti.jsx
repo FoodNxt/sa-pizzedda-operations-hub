@@ -2807,26 +2807,10 @@ function LettereSection() {
 
 }
 
-// Buste Paga Section (Admin)
-function BustePagaSection() {
-  const [uploadingFile, setUploadingFile] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
-  const [selectedFile, setSelectedFile] = useState(null);
-
-  const queryClient = useQueryClient();
-
-  const { data: bustePaga = [], isLoading } = useQuery({
-    queryKey: ['buste-paga'],
-    queryFn: () => base44.entities.BustaPaga.list('-created_date')
-  });
-
-  const { data: users = [] } = useQuery({
-    queryKey: ['users-all'],
-    queryFn: () => base44.entities.User.list()
-  });
+// BustePagaSection, UnilavSection, RegolamentoSection extracted to components/documenti/
+// This marker is here for reference only - the actual components are imported at the top
+const _EXTRACTED_SECTIONS_PLACEHOLDER = null; /* eslint-disable-line */
+/* EXTRACTION_START - everything below until EXTRACTION_END was moved to separate files */
 
   const uploadMutation = useMutation({
     mutationFn: async ({ file, mese }) => {
