@@ -2189,7 +2189,7 @@ export default function Financials() {
 
         {activeTab === 'overview' &&
         <>
-        <NeumorphicCard className={`p-3 lg:p-4 sticky top-4 z-10 transition-all bg-opacity-95 backdrop-blur-sm`}>
+        <NeumorphicCard className={`p-3 lg:p-4 sticky top-4 z-10 transition-all bg-opacity-95 backdrop-blur-sm overflow-hidden`}>
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -2250,7 +2250,7 @@ export default function Financials() {
             </button>
           </div>
           {!filtersCollapsed &&
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-200 min-w-0">
               {/* Locale */}
               <div>
                 <label className="text-xs text-slate-600 mb-1.5 block font-medium">Locale</label>
@@ -2324,23 +2324,14 @@ export default function Financials() {
                 }
 
               {dateRange === 'custom' &&
-                <div className="md:col-span-2 grid grid-cols-2 gap-3">
-                  <div>
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+                  <div className="min-w-0">
                     <label className="text-xs text-slate-600 mb-1.5 block font-medium">Inizio</label>
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm max-w-full" />
                   </div>
-
-                  <div>
+                  <div className="min-w-0">
                     <label className="text-xs text-slate-600 mb-1.5 block font-medium">Fine</label>
-                    <input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm max-w-full" />
                   </div>
                 </div>
                 }
@@ -2361,23 +2352,14 @@ export default function Financials() {
               </div>
 
               {compareMode === 'custom' &&
-                <div className="md:col-span-2 grid grid-cols-2 gap-3">
-                  <div>
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+                  <div className="min-w-0">
                     <label className="text-xs text-slate-600 mb-1.5 block font-medium">Confronta Da</label>
-                    <input
-                      type="date"
-                      value={compareStartDate}
-                      onChange={(e) => setCompareStartDate(e.target.value)}
-                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+                    <input type="date" value={compareStartDate} onChange={(e) => setCompareStartDate(e.target.value)} className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm max-w-full" />
                   </div>
-
-                  <div>
+                  <div className="min-w-0">
                     <label className="text-xs text-slate-600 mb-1.5 block font-medium">Confronta A</label>
-                    <input
-                      type="date"
-                      value={compareEndDate}
-                      onChange={(e) => setCompareEndDate(e.target.value)}
-                      className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm" />
+                    <input type="date" value={compareEndDate} onChange={(e) => setCompareEndDate(e.target.value)} className="w-full neumorphic-pressed px-3 py-2 rounded-lg text-slate-700 outline-none text-sm max-w-full" />
                   </div>
                 </div>
                 }
