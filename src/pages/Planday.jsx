@@ -2673,7 +2673,6 @@ export default function Planday() {
           uscite={uscite}
         />
 
-        {/* Legacy modal removed - use Applica Modello instead */}
           </>
         }
 
