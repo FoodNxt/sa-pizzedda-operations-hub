@@ -391,16 +391,7 @@ export default function Planday() {
     applicaSenzaFine: false
   });
   const [showSalvaSettimanaModelloModal, setShowSalvaSettimanaModelloModal] = useState(false);
-  const [nomeSettimanaModello, setNomeSettimanaModello] = useState('');
-  const [descrizioneSettimanaModello, setDescrizioneSettimanaModello] = useState('');
   const [showApplicaModelloModal, setShowApplicaModelloModal] = useState(false);
-  const [selectedSettimanaModello, setSelectedSettimanaModello] = useState('');
-  const [applicaModelloRange, setApplicaModelloRange] = useState({
-    dataInizio: '',
-    dataFine: '',
-    applicaSenzaFine: false,
-    includiDipendenti: true
-  });
 
   // Modal per gestione turni
   const [showGestioneTurniModal, setShowGestioneTurniModal] = useState(false);
