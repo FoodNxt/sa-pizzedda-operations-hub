@@ -381,7 +381,6 @@ export default function Planday() {
   const [showColoriRuoloSection, setShowColoriRuoloSection] = useState(false);
 
   // Settimana modello
-  const [showSettimanaModelloModal, setShowSettimanaModelloModal] = useState(false);
   const [showSalvaSettimanaModelloModal, setShowSalvaSettimanaModelloModal] = useState(false);
   const [showApplicaModelloModal, setShowApplicaModelloModal] = useState(false);
 
