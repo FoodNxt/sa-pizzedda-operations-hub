@@ -3112,47 +3112,17 @@ export default function Financials() {
           <NeumorphicCard className="p-4 lg:p-6">
             <h2 className="text-base lg:text-lg font-bold text-slate-800 mb-4">Revenue per Locale</h2>
             {processedData.storeBreakdown.length > 0 ?
-              <div className="w-full overflow-x-auto">
-                <div style={{ minWidth: '300px' }}>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={processedData.storeBreakdown}>
+              <div className="w-full overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div style={{ minWidth: Math.max(300, processedData.storeBreakdown.length * 80) + 'px' }}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={processedData.storeBreakdown} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" />
-                      <XAxis
-                        dataKey="name"
-                        stroke="#64748b"
-                        tick={{ fontSize: 11 }}
-                        angle={-45}
-                        textAnchor="end"
-                        height={60} />
-
-                      <YAxis
-                        stroke="#64748b"
-                        tick={{ fontSize: 11 }}
-                        width={60} />
-
-                      <Tooltip
-                        contentStyle={{
-                          background: 'rgba(248, 250, 252, 0.95)',
-                          border: 'none',
-                          borderRadius: '12px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          fontSize: '11px'
-                        }}
-                        formatter={(value) => `€${formatCurrency(value)}`} />
-
-                      <Legend wrapperStyle={{ fontSize: '11px' }} />
-                      <Bar
-                        dataKey="revenue"
-                        fill="url(#storeGradient)"
-                        name="Revenue"
-                        radius={[8, 8, 0, 0]} />
-
-                      <defs>
-                        <linearGradient id="storeGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3b82f6" />
-                          <stop offset="100%" stopColor="#2563eb" />
-                        </linearGradient>
-                      </defs>
+                      <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 10 }} angle={-35} textAnchor="end" height={70} interval={0} tickFormatter={(n) => n.length > 10 ? n.slice(0,10)+'…' : n} />
+                      <YAxis stroke="#64748b" tick={{ fontSize: 10 }} width={50} tickFormatter={(v) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
+                      <Tooltip contentStyle={{ background: 'rgba(248,250,252,0.95)', border: 'none', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '11px' }} formatter={(value) => `€${formatCurrency(value)}`} />
+                      <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                      <Bar dataKey="revenue" fill="url(#storeGradient)" name="Revenue" radius={[8, 8, 0, 0]} />
+                      <defs><linearGradient id="storeGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#2563eb" /></linearGradient></defs>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
