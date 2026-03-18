@@ -519,8 +519,8 @@ Genera SOLO la risposta, senza introduzioni o spiegazioni.`;
         }
 
         {/* Map */}
-        <NeumorphicCard className="p-4 lg:p-6 overflow-hidden">
-          <div className="h-[400px] lg:h-[500px] rounded-xl overflow-hidden">
+        <NeumorphicCard className="p-4 lg:p-6 overflow-hidden relative z-0">
+          <div className="h-[250px] lg:h-[500px] rounded-xl overflow-hidden">
             {storeMetrics.filter(s => s.latitude && s.longitude).length > 0 ?
             <MapContainer
               center={mapCenter}
