@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // Temporary debug function - test Twilio SMS directly and return full response
 Deno.serve(async (req) => {

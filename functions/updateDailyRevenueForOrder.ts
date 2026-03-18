@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 import { format, parseISO, startOfDay, endOfDay } from 'npm:date-fns@3.0.0';
 
 /**

@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 // Scheduled function: runs every 5 minutes
 // Purpose: sends pending CM - Chiamata SMS via Twilio when scheduled time has been reached
