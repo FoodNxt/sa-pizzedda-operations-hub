@@ -828,16 +828,6 @@ export default function Planday() {
     }
   });
 
-  const createSettimanaModelloMutation = useMutation({
-    mutationFn: (data) => base44.entities.SettimanaModello.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['settimane-modello'] });
-      setShowSalvaSettimanaModelloModal(false);
-      setNomeSettimanaModello('');
-      setDescrizioneSettimanaModello('');
-    }
-  });
-
   const deleteSettimanaModelloMutation = useMutation({
     mutationFn: (id) => base44.entities.SettimanaModello.delete(id),
     onSuccess: () => {
