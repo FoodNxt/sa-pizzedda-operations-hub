@@ -385,11 +385,6 @@ export default function Planday() {
 
   // Settimana modello
   const [showSettimanaModelloModal, setShowSettimanaModelloModal] = useState(false);
-  const [settimanaModelloRange, setSettimanaModelloRange] = useState({
-    dataInizio: '',
-    dataFine: '',
-    applicaSenzaFine: false
-  });
   const [showSalvaSettimanaModelloModal, setShowSalvaSettimanaModelloModal] = useState(false);
   const [showApplicaModelloModal, setShowApplicaModelloModal] = useState(false);
 
