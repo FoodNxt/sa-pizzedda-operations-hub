@@ -11,11 +11,8 @@ import PlandayEmployeeView from "../components/planday/PlandayEmployeeView";
 import PlandayTeamView from "../components/planday/PlandayTeamView";
 import DisponibilitaCalendar from "../components/disponibilita/DisponibilitaCalendar";
 import DisponibilitaRicorrenti from "../components/disponibilita/DisponibilitaRicorrenti";
-import {
-  Calendar, ChevronLeft, ChevronRight, Plus, X, Save, Clock,
-  User, Store as StoreIcon, Trash2, Edit, Settings, Loader2, MapPin, Users, LayoutGrid,
-  CheckCircle, XCircle, AlertTriangle, CalendarClock } from
-"lucide-react";
+import { SalvaSettimanaModelloModal, ApplicaModelloModal } from "../components/planday/SalvaApplicaModelloModals";
+import { Calendar, ChevronLeft, ChevronRight, Plus, X, Save, Clock, User, Store as StoreIcon, Trash2, Edit, Settings, Loader2, MapPin, Users, LayoutGrid, CheckCircle, XCircle, AlertTriangle, CalendarClock } from "lucide-react";
 import moment from "moment";
 import "moment/locale/it";
 
