@@ -2760,91 +2760,13 @@ export default function Planday() {
           </div>
           }
 
-        {/* Modal Salva Settimana Modello */}
-        {showSalvaSettimanaModelloModal &&
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <NeumorphicCard className="p-6 max-w-md w-full">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-slate-800">Salva Settimana come Modello</h2>
-                <button onClick={() => setShowSalvaSettimanaModelloModal(false)} className="nav-button p-2 rounded-lg">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="mb-4 p-3 bg-blue-50 rounded-xl">
-                <p className="text-sm text-blue-800">
-                  <strong>Settimana Corrente:</strong><br />
-                  {weekStart.format('DD MMM')} - {weekStart.clone().add(6, 'days').format('DD MMM YYYY')}
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  {turni.length} turni in questa settimana
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">Nome Modello *</label>
-                  <input
-                    type="text"
-                    value={nomeSettimanaModello}
-                    onChange={(e) => setNomeSettimanaModello(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                    placeholder="Es: Settimana Standard Gennaio" />
-
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700 mb-1 block">Descrizione</label>
-                  <textarea
-                    value={descrizioneSettimanaModello}
-                    onChange={(e) => setDescrizioneSettimanaModello(e.target.value)}
-                    className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none h-20 resize-none"
-                    placeholder="Descrizione opzionale..." />
-
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <NeumorphicButton onClick={() => setShowSalvaSettimanaModelloModal(false)} className="flex-1">
-                  Annulla
-                </NeumorphicButton>
-                <NeumorphicButton
-                  onClick={() => {
-                    if (!nomeSettimanaModello.trim()) {
-                      alert('Inserisci un nome per il modello');
-                      return;
-                    }
-                    if (turni.length === 0) {
-                      alert('Nessun turno da salvare nella settimana corrente');
-                      return;
-                    }
-
-                    const turniModello = turni.filter((t) => t.data && moment(t.data).isValid()).map((t) => ({
-                      giorno_settimana: moment(t.data).isoWeekday(),
-                      store_id: t.store_id,
-                      ora_inizio: t.ora_inizio,
-                      ora_fine: t.ora_fine,
-                      ruolo: t.ruolo,
-                      dipendente_id: t.dipendente_id || '',
-                      tipo_turno: t.tipo_turno || 'Normale',
-                      note: t.note || ''
-                    }));
-
-                    createSettimanaModelloMutation.mutate({
-                      nome: nomeSettimanaModello.trim(),
-                      descrizione: descrizioneSettimanaModello.trim(),
-                      turni_modello: turniModello
-                    });
-                  }}
-                  variant="primary"
-                  className="flex-1"
-                  disabled={turni.length === 0 || createSettimanaModelloMutation.isPending}>
-
-                  {createSettimanaModelloMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salva Modello'}
-                </NeumorphicButton>
-              </div>
-            </NeumorphicCard>
-          </div>
-          }
+        <SalvaSettimanaModelloModal
+          show={showSalvaSettimanaModelloModal}
+          onClose={() => setShowSalvaSettimanaModelloModal(false)}
+          weekStart={weekStart}
+          turni={turni}
+          settimaneModello={settimaneModello}
+        />
 
         <ApplicaModelloModal
           show={showApplicaModelloModal}
