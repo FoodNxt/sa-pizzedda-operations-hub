@@ -31,6 +31,7 @@ import {
   Download } from
 'lucide-react';
 import AnalisiOrdiniTab from "../components/inventory/AnalisiOrdiniTab";
+import OrdiniInviatiTab from "../components/inventory/OrdiniInviatiTab";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO } from 'date-fns';
@@ -39,19 +40,13 @@ import ProtectedPage from "../components/ProtectedPage";
 
 export default function OrdiniAdmin() {
   const [activeTab, setActiveTab] = useState('suggeriti');
-  const [viewMode, setViewMode] = useState('per_locale'); // 'per_locale' | 'per_fornitore'
+  const [viewMode, setViewMode] = useState('per_locale');
   const [selectedStore, setSelectedStore] = useState('all');
   const [editingOrder, setEditingOrder] = useState(null);
   const [sendingEmail, setSendingEmail] = useState({});
   const [emailSent, setEmailSent] = useState({});
   const [customizingEmail, setCustomizingEmail] = useState(null);
-  const [emailTemplate, setEmailTemplate] = useState({
-    subject: '',
-    body: '',
-    prodotti: []
-  });
-  const [timeRange, setTimeRange] = useState('all'); // 'week', 'month', '3months', '6months', 'year', 'all'
-  const [selectedProduct, setSelectedProduct] = useState('all');
+  const [emailTemplate, setEmailTemplate] = useState({ subject: '', body: '', prodotti: [] });
   const [expandedStoresSuggeriti, setExpandedStoresSuggeriti] = useState({});
   const [expandedStoresCompletati, setExpandedStoresCompletati] = useState({});
   const [expandedFornitori, setExpandedFornitori] = useState({});
