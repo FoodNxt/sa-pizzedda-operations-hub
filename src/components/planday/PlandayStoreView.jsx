@@ -94,6 +94,14 @@ export default function PlandayStoreView({
 
   const turniNonAssegnati = turni.filter(t => !t.dipendente_id);
 
+  const calcDurata = (oraInizio, oraFine) => {
+    const [sH, sM] = oraInizio.split(':').map(Number);
+    const [eH, eM] = oraFine.split(':').map(Number);
+    return (eH - sH) + (eM - sM) / 60;
+  };
+
+  const totaleOreNonAssegnati = turniNonAssegnati.reduce((acc, t) => acc + calcDurata(t.ora_inizio, t.ora_fine), 0);
+
   // Calcola totale ore per giorno
   const totaleOrePerGiorno = useMemo(() => {
     const totali = {};
@@ -323,7 +331,7 @@ export default function PlandayStoreView({
               <div className="grid grid-cols-8 gap-1 border-b-2 border-orange-200 py-2 bg-orange-50">
                 <div className="p-2">
                   <div className="text-sm font-medium text-orange-800 truncate">⚠️ Non Assegnati</div>
-                  <div className="text-xs text-orange-600">{turniNonAssegnati.length} turni</div>
+                  <div className="text-xs text-orange-600">{turniNonAssegnati.length} turni · {totaleOreNonAssegnati.toFixed(1)}h</div>
                 </div>
                 {weekDays.map(day => {
                   const dayKey = day.format('YYYY-MM-DD');
@@ -396,7 +404,7 @@ export default function PlandayStoreView({
                               {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                                 <div className="absolute top-0 right-0 w-0 h-0 border-t-[12px] border-l-[12px] border-l-transparent" style={{ borderTopColor: getTipoTurnoColor(turno.tipo_turno) }} />
                               )}
-                              <div className="font-bold">{turno.ora_inizio}-{turno.ora_fine}</div>
+                              <div className="font-bold">{turno.ora_inizio}-{turno.ora_fine} <span className="font-normal opacity-75">({calcDurata(turno.ora_inizio, turno.ora_fine).toFixed(1)}h)</span></div>
                               <div className="text-[10px] opacity-90">{turno.ruolo}</div>
                               {turno.tipo_turno && turno.tipo_turno !== 'Normale' && (
                                 <div className="text-[9px] font-bold mt-0.5">{turno.tipo_turno}</div>
