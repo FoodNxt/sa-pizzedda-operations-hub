@@ -406,7 +406,7 @@ export default function PlandayStoreView({
                 <div key={dipendente.id} className="grid grid-cols-8 gap-1 border-b border-slate-100 py-2 hover:bg-slate-50">
                   <div className="p-2">
                     <div className="text-sm font-medium text-slate-800 truncate">{dipendente.nome_cognome || dipendente.full_name}</div>
-                    <div className="text-xs text-slate-400">{totaleOre.toFixed(0)}h / {totaleTurni} turni</div>
+                    <div className="text-xs text-slate-400">{(Math.round(totaleOre * 2) / 2).toFixed(1).replace('.0', '')}h / {totaleTurni} turni</div>
                   </div>
                   {weekDays.map(day => {
                     const dayKey = day.format('YYYY-MM-DD');
