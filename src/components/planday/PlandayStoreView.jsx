@@ -102,6 +102,15 @@ export default function PlandayStoreView({
 
   const totaleOreNonAssegnati = turniNonAssegnati.reduce((acc, t) => acc + calcDurata(t.ora_inizio, t.ora_fine), 0);
 
+  const oreNonAssegnatiPerRuolo = useMemo(() => {
+    const perRuolo = {};
+    turniNonAssegnati.forEach(t => {
+      const r = t.ruolo || 'Altro';
+      perRuolo[r] = (perRuolo[r] || 0) + calcDurata(t.ora_inizio, t.ora_fine);
+    });
+    return perRuolo;
+  }, [turniNonAssegnati]);
+
   // Calcola totale ore per giorno
   const totaleOrePerGiorno = useMemo(() => {
     const totali = {};
