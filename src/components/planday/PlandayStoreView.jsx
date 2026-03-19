@@ -575,7 +575,7 @@ export default function PlandayStoreView({
               disabled={quickForm.is_prova}
             >
               <option value="">Non assegnato</option>
-              {users
+              {activeUsers
                 .filter(u => {
                   const ruoli = u.ruoli_dipendente || [];
                   return ruoli.includes(quickForm.ruolo);
