@@ -52,6 +52,7 @@ const AuthenticatedApp = () => {
         {Object.entries(Pages).map(([path, Page]) => (
           <Route key={path} path={`/${path}`} element={<Page />} />
         ))}
+        <Route path="/employees" element={<Navigate to="/Employees" replace />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </LayoutWrapper>
