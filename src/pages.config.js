@@ -130,6 +130,7 @@ import MappingProdottiVenduti from './pages/MappingProdottiVenduti';
 import Marketing from './pages/Marketing';
 import MarketingSettings from './pages/MarketingSettings';
 import MatchingOrdiniSbagliati from './pages/MatchingOrdiniSbagliati';
+import Meteo from './pages/Meteo';
 import MateriePrime from './pages/MateriePrime';
 import Meta from './pages/Meta';
 import NotificheMail from './pages/NotificheMail';
@@ -272,6 +273,7 @@ export const PAGES = {
     "Marketing": Marketing,
     "MarketingSettings": MarketingSettings,
     "MatchingOrdiniSbagliati": MatchingOrdiniSbagliati,
+    "Meteo": Meteo,
     "MateriePrime": MateriePrime,
     "Meta": Meta,
     "NotificheMail": NotificheMail,

@@ -53,6 +53,7 @@ const AuthenticatedApp = () => {
           <Route key={path} path={`/${path}`} element={<Page />} />
         ))}
         <Route path="/employees" element={<Navigate to="/Employees" replace />} />
+        <Route path="/meteo" element={<Navigate to="/Meteo" replace />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </LayoutWrapper>
