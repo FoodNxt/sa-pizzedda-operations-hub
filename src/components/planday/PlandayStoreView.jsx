@@ -341,6 +341,14 @@ export default function PlandayStoreView({
                 <div className="p-2">
                   <div className="text-sm font-medium text-orange-800 truncate">⚠️ Non Assegnati</div>
                   <div className="text-xs text-orange-600">{turniNonAssegnati.length} turni · {totaleOreNonAssegnati.toFixed(1)}h</div>
+                  <div className="mt-1 space-y-0.5">
+                    {Object.entries(oreNonAssegnatiPerRuolo).map(([ruolo, ore]) => (
+                      <div key={ruolo} className="text-[10px] text-orange-700 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: coloriRuolo[ruolo] || '#94a3b8' }} />
+                        {ruolo}: {ore.toFixed(1)}h
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 {weekDays.map(day => {
                   const dayKey = day.format('YYYY-MM-DD');
