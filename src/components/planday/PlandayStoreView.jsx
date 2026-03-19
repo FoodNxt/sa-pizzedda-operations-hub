@@ -51,6 +51,19 @@ export default function PlandayStoreView({
   const [selectedTurno, setSelectedTurno] = useState(null);
   const [viewMode, setViewMode] = useState('byemployee'); // 'byemployee' o 'byday'
 
+  const { data: usciteData = [] } = useQuery({
+    queryKey: ['uscite-store-view'],
+    queryFn: () => base44.entities.Uscita.list()
+  });
+
+  const activeUsers = useMemo(() => {
+    return users.filter(u => {
+      const uscita = usciteData.find(usc => usc.dipendente_id === u.id);
+      if (!uscita) return true;
+      return moment().isBefore(moment(uscita.data_uscita));
+    });
+  }, [users, usciteData]);
+
   const weekDays = useMemo(() => {
     const days = [];
     for (let i = 0; i < 7; i++) {
