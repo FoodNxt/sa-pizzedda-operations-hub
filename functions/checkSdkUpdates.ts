@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.22';
 
 const CURRENT_SDK_VERSION = '0.8.21';
 const NOTIFY_EMAIL = 'admin@sapizzedda.it';
