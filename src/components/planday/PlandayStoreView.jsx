@@ -348,7 +348,7 @@ export default function PlandayStoreView({
                             className="p-2 rounded-lg cursor-pointer text-xs relative bg-orange-300 text-orange-900"
                             onClick={(e) => handleTurnoClick(e, turno)}
                           >
-                            <div className="font-bold">{turno.ora_inizio}-{turno.ora_fine}</div>
+                            <div className="font-bold">{turno.ora_inizio}-{turno.ora_fine} <span className="font-normal opacity-75">({calcDurata(turno.ora_inizio, turno.ora_fine).toFixed(1)}h)</span></div>
                             <div className="text-[10px] opacity-90">{turno.ruolo}</div>
                             {!selectedStore && turno.store_id && <div className="opacity-80 text-[10px]">{getStoreName(turno.store_id)}</div>}
                           </div>
