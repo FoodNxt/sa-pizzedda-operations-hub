@@ -158,28 +158,34 @@ Deno.serve(async (req) => {
                 };
                 const items = await runActor('clockworks~tiktok-scraper', input);
                 console.log(`TikTok returned ${items.length} raw items`);
+                if (items.length > 0) {
+                    console.log('TikTok sample item keys:', Object.keys(items[0]));
+                    console.log('TikTok sample item:', JSON.stringify(items[0]).slice(0, 1500));
+                }
 
                 for (const item of items) {
-                    const username = item.uniqueId || item.author?.uniqueId || item.username || '';
+                    // TikTok user search may return nested user_info or direct fields
+                    const userInfo = item.user_info || item.userInfo || item;
+                    const username = userInfo.uniqueId || userInfo.unique_id || item.uniqueId || item.author?.uniqueId || item.username || '';
                     if (!username) continue;
 
-                    const authorStats = item.authorStats || item.stats || {};
+                    const authorStats = userInfo.authorStats || userInfo.stats || item.authorStats || item.stats || {};
                     allResults.push({
                         username,
-                        full_name: item.nickname || item.author?.nickname || username,
+                        full_name: userInfo.nickname || item.nickname || item.author?.nickname || username,
                         platform: 'tiktok',
-                        biography: item.signature || item.bio || item.author?.signature || '',
-                        followers_count: authorStats.followerCount ?? item.followerCount ?? item.fans ?? 0,
-                        profile_pic_url: item.avatarLarger || item.avatarMedium || item.author?.avatarLarger || '',
-                        verified: item.verified || item.author?.verified || false,
+                        biography: userInfo.signature || item.signature || item.bio || item.author?.signature || '',
+                        followers_count: authorStats.followerCount ?? userInfo.followerCount ?? userInfo.fans ?? item.followerCount ?? item.fans ?? 0,
+                        profile_pic_url: userInfo.avatarLarger || userInfo.avatarMedium || item.avatarLarger || item.avatarMedium || item.author?.avatarLarger || '',
+                        verified: userInfo.verified || item.verified || item.author?.verified || false,
                         engagement_rate: null,
                         niche: niches?.[0] || 'food',
                         city: null,
                         profile_url: `https://www.tiktok.com/@${username}`,
                         email: null,
-                        external_url: item.bioLink?.link || null,
-                        posts_count: authorStats.videoCount ?? null,
-                        following_count: authorStats.followingCount ?? null,
+                        external_url: userInfo.bioLink?.link || item.bioLink?.link || null,
+                        posts_count: authorStats.videoCount ?? userInfo.videoCount ?? null,
+                        following_count: authorStats.followingCount ?? userInfo.followingCount ?? null,
                         is_business: false,
                         account_id: item.id || item.author?.id || null,
                         source: 'apify'
