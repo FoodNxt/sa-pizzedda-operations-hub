@@ -2642,20 +2642,8 @@ Sa Pizzedda`,
         }
 
         {/* Confronto Listini Tab */}
-        {activeTab === 'confronto' && false && (
-          <div>REMOVED_PLACEHOLDER</div>
-        )}
         {activeTab === 'confronto' && (
-          <ConfrontoListiniTab
-            products={products}
-            stores={stores}
-            selectedNomeInterno={selectedNomeInterno}
-            setSelectedNomeInterno={setSelectedNomeInterno}
-            selectedCategoryListini={selectedCategoryListini}
-            setSelectedCategoryListini={setSelectedCategoryListini}
-            selectedStoreListini={selectedStoreListini}
-            setSelectedStoreListini={setSelectedStoreListini}
-          />
+          <ConfrontoListiniTab products={products} stores={stores} selectedNomeInterno={selectedNomeInterno} setSelectedNomeInterno={setSelectedNomeInterno} selectedCategoryListini={selectedCategoryListini} setSelectedCategoryListini={setSelectedCategoryListini} selectedStoreListini={selectedStoreListini} setSelectedStoreListini={setSelectedStoreListini} />
         )}
         {false && (() => {
               // Group products by nome_interno
