@@ -2641,7 +2641,7 @@ Sa Pizzedda`,
           </div>
         }
 
-        {/* Confronto Listini Tab */}
+        {/* Confronto Listini Tab - MARKER_START */}
         {activeTab === 'confronto' && (
           <div className="space-y-6">
             {/* Filters */}
