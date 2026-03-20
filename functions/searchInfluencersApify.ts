@@ -160,10 +160,7 @@ Deno.serve(async (req) => {
                 };
                 const items = await runActor('clockworks~tiktok-scraper', input);
                 console.log(`TikTok returned ${items.length} raw items`);
-                if (items.length > 0) {
-                    console.log('TikTok sample item keys:', Object.keys(items[0]));
-                    console.log('TikTok sample item:', JSON.stringify(items[0]).slice(0, 1500));
-                }
+
 
                 // TikTok scraper returns videos/posts — extract unique authors from authorMeta
                 const seenTiktokUsers = new Set();
@@ -210,13 +207,9 @@ Deno.serve(async (req) => {
                     regionCode: 'IT',
                     language: 'it'
                 };
-                console.log('YouTube actor input:', JSON.stringify(input));
                 const items = await runActor('coregent~youtube-channel-finder', input, 180);
                 console.log(`YouTube returned ${items.length} raw items`);
-                if (items.length > 0) {
-                    console.log('YouTube sample keys:', Object.keys(items[0]));
-                    console.log('YouTube sample:', JSON.stringify(items[0]).slice(0, 1000));
-                }
+
 
                 for (const item of items) {
                     const handle = item.handle || item.customUrl || '';
