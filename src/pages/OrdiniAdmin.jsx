@@ -32,6 +32,7 @@ import {
 'lucide-react';
 import AnalisiOrdiniTab from "../components/inventory/AnalisiOrdiniTab";
 import OrdiniInviatiTab from "../components/inventory/OrdiniInviatiTab";
+import ConfrontoListiniTab from "../components/inventory/ConfrontoListiniTab";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO } from 'date-fns';
@@ -72,9 +73,6 @@ export default function OrdiniAdmin() {
   const [selectedNomeInterno, setSelectedNomeInterno] = useState('all');
   const [selectedCategoryListini, setSelectedCategoryListini] = useState('all');
   const [selectedStoreListini, setSelectedStoreListini] = useState('all');
-  const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [downloadCategories, setDownloadCategories] = useState([]);
-  const [downloadFornitori, setDownloadFornitori] = useState([]);
 
   const queryClient = useQueryClient();
 
