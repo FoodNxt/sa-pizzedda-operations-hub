@@ -165,11 +165,11 @@ Deno.serve(async (req) => {
                     console.log('TikTok sample item:', JSON.stringify(items[0]).slice(0, 1500));
                 }
 
-                // TikTok scraper returns videos — extract unique authors from authorMeta
+                // TikTok scraper returns videos/posts — extract unique authors from authorMeta
                 const seenTiktokUsers = new Set();
                 for (const item of items) {
-                    const author = item.authorMeta || item.author || {};
-                    const username = author.name || author.uniqueId || '';
+                    const author = item.authorMeta || item.author || item;
+                    const username = author.name || author.uniqueId || author.unique_id || item.uniqueId || '';
                     if (!username || seenTiktokUsers.has(username)) continue;
                     seenTiktokUsers.add(username);
 
@@ -177,9 +177,9 @@ Deno.serve(async (req) => {
                         username,
                         full_name: author.nickName || author.nickname || username,
                         platform: 'tiktok',
-                        biography: author.signature || '',
+                        biography: author.signature || author.bio || '',
                         followers_count: author.fans ?? author.followerCount ?? 0,
-                        profile_pic_url: author.avatar || author.avatarLarger || '',
+                        profile_pic_url: author.avatar || author.avatarLarger || author.avatarMedium || '',
                         verified: author.verified || false,
                         engagement_rate: null,
                         niche: niches?.[0] || 'food',
@@ -205,16 +205,22 @@ Deno.serve(async (req) => {
         platformPromises.push((async () => {
             try {
                 const input = {
-                    searchKeywords: [cityFilter ? `${searchTerms[0]} ${cityFilter}` : searchTerms[0]],
-                    maxResults: 30
+                    searchQueries: [cityFilter ? `${searchTerms[0]} ${cityFilter}` : searchTerms[0]],
+                    maxResultsPerQuery: 20,
+                    regionCode: 'IT',
+                    language: 'it'
                 };
-                const items = await runActor('scraperx~youtube-channel-finder', input);
+                const items = await runActor('coregent~youtube-channel-finder', input);
                 console.log(`YouTube returned ${items.length} raw items`);
+                if (items.length > 0) {
+                    console.log('YouTube sample keys:', Object.keys(items[0]));
+                    console.log('YouTube sample:', JSON.stringify(items[0]).slice(0, 1000));
+                }
 
                 for (const item of items) {
                     const handle = item.handle || item.customUrl || '';
                     const channelId = item.channelId || item.id || '';
-                    const username = handle.replace('@', '') || channelId;
+                    const username = handle.replace(/^@/, '') || channelId;
                     if (!username) continue;
 
                     allResults.push({
@@ -224,17 +230,17 @@ Deno.serve(async (req) => {
                         biography: item.description || item.about || '',
                         followers_count: item.subscriberCount ?? item.subscribers ?? 0,
                         profile_pic_url: item.avatar || item.thumbnailUrl || item.profilePicUrl || '',
-                        verified: item.isVerified || false,
+                        verified: item.isVerified || item.verified || false,
                         engagement_rate: null,
                         niche: niches?.[0] || 'food',
                         city: item.country || item.location || null,
-                        profile_url: channelId
+                        profile_url: item.url || item.channelUrl || (channelId
                             ? `https://www.youtube.com/channel/${channelId}`
                             : handle
                                 ? `https://www.youtube.com/${handle}`
-                                : `https://www.youtube.com/@${username}`,
+                                : `https://www.youtube.com/@${username}`),
                         email: item.email || null,
-                        external_url: item.links?.[0] || null,
+                        external_url: item.links?.[0] || item.externalLink || null,
                         posts_count: item.videoCount ?? item.videosCount ?? null,
                         following_count: null,
                         is_business: false,
