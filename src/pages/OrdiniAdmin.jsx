@@ -375,7 +375,7 @@ export default function OrdiniAdmin() {
       const nomeInterno = order.product?.nome_interno || order.nome_prodotto;
       const key = `${order.store_id}-${order.fornitore}-${nomeInterno}`;
       if (!map[key]) {
-        map[key] = { ...order, nome_prodotto: nomeInterno, merged_product_ids: [order.product.id] };
+        map[key] = { ...order, nome_prodotto: nomeInterno, nome_prodotto_originale: order.product.nome_prodotto, merged_product_ids: [order.product.id] };
       } else {
         const e = map[key];
         e.quantita_rilevata = (e.quantita_rilevata || 0) + (order.quantita_rilevata || 0);
