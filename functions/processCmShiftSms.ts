@@ -84,8 +84,8 @@ Deno.serve(async (req) => {
                 continue;
             }
 
-            // Build exact SMS body
-            const smsBody = `13505360969*${user.codice_fiscale}*${dateFormatted}`;
+            // Build SMS body (multi-line format)
+            const smsBody = `Nome azienda: Crunch Srl\nPIVA/CF: 13505360969\nCF Lavoratore: ${user.codice_fiscale}\nData chiamata: ${day}/${month}/${year}`;
 
             // Twilio E.164 numbers (Italian prefix +39)
             const fromNumber = '+393399908823';
