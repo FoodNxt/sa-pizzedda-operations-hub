@@ -617,8 +617,8 @@ export default function OrdiniAdmin() {
       iva_percentuale: order.product.iva_percentuale ?? 22
     }));
 
-    const productList = prodotti.map((p) =>
-    `• ${p.nome_prodotto}: ${p.quantita_ordinata} ${p.unita_misura}`
+    const productList = orders.map((order) =>
+    `• ${order.product.nome_prodotto}: ${order.quantita_ordine} ${order.unita_misura}`
     ).join('\n');
 
     setEmailTemplate({
