@@ -2654,15 +2654,7 @@ Sa Pizzedda`,
 
         {/* dead comparison table removed */}
 
-                          return (
-                            <div key={nomeInterno} className="neumorphic-pressed p-5 rounded-xl">
-                              <div className="flex items-start justify-between mb-4">
-                                <div>
-                                  <h3 className="font-bold text-lg text-slate-800">{nomeInterno}</h3>
-                                  <p className="text-sm text-slate-500">
-                                    {prods[0].categoria} • {prods.length} {prods.length === 1 ? 'fornitore' : 'fornitori'}
-                                  </p>
-                                </div>
+        {/* dead product comparison code removed */}
                                 {prods.length > 1 && (
                                   <div className="text-right">
                                     <div className="flex items-center gap-2 text-green-600 font-bold">
