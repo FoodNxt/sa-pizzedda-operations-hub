@@ -2652,20 +2652,7 @@ Sa Pizzedda`,
         {/* More dead confronto code removed - see ConfrontoListiniTab */}
         {/* dead code stats removed */}
 
-        {/* dead comparison table removed - MARKER_END_START */}
-                    
-                    {filteredGrouped.length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-slate-500">Nessun prodotto con più fornitori trovato</p>
-                        <p className="text-xs text-slate-400 mt-2">
-                          Assicurati di usare lo stesso "Nome Interno" per prodotti equivalenti
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {filteredGrouped.map(([nomeInterno, prods]) => {
-                          const sortedByPrice = [...prods].sort((a, b) => (a.prezzo_unitario || 0) - (b.prezzo_unitario || 0));
-                          const savingsPercent = getSavingsPercentage(prods);
+        {/* dead comparison table removed */}
 
                           return (
                             <div key={nomeInterno} className="neumorphic-pressed p-5 rounded-xl">
