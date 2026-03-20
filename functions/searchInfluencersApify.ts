@@ -165,11 +165,11 @@ Deno.serve(async (req) => {
                     console.log('TikTok sample item:', JSON.stringify(items[0]).slice(0, 1500));
                 }
 
-                // TikTok scraper returns videos/posts — extract unique authors from authorMeta
+                // TikTok scraper returns videos — extract unique authors from authorMeta
                 const seenTiktokUsers = new Set();
                 for (const item of items) {
-                    const author = item.authorMeta || item.author || item;
-                    const username = author.name || author.uniqueId || author.unique_id || item.uniqueId || '';
+                    const author = item.authorMeta || item.author || {};
+                    const username = author.name || author.uniqueId || '';
                     if (!username || seenTiktokUsers.has(username)) continue;
                     seenTiktokUsers.add(username);
 
@@ -177,9 +177,9 @@ Deno.serve(async (req) => {
                         username,
                         full_name: author.nickName || author.nickname || username,
                         platform: 'tiktok',
-                        biography: author.signature || author.bio || '',
+                        biography: author.signature || '',
                         followers_count: author.fans ?? author.followerCount ?? 0,
-                        profile_pic_url: author.avatar || author.avatarLarger || author.avatarMedium || '',
+                        profile_pic_url: author.avatar || author.avatarLarger || '',
                         verified: author.verified || false,
                         engagement_rate: null,
                         niche: niches?.[0] || 'food',
