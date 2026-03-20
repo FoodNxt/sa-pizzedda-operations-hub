@@ -2645,49 +2645,7 @@ Sa Pizzedda`,
         {activeTab === 'confronto' && (
           <ConfrontoListiniTab products={products} stores={stores} selectedNomeInterno={selectedNomeInterno} setSelectedNomeInterno={setSelectedNomeInterno} selectedCategoryListini={selectedCategoryListini} setSelectedCategoryListini={setSelectedCategoryListini} selectedStoreListini={selectedStoreListini} setSelectedStoreListini={setSelectedStoreListini} />
         )}
-        {/* Modal Conferma Ricezione Ordine - PLACEHOLDER_DEAD_CODE_REMOVED */}
-
-              const normalizeToBaseUnit = (product) => {
-                if (!product.peso_dimensione_unita || !product.unita_misura_peso) {
-                  if (product.unita_per_confezione && product.peso_unita_interna && product.unita_misura_interna) {
-                    const unitWeight = ['kg', 'litri'].includes(product.unita_misura_interna) ?
-                      product.peso_unita_interna :
-                      product.peso_unita_interna / 1000;
-                    return product.unita_per_confezione * unitWeight;
-                  }
-                  return null;
-                }
-
-                if (['kg', 'litri'].includes(product.unita_misura_peso)) {
-                  return product.peso_dimensione_unita;
-                } else if (['g', 'ml'].includes(product.unita_misura_peso)) {
-                  return product.peso_dimensione_unita / 1000;
-                }
-
-                return null;
-              };
-
-              const getNormalizedPrice = (product) => {
-                const weight = normalizeToBaseUnit(product);
-                if (!weight || !product.prezzo_unitario) return null;
-                return product.prezzo_unitario / weight;
-              };
-
-              const getBestPrice = (prods) => {
-                const prices = prods.map((p) => getNormalizedPrice(p)).filter((p) => p !== null);
-                return prices.length > 0 ? Math.min(...prices) : 0;
-              };
-
-              const getWorstPrice = (prods) => {
-                const prices = prods.map((p) => getNormalizedPrice(p)).filter((p) => p !== null);
-                return prices.length > 0 ? Math.max(...prices) : 0;
-              };
-
-              const getSavingsPercentage = (prods) => {
-                const best = getBestPrice(prods);
-                const worst = getWorstPrice(prods);
-                return worst > 0 ? ((worst - best) / worst * 100).toFixed(1) : 0;
-              };
+        {/* Confronto Listini code extracted to ConfrontoListiniTab */}
 
               // Find products in use that are not the best price
               const getProductsNotOptimal = () => {
