@@ -27,8 +27,7 @@ import {
   DollarSign,
   TrendingDown,
   TrendingUp,
-  Store,
-  Download } from
+  Store } from
 'lucide-react';
 import AnalisiOrdiniTab from "../components/inventory/AnalisiOrdiniTab";
 import OrdiniInviatiTab from "../components/inventory/OrdiniInviatiTab";
