@@ -2645,8 +2645,7 @@ Sa Pizzedda`,
         {activeTab === 'confronto' && (
           <ConfrontoListiniTab products={products} stores={stores} selectedNomeInterno={selectedNomeInterno} setSelectedNomeInterno={setSelectedNomeInterno} selectedCategoryListini={selectedCategoryListini} setSelectedCategoryListini={setSelectedCategoryListini} selectedStoreListini={selectedStoreListini} setSelectedStoreListini={setSelectedStoreListini} />
         )}
-        {false && (() => {
-              // Group products by nome_interno
+        {false && (() => 'DEAD_CODE_START' && false && (() => {
               const productsGrouped = products.
                 filter((p) => p.nome_interno && p.prezzo_unitario).
                 reduce((acc, product) => {
