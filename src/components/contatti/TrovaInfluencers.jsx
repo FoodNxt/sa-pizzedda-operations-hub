@@ -116,6 +116,15 @@ export default function TrovaInfluencers({ onAddContact }) {
       });
 
       const apiResults = backendResponse?.data?.results || [];
+      const apiErrors = backendResponse?.data?.errors || [];
+      
+      // Check if Apify limit exceeded
+      if (apiErrors.some(e => e.isLimitExceeded)) {
+        setSearchError("⚠️ Limite mensile Apify raggiunto. La ricerca influencer riprenderà il prossimo mese o dopo l'upgrade del piano Apify.");
+        setLoading(false);
+        return;
+      }
+      
       if (apiResults.length === 0) { 
         setLoading(false); 
         return; 
