@@ -2645,33 +2645,7 @@ Sa Pizzedda`,
         {activeTab === 'confronto' && (
           <ConfrontoListiniTab products={products} stores={stores} selectedNomeInterno={selectedNomeInterno} setSelectedNomeInterno={setSelectedNomeInterno} selectedCategoryListini={selectedCategoryListini} setSelectedCategoryListini={setSelectedCategoryListini} selectedStoreListini={selectedStoreListini} setSelectedStoreListini={setSelectedStoreListini} />
         )}
-        {false && (() => 'DEAD_CODE_START' && false && (() => {
-              const productsGrouped = products.
-                filter((p) => p.nome_interno && p.prezzo_unitario).
-                reduce((acc, product) => {
-                  const key = product.nome_interno;
-                  if (!acc[key]) {
-                    acc[key] = [];
-                  }
-                  acc[key].push(product);
-                  return acc;
-                }, {});
-
-              // Filter grouped products
-              const filteredGrouped = Object.entries(productsGrouped).
-                filter(([nomeInterno, prods]) => {
-                  if (selectedNomeInterno !== 'all' && nomeInterno !== selectedNomeInterno) return false;
-                  if (selectedCategoryListini !== 'all' && !prods.some((p) => p.categoria === selectedCategoryListini)) return false;
-                  return true;
-                }).
-                sort(([a], [b]) => a.localeCompare(b));
-
-              // Helper functions
-              const getDisplayUnit = (unitaMisuraPeso) => {
-                if (['kg', 'g'].includes(unitaMisuraPeso)) return 'kg';
-                if (['litri', 'ml'].includes(unitaMisuraPeso)) return 'litri';
-                return unitaMisuraPeso;
-              };
+        {/* Modal Conferma Ricezione Ordine - PLACEHOLDER_DEAD_CODE_REMOVED */}
 
               const normalizeToBaseUnit = (product) => {
                 if (!product.peso_dimensione_unita || !product.unita_misura_peso) {
