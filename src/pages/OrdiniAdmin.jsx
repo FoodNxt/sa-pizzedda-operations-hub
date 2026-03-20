@@ -2652,9 +2652,7 @@ Sa Pizzedda`,
         {/* More dead confronto code removed - see ConfrontoListiniTab */}
         {/* dead code stats removed */}
 
-                  {/* Comparison Table */}
-                  <NeumorphicCard className="p-6">
-                    <h2 className="text-xl font-bold text-slate-800 mb-6">Confronto Prezzi</h2>
+        {/* dead comparison table removed - MARKER_END_START */}
                     
                     {filteredGrouped.length === 0 ? (
                       <div className="text-center py-8">
