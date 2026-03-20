@@ -165,31 +165,32 @@ Deno.serve(async (req) => {
                     console.log('TikTok sample item:', JSON.stringify(items[0]).slice(0, 1500));
                 }
 
+                // TikTok scraper returns videos/posts — extract unique authors from authorMeta
+                const seenTiktokUsers = new Set();
                 for (const item of items) {
-                    // TikTok user search may return nested user_info or direct fields
-                    const userInfo = item.user_info || item.userInfo || item;
-                    const username = userInfo.uniqueId || userInfo.unique_id || item.uniqueId || item.author?.uniqueId || item.username || '';
-                    if (!username) continue;
+                    const author = item.authorMeta || item.author || item;
+                    const username = author.name || author.uniqueId || author.unique_id || item.uniqueId || '';
+                    if (!username || seenTiktokUsers.has(username)) continue;
+                    seenTiktokUsers.add(username);
 
-                    const authorStats = userInfo.authorStats || userInfo.stats || item.authorStats || item.stats || {};
                     allResults.push({
                         username,
-                        full_name: userInfo.nickname || item.nickname || item.author?.nickname || username,
+                        full_name: author.nickName || author.nickname || username,
                         platform: 'tiktok',
-                        biography: userInfo.signature || item.signature || item.bio || item.author?.signature || '',
-                        followers_count: authorStats.followerCount ?? userInfo.followerCount ?? userInfo.fans ?? item.followerCount ?? item.fans ?? 0,
-                        profile_pic_url: userInfo.avatarLarger || userInfo.avatarMedium || item.avatarLarger || item.avatarMedium || item.author?.avatarLarger || '',
-                        verified: userInfo.verified || item.verified || item.author?.verified || false,
+                        biography: author.signature || author.bio || '',
+                        followers_count: author.fans ?? author.followerCount ?? 0,
+                        profile_pic_url: author.avatar || author.avatarLarger || author.avatarMedium || '',
+                        verified: author.verified || false,
                         engagement_rate: null,
                         niche: niches?.[0] || 'food',
                         city: null,
-                        profile_url: `https://www.tiktok.com/@${username}`,
+                        profile_url: author.profileUrl || `https://www.tiktok.com/@${username}`,
                         email: null,
-                        external_url: userInfo.bioLink?.link || item.bioLink?.link || null,
-                        posts_count: authorStats.videoCount ?? userInfo.videoCount ?? null,
-                        following_count: authorStats.followingCount ?? userInfo.followingCount ?? null,
-                        is_business: false,
-                        account_id: item.id || item.author?.id || null,
+                        external_url: author.bioLink?.link || null,
+                        posts_count: author.video ?? null,
+                        following_count: author.following ?? null,
+                        is_business: author.commerceUserInfo?.commerceUser || false,
+                        account_id: author.id || null,
                         source: 'apify'
                     });
                 }
