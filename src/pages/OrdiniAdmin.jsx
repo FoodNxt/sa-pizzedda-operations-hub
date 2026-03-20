@@ -1074,48 +1074,10 @@ Sa Pizzedda`,
                                       return (
                                         <tr key={idx} className="border-b border-slate-200">
                                                 <td className="p-2 text-sm text-slate-700">
-                                                  {order.nome_prodotto}
-                                                  {(() => {
-                                                    // Trova semilavorati collegati a questa materia prima
-                                                    const semilavoratiCollegati = ricette.filter((r) => 
-                                                     r.somma_a_materia_prima_id === order.product.id &&
-                                                     r.is_semilavorato
-                                                    );
-
-                                                    if (semilavoratiCollegati.length === 0) return null;
-
-                                                    const allInventoryCombined = [...inventory, ...inventoryCantina];
-
-                                                    const dettagli = semilavoratiCollegati.map((ricetta) => {
-                                                     // Trova l'ultimo inventario per questo semilavorato
-                                                     const latestSemilavorato = allInventoryCombined
-                                                       .filter((i) => 
-                                                         i.store_id === order.store_id &&
-                                                         i.nome_prodotto?.toLowerCase() === ricetta.nome_prodotto?.toLowerCase()
-                                                       )
-                                                       .sort((a, b) => new Date(b.data_rilevazione) - new Date(a.data_rilevazione))[0];
-
-                                                     if (!latestSemilavorato) return null;
-
-                                                     return {
-                                                       nome: ricetta.nome_prodotto,
-                                                       quantita: latestSemilavorato.quantita_rilevata,
-                                                       unita: latestSemilavorato.unita_misura
-                                                     };
-                                                    }).filter(Boolean);
-
-                                                    if (dettagli.length === 0) return null;
-
-                                                    return (
-                                                     <div className="mt-1 text-xs text-blue-600">
-                                                       {dettagli.map((d, i) => (
-                                                         <div key={i}>
-                                                           ↳ {d.nome}: {d.quantita} {d.unita}
-                                                         </div>
-                                                       ))}
-                                                     </div>
-                                                    );
-                                                    })()}
+                                                  <span className="font-medium">{order.nome_prodotto}</span>
+                                                  {order.nome_prodotto_originale && order.nome_prodotto_originale !== order.nome_prodotto && (
+                                                    <span className="text-xs text-slate-400 ml-1">({order.nome_prodotto_originale})</span>
+                                                  )}
                                                 </td>
                                                 <td className="p-2 text-sm text-right text-red-600 font-bold">
                                                   {(order.quantita_aggregata ?? order.quantita_rilevata).toFixed(1)} {order.unita_misura}
