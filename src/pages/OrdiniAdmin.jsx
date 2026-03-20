@@ -2650,72 +2650,7 @@ Sa Pizzedda`,
         {/* dead code removed */}
 
         {/* More dead confronto code removed - see ConfrontoListiniTab */}
-                          <p className="text-sm text-orange-700">
-                            {selectedStoreListini === 'all' ?
-                              'Ci sono prodotti in uso che non hanno il miglior prezzo disponibile' :
-                              `Nel negozio selezionato ci sono prodotti in uso che non hanno il miglior prezzo`
-                            }
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3 max-h-60 overflow-y-auto">
-                        {notOptimalProducts.map((issue, idx) => (
-                          <div key={idx} className="neumorphic-pressed p-3 rounded-lg bg-white">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="font-bold text-slate-700 text-sm">{issue.nomeInterno}</p>
-                                <p className="text-xs text-slate-500">
-                                  <Store className="w-3 h-3 inline mr-1" />
-                                  {issue.store}
-                                </p>
-                                <p className="text-xs text-orange-600 mt-1">
-                                  In uso: <strong>{issue.productInUse.nome_prodotto}</strong> ({issue.productInUse.fornitore || 'N/D'})
-                                </p>
-                                <p className="text-xs text-green-600">
-                                  Miglior prezzo: <strong>{issue.bestProduct.nome_prodotto}</strong> ({issue.bestProduct.fornitore || 'N/D'})
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-red-600 font-bold text-sm">
-                                  +€{issue.priceDiff.toFixed(2)}/kg
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </NeumorphicCard>
-                  )}
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <NeumorphicCard className="p-6 text-center">
-                      <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-                        <Package className="w-8 h-8 text-blue-600" />
-                      </div>
-                      <h3 className="text-3xl font-bold text-slate-700 mb-1">{filteredGrouped.length}</h3>
-                      <p className="text-sm text-slate-500">Prodotti Confrontati</p>
-                    </NeumorphicCard>
-
-                    <NeumorphicCard className="p-6 text-center">
-                      <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-                        <Building2 className="w-8 h-8 text-blue-600" />
-                      </div>
-                      <h3 className="text-3xl font-bold text-blue-600 mb-1">
-                        {[...new Set(products.map((p) => p.fornitore).filter(Boolean))].length}
-                      </h3>
-                      <p className="text-sm text-slate-500">Fornitori Attivi</p>
-                    </NeumorphicCard>
-
-                    <NeumorphicCard className="p-6 text-center">
-                      <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-                        <TrendingDown className="w-8 h-8 text-green-600" />
-                      </div>
-                      <h3 className="text-3xl font-bold text-green-600 mb-1">€{totalPotentialSavings.toFixed(2)}</h3>
-                      <p className="text-sm text-slate-500">Risparmio Potenziale</p>
-                    </NeumorphicCard>
-                  </div>
+        {/* dead code stats removed */}
 
                   {/* Comparison Table */}
                   <NeumorphicCard className="p-6">
