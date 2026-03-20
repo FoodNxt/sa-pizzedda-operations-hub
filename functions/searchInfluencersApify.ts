@@ -86,11 +86,13 @@ Deno.serve(async (req) => {
             );
 
             if (!dataRes.ok) {
-                console.error(`Failed to fetch dataset for ${actorId}`);
+                console.error(`Failed to fetch dataset for ${actorId}: ${dataRes.status}`);
                 return [];
             }
 
-            return await dataRes.json();
+            const dataItems = await dataRes.json();
+            console.log(`Actor ${actorId}: dataset has ${dataItems.length} items, run status: ${status}`);
+            return dataItems;
         } catch (err) {
             console.error(`Actor ${actorId} error: ${err.message}`);
             return [];
