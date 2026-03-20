@@ -256,6 +256,7 @@ Deno.serve(async (req) => {
         })());
     }
 
+    console.log(`Running ${platformPromises.length} platform searches for: ${platforms.join(', ')}`);
     // Run all platform searches in parallel
     await Promise.all(platformPromises);
 
