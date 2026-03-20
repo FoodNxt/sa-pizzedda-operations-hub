@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
 
     const fromNumber = '+393399908823';
     const toNumber = '+393399942256';
-    const smsBody = `13505360969*RSLHSN96T01Z249C*15032026`;
+    const smsBody = `Nome azienda: Crunch Srl\nPIVA/CF: 13505360969\nCF Lavoratore: RSLHSN96T01Z249C\nData chiamata: 15/03/2026`;
 
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
     const credentials = btoa(`${accountSid}:${authToken}`);
