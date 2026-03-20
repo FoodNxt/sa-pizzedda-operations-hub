@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
                 const input = {
                     searchQueries: [cityFilter ? `${searchTerms[0]} ${cityFilter}` : searchTerms[0]],
                     resultsPerPage: 30,
-                    searchSection: 'users',
+                    searchSection: '/user',
                     shouldDownloadVideos: false
                 };
                 const items = await runActor('clockworks~tiktok-scraper', input);
