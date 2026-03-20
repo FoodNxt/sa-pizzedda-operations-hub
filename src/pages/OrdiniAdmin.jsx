@@ -2641,59 +2641,23 @@ Sa Pizzedda`,
           </div>
         }
 
-        {/* Confronto Listini Tab - MARKER_START */}
+        {/* Confronto Listini Tab */}
+        {activeTab === 'confronto' && false && (
+          <div>REMOVED_PLACEHOLDER</div>
+        )}
         {activeTab === 'confronto' && (
-          <div className="space-y-6">
-            {/* Filters */}
-            <div className="flex flex-wrap gap-3">
-              <NeumorphicCard className="px-4 py-2">
-                <select
-                  value={selectedNomeInterno}
-                  onChange={(e) => setSelectedNomeInterno(e.target.value)}
-                  className="bg-transparent text-slate-600 outline-none">
-                  <option value="all">Tutti i Prodotti</option>
-                  {(() => {
-                    const nomiInterni = [...new Set(products.map((p) => p.nome_interno).filter(Boolean))].sort();
-                    return nomiInterni.map((nome) => (
-                      <option key={nome} value={nome}>{nome}</option>
-                    ));
-                  })()}
-                </select>
-              </NeumorphicCard>
-
-              <NeumorphicCard className="px-4 py-2">
-                <select
-                  value={selectedCategoryListini}
-                  onChange={(e) => setSelectedCategoryListini(e.target.value)}
-                  className="bg-transparent text-slate-600 outline-none">
-                  <option value="all">Tutte le Categorie</option>
-                  {["Angolo di Sardegna", "Bevande", "Consumabili", "Dolci", "Ingredienti base", "Ingredienti pronti", "Ortofrutta", "Packaging", "Pulizia"].map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </NeumorphicCard>
-
-              <NeumorphicCard className="px-4 py-2">
-                <select
-                  value={selectedStoreListini}
-                  onChange={(e) => setSelectedStoreListini(e.target.value)}
-                  className="bg-transparent text-slate-600 outline-none">
-                  <option value="all">Tutti i Negozi</option>
-                  {stores.map((store) => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
-                  ))}
-                </select>
-              </NeumorphicCard>
-
-              <button
-                onClick={() => setShowDownloadModal(true)}
-                className="neumorphic-flat px-4 py-3 rounded-xl hover:shadow-lg transition-all flex items-center gap-2 text-slate-700 font-medium">
-                <Download className="w-5 h-5" />
-                <span className="hidden md:inline">Scarica Listino</span>
-              </button>
-            </div>
-
-            {(() => {
+          <ConfrontoListiniTab
+            products={products}
+            stores={stores}
+            selectedNomeInterno={selectedNomeInterno}
+            setSelectedNomeInterno={setSelectedNomeInterno}
+            selectedCategoryListini={selectedCategoryListini}
+            setSelectedCategoryListini={setSelectedCategoryListini}
+            selectedStoreListini={selectedStoreListini}
+            setSelectedStoreListini={setSelectedStoreListini}
+          />
+        )}
+        {false && (() => {
               // Group products by nome_interno
               const productsGrouped = products.
                 filter((p) => p.nome_interno && p.prezzo_unitario).
