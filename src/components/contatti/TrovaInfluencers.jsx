@@ -108,34 +108,36 @@ export default function TrovaInfluencers({ onAddContact }) {
     const followerRangeStrs = selectedRanges.map(r => `${r.min}-${r.max || 'inf'}`);
 
     try {
-      const backendResponse = await base44.functions.invoke('instagramInfluencerSearch', {
+      const backendResponse = await base44.functions.invoke('searchInfluencersApify', {
         platforms: filters.platforms,
         niches: filters.niches,
         followerRanges: followerRangeStrs,
         city: filters.city
       });
 
-      const results = backendResponse?.data?.results || [];
-      if (results.length === 0) { 
+      const apiResults = backendResponse?.data?.results || [];
+      if (apiResults.length === 0) { 
         setLoading(false); 
         return; 
       }
 
-      const mapped = results.map(item => ({
+      const mapped = apiResults.map(item => ({
         username: item.username,
-        full_name: item.full_name,
+        full_name: item.full_name || item.username,
         platform: item.platform || 'instagram',
         followers_count: item.followers_count,
-        biography: item.biography,
-        verified: item.verified,
-        profile_pic_url: item.profile_pic_url,
-        engagement_rate: item.engagement_rate || 0,
+        biography: item.biography || '',
+        verified: item.verified || false,
+        profile_pic_url: item.profile_pic_url || '',
+        engagement_rate: item.engagement_rate || null,
         niche: item.niche || 'food',
-        city: item.city || filters.city,
-        contact_hint: item.source === 'verified' ? '✓ Verificato' : '',
-        profile_url: item.profile_url || (item.platform === 'tiktok' 
-          ? `https://www.tiktok.com/@${item.username}` 
-          : `https://www.instagram.com/${item.username}/`),
+        city: item.city || filters.city || '',
+        contact_hint: item.email ? '✉ Email disponibile' : '',
+        profile_url: item.profile_url || '',
+        email: item.email || null,
+        external_url: item.external_url || null,
+        posts_count: item.posts_count || null,
+        is_business: item.is_business || false,
       }));
 
       setResults(mapped);
@@ -151,7 +153,7 @@ export default function TrovaInfluencers({ onAddContact }) {
     setAddingId(influencer.username);
     try {
       const nameParts = (influencer.full_name || influencer.username).split(" ");
-      const platformLabel = influencer.platform === 'tiktok' ? 'TikTok' : 'Instagram';
+      const platformLabel = influencer.platform === 'tiktok' ? 'TikTok' : influencer.platform === 'youtube' ? 'YouTube' : 'Instagram';
       await base44.entities.ContattoMarketing.create({
         categoria: "Food influencers",
         nome: nameParts[0] || influencer.username,
@@ -316,7 +318,7 @@ export default function TrovaInfluencers({ onAddContact }) {
         <div className="text-center py-16">
           <Loader2 className="w-12 h-12 text-purple-500 animate-spin mx-auto mb-4" />
           <p className="text-slate-600 font-medium">Ricerca influencer in corso...</p>
-          <p className="text-slate-400 text-sm mt-1">Stiamo cercando profili reali su {filters.platforms.map(p => p === 'tiktok' ? 'TikTok' : p === 'youtube' ? 'YouTube' : 'Instagram').join(' e ')}. Può richiedere 15-30 secondi.</p>
+          <p className="text-slate-400 text-sm mt-1">Stiamo cercando profili reali su {filters.platforms.map(p => p === 'tiktok' ? 'TikTok' : p === 'youtube' ? 'YouTube' : 'Instagram').join(' e ')} tramite Apify. Può richiedere 30-90 secondi.</p>
         </div>
       )}
 
@@ -380,13 +382,13 @@ export default function TrovaInfluencers({ onAddContact }) {
                         <img src={influencer.profile_pic_url} alt={influencer.username} className="w-12 h-12 rounded-full object-cover" />
                       ) : (
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${
-                          influencer.platform === 'tiktok' ? 'bg-gradient-to-br from-gray-800 to-black' : 'bg-gradient-to-br from-purple-400 to-pink-500'
+                          influencer.platform === 'tiktok' ? 'bg-gradient-to-br from-gray-800 to-black' : influencer.platform === 'youtube' ? 'bg-gradient-to-br from-red-500 to-red-700' : 'bg-gradient-to-br from-purple-400 to-pink-500'
                         }`}>
                           {(influencer.full_name || influencer.username || "?")[0].toUpperCase()}
                         </div>
                       )}
                       <span className="absolute -bottom-1 -right-1 text-xs">
-                        {influencer.platform === 'tiktok' ? '🎵' : '📸'}
+                        {influencer.platform === 'tiktok' ? '🎵' : influencer.platform === 'youtube' ? '▶️' : '📸'}
                       </span>
                     </div>
 
@@ -481,9 +483,9 @@ export default function TrovaInfluencers({ onAddContact }) {
                       {/* Tags */}
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          influencer.platform === 'tiktok' ? 'bg-gray-100 text-gray-700' : 'bg-pink-50 text-pink-600'
+                          influencer.platform === 'tiktok' ? 'bg-gray-100 text-gray-700' : influencer.platform === 'youtube' ? 'bg-red-50 text-red-600' : 'bg-pink-50 text-pink-600'
                         }`}>
-                          {influencer.platform === 'tiktok' ? '🎵 TikTok' : '📸 Instagram'}
+                          {influencer.platform === 'tiktok' ? '🎵 TikTok' : influencer.platform === 'youtube' ? '▶️ YouTube' : '📸 Instagram'}
                         </span>
                         {influencer.niche && (
                           <span className="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full text-xs font-medium">
