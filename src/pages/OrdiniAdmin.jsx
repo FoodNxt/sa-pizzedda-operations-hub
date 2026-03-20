@@ -2649,17 +2649,7 @@ Sa Pizzedda`,
 
         {/* dead code removed */}
 
-              return (
-                <div className="space-y-6">
-                  {/* Alert for non-optimal products */}
-                  {notOptimalProducts.length > 0 && (
-                    <NeumorphicCard className="p-6 bg-orange-50 border-2 border-orange-200">
-                      <div className="flex items-start gap-3 mb-4">
-                        <AlertTriangle className="w-6 h-6 text-orange-600 flex-shrink-0" />
-                        <div>
-                          <h3 className="font-bold text-orange-800 mb-1">
-                            ⚠️ Prodotti in uso non ottimali ({notOptimalProducts.length})
-                          </h3>
+        {/* More dead confronto code removed - see ConfrontoListiniTab */}
                           <p className="text-sm text-orange-700">
                             {selectedStoreListini === 'all' ?
                               'Ci sono prodotti in uso che non hanno il miglior prezzo disponibile' :
