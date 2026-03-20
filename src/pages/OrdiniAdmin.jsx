@@ -1370,7 +1370,7 @@ Sa Pizzedda`,
 
                                       return (
                                         <tr key={idx} className="border-b border-slate-200">
-                                          <td className="p-2 text-sm text-slate-700">{order.nome_prodotto}</td>
+                                          <td className="p-2 text-sm text-slate-700"><span className="font-medium">{order.nome_prodotto}</span>{order.nome_prodotto_originale && order.nome_prodotto_originale !== order.nome_prodotto && <span className="text-xs text-slate-400 ml-1">({order.nome_prodotto_originale})</span>}</td>
                                           <td className="p-2 text-sm text-right text-red-600 font-bold">
                                             {(order.quantita_aggregata ?? order.quantita_rilevata).toFixed(1)} {order.unita_misura}
                                           </td>
