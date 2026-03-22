@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.22';
 import moment from 'npm:moment@2.30.1';
 
 Deno.serve(async (req) => {
