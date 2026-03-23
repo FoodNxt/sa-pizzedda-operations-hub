@@ -208,12 +208,14 @@ Deno.serve(async (req) => {
     if (platforms.includes('youtube')) {
         platformPromises.push((async () => {
             try {
-                // scrapier~youtube-search-scraper returns video results with channel data
+                // streamers~youtube-scraper: Apify-maintained, searches by keyword, returns videos with channel data
                 const input = {
-                    queries: [cityFilter ? `${searchTerms[0]} ${cityFilter}` : searchTerms[0]],
-                    debug: false
+                    searchKeywords: [cityFilter ? `${searchTerms[0]} ${cityFilter}` : searchTerms[0]],
+                    maxResults: 30,
+                    maxResultsShorts: 0,
+                    maxResultStreams: 0
                 };
-                const result = await runActor('scrapier~youtube-search-scraper', input, 180);
+                const result = await runActor('streamers~youtube-scraper', input, 180);
                 if (result.error) {
                     errors.push({ platform: 'youtube', error: result.error, isLimitExceeded: result.isLimitExceeded });
                 }
@@ -223,15 +225,17 @@ Deno.serve(async (req) => {
                 // Extract unique channels from video results
                 const seenYtChannels = new Set();
                 for (const item of items) {
-                    const channelId = item.channelId || '';
-                    const channelUsername = item.channelUsername || '';
-                    const username = channelUsername.replace(/^@/, '') || channelId;
+                    const channelUrl = item.channelUrl || '';
+                    const channelName = item.channelName || '';
+                    // Extract username from channelUrl like "http://www.youtube.com/@username"
+                    const handleMatch = channelUrl.match(/@([^/]+)/);
+                    const username = handleMatch ? handleMatch[1] : channelName.replace(/\s+/g, '');
                     if (!username || seenYtChannels.has(username)) continue;
                     seenYtChannels.add(username);
 
                     allResults.push({
                         username,
-                        full_name: item.channelName || username,
+                        full_name: channelName || username,
                         platform: 'youtube',
                         biography: '',
                         followers_count: item.numberOfSubscribers ?? 0,
@@ -240,15 +244,13 @@ Deno.serve(async (req) => {
                         engagement_rate: null,
                         niche: niches?.[0] || 'food',
                         city: null,
-                        profile_url: item.channelUrl || (channelUsername
-                            ? `https://www.youtube.com/${channelUsername}`
-                            : `https://www.youtube.com/channel/${channelId}`),
+                        profile_url: channelUrl || `https://www.youtube.com/@${username}`,
                         email: null,
                         external_url: null,
-                        posts_count: item.channelVideoCount ?? null,
+                        posts_count: item.channelNumberOfVideos ?? null,
                         following_count: null,
                         is_business: false,
-                        account_id: channelId || null,
+                        account_id: item.channelId || null,
                         source: 'apify'
                     });
                 }
