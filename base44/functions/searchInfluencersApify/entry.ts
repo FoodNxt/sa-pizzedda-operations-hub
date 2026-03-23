@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
         return parsedRanges.some(r => count >= r.min && count <= r.max);
     };
 
-    // Run actor and get dataset items
+    // Run actor and get dataset items. Returns { items: [], error: null } or { items: [], error: string }
     const runActor = async (actorId, input, timeoutSecs = 120) => {
         try {
             console.log(`Starting actor ${actorId} with input:`, JSON.stringify(input).slice(0, 500));
@@ -64,17 +64,18 @@ Deno.serve(async (req) => {
             if (!runRes.ok) {
                 const errText = await runRes.text();
                 console.error(`Actor ${actorId} run failed: ${runRes.status} ${errText}`);
-                return [];
+                // Check for Apify usage limit
+                const isLimitExceeded = errText.includes('limit') || errText.includes('exceeded') || runRes.status === 402;
+                return { items: [], error: `HTTP ${runRes.status}`, isLimitExceeded };
             }
 
             const runData = await runRes.json();
             const datasetId = runData?.data?.defaultDatasetId;
             if (!datasetId) {
                 console.error(`Actor ${actorId}: no dataset ID in response`);
-                return [];
+                return { items: [], error: 'No dataset ID returned' };
             }
 
-            // Check if run finished
             const status = runData?.data?.status;
             if (status !== 'SUCCEEDED') {
                 console.log(`Actor ${actorId} status: ${status}, fetching whatever data is available`);
@@ -87,15 +88,15 @@ Deno.serve(async (req) => {
 
             if (!dataRes.ok) {
                 console.error(`Failed to fetch dataset for ${actorId}: ${dataRes.status}`);
-                return [];
+                return { items: [], error: `Dataset fetch failed: ${dataRes.status}` };
             }
 
             const dataItems = await dataRes.json();
             console.log(`Actor ${actorId}: dataset has ${dataItems.length} items, run status: ${status}`);
-            return dataItems;
+            return { items: dataItems, error: null };
         } catch (err) {
             console.error(`Actor ${actorId} error: ${err.message}`);
-            return [];
+            return { items: [], error: err.message };
         }
     };
 
