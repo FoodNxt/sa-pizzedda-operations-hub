@@ -56,7 +56,7 @@ export default function PlandayStoreView({
     queryFn: () => base44.entities.Uscita.list()
   });
 
-  const { data: ferieApprovate = [] } = useQuery({
+  const { data: ferieApprovateData = [] } = useQuery({
     queryKey: ['ferie-approvate-store-view'],
     queryFn: () => base44.entities.RichiestaFerie.filter({ stato: 'approvata' })
   });
@@ -64,7 +64,7 @@ export default function PlandayStoreView({
   // Mappa ferie per giorno: { 'YYYY-MM-DD': [{ dipendente_id, dipendente_nome }] }
   const feriePerGiorno = useMemo(() => {
     const map = {};
-    ferieApprovate.forEach(ferie => {
+    ferieApprovateData.forEach(ferie => {
       const start = moment(ferie.data_inizio);
       const end = moment(ferie.data_fine);
       for (let d = start.clone(); d.isSameOrBefore(end, 'day'); d.add(1, 'day')) {
@@ -74,7 +74,7 @@ export default function PlandayStoreView({
       }
     });
     return map;
-  }, [ferieApprovate]);
+  }, [ferieApprovateData]);
 
   const activeUsers = useMemo(() => {
     return users.filter(u => {
