@@ -94,7 +94,6 @@ export default function PlandayStoreView({
   }, [weekStart]);
 
   const dipendentiConTurni = useMemo(() => {
-    // Raggruppa per nome dipendente (già salvato nel turno)
     const dipendentiMap = new Map();
     
     turni.forEach(turno => {
@@ -111,11 +110,28 @@ export default function PlandayStoreView({
         dipendentiMap.get(key).turniSettimana.push(turno);
       }
     });
+
+    // Aggiungi dipendenti in ferie nella settimana che non hanno turni
+    weekDays.forEach(day => {
+      const dayKey = day.format('YYYY-MM-DD');
+      const ferie = feriePerGiorno[dayKey] || [];
+      ferie.forEach(f => {
+        const key = f.dipendente_id || f.dipendente_nome;
+        if (!dipendentiMap.has(key)) {
+          dipendentiMap.set(key, {
+            id: f.dipendente_id || f.dipendente_nome,
+            nome_cognome: f.dipendente_nome,
+            full_name: f.dipendente_nome,
+            turniSettimana: []
+          });
+        }
+      });
+    });
     
     return Array.from(dipendentiMap.values()).sort((a, b) => 
       (a.nome_cognome || '').localeCompare(b.nome_cognome || '')
     );
-  }, [turni, users, selectedStore, stores]);
+  }, [turni, users, selectedStore, stores, weekDays, feriePerGiorno]);
 
   const turniByDipendente = useMemo(() => {
     const grouped = {};
