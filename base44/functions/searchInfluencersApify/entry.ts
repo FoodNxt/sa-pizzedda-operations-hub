@@ -114,11 +114,14 @@ Deno.serve(async (req) => {
                     searchType: 'user',
                     resultsLimit: 30
                 };
-                const items = await runActor('apify~instagram-search-scraper', input);
+                const result = await runActor('apify~instagram-search-scraper', input);
+                if (result.error) {
+                    errors.push({ platform: 'instagram', error: result.error, isLimitExceeded: result.isLimitExceeded });
+                }
+                const items = result.items;
                 console.log(`Instagram returned ${items.length} raw items`);
 
                 for (const item of items) {
-                    // The search scraper returns profile data directly
                     const username = item.username || item.ownerUsername || '';
                     if (!username) continue;
 
@@ -159,9 +162,12 @@ Deno.serve(async (req) => {
                     searchSection: '/user',
                     shouldDownloadVideos: false
                 };
-                const items = await runActor('clockworks~tiktok-scraper', input);
+                const result = await runActor('clockworks~tiktok-scraper', input);
+                if (result.error) {
+                    errors.push({ platform: 'tiktok', error: result.error, isLimitExceeded: result.isLimitExceeded });
+                }
+                const items = result.items;
                 console.log(`TikTok returned ${items.length} raw items`);
-
 
                 // TikTok scraper returns videos/posts — extract unique authors from authorMeta
                 const seenTiktokUsers = new Set();
@@ -202,41 +208,44 @@ Deno.serve(async (req) => {
     if (platforms.includes('youtube')) {
         platformPromises.push((async () => {
             try {
+                // scrapier~youtube-search-scraper returns video results with channel data
                 const input = {
-                    searchQueries: [cityFilter ? `${searchTerms[0]} ${cityFilter}` : searchTerms[0]],
-                    maxResultsPerQuery: 20,
-                    regionCode: 'IT',
-                    language: 'it'
+                    queries: [cityFilter ? `${searchTerms[0]} ${cityFilter}` : searchTerms[0]],
+                    debug: false
                 };
-                const items = await runActor('coregent~youtube-channel-finder', input, 180);
+                const result = await runActor('scrapier~youtube-search-scraper', input, 180);
+                if (result.error) {
+                    errors.push({ platform: 'youtube', error: result.error, isLimitExceeded: result.isLimitExceeded });
+                }
+                const items = result.items;
                 console.log(`YouTube returned ${items.length} raw items`);
 
-
+                // Extract unique channels from video results
+                const seenYtChannels = new Set();
                 for (const item of items) {
-                    const handle = item.handle || item.customUrl || '';
-                    const channelId = item.channelId || item.id || '';
-                    const username = handle.replace(/^@/, '') || channelId;
-                    if (!username) continue;
+                    const channelId = item.channelId || '';
+                    const channelUsername = item.channelUsername || '';
+                    const username = channelUsername.replace(/^@/, '') || channelId;
+                    if (!username || seenYtChannels.has(username)) continue;
+                    seenYtChannels.add(username);
 
                     allResults.push({
                         username,
-                        full_name: item.name || item.title || item.channelName || username,
+                        full_name: item.channelName || username,
                         platform: 'youtube',
-                        biography: item.description || item.about || '',
-                        followers_count: item.subscriberCount ?? item.subscribers ?? 0,
-                        profile_pic_url: item.avatar || item.thumbnailUrl || item.profilePicUrl || '',
-                        verified: item.isVerified || item.verified || false,
+                        biography: '',
+                        followers_count: item.numberOfSubscribers ?? 0,
+                        profile_pic_url: '',
+                        verified: false,
                         engagement_rate: null,
                         niche: niches?.[0] || 'food',
-                        city: item.country || item.location || null,
-                        profile_url: item.url || item.channelUrl || (channelId
-                            ? `https://www.youtube.com/channel/${channelId}`
-                            : handle
-                                ? `https://www.youtube.com/${handle}`
-                                : `https://www.youtube.com/@${username}`),
-                        email: item.email || null,
-                        external_url: item.links?.[0] || item.externalLink || null,
-                        posts_count: item.videoCount ?? item.videosCount ?? null,
+                        city: null,
+                        profile_url: item.channelUrl || (channelUsername
+                            ? `https://www.youtube.com/${channelUsername}`
+                            : `https://www.youtube.com/channel/${channelId}`),
+                        email: null,
+                        external_url: null,
+                        posts_count: item.channelVideoCount ?? null,
                         following_count: null,
                         is_business: false,
                         account_id: channelId || null,
@@ -254,8 +263,8 @@ Deno.serve(async (req) => {
     // Run all platform searches in parallel
     await Promise.all(platformPromises);
 
-    // Apply follower range filtering
-    let filtered = allResults.filter(r => matchesFollowerRange(r.followers_count));
+    // Apply follower range filtering — keep items with unknown/0 followers (search actors don't always return full profile data)
+    let filtered = allResults.filter(r => !r.followers_count || matchesFollowerRange(r.followers_count));
 
     // Deduplicate by username+platform
     const seen = new Set();
