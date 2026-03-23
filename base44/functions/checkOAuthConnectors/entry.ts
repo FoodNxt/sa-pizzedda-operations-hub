@@ -11,12 +11,12 @@ const CONNECTORS = [
     {
         name: 'Google Sheets',
         type: 'googlesheets',
-        testUrl: null // scope readonly - just check token exists
+        testUrl: null // scope readonly - just verify token exists
     },
     {
         name: 'Google Drive',
         type: 'googledrive',
-        testUrl: null // scope drive.file - just check token exists
+        testUrl: null // scope drive.file - just verify token exists
     }
 ];
 
@@ -60,11 +60,15 @@ Deno.serve(async (req) => {
             if (!accessToken) {
                 problems.push({ name: 'Notion', error: 'Nessun access token disponibile' });
             } else {
-                const res = await fetch('https://api.notion.com/v1/users/me', {
+                // With read_content scope, /v1/users/me is not available. Use /v1/search instead.
+                const res = await fetch('https://api.notion.com/v1/search', {
+                    method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
-                        'Notion-Version': '2022-06-28'
-                    }
+                        'Notion-Version': '2022-06-28',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ page_size: 1 })
                 });
                 if (!res.ok) {
                     problems.push({ name: 'Notion', error: `HTTP ${res.status}` });
