@@ -279,11 +279,26 @@ export default function Assenze() {
   });
 
   const handleApproveFerie = async (request, mode) => {
-    // Filtra solo i turni effettivamente assegnati al dipendente
-    const turniAssegnati = turniPlanday.filter((t) =>
-    (request.turni_coinvolti || []).includes(t.id) &&
-    t.dipendente_id === request.dipendente_id
+    // Cerca i turni del dipendente nel range di date delle ferie (in tempo reale, non solo da turni_coinvolti)
+    const dataInizio = request.data_inizio;
+    const dataFine = request.data_fine;
+    
+    // Prendi sia i turni già salvati in turni_coinvolti sia quelli trovati per data
+    const turniPerData = turniPlanday.filter((t) =>
+      t.dipendente_id === request.dipendente_id &&
+      t.data >= dataInizio &&
+      t.data <= dataFine
     );
+    
+    const turniDaCoinvolti = turniPlanday.filter((t) =>
+      (request.turni_coinvolti || []).includes(t.id) &&
+      t.dipendente_id === request.dipendente_id
+    );
+    
+    // Unisci senza duplicati
+    const turniMap = new Map();
+    [...turniDaCoinvolti, ...turniPerData].forEach(t => turniMap.set(t.id, t));
+    const turniAssegnati = Array.from(turniMap.values());
 
     // Aggiorna i turni coinvolti
     for (const turno of turniAssegnati) {
