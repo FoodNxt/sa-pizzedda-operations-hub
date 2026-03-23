@@ -36,7 +36,8 @@ export default function PlandayStoreView({
   getAttivitaTurno = () => [],
   getTurnoSequenceFromMomento = () => 'first',
   candidati = [],
-  uscite = []
+  uscite = [],
+  ferieApprovate = []
 }) {
   const [quickAddPopup, setQuickAddPopup] = useState(null);
   const [quickForm, setQuickForm] = useState({
