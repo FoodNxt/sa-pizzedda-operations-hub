@@ -57,6 +57,26 @@ export default function PlandayStoreView({
     queryFn: () => base44.entities.Uscita.list()
   });
 
+  const { data: ferieApprovate = [] } = useQuery({
+    queryKey: ['ferie-approvate-store-view'],
+    queryFn: () => base44.entities.RichiestaFerie.filter({ stato: 'approvata' })
+  });
+
+  // Mappa ferie per giorno: { 'YYYY-MM-DD': [{ dipendente_id, dipendente_nome }] }
+  const feriePerGiorno = useMemo(() => {
+    const map = {};
+    ferieApprovate.forEach(ferie => {
+      const start = moment(ferie.data_inizio);
+      const end = moment(ferie.data_fine);
+      for (let d = start.clone(); d.isSameOrBefore(end, 'day'); d.add(1, 'day')) {
+        const key = d.format('YYYY-MM-DD');
+        if (!map[key]) map[key] = [];
+        map[key].push({ dipendente_id: ferie.dipendente_id, dipendente_nome: ferie.dipendente_nome });
+      }
+    });
+    return map;
+  }, [ferieApprovate]);
+
   const activeUsers = useMemo(() => {
     return users.filter(u => {
       const uscita = usciteData.find(usc => usc.dipendente_id === u.id);
