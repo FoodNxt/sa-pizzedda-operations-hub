@@ -5,7 +5,7 @@ const NOTIFY_EMAIL = 'admin@sapizzedda.it';
 // Pacchetti usati nelle funzioni backend con la versione attuale
 const PACKAGES = [
     { name: 'jspdf', current: '4.0.0' },
-    { name: 'date-fns', current: '3.6.0' },
+    { name: 'date-fns', current: '4.1.0' },
     { name: 'openai', current: null }, // check solo major
     { name: 'fast-xml-parser', current: null }
 ];
