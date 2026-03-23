@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
             try {
                 // streamers~youtube-scraper: Apify-maintained, searches by keyword, returns videos with channel data
                 const input = {
-                    searchKeywords: [cityFilter ? `${searchTerms[0]} ${cityFilter}` : searchTerms[0]],
+                    searchQueries: [cityFilter ? `${searchTerms[0]} ${cityFilter}` : searchTerms[0]],
                     maxResults: 30,
                     maxResultsShorts: 0,
                     maxResultStreams: 0
