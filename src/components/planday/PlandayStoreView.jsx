@@ -456,6 +456,12 @@ export default function PlandayStoreView({
                         onDrop={(e) => handleDrop(e, day, dipendente.id)}
                         onClick={() => dayTurni.length === 0 && handleQuickAdd(day, dipendente.id)}
                       >
+                        {/* Badge ferie */}
+                        {(feriePerGiorno[dayKey] || []).some(f => f.dipendente_id === dipendente.id) && (
+                          <div className="p-1.5 rounded-lg bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-semibold flex items-center gap-1 mb-1">
+                            <Palmtree className="w-3 h-3" /> Ferie
+                          </div>
+                        )}
                         <div className="space-y-1">
                           {dayTurni.map(turno => (
                             <div 
@@ -496,7 +502,7 @@ export default function PlandayStoreView({
                             </div>
                           ))}
                         </div>
-                        {dayTurni.length === 0 && (
+                        {dayTurni.length === 0 && !(feriePerGiorno[dayKey] || []).some(f => f.dipendente_id === dipendente.id) && (
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                             <Plus className="w-4 h-4 text-slate-400" />
                           </div>
