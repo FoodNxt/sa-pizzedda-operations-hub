@@ -199,7 +199,7 @@ export default function Assenze() {
 
   const { data: richiesteFerie = [], isLoading: loadingFerie } = useQuery({
     queryKey: ['richieste-ferie'],
-    queryFn: () => base44.entities.RichiestaFerie.list('-created_date', 200)
+    queryFn: () => base44.entities.RichiestaFerie.list('data_inizio', 200)
   });
 
   const { data: richiesteMalattia = [], isLoading: loadingMalattia } = useQuery({
