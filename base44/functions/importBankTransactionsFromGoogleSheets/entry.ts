@@ -47,9 +47,19 @@ Deno.serve(async (req) => {
     const headers = rows[0];
     const dataRows = rows.slice(1);
 
-    // Get existing transactions to avoid duplicates
-    const existingTransactions = await base44.asServiceRole.entities.BankTransaction.list();
-    const existingIds = new Set(existingTransactions.map(t => t.transactionId));
+    // Get existing transaction IDs to avoid duplicates (fetch only IDs, paginated)
+    const existingIds = new Set();
+    let skip = 0;
+    const batchSize = 200;
+    while (true) {
+      const batch = await base44.asServiceRole.entities.BankTransaction.list('-created_date', batchSize, skip);
+      if (!batch || batch.length === 0) break;
+      for (const t of batch) {
+        if (t.transactionId) existingIds.add(t.transactionId);
+      }
+      if (batch.length < batchSize) break;
+      skip += batchSize;
+    }
 
     let imported = 0;
     let skipped = 0;
