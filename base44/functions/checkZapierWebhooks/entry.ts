@@ -1,7 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.22';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 const NOTIFY_EMAIL = 'admin@sapizzedda.it';
 const MAX_DAYS_WITHOUT_DATA = 3;
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 Deno.serve(async (req) => {
     try {
@@ -11,71 +13,39 @@ Deno.serve(async (req) => {
         const cutoff = new Date(now);
         cutoff.setDate(cutoff.getDate() - MAX_DAYS_WITHOUT_DATA);
         const cutoffISO = cutoff.toISOString();
-        const cutoffDate = cutoff.toISOString().split('T')[0];
 
-        // 1. Check Reviews (importate da Zapier)
-        try {
-            const recent = await base44.asServiceRole.entities.Review.list('-created_date', 1);
-            if (recent.length > 0 && recent[0].created_date < cutoffISO) {
-                const lastDate = new Date(recent[0].created_date).toLocaleDateString('it-IT');
-                problems.push({ name: 'Zapier Reviews', lastData: lastDate });
-            } else if (recent.length === 0) {
-                problems.push({ name: 'Zapier Reviews', lastData: 'Nessun dato' });
-            }
-        } catch (err) {
-            console.error('Error checking Reviews:', err.message);
-        }
+        const checks = [
+            { name: 'Zapier Reviews', entity: 'Review' },
+            { name: 'Zapier iPratico', entity: 'iPratico' },
+            { name: 'Zapier Prodotti Venduti', entity: 'ProdottiVenduti' },
+            { name: 'Zapier Revenue/Ordini', entity: 'RevenueByTimeSlot' },
+            { name: 'Zapier Sconti', entity: 'Sconto' },
+        ];
 
-        // 2. Check iPratico
-        try {
-            const recent = await base44.asServiceRole.entities.iPratico.list('-created_date', 1);
-            if (recent.length > 0 && recent[0].created_date < cutoffISO) {
-                const lastDate = new Date(recent[0].created_date).toLocaleDateString('it-IT');
-                problems.push({ name: 'Zapier iPratico', lastData: lastDate });
-            } else if (recent.length === 0) {
-                problems.push({ name: 'Zapier iPratico', lastData: 'Nessun dato' });
-            }
-        } catch (err) {
-            console.error('Error checking iPratico:', err.message);
-        }
+        for (const check of checks) {
+            try {
+                // Only check if there's at least 1 record created after the cutoff
+                const recent = await base44.asServiceRole.entities[check.entity].filter(
+                    { created_date: { $gte: cutoffISO } },
+                    '-created_date',
+                    1
+                );
 
-        // 3. Check Prodotti Venduti
-        try {
-            const recent = await base44.asServiceRole.entities.ProdottiVenduti.list('-created_date', 1);
-            if (recent.length > 0 && recent[0].created_date < cutoffISO) {
-                const lastDate = new Date(recent[0].created_date).toLocaleDateString('it-IT');
-                problems.push({ name: 'Zapier Prodotti Venduti', lastData: lastDate });
-            } else if (recent.length === 0) {
-                problems.push({ name: 'Zapier Prodotti Venduti', lastData: 'Nessun dato' });
+                if (recent.length === 0) {
+                    // No recent data — get the very last record to report its date
+                    await sleep(300);
+                    const last = await base44.asServiceRole.entities[check.entity].list('-created_date', 1);
+                    if (last.length > 0) {
+                        const lastDate = new Date(last[0].created_date).toLocaleDateString('it-IT');
+                        problems.push({ name: check.name, lastData: lastDate });
+                    } else {
+                        problems.push({ name: check.name, lastData: 'Nessun dato' });
+                    }
+                }
+            } catch (err) {
+                console.error(`Error checking ${check.entity}:`, err.message);
             }
-        } catch (err) {
-            console.error('Error checking ProdottiVenduti:', err.message);
-        }
-
-        // 4. Check RevenueByTimeSlot (ordini)
-        try {
-            const recent = await base44.asServiceRole.entities.RevenueByTimeSlot.list('-created_date', 1);
-            if (recent.length > 0 && recent[0].created_date < cutoffISO) {
-                const lastDate = new Date(recent[0].created_date).toLocaleDateString('it-IT');
-                problems.push({ name: 'Zapier Revenue/Ordini', lastData: lastDate });
-            } else if (recent.length === 0) {
-                problems.push({ name: 'Zapier Revenue/Ordini', lastData: 'Nessun dato' });
-            }
-        } catch (err) {
-            console.error('Error checking RevenueByTimeSlot:', err.message);
-        }
-
-        // 5. Check Sconti
-        try {
-            const recent = await base44.asServiceRole.entities.Sconto.list('-created_date', 1);
-            if (recent.length > 0 && recent[0].created_date < cutoffISO) {
-                const lastDate = new Date(recent[0].created_date).toLocaleDateString('it-IT');
-                problems.push({ name: 'Zapier Sconti', lastData: lastDate });
-            } else if (recent.length === 0) {
-                problems.push({ name: 'Zapier Sconti', lastData: 'Nessun dato' });
-            }
-        } catch (err) {
-            console.error('Error checking Sconti:', err.message);
+            await sleep(300);
         }
 
         console.log(`Zapier check: ${problems.length} stale webhooks found`);
