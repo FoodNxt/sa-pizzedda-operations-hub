@@ -118,6 +118,8 @@ Deno.serve(async (req) => {
         avgByDayOfWeek[dayOfWeek] = avg;
       });
       
+      const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+      
       // Calculate total seasonality weight
       let totalSeasonalityWeight = 0;
       for (let i = 0; i < totalDays; i++) {
@@ -126,8 +128,6 @@ Deno.serve(async (req) => {
         const dayOfWeek = currentDate.getDay();
         totalSeasonalityWeight += avgByDayOfWeek[dayOfWeek] || 0;
       }
-      
-      const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
       
       // Calculate growth rate
       let dailyGrowthRate = 0;
