@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     const headers = rows[0];
     const dataRows = rows.slice(1);
 
-    // Get existing transaction IDs to avoid duplicates (fetch only IDs, paginated)
+    // Get existing transaction IDs to avoid duplicates (paginated)
     const existingIds = new Set();
     let skip = 0;
     const batchSize = 200;
@@ -59,64 +59,75 @@ Deno.serve(async (req) => {
       }
       if (batch.length < batchSize) break;
       skip += batchSize;
+      // Small delay between pagination calls
+      await new Promise(r => setTimeout(r, 200));
     }
 
     let imported = 0;
     let skipped = 0;
     const errors = [];
 
+    // Collect new transactions to import
+    const toImport = [];
+
     for (let i = 0; i < dataRows.length; i++) {
       const row = dataRows[i];
-      if (!row || row.length === 0) continue;
+      if (!row || row.length === 0) { skipped++; continue; }
 
+      const transactionId = row[0] || '';
+      if (!transactionId || existingIds.has(transactionId)) { skipped++; continue; }
+
+      toImport.push({
+        transactionId: row[0] || '',
+        status: row[1] || '',
+        madeOn: row[2] || '',
+        amount: parseFloat(row[3]) || 0,
+        currencyCode: row[4] || '',
+        description: row[5] || '',
+        additional: row[6] || '',
+        category: row[7] || '',
+        duplicated: row[8]?.toLowerCase() === 'true',
+        account_name: row[11] || '',
+        account_nature: row[12] || '',
+        account_provider_name: row[13] || '',
+        account_uuid: row[14] || '',
+        account_balance_snapshot: parseFloat(row[15]) || 0,
+        end_to_end_id: row[16] || '',
+        exchange_rate: parseFloat(row[17]) || 0,
+        information: row[19] || '',
+        original_amount: parseFloat(row[20]) || 0,
+        original_currency_code: row[21] || '',
+        payee: row[22] || '',
+        payee_information: row[23] || '',
+        payer: row[24] || '',
+        payer_information: row[25] || '',
+        posting_date: row[26] || '',
+        posting_time: row[27] || '',
+        time: row[28] || '',
+        type: row[29] || ''
+      });
+    }
+
+    // Bulk create in batches of 25 with delays to avoid rate limits
+    const bulkBatchSize = 25;
+    for (let i = 0; i < toImport.length; i += bulkBatchSize) {
+      const batch = toImport.slice(i, i + bulkBatchSize);
       try {
-        const transactionId = row[0] || '';
-        
-        // Skip if already imported or no ID
-        if (!transactionId || existingIds.has(transactionId)) {
-          skipped++;
-          continue;
-        }
-
-        // Map all columns (0-indexed) - Mapping completo dal Google Sheet
-        // row[9] = createdAt (skip, non nel schema)
-        // row[10] = updatedAt (skip, non nel schema)
-        // row[18] = id (skip, gestito da Base44)
-        const transactionData = {
-          transactionId: row[0] || '',
-          status: row[1] || '',
-          madeOn: row[2] || '',
-          amount: parseFloat(row[3]) || 0,
-          currencyCode: row[4] || '',
-          description: row[5] || '',
-          additional: row[6] || '',
-          category: row[7] || '',
-          duplicated: row[8]?.toLowerCase() === 'true',
-          account_name: row[11] || '',
-          account_nature: row[12] || '',
-          account_provider_name: row[13] || '',
-          account_uuid: row[14] || '',
-          account_balance_snapshot: parseFloat(row[15]) || 0,
-          end_to_end_id: row[16] || '',
-          exchange_rate: parseFloat(row[17]) || 0,
-          information: row[19] || '',
-          original_amount: parseFloat(row[20]) || 0,
-          original_currency_code: row[21] || '',
-          payee: row[22] || '',
-          payee_information: row[23] || '',
-          payer: row[24] || '',
-          payer_information: row[25] || '',
-          posting_date: row[26] || '',
-          posting_time: row[27] || '',
-          time: row[28] || '',
-          type: row[29] || ''
-        };
-
-        await base44.asServiceRole.entities.BankTransaction.create(transactionData);
-        imported++;
-
+        await base44.asServiceRole.entities.BankTransaction.bulkCreate(batch);
+        imported += batch.length;
       } catch (error) {
-        errors.push({ row: i + 2, error: error.message });
+        // Fallback: try one by one for this batch
+        for (const item of batch) {
+          try {
+            await base44.asServiceRole.entities.BankTransaction.create(item);
+            imported++;
+          } catch (e) {
+            errors.push({ transactionId: item.transactionId, error: e.message });
+          }
+        }
+      }
+      if (i + bulkBatchSize < toImport.length) {
+        await new Promise(r => setTimeout(r, 500));
       }
     }
 
