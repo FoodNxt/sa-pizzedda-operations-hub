@@ -4,15 +4,20 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // Check if called by authenticated user (if yes, must be admin)
-    // Allow service-role calls from automations
+    // Verify caller is admin or service-role
+    let isAuthorized = false;
     try {
       const user = await base44.auth.me();
-      if (user && user.role !== 'admin' && user.user_type !== 'admin') {
-        return Response.json({ error: 'Unauthorized - Admin only' }, { status: 403 });
+      if (user) {
+        isAuthorized = user.role === 'admin' || user.user_type === 'admin';
       }
     } catch (authError) {
-      // Not authenticated - assume it's an automation/service-role call, proceed
+      // auth.me() failed — this is a service-role or automation call, allow it
+      isAuthorized = true;
+    }
+    
+    if (!isAuthorized) {
+      return Response.json({ error: 'Unauthorized - Admin only' }, { status: 403 });
     }
 
     // Fetch all rules (sorted by priority)
