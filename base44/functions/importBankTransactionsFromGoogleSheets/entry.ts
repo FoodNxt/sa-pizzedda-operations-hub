@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const sheetName = 'ACubeAPI Transactions';
 
     // Get access token
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
 
     // Fetch sheet data
     const range = `${sheetName}!A:AB`; // Covers all columns
