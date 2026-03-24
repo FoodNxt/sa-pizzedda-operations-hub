@@ -10,8 +10,10 @@ Deno.serve(async (req) => {
     });
     rules.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
-    // Fetch all transactions
-    const transactions = await base44.asServiceRole.entities.BankTransaction.list();
+    // Fetch only uncategorized transactions
+    const transactions = await base44.asServiceRole.entities.BankTransaction.filter({
+      category: { $in: [null, '', 'non_categorizzato'] }
+    });
 
     let updated = 0;
 
