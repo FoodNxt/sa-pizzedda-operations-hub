@@ -4,22 +4,6 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // Verify caller is admin or service-role
-    let isAuthorized = false;
-    try {
-      const user = await base44.auth.me();
-      if (user) {
-        isAuthorized = user.role === 'admin' || user.user_type === 'admin';
-      }
-    } catch (authError) {
-      // auth.me() failed — this is a service-role or automation call, allow it
-      isAuthorized = true;
-    }
-    
-    if (!isAuthorized) {
-      return Response.json({ error: 'Unauthorized - Admin only' }, { status: 403 });
-    }
-
     // Fetch all rules (sorted by priority)
     const rules = await base44.asServiceRole.entities.BankTransactionRule.filter({
       is_active: true
