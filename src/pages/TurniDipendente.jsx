@@ -4,8 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import DisponibilitaCalendar from "../components/disponibilita/DisponibilitaCalendar";
-import DisponibilitaRicorrenti from "../components/disponibilita/DisponibilitaRicorrenti";
+import DisponibilitaView from "../components/turni/DisponibilitaView";
 import ScambioTurnoModal from "../components/turni/ScambioTurnoModal";
 import ScambiView from "../components/turni/ScambiView";
 import {
@@ -2195,40 +2194,7 @@ export default function TurniDipendente() {
           <TurniLiberiView currentUser={currentUser} turniLiberi={turniLiberi} mieRichiesteTurni={mieRichiesteTurni} getStoreName={getStoreName} richiediTurnoLiberoMutation={richiediTurnoLiberoMutation} />
         }
 
-        {/* VISTA: DISPONIBILITÀ */}
-        {activeView === 'disponibilita' && currentUser &&
-        <>
-            <NeumorphicCard className="p-4 bg-blue-50 border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <strong>ℹ️ Disponibilità:</strong> Indica quando sei disponibile o non disponibile a lavorare. 
-                Gli amministratori riceveranno un avviso se cercano di assegnarti un turno in un momento in cui non sei disponibile.
-              </p>
-            </NeumorphicCard>
-
-            {/* Tabs: Calendario vs Ricorrenti */}
-            <div className="flex gap-2">
-              <NeumorphicButton
-              onClick={() => setActiveView('disponibilita')}
-              variant="primary"
-              className="flex-1">
-
-                Vista Calendario
-              </NeumorphicButton>
-            </div>
-
-            <DisponibilitaCalendar
-            dipendente={currentUser}
-            disponibilita={mieDisponibilita} />
-
-
-            <div className="mt-6">
-              <DisponibilitaRicorrenti
-              dipendente={currentUser}
-              disponibilita={mieDisponibilita} />
-
-            </div>
-          </>
-        }
+        {activeView === 'disponibilita' && currentUser && <DisponibilitaView currentUser={currentUser} mieDisponibilita={mieDisponibilita} />}
 
         {/* Modal Scambio Turno */}
         {showScambioModal && selectedTurnoScambio &&
