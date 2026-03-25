@@ -11,7 +11,7 @@ export function usePendingDocs(userId) {
         base44.entities.LetteraRichiamo.filter({ user_id: userId }),
         base44.entities.RegolamentoFirmato.filter({ user_id: userId, firmato: false })
       ]);
-      const pendingLettere = lettere.filter(l => l.status === 'inviata' || l.status === 'visualizzata');
+      const pendingLettere = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && (l.status === 'inviata' || l.status === 'visualizzata'));
       const msgs = [];
       if (contratti.length > 0) msgs.push(`${contratti.length} contratt${contratti.length === 1 ? 'o' : 'i'} da firmare`);
       if (pendingLettere.length > 0) msgs.push(`${pendingLettere.length} letter${pendingLettere.length === 1 ? 'a' : 'e'} da firmare`);

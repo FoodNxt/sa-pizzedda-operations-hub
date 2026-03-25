@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       ]);
 
       const pendingLettereFirma = pendingLettere.filter(l => 
-        (l.status === 'inviata' || l.status === 'visualizzata')
+        l.tipo_lettera === 'lettera_richiamo' && (l.status === 'inviata' || l.status === 'visualizzata')
       );
 
       const pendingDocs = [];
