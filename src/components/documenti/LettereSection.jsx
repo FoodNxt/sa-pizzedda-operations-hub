@@ -24,6 +24,7 @@ export default function LettereSection() {
   const [chiusuraPreviewContent, setChiusuraPreviewContent] = useState('');
   const [downloadingPdfAdmin, setDownloadingPdfAdmin] = useState(null);
   const [viewingRichiamo, setViewingRichiamo] = useState(null);
+  const [filterDipendente, setFilterDipendente] = useState('tutti');
 
   const downloadLetteraPDFAdmin = async (lettera) => {
     setDownloadingPdfAdmin(lettera.id);
@@ -64,7 +65,7 @@ export default function LettereSection() {
   const { data: lettere = [] } = useQuery({
     queryKey: ['lettere-richiamo'],
     queryFn: async () => {
-      const data = await base44.entities.LetteraRichiamo.list('-created_date');
+      const data = await base44.entities.LetteraRichiamo.list('-created_date', 500);
       base44.functions.invoke('processAutomaticChiusuraProcedura', {}).catch((err) =>
         console.log('Background automation check:', err)
       );
@@ -280,66 +281,83 @@ export default function LettereSection() {
         )}
       </NeumorphicCard>
 
+      {/* Filtro Dipendente */}
+      <NeumorphicCard className="p-4 mb-6">
+        <label className="text-xs font-medium text-slate-500 mb-1 block">Filtra per dipendente</label>
+        <select
+          value={filterDipendente}
+          onChange={(e) => setFilterDipendente(e.target.value)}
+          className="w-full sm:w-64 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+        >
+          <option value="tutti">Tutti i dipendenti</option>
+          {[...new Map(lettere.map(l => [l.user_id, { id: l.user_id, name: l.user_name }])).values()]
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+            .map(d => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+        </select>
+      </NeumorphicCard>
+
       {/* Lettere di Richiamo */}
       <NeumorphicCard className="p-6 mb-6">
         <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-orange-600" />Lettere di Richiamo</h2>
         {(() => {
-          const lettereRichiamo = lettere.filter((l) => l.tipo_lettera === 'lettera_richiamo');
-          const richiamiInviati = lettereRichiamo.filter((l) => l.status === 'inviata' && !l.data_visualizzazione);
-          const richiamiVisualizzati = lettereRichiamo.filter((l) => l.data_visualizzazione && l.status !== 'firmata');
+          const filteredLettere = filterDipendente === 'tutti' ? lettere : lettere.filter(l => l.user_id === filterDipendente);
+          const lettereRichiamo = filteredLettere.filter((l) => l.tipo_lettera === 'lettera_richiamo');
+          const richiamiInviati = lettereRichiamo.filter((l) => l.status === 'inviata');
+          const richiamiVisualizzati = lettereRichiamo.filter((l) => l.status === 'visualizzata');
+          const richiamiFirmati = lettereRichiamo.filter((l) => l.status === 'firmata');
+
+          const renderRichiamoCard = (richiamo, borderColor, badgeColor, badgeBg, badgeText) => (
+            <NeumorphicCard key={richiamo.id} className={`p-4 border-l-4 ${borderColor}`}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="font-bold text-slate-800">{richiamo.user_name}</p>
+                  <div className="text-xs text-slate-500 mt-1 space-y-0.5">
+                    <p>Inviata: {richiamo.data_invio ? new Date(richiamo.data_invio).toLocaleDateString('it-IT') : 'N/A'}</p>
+                    {richiamo.data_visualizzazione && <p className="text-purple-600 font-medium">Visualizzata: {new Date(richiamo.data_visualizzazione).toLocaleDateString('it-IT')}</p>}
+                    {richiamo.data_firma && <p className="text-green-600 font-medium">Firmata: {new Date(richiamo.data_firma).toLocaleDateString('it-IT')}</p>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setViewingRichiamo(richiamo)} className="nav-button p-1.5 rounded-lg"><Eye className="w-3.5 h-3.5 text-purple-600" /></button>
+                  <button onClick={() => downloadLetteraPDFAdmin(richiamo)} className="nav-button p-1.5 rounded-lg" disabled={downloadingPdfAdmin === richiamo.id}>
+                    {downloadingPdfAdmin === richiamo.id ? <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" /> : <Download className="w-3.5 h-3.5 text-blue-600" />}
+                  </button>
+                  <button onClick={() => { if (confirm(`Eliminare la lettera di richiamo per ${richiamo.user_name}?`)) deleteLetteraMutation.mutate(richiamo.id); }} className="nav-button p-1.5 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-600" /></button>
+                  <span className={`px-2 py-1 ${badgeBg} ${badgeColor} rounded-full text-xs font-bold`}>{badgeText}</span>
+                </div>
+              </div>
+            </NeumorphicCard>
+          );
+
           return (
             <>
               {richiamiInviati.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2"><Send className="w-4 h-4 text-blue-600" />Inviate - In Attesa Visualizzazione ({richiamiInviati.length})</h3>
+                  <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2"><Send className="w-4 h-4 text-blue-600" />Inviate ({richiamiInviati.length})</h3>
                   <div className="space-y-2">
-                    {richiamiInviati.map((richiamo) => (
-                      <NeumorphicCard key={richiamo.id} className="p-4 border-l-4 border-blue-400">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="font-bold text-slate-800">{richiamo.user_name}</p>
-                            <p className="text-xs text-slate-500 mt-1">Inviata: {richiamo.data_invio ? new Date(richiamo.data_invio).toLocaleDateString('it-IT') : 'N/A'}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => setViewingRichiamo(richiamo)} className="nav-button p-1.5 rounded-lg"><Eye className="w-3.5 h-3.5 text-purple-600" /></button>
-                            <button onClick={() => { if (confirm(`Eliminare la lettera di richiamo per ${richiamo.user_name}?`)) deleteLetteraMutation.mutate(richiamo.id); }} className="nav-button p-1.5 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-600" /></button>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">Inviata</span>
-                          </div>
-                        </div>
-                      </NeumorphicCard>
-                    ))}
+                    {richiamiInviati.map((r) => renderRichiamoCard(r, 'border-blue-400', 'text-blue-700', 'bg-blue-100', 'Inviata'))}
                   </div>
                 </div>
               )}
               {richiamiVisualizzati.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2"><Eye className="w-4 h-4 text-purple-600" />Visualizzate - In Attesa Firma ({richiamiVisualizzati.length})</h3>
+                  <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2"><Eye className="w-4 h-4 text-purple-600" />Visualizzate ({richiamiVisualizzati.length})</h3>
                   <div className="space-y-2">
-                    {richiamiVisualizzati.map((richiamo) => (
-                      <NeumorphicCard key={richiamo.id} className="p-4 border-l-4 border-purple-400">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="font-bold text-slate-800">{richiamo.user_name}</p>
-                            <div className="text-xs text-slate-500 mt-1 space-y-0.5">
-                              <p>Inviata: {richiamo.data_invio ? new Date(richiamo.data_invio).toLocaleDateString('it-IT') : 'N/A'}</p>
-                              <p className="text-purple-600 font-medium">Visualizzata: {richiamo.data_visualizzazione ? new Date(richiamo.data_visualizzazione).toLocaleDateString('it-IT') : 'N/A'}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => setViewingRichiamo(richiamo)} className="nav-button p-1.5 rounded-lg"><Eye className="w-3.5 h-3.5 text-purple-600" /></button>
-                            <button onClick={() => downloadLetteraPDFAdmin(richiamo)} className="nav-button p-1.5 rounded-lg" disabled={downloadingPdfAdmin === richiamo.id}>
-                              {downloadingPdfAdmin === richiamo.id ? <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" /> : <Download className="w-3.5 h-3.5 text-blue-600" />}
-                            </button>
-                            <button onClick={() => { if (confirm(`Eliminare la lettera di richiamo per ${richiamo.user_name}?`)) deleteLetteraMutation.mutate(richiamo.id); }} className="nav-button p-1.5 rounded-lg"><Trash2 className="w-3.5 h-3.5 text-red-600" /></button>
-                            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">Visualizzata</span>
-                          </div>
-                        </div>
-                      </NeumorphicCard>
-                    ))}
+                    {richiamiVisualizzati.map((r) => renderRichiamoCard(r, 'border-purple-400', 'text-purple-700', 'bg-purple-100', 'Visualizzata'))}
                   </div>
                 </div>
               )}
-              {lettereRichiamo.length === 0 && <p className="text-center text-slate-500 py-8">Nessuna lettera di richiamo inviata</p>}
+              {richiamiFirmati.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-600" />Firmate ({richiamiFirmati.length})</h3>
+                  <div className="space-y-2">
+                    {richiamiFirmati.map((r) => renderRichiamoCard(r, 'border-green-400', 'text-green-700', 'bg-green-100', '✓ Firmata'))}
+                  </div>
+                </div>
+              )}
+              {lettereRichiamo.length === 0 && <p className="text-center text-slate-500 py-8">Nessuna lettera di richiamo</p>}
             </>
           );
         })()}
@@ -349,7 +367,8 @@ export default function LettereSection() {
       <NeumorphicCard className="p-6">
         <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle className="w-5 h-5 text-green-600" />Chiusure Procedura</h2>
         {(() => {
-          const chiusureProcedura = lettere.filter((l) => l.tipo_lettera === 'chiusura_procedura');
+          const filteredLettereChiusure = filterDipendente === 'tutti' ? lettere : lettere.filter(l => l.user_id === filterDipendente);
+          const chiusureProcedura = filteredLettereChiusure.filter((l) => l.tipo_lettera === 'chiusura_procedura');
           const chiusureInviate = chiusureProcedura.filter((l) => l.status !== 'firmata');
           const chiusureFirmate = chiusureProcedura.filter((l) => l.status === 'firmata');
           return (
