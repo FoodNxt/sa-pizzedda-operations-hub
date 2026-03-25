@@ -35,6 +35,32 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Non puoi timbrare un turno di un altro dipendente' }, { status: 403 });
     }
 
+    // === DOCUMENT COMPLIANCE CHECK (only for clock-in, not clock-out) ===
+    if (tipo === 'entrata' && user.user_type !== 'admin') {
+      const [pendingContratti, pendingLettere, pendingRegolamenti] = await Promise.all([
+        base44.asServiceRole.entities.Contratto.filter({ user_id: user.id, status: 'inviato' }),
+        base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: user.id }),
+        base44.asServiceRole.entities.RegolamentoFirmato.filter({ user_id: user.id, firmato: false })
+      ]);
+
+      const pendingLettereFirma = pendingLettere.filter(l => 
+        (l.status === 'inviata' || l.status === 'visualizzata')
+      );
+
+      const pendingDocs = [];
+      if (pendingContratti.length > 0) pendingDocs.push(`${pendingContratti.length} contratt${pendingContratti.length === 1 ? 'o' : 'i'} da firmare`);
+      if (pendingLettereFirma.length > 0) pendingDocs.push(`${pendingLettereFirma.length} letter${pendingLettereFirma.length === 1 ? 'a' : 'e'} da firmare`);
+      if (pendingRegolamenti.length > 0) pendingDocs.push(`${pendingRegolamenti.length} regolament${pendingRegolamenti.length === 1 ? 'o' : 'i'} da firmare`);
+
+      if (pendingDocs.length > 0) {
+        return Response.json({
+          error: 'Hai documenti da firmare prima di timbrare',
+          pending_documents: pendingDocs,
+          requires_documents: true
+        }, { status: 403 });
+      }
+    }
+
     const updateData = {};
     if (tipo === 'entrata') {
       // Verifica che non ci sia già una timbratura entrata
