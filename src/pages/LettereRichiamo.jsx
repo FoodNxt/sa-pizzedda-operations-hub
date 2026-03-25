@@ -15,8 +15,9 @@ export default function LettereRichiamo() {
   const [selectedLettera, setSelectedLettera] = useState(null);
   const [chiusuraConfig, setChiusuraConfig] = useState({ modalita: 'automatico' });
   const [expandedTemplate, setExpandedTemplate] = useState(false);
-  const [filterRichiami, setFilterRichiami] = useState('inviate');
-  const [filterChiusure, setFilterChiusure] = useState('inviate');
+  const [filterRichiami, setFilterRichiami] = useState('tutte');
+  const [filterChiusure, setFilterChiusure] = useState('tutte');
+  const [filterDipendente, setFilterDipendente] = useState('tutti');
   
   const [templateForm, setTemplateForm] = useState({
     nome_template: '',
@@ -40,7 +41,7 @@ export default function LettereRichiamo() {
 
   const { data: lettere = [] } = useQuery({
     queryKey: ['lettere-richiamo'],
-    queryFn: () => base44.entities.LetteraRichiamo.list('-created_date'),
+    queryFn: () => base44.entities.LetteraRichiamo.list('-created_date', 500),
   });
 
   const { data: users = [] } = useQuery({
@@ -259,33 +260,46 @@ export default function LettereRichiamo() {
   const richiamiTemplates = activeTemplates.filter(t => t.tipo_lettera === 'lettera_richiamo');
   const chiusureTemplates = activeTemplates.filter(t => t.tipo_lettera === 'chiusura_procedura');
 
+  // Filtra per dipendente
+  const filteredLettere = filterDipendente === 'tutti' 
+    ? lettere 
+    : lettere.filter(l => l.user_id === filterDipendente);
+
+  // Lista unica dipendenti con lettere
+  const dipendentiConLettere = [...new Map(lettere.map(l => [l.user_id, { id: l.user_id, name: l.user_name }])).values()]
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
   // Filtri per Lettere di Richiamo
-  const richiamiInviate = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'inviata');
-  const richiamiVisualizzate = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'visualizzata');
-  const richiamiFirmate = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'firmata');
-  const richiamiChiusura = lettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && (l.status === 'visualizzata' || l.status === 'firmata') && !l.chiusura_procedura_schedulata && !l.chiusura_procedura_in_sospeso);
+  const tuttiRichiami = filteredLettere.filter(l => l.tipo_lettera === 'lettera_richiamo');
+  const richiamiInviate = filteredLettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'inviata');
+  const richiamiVisualizzate = filteredLettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'visualizzata');
+  const richiamiFirmate = filteredLettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && l.status === 'firmata');
+  const richiamiChiusura = filteredLettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && (l.status === 'visualizzata' || l.status === 'firmata') && !l.chiusura_procedura_schedulata && !l.chiusura_procedura_in_sospeso);
 
   // Filtri per Chiusure Procedura
-  const chiusureInviate = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'inviata');
-  const chiusureVisualizzate = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'visualizzata');
-  const chiusureFirmate = lettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'firmata');
+  const tutteChiusure = filteredLettere.filter(l => l.tipo_lettera === 'chiusura_procedura');
+  const chiusureInviate = filteredLettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'inviata');
+  const chiusureVisualizzate = filteredLettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'visualizzata');
+  const chiusureFirmate = filteredLettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && l.status === 'firmata');
 
   const getRichiamiByFilter = () => {
     switch(filterRichiami) {
+      case 'tutte': return tuttiRichiami;
       case 'inviate': return richiamiInviate;
       case 'visualizzate': return richiamiVisualizzate;
       case 'firmate': return richiamiFirmate;
       case 'chiusura': return richiamiChiusura;
-      default: return [];
+      default: return tuttiRichiami;
     }
   };
 
   const getChiusureByFilter = () => {
     switch(filterChiusure) {
+      case 'tutte': return tutteChiusure;
       case 'inviate': return chiusureInviate;
       case 'visualizzate': return chiusureVisualizzate;
       case 'firmate': return chiusureFirmate;
-      default: return [];
+      default: return tutteChiusure;
     }
   };
 
@@ -364,6 +378,22 @@ export default function LettereRichiamo() {
           </button>
         </div>
 
+        {activeTab === 'lettere' && (
+          <div className="mb-4">
+            <label className="text-xs font-medium text-slate-500 mb-1 block">Filtra per dipendente</label>
+            <select
+              value={filterDipendente}
+              onChange={(e) => setFilterDipendente(e.target.value)}
+              className="w-full sm:w-64 neumorphic-pressed px-3 py-2 rounded-xl text-slate-700 outline-none text-sm"
+            >
+              <option value="tutti">Tutti i dipendenti</option>
+              {dipendentiConLettere.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="flex gap-3 mb-6">
           {activeTab === 'lettere' && (
             <NeumorphicButton
@@ -395,7 +425,7 @@ export default function LettereRichiamo() {
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-slate-800">Lettere di Richiamo</h3>
                   <div className="flex gap-2 flex-wrap">
-                    {['inviate', 'visualizzate', 'firmate', 'chiusura'].map(filter => (
+                    {['tutte', 'inviate', 'visualizzate', 'firmate', 'chiusura'].map(filter => (
                       <button
                         key={filter}
                         onClick={() => setFilterRichiami(filter)}
@@ -405,10 +435,11 @@ export default function LettereRichiamo() {
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                       >
-                        {filter === 'inviate' && 'Inviate'}
-                        {filter === 'visualizzate' && 'Visualizzate'}
-                        {filter === 'firmate' && 'Firmate'}
-                        {filter === 'chiusura' && 'Chiusura in corso'}
+                        {filter === 'tutte' && `Tutte (${tuttiRichiami.length})`}
+                        {filter === 'inviate' && `Inviate (${richiamiInviate.length})`}
+                        {filter === 'visualizzate' && `Visualizzate (${richiamiVisualizzate.length})`}
+                        {filter === 'firmate' && `Firmate (${richiamiFirmate.length})`}
+                        {filter === 'chiusura' && `Chiusura in corso (${richiamiChiusura.length})`}
                       </button>
                     ))}
                   </div>
@@ -468,7 +499,7 @@ export default function LettereRichiamo() {
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-slate-800">Chiusure Procedura</h3>
                   <div className="flex gap-2 flex-wrap">
-                    {['inviate', 'visualizzate', 'firmate'].map(filter => (
+                    {['tutte', 'inviate', 'visualizzate', 'firmate'].map(filter => (
                       <button
                         key={filter}
                         onClick={() => setFilterChiusure(filter)}
@@ -478,9 +509,10 @@ export default function LettereRichiamo() {
                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                       >
-                        {filter === 'inviate' && 'Inviate'}
-                        {filter === 'visualizzate' && 'Visualizzate'}
-                        {filter === 'firmate' && 'Firmate'}
+                        {filter === 'tutte' && `Tutte (${tutteChiusure.length})`}
+                        {filter === 'inviate' && `Inviate (${chiusureInviate.length})`}
+                        {filter === 'visualizzate' && `Visualizzate (${chiusureVisualizzate.length})`}
+                        {filter === 'firmate' && `Firmate (${chiusureFirmate.length})`}
                       </button>
                     ))}
                   </div>
