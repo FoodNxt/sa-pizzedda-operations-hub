@@ -4,9 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import DisponibilitaView from "../components/turni/DisponibilitaView";
-import ScambioTurnoModal from "../components/turni/ScambioTurnoModal";
-import ScambiView from "../components/turni/ScambiView";
+import DisponibilitaCalendar from "../components/disponibilita/DisponibilitaCalendar";
+import DisponibilitaRicorrenti from "../components/disponibilita/DisponibilitaRicorrenti";
 import {
   Calendar, Clock, MapPin, CheckCircle, AlertCircle,
   Loader2, LogIn, LogOut, ChevronLeft, ChevronRight,
@@ -2165,57 +2164,967 @@ export default function TurniDipendente() {
         }
 
         {/* VISTA: TUTTI I TURNI */}
-        {activeView === 'tutti' && <WeeklyView weekStart={weekStart} setWeekStart={setWeekStart} weekDays={weekDays} turniByDay={turniByDay} isLoading={isLoading} getStoreName={getStoreName} currentUser={currentUser} openScambioModal={openScambioModal} />}
+        {activeView === 'tutti' &&
+        <>
+        {/* Navigazione settimana */}
+        <NeumorphicCard className="p-4">
+          <div className="flex items-center justify-between">
+            <NeumorphicButton onClick={() => setWeekStart(weekStart.clone().subtract(1, 'week'))}>
+              <ChevronLeft className="w-4 h-4" />
+            </NeumorphicButton>
+            <span className="font-medium text-slate-700 capitalize">
+              {weekStart.locale('it').format('DD MMM')} - {weekStart.clone().add(6, 'days').locale('it').format('DD MMM YYYY')}
+            </span>
+            <NeumorphicButton onClick={() => setWeekStart(weekStart.clone().add(1, 'week'))}>
+              <ChevronRight className="w-4 h-4" />
+            </NeumorphicButton>
+          </div>
+        </NeumorphicCard>
+
+        {/* Vista settimanale */}
+        <div className="space-y-3">
+          {isLoading ?
+            <NeumorphicCard className="p-8 text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
+            </NeumorphicCard> :
+
+            weekDays.map((day) => {
+              const dayKey = day.format('YYYY-MM-DD');
+              const dayTurni = turniByDay[dayKey] || [];
+              const isToday = day.isSame(moment(), 'day');
+
+              return (
+                <NeumorphicCard key={dayKey} className={`p-4 ${isToday ? 'border-2 border-blue-400' : ''}`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${
+                    isToday ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-700'}`
+                    }>
+                      {day.format('DD')}
+                    </div>
+                    <div>
+                      <div className="font-medium text-slate-800 capitalize">{day.locale('it').format('dddd')}</div>
+                      <div className="text-sm text-slate-500 capitalize">{day.locale('it').format('MMMM YYYY')}</div>
+                    </div>
+                  </div>
+
+                  {dayTurni.length === 0 ?
+                  <p className="text-slate-500 text-sm italic ml-13">Nessun turno</p> :
+
+                  <div className="space-y-2 ml-13">
+                      {dayTurni.map((turno) => {
+                      const hasTimbrato = turno.timbratura_entrata || turno.timbratura_uscita;
+                      const turnoStart = moment(`${turno.data} ${turno.ora_inizio}`);
+                      const turnoNonIniziato = turnoStart.isAfter(moment());
+                      const canScambio = turnoNonIniziato && !turno.timbratura_entrata && (
+                      !turno.richiesta_scambio || !['pending', 'accepted_by_colleague'].includes(turno.richiesta_scambio?.stato));
+
+                      return (
+                        <div key={turno.id} className={`p-3 rounded-lg border ${COLORI_RUOLO[turno.ruolo]} ${turno.is_prova ? 'ring-2 ring-purple-500' : ''}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              <span className="font-medium">{turno.ora_inizio} - {turno.ora_fine}</span>
+                              {turno.is_prova &&
+                              <span className="px-2 py-0.5 bg-purple-500 text-white rounded-full text-[10px] font-bold">
+                                  🧪 PROVA
+                                </span>
+                              }
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{turno.ruolo}</span>
+                              {canScambio &&
+                              <button
+                                onClick={() => openScambioModal(turno)}
+                                className="p-1 bg-white bg-opacity-50 rounded hover:bg-opacity-80"
+                                title="Richiedi scambio">
+
+                                  <ArrowRightLeft className="w-3 h-3" />
+                                </button>
+                              }
+                              {turno.richiesta_scambio?.stato === 'pending' &&
+                              <span className="px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded-full text-xs font-medium flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />
+                                  {turno.richiesta_scambio?.richiesto_da === currentUser?.id ? 'Richiesto' : 'Da rispondere'}
+                                </span>
+                              }
+                              {turno.richiesta_scambio?.stato === 'accepted_by_colleague' &&
+                              <span className="px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full text-xs">
+                                  Da approvare
+                                </span>
+                              }
+                              {turno.richiesta_scambio?.stato === 'approved_by_manager' &&
+                              <span className="px-2 py-0.5 bg-green-200 text-green-800 rounded-full text-xs">
+                                  Approvato
+                                </span>
+                              }
+                              {turno.richiesta_scambio?.stato === 'rejected_by_colleague' &&
+                              <span className="px-2 py-0.5 bg-red-200 text-red-800 rounded-full text-xs">
+                                  Rifiutato
+                                </span>
+                              }
+                              {turno.richiesta_scambio?.stato === 'rejected_by_manager' &&
+                              <span className="px-2 py-0.5 bg-red-200 text-red-800 rounded-full text-xs">
+                                  Negato
+                                </span>
+                              }
+                            </div>
+                          </div>
+                          <div className="text-sm opacity-80 mt-1 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {getStoreName(turno.store_id)}
+                          </div>
+                        </div>);
+
+                    })}
+                    </div>
+                  }
+                </NeumorphicCard>);
+
+            })
+            }
+        </div>
+          </>
+        }
 
         {/* VISTA: FERIE */}
         {activeView === 'ferie' &&
-          <FerieView ferieForm={ferieForm} setFerieForm={setFerieForm} turniFuturi={turniFuturi} currentUser={currentUser} richiestaFerieMutation={richiestaFerieMutation} mieFerie={mieFerie} getStatoColor={getStatoColor} getStatoLabel={getStatoLabel} />
+        <div className="space-y-4">
+            {/* Form nuova richiesta */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Palmtree className="w-5 h-5 text-blue-500" />
+                Richiedi Nuove Ferie
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Data Inizio</label>
+                  <input
+                  type="date"
+                  value={ferieForm.data_inizio}
+                  onChange={(e) => setFerieForm({ ...ferieForm, data_inizio: e.target.value })}
+                  min={moment().format('YYYY-MM-DD')}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Data Fine</label>
+                  <input
+                  type="date"
+                  value={ferieForm.data_fine}
+                  onChange={(e) => {
+                    const nuovaDataFine = e.target.value;
+                    if (ferieForm.data_inizio && nuovaDataFine < ferieForm.data_inizio) {
+                      alert('La data di fine non può essere antecedente alla data di inizio');
+                      return;
+                    }
+                    setFerieForm({ ...ferieForm, data_fine: nuovaDataFine });
+                  }}
+                  min={ferieForm.data_inizio || moment().format('YYYY-MM-DD')}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Motivo (opz.)</label>
+                  <input
+                  type="text"
+                  value={ferieForm.motivo}
+                  onChange={(e) => setFerieForm({ ...ferieForm, motivo: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  placeholder="Vacanza, motivi personali..." />
+
+                </div>
+              </div>
+              {ferieForm.data_inizio && ferieForm.data_fine &&
+            <p className="text-sm text-blue-600 mt-2">
+                  Turni coinvolti: {turniFuturi.filter((t) => t.data >= ferieForm.data_inizio && t.data <= ferieForm.data_fine).length}
+                </p>
+            }
+              <NeumorphicButton
+              onClick={() => richiestaFerieMutation.mutate(ferieForm)}
+              variant="primary"
+              className="mt-4"
+              disabled={!ferieForm.data_inizio || !ferieForm.data_fine || richiestaFerieMutation.isPending}>
+
+                {richiestaFerieMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia Richiesta Ferie'}
+              </NeumorphicButton>
+            </NeumorphicCard>
+
+            {/* Storico richieste */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Le Mie Richieste Ferie</h2>
+              {mieFerie.length === 0 ?
+            <p className="text-slate-500 text-center py-4">Nessuna richiesta di ferie</p> :
+
+            <div className="space-y-3">
+                  {mieFerie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map((ferie) =>
+              <div key={ferie.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-slate-800">
+                            {ferie.data_inizio && moment(ferie.data_inizio).isValid() ? moment(ferie.data_inizio).format('DD/MM/YYYY') : 'N/A'} - {ferie.data_fine && moment(ferie.data_fine).isValid() ? moment(ferie.data_fine).format('DD/MM/YYYY') : 'N/A'}
+                          </p>
+                          {ferie.motivo && <p className="text-sm text-slate-500">{ferie.motivo}</p>}
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatoColor(ferie.stato)}`}>
+                          {getStatoLabel(ferie.stato)}
+                        </span>
+                      </div>
+                      {ferie.note_admin &&
+                <p className="text-xs text-slate-500 mt-2 italic">Note: {ferie.note_admin}</p>
+                }
+                    </div>
+              )}
+                </div>
+            }
+            </NeumorphicCard>
+          </div>
         }
 
         {/* VISTA: MALATTIA */}
         {activeView === 'malattia' &&
-          <MalattiaView malattiaForm={malattiaForm} setMalattiaForm={setMalattiaForm} turniFuturi={turniFuturi} currentUser={currentUser} richiestaMalattiaMutation={richiestaMalattiaMutation} mieMalattie={mieMalattie} handleUploadCertificato={handleUploadCertificato} uploadingCertificato={uploadingCertificato} uploadingCertificatoForId={uploadingCertificatoForId} setUploadingCertificatoForId={setUploadingCertificatoForId} uploadCertificatoMutation={uploadCertificatoMutation} getStatoColor={getStatoColor} getStatoLabel={getStatoLabel} />
+        <div className="space-y-4">
+            {/* Form nuova richiesta */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Thermometer className="w-5 h-5 text-red-500" />
+                Segnala Malattia
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Data Inizio</label>
+                  <input
+                  type="date"
+                  value={malattiaForm.data_inizio}
+                  onChange={(e) => setMalattiaForm({ ...malattiaForm, data_inizio: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Data Fine</label>
+                  <input
+                  type="date"
+                  value={malattiaForm.data_fine}
+                  onChange={(e) => setMalattiaForm({ ...malattiaForm, data_fine: e.target.value })}
+                  min={malattiaForm.data_inizio}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none" />
+
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Descrizione (opz.)</label>
+                  <input
+                  type="text"
+                  value={malattiaForm.descrizione}
+                  onChange={(e) => setMalattiaForm({ ...malattiaForm, descrizione: e.target.value })}
+                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
+                  placeholder="Descrivi brevemente..." />
+
+                </div>
+              </div>
+              {malattiaForm.data_inizio && malattiaForm.data_fine &&
+            <p className="text-sm text-blue-600 mt-2">
+                  Turni coinvolti: {turniFuturi.filter((t) =>
+              t.dipendente_id === currentUser.id &&
+              t.data >= malattiaForm.data_inizio &&
+              t.data <= malattiaForm.data_fine
+              ).length}
+                </p>
+            }
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Certificato Medico (opzionale)</label>
+                <div className="neumorphic-pressed p-4 rounded-xl">
+                  {malattiaForm.certificato_url ?
+                <div className="flex items-center gap-2 text-green-700">
+                      <FileText className="w-5 h-5" />
+                      <span className="text-sm">Certificato caricato</span>
+                      <button onClick={() => setMalattiaForm({ ...malattiaForm, certificato_url: null })} className="text-red-500 ml-auto">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div> :
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                      {uploadingCertificato ?
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" /> :
+
+                  <Upload className="w-6 h-6 text-slate-400" />
+                  }
+                      <span className="text-sm text-slate-500">Clicca per caricare</span>
+                      <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={(e) => handleUploadCertificato(e.target.files[0])} />
+
+                    </label>
+                }
+                </div>
+              </div>
+              <div className="p-3 bg-orange-50 rounded-xl mt-4 space-y-2">
+                <p className="text-sm text-orange-700">
+                  ⚠️ I tuoi turni verranno segnati come "Malattia (Non Certificata)" fino all'approvazione del certificato.
+                </p>
+                <p className="text-sm text-red-600 font-medium">
+                  📋 Hai 5 giorni dall'ultimo giorno di malattia per caricare il certificato medico. Dopo tale data l'assenza verrà considerata non giustificata.
+                </p>
+              </div>
+              <NeumorphicButton
+              onClick={() => richiestaMalattiaMutation.mutate(malattiaForm)}
+              variant="primary"
+              className="mt-4"
+              disabled={!malattiaForm.data_inizio || !malattiaForm.data_fine || richiestaMalattiaMutation.isPending}>
+
+                {richiestaMalattiaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Invia Segnalazione'}
+              </NeumorphicButton>
+            </NeumorphicCard>
+
+            {/* Storico malattie */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Le Mie Malattie</h2>
+              {mieMalattie.length === 0 ?
+            <p className="text-slate-500 text-center py-4">Nessuna malattia registrata</p> :
+
+            <div className="space-y-3">
+                  {mieMalattie.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).map((malattia) => {
+                // Calcola scadenza certificato (5 giorni dall'ultimo giorno di malattia)
+                const dataFine = malattia.data_fine || malattia.data_inizio;
+                const scadenzaCertificato = dataFine && moment(dataFine).isValid() ? moment(dataFine).add(5, 'days') : null;
+                const giorniRimanenti = scadenzaCertificato ? scadenzaCertificato.diff(moment(), 'days') : 0;
+                const isScaduto = giorniRimanenti < 0;
+                const needsCertificato = !malattia.certificato_url && (malattia.stato === 'non_certificata' || malattia.stato === 'in_attesa_verifica');
+
+                return (
+                  <div key={malattia.id} className={`neumorphic-pressed p-4 rounded-xl ${isScaduto && needsCertificato ? 'border-2 border-red-300 bg-red-50' : ''}`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-800">
+                            {malattia.data_inizio && moment(malattia.data_inizio).isValid() ? moment(malattia.data_inizio).format('DD/MM/YYYY') : 'N/A'}
+                            {malattia.data_fine && moment(malattia.data_fine).isValid() && ` - ${moment(malattia.data_fine).format('DD/MM/YYYY')}`}
+                          </p>
+                          {malattia.descrizione && <p className="text-sm text-slate-500">{malattia.descrizione}</p>}
+                          {malattia.certificato_url ?
+                        <a href={malattia.certificato_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs flex items-center gap-1 mt-1">
+                              <FileText className="w-3 h-3" /> Vedi Certificato
+                            </a> :
+                        needsCertificato &&
+                        <div className="mt-2">
+                              {/* Scadenza certificato */}
+                              {isScaduto ?
+                          <div className="p-2 bg-red-100 rounded-lg mb-2">
+                                  <p className="text-xs text-red-700 font-medium flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    Scadenza superata - Assenza non giustificata
+                                  </p>
+                                </div> :
+                          giorniRimanenti <= 5 &&
+                          <div className="p-2 bg-orange-100 rounded-lg mb-2">
+                                  <p className="text-xs text-orange-700 font-medium flex items-center gap-1">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    {giorniRimanenti === 0 ?
+                              'Scade oggi!' :
+                              `Scade tra ${giorniRimanenti} giorn${giorniRimanenti === 1 ? 'o' : 'i'}`}
+                                  </p>
+                                  <p className="text-xs text-orange-600 mt-1">
+                                   Carica il certificato entro il {scadenzaCertificato ? scadenzaCertificato.format('DD/MM/YYYY') : 'N/A'}
+                                  </p>
+                                </div>
+                          }
+                              
+                              {uploadingCertificatoForId === malattia.id ?
+                          <div className="flex items-center gap-2 text-blue-600">
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span className="text-xs">Caricamento...</span>
+                                </div> :
+
+                          <label className={`flex items-center gap-2 cursor-pointer text-xs px-3 py-2 rounded-lg ${isScaduto ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>
+                                  <Upload className="w-4 h-4" />
+                                  <span>Carica certificato</span>
+                                  <input
+                              type="file"
+                              accept="image/*,.pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files[0]) {
+                                  setUploadingCertificatoForId(malattia.id);
+                                  uploadCertificatoMutation.mutate({ malattiaId: malattia.id, file: e.target.files[0] });
+                                }
+                              }} />
+
+                                </label>
+                          }
+                            </div>
+                        }
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${isScaduto && needsCertificato ? 'bg-red-200 text-red-800' : getStatoColor(malattia.stato)}`}>
+                          {isScaduto && needsCertificato ? 'Non Giustificata' : getStatoLabel(malattia.stato)}
+                        </span>
+                      </div>
+                      {malattia.note_admin &&
+                    <p className="text-xs text-slate-500 mt-2 italic">Note: {malattia.note_admin}</p>
+                    }
+                    </div>);
+
+              })}
+                  </div>
+            }
+                  </NeumorphicCard>
+                  </div>
         }
 
         {/* VISTA: SCAMBI */}
         {activeView === 'scambi' &&
-          <ScambiView
-            scambiDaMePending={scambiDaMePending}
-            scambiPerMe={scambiPerMe}
-            turniFuturi={turniFuturi}
-            getStoreName={getStoreName}
-            cancellaScambioMutation={cancellaScambioMutation}
-            rispondiScambioMutation={rispondiScambioMutation}
-          />
+        <>
+          <div className="space-y-4">
+            {/* Sezione 1: Scambi richiesti DA ME */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <ArrowRightLeft className="w-5 h-5 text-blue-500" />
+                Scambi Richiesti da Me
+              </h2>
+              <p className="text-sm text-slate-500 mb-4">
+                Richieste di scambio che hai inviato ai tuoi colleghi
+              </p>
+
+              {scambiDaMePending.length === 0 ?
+              <p className="text-slate-500 text-center py-8">Nessuna richiesta in corso</p> :
+
+              <div className="space-y-3">
+                  {scambiDaMePending.map((mioTurno) => {
+                  const scambio = mioTurno.richiesta_scambio;
+                  const suoTurnoId = scambio?.suo_turno_id;
+                  const statoScambio = scambio?.stato;
+
+                  // Trova il turno del collega
+                  const suoTurno = turniFuturi.find((t) => t.id === suoTurnoId);
+
+                  return (
+                    <div key={mioTurno.id} className="neumorphic-pressed p-4 rounded-xl">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-3">
+                              <ArrowRightLeft className="w-5 h-5 text-purple-500" />
+                              <span className="font-bold text-slate-800">{scambio.richiesto_da_nome}</span>
+                              <span className="text-slate-500">↔</span>
+                              <span className="font-bold text-slate-800">{scambio.richiesto_a_nome}</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {/* Turno CEDUTO */}
+                              <div className="p-3 bg-red-50 rounded-lg border-2 border-red-200">
+                                <p className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
+                                  <X className="w-3 h-3" />
+                                  Cedi questo:
+                                </p>
+                                <p className="font-medium text-slate-700 text-sm">
+                                  {moment(mioTurno.data).format('ddd DD/MM')}
+                                </p>
+                                <div className="text-xs text-slate-600 mt-1">
+                                  🕐 {mioTurno.ora_inizio} - {mioTurno.ora_fine}
+                                </div>
+                                <div className="text-xs text-slate-600">
+                                  👤 {mioTurno.ruolo}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  📍 {getStoreName(mioTurno.store_id)}
+                                </div>
+                              </div>
+
+                              {/* Turno RICHIESTO */}
+                              {suoTurno &&
+                            <div className="p-3 bg-green-50 rounded-lg border-2 border-green-200">
+                                  <p className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1">
+                                    <Check className="w-3 h-3" />
+                                    Prendi questo:
+                                  </p>
+                                  <p className="font-medium text-slate-700 text-sm">
+                                    {moment(suoTurno.data).format('ddd DD/MM')}
+                                  </p>
+                                  <div className="text-xs text-slate-600 mt-1">
+                                    🕐 {suoTurno.ora_inizio} - {suoTurno.ora_fine}
+                                  </div>
+                                  <div className="text-xs text-slate-600">
+                                    👤 {suoTurno.ruolo}
+                                  </div>
+                                  <div className="text-xs text-slate-500">
+                                    📍 {getStoreName(suoTurno.store_id)}
+                                  </div>
+                                </div>
+                            }
+                            </div>
+
+                            <p className="text-xs text-slate-400 mt-2">
+                             Richiesto il {scambio.data_richiesta && moment(scambio.data_richiesta).isValid() ? moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm') : 'N/A'}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-2 ml-3">
+                            {statoScambio === 'pending' ?
+                          <>
+                                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium text-center">
+                                  In attesa collega
+                                </span>
+                                <button
+                              onClick={() => cancellaScambioMutation.mutate({
+                                mioTurnoId: mioTurno.id,
+                                suoTurnoId: suoTurnoId
+                              })}
+                              disabled={cancellaScambioMutation.isPending}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 flex items-center gap-1">
+
+                                  <X className="w-3 h-3" /> Cancella
+                                </button>
+                              </> :
+
+                          <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium text-center">
+                                <CheckCircle className="w-4 h-4 mx-auto mb-1" />
+                                Accettato<br />
+                                <span className="text-[10px]">In attesa manager</span>
+                              </div>
+                          }
+                          </div>
+                        </div>
+                      </div>);
+
+                })}
+                </div>
+              }
+            </NeumorphicCard>
+
+            {/* Sezione 2: Scambi richiesti A ME */}
+            <NeumorphicCard className="p-6">
+              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-500" />
+                Richieste Ricevute
+              </h2>
+              <p className="text-sm text-slate-500 mb-4">
+                Colleghi che vogliono scambiare il loro turno con te
+              </p>
+
+              {scambiPerMe.length === 0 ?
+              <p className="text-slate-500 text-center py-8">Nessuna richiesta ricevuta</p> :
+
+              <div className="space-y-3">
+                {scambiPerMe.map((turno) => {
+                  const scambio = turno.richiesta_scambio;
+                  const mioTurnoId = scambio?.mio_turno_id;
+                  const mioTurno = turniFuturi.find((t) => t.id === mioTurnoId);
+                  const statoScambio = scambio?.stato;
+
+                  return (
+                    <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-3">
+                          <ArrowRightLeft className="w-5 h-5 text-purple-500" />
+                          <span className="font-bold text-slate-800">{scambio.richiesto_da_nome}</span>
+                          <span className="text-slate-500">↔</span>
+                          <span className="font-bold text-slate-800">Tu</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {/* Turno che il RICHIEDENTE cede (e tu prenderesti) */}
+                          {mioTurno &&
+                            <div className="p-3 bg-green-50 rounded-lg border-2 border-green-200">
+                              <p className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1">
+                                <Check className="w-3 h-3" />
+                                Prendi questo:
+                              </p>
+                              <p className="font-medium text-slate-700 text-sm">
+                                {moment(mioTurno.data).format('ddd DD/MM')}
+                              </p>
+                              <div className="text-xs text-slate-600 mt-1">
+                                🕐 {mioTurno.ora_inizio} - {mioTurno.ora_fine}
+                              </div>
+                              <div className="text-xs text-slate-600">
+                                👤 {mioTurno.ruolo}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                📍 {getStoreName(mioTurno.store_id)}
+                              </div>
+                            </div>
+                            }
+
+                          {/* Il TUO turno che cedi */}
+                          <div className="p-3 bg-red-50 rounded-lg border-2 border-red-200">
+                            <p className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
+                              <X className="w-3 h-3" />
+                              Cedi questo:
+                            </p>
+                            <p className="font-medium text-slate-700 text-sm">
+                              {moment(turno.data).format('ddd DD/MM')}
+                            </p>
+                            <div className="text-xs text-slate-600 mt-1">
+                              🕐 {turno.ora_inizio} - {turno.ora_fine}
+                            </div>
+                            <div className="text-xs text-slate-600">
+                              👤 {turno.ruolo}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              📍 {getStoreName(turno.store_id)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-slate-400 mt-2">
+                          Richiesto il {scambio.data_richiesta && moment(scambio.data_richiesta).isValid() ? moment(scambio.data_richiesta).format('DD/MM/YYYY HH:mm') : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-2 ml-3">
+                        {statoScambio === 'pending' ?
+                          <>
+                            <button
+                              onClick={() => rispondiScambioMutation.mutate({ suoTurnoId: turno.id, accetta: true })}
+                              disabled={rispondiScambioMutation.isPending}
+                              className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 flex items-center gap-1">
+
+                              <Check className="w-3 h-3" /> Accetta
+                            </button>
+                            <button
+                              onClick={() => rispondiScambioMutation.mutate({ suoTurnoId: turno.id, accetta: false })}
+                              disabled={rispondiScambioMutation.isPending}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 flex items-center gap-1">
+
+                              <X className="w-3 h-3" /> Rifiuta
+                            </button>
+                          </> :
+
+                          <div className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium text-center">
+                            <CheckCircle className="w-4 h-4 mx-auto mb-1" />
+                            Accettato<br />
+                            <span className="text-[10px]">In attesa approvazione Store Manager</span>
+                          </div>
+                          }
+                      </div>
+                    </div>
+                  </div>);
+
+                })}
+              </div>
+              }
+          </NeumorphicCard>
+          </div>
+          </>
         }
 
         {/* VISTA: TURNI LIBERI */}
         {activeView === 'liberi' &&
-          <TurniLiberiView currentUser={currentUser} turniLiberi={turniLiberi} mieRichiesteTurni={mieRichiesteTurni} getStoreName={getStoreName} richiediTurnoLiberoMutation={richiediTurnoLiberoMutation} />
+        <NeumorphicCard className="p-6">
+            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-green-500" />
+              Turni Liberi Disponibili
+            </h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Questi turni corrispondono ai tuoi ruoli ({currentUser?.ruoli_dipendente?.join(', ')}) e sono disponibili.
+            </p>
+            
+            {turniLiberi.length === 0 ?
+          <p className="text-slate-500 text-center py-8">Nessun turno libero disponibile per i tuoi ruoli</p> :
+
+          <div className="space-y-3">
+                {turniLiberi.sort((a, b) => a.data.localeCompare(b.data)).map((turno) => {
+              const giaRichiesto = mieRichiesteTurni.some((r) => r.turno_id === turno.id && r.stato === 'in_attesa');
+              return (
+                <div key={turno.id} className="neumorphic-pressed p-4 rounded-xl">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-slate-800 capitalize">
+                            {moment(turno.data).locale('it').format('dddd DD MMMM')}
+                          </p>
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <Clock className="w-4 h-4" />
+                            <span>{turno.ora_inizio} - {turno.ora_fine}</span>
+                            <span>•</span>
+                            <span>{turno.ruolo}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                            <MapPin className="w-3 h-3" />
+                            {getStoreName(turno.store_id)}
+                            {turno.tipo_turno && turno.tipo_turno !== 'Normale' &&
+                        <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                                {turno.tipo_turno}
+                              </span>
+                        }
+                          </div>
+                        </div>
+                        {giaRichiesto ?
+                    <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
+                            Richiesto
+                          </span> :
+
+                    <NeumorphicButton
+                      onClick={() => richiediTurnoLiberoMutation.mutate(turno)}
+                      variant="primary"
+                      className="text-sm"
+                      disabled={richiediTurnoLiberoMutation.isPending}>
+
+                            Richiedi
+                          </NeumorphicButton>
+                    }
+                      </div>
+                    </div>);
+
+            })}
+              </div>
+          }
+
+            {/* Richieste in corso */}
+            {mieRichiesteTurni.filter((r) => r.stato === 'in_attesa').length > 0 &&
+          <div className="mt-6 pt-6 border-t border-slate-200">
+                <h3 className="font-bold text-slate-700 mb-3">Le tue richieste in attesa</h3>
+                <div className="space-y-2">
+                  {mieRichiesteTurni.filter((r) => r.stato === 'in_attesa').map((richiesta) =>
+              <div key={richiesta.id} className="p-3 bg-yellow-50 rounded-xl text-sm">
+                      <span className="font-medium">{moment(richiesta.data_turno).format('DD/MM/YYYY')}</span>
+                      <span className="text-slate-500"> • {richiesta.ora_inizio}-{richiesta.ora_fine}</span>
+                      <span className="text-slate-500"> • {richiesta.store_name}</span>
+                    </div>
+              )}
+                </div>
+              </div>
+          }
+          </NeumorphicCard>
         }
 
-        {activeView === 'disponibilita' && currentUser && <DisponibilitaView currentUser={currentUser} mieDisponibilita={mieDisponibilita} />}
+        {/* VISTA: DISPONIBILITÀ */}
+        {activeView === 'disponibilita' && currentUser &&
+        <>
+            <NeumorphicCard className="p-4 bg-blue-50 border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>ℹ️ Disponibilità:</strong> Indica quando sei disponibile o non disponibile a lavorare. 
+                Gli amministratori riceveranno un avviso se cercano di assegnarti un turno in un momento in cui non sei disponibile.
+              </p>
+            </NeumorphicCard>
+
+            {/* Tabs: Calendario vs Ricorrenti */}
+            <div className="flex gap-2">
+              <NeumorphicButton
+              onClick={() => setActiveView('disponibilita')}
+              variant="primary"
+              className="flex-1">
+
+                Vista Calendario
+              </NeumorphicButton>
+            </div>
+
+            <DisponibilitaCalendar
+            dipendente={currentUser}
+            disponibilita={mieDisponibilita} />
+
+
+            <div className="mt-6">
+              <DisponibilitaRicorrenti
+              dipendente={currentUser}
+              disponibilita={mieDisponibilita} />
+
+            </div>
+          </>
+        }
 
         {/* Modal Scambio Turno */}
         {showScambioModal && selectedTurnoScambio &&
-          <ScambioTurnoModal
-            selectedTurnoScambio={selectedTurnoScambio}
-            colleghiPerScambio={colleghiPerScambio}
-            selectedCollegaScambio={selectedCollegaScambio}
-            setSelectedCollegaScambio={setSelectedCollegaScambio}
-            selectedTurnoCollegaScambio={selectedTurnoCollegaScambio}
-            setSelectedTurnoCollegaScambio={setSelectedTurnoCollegaScambio}
-            turniFuturiCollega={turniFuturiCollega}
-            allUsersData={allUsersData}
-            getStoreName={getStoreName}
-            richiestaScambioMutation={richiestaScambioMutation}
-            onClose={() => {
-              setShowScambioModal(false);
-              setSelectedTurnoScambio(null);
-              setSelectedCollegaScambio(null);
-              setSelectedTurnoCollegaScambio(null);
-            }}
-          />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <NeumorphicCard className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Richiedi Scambio Turno</h2>
+                <button onClick={() => {setShowScambioModal(false);setSelectedTurnoScambio(null);}} className="nav-button p-2 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4 p-3 bg-blue-50 rounded-xl">
+                <div className="font-medium text-blue-800 capitalize">
+                  {moment(selectedTurnoScambio.data).locale('it').format('dddd DD MMMM YYYY')}
+                </div>
+                <div className="text-sm text-blue-700">
+                  {selectedTurnoScambio.ora_inizio} - {selectedTurnoScambio.ora_fine} • {selectedTurnoScambio.ruolo}
+                </div>
+                <div className="text-sm text-blue-600">
+                  {getStoreName(selectedTurnoScambio.store_id)}
+                </div>
+              </div>
+
+              <h3 className="font-medium text-slate-700 mb-3">Seleziona un collega:</h3>
+
+              {colleghiPerScambio.length === 0 ?
+            <div className="text-center py-4">
+                  <p className="text-slate-500 mb-2">
+                    Nessun collega disponibile con il ruolo {selectedTurnoScambio.ruolo}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Totale utenti: {allUsersData.length} | Apri console (F12) per debug
+                  </p>
+                </div> :
+
+            <div className="space-y-3">
+                  {colleghiPerScambio.map((collega) => {
+                const isSelected = selectedCollegaScambio?.id === collega.id;
+                return (
+                  <div
+                    key={collega.id}
+                    className={`p-4 rounded-xl border transition-all ${
+                    collega.haConflitti ? 'border-red-300 bg-red-50 cursor-not-allowed opacity-60' :
+                    isSelected ? 'border-blue-500 bg-blue-100' :
+                    'border-green-300 bg-green-50 cursor-pointer hover:bg-green-100'}`
+                    }
+                    onClick={() => {
+                      if (!collega.haConflitti) {
+                        setSelectedCollegaScambio(collega);
+                        setSelectedTurnoCollegaScambio(null);
+                      }
+                    }}>
+
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                            {(collega.nome_cognome || collega.full_name || '?').substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-medium text-slate-800">{collega.nome_cognome || collega.full_name}</div>
+                            <div className="text-xs text-slate-500">{(collega.ruoli_dipendente || []).join(', ')}</div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          {collega.haConflitti ?
+                        <span className="flex items-center gap-1 text-xs text-red-700 bg-red-200 px-2 py-1 rounded-full font-medium">
+                              <X className="w-3 h-3" />
+                              Conflitto orario
+                            </span> :
+
+                        <span className="flex items-center gap-1 text-xs text-green-700 bg-green-200 px-2 py-1 rounded-full font-medium">
+                              <Check className="w-3 h-3" />
+                              Disponibile
+                            </span>
+                        }
+                        </div>
+                      </div>
+                      
+                      {/* Mostra turni del collega in quel giorno */}
+                      {collega.tuttiTurniGiorno.length > 0 &&
+                    <div className="mt-2 pt-2 border-t border-slate-200">
+                          <p className="text-xs font-medium text-slate-600 mb-1">Turni del collega in questo giorno:</p>
+                          <div className="space-y-1">
+                            {collega.tuttiTurniGiorno.map((turno) => {
+                          const isSovrapposto = collega.turniSovrapposti.some((t) => t.id === turno.id);
+                          return (
+                            <div
+                              key={turno.id}
+                              className={`text-xs p-2 rounded-lg flex items-center justify-between ${
+                              isSovrapposto ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`
+                              }>
+
+                                  <div className="flex items-center gap-2">
+                                    <Clock className="w-3 h-3" />
+                                    <span>{turno.ora_inizio} - {turno.ora_fine}</span>
+                                    <span>•</span>
+                                    <span>{getStoreName(turno.store_id)}</span>
+                                  </div>
+                                  {isSovrapposto &&
+                              <span className="flex items-center gap-1 text-xs text-red-600 font-medium">
+                                      <AlertTriangle className="w-3 h-3" />
+                                      Sovrapposto
+                                    </span>
+                              }
+                                </div>);
+
+                        })}
+                          </div>
+                        </div>
+                    }
+                      
+                      {collega.tuttiTurniGiorno.length === 0 && !collega.haConflitti &&
+                    <div className="mt-2 pt-2 border-t border-green-200">
+                          <p className="text-xs text-green-700 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Nessun altro turno in questo giorno - completamente libero
+                          </p>
+                        </div>
+                    }
+                        </div>);
+
+              })}
+                </div>
+            }
+
+              {/* Selezione turno del collega */}
+              {selectedCollegaScambio &&
+            <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <h3 className="font-medium text-blue-800 mb-3">
+                    Seleziona il turno di {selectedCollegaScambio.nome_cognome || selectedCollegaScambio.full_name} da scambiare:
+                  </h3>
+                  {turniFuturiCollega.length === 0 ?
+              <p className="text-sm text-slate-500 text-center py-4">
+                      Nessun turno futuro disponibile per questo collega
+                    </p> :
+
+              <div className="space-y-2">
+                      {turniFuturiCollega.map((turnoC) => {
+                  const isSelectedTurno = selectedTurnoCollegaScambio?.id === turnoC.id;
+                  return (
+                    <div
+                      key={turnoC.id}
+                      className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                      isSelectedTurno ?
+                      'border-blue-500 bg-blue-100' :
+                      'border-slate-200 bg-white hover:bg-slate-50'}`
+                      }
+                      onClick={() => setSelectedTurnoCollegaScambio(turnoC)}>
+
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-slate-800 capitalize">
+                                  {moment(turnoC.data).locale('it').format('dddd DD MMMM YYYY')}
+                                </p>
+                                <div className="text-sm text-slate-600 flex items-center gap-2">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{turnoC.ora_inizio} - {turnoC.ora_fine}</span>
+                                  <span>•</span>
+                                  <span>{turnoC.ruolo}</span>
+                                </div>
+                                <div className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                  <MapPin className="w-3 h-3" />
+                                  {getStoreName(turnoC.store_id)}
+                                </div>
+                              </div>
+                              {isSelectedTurno &&
+                        <Check className="w-5 h-5 text-blue-600" />
+                        }
+                            </div>
+                          </div>);
+
+                })}
+                    </div>
+              }
+                </div>
+            }
+
+              <div className="mt-4 flex gap-3">
+                <NeumorphicButton
+                onClick={() => {
+                  setShowScambioModal(false);
+                  setSelectedTurnoScambio(null);
+                  setSelectedCollegaScambio(null);
+                  setSelectedTurnoCollegaScambio(null);
+                }}
+                className="flex-1">
+
+                  Annulla
+                </NeumorphicButton>
+                {selectedCollegaScambio && selectedTurnoCollegaScambio &&
+              <NeumorphicButton
+                onClick={() => {
+                  richiestaScambioMutation.mutate({
+                    mioTurnoId: selectedTurnoScambio.id,
+                    suoTurnoId: selectedTurnoCollegaScambio.id,
+                    richiestoA: selectedCollegaScambio.id
+                  });
+                }}
+                disabled={richiestaScambioMutation.isPending}
+                variant="primary"
+                className="flex-1">
+
+                    {richiestaScambioMutation.isPending ? 'Invio...' : 'Conferma Scambio'}
+                  </NeumorphicButton>
+              }
+              </div>
+            </NeumorphicCard>
+          </div>
         }
       </div>
     </ProtectedPage>);
