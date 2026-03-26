@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.22';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
@@ -33,6 +33,32 @@ Deno.serve(async (req) => {
     // Verifica che il turno appartenga all'utente (o che l'utente sia admin)
     if (turno.dipendente_id !== user.id && user.user_type !== 'admin') {
       return Response.json({ error: 'Non puoi timbrare un turno di un altro dipendente' }, { status: 403 });
+    }
+
+    // === DOCUMENT COMPLIANCE CHECK (Phase 1) - Only for clock-in ===
+    if (tipo === 'entrata' && user.user_type !== 'admin') {
+      const employeeId = turno.dipendente_id;
+      const [pendingContratti, pendingLettere, pendingRegolamenti] = await Promise.all([
+        base44.asServiceRole.entities.Contratto.filter({ user_id: employeeId, status: 'inviato' }),
+        base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId }),
+        base44.asServiceRole.entities.RegolamentoFirmato.filter({ user_id: employeeId, firmato: false })
+      ]);
+
+      const pendingRichiami = pendingLettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && ['inviata', 'visualizzata'].includes(l.status));
+      const pendingChiusure = pendingLettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && ['inviata', 'visualizzata'].includes(l.status));
+
+      const pendingTypes = [];
+      if (pendingContratti.length > 0) pendingTypes.push('Contratti');
+      if (pendingRichiami.length > 0) pendingTypes.push('Lettere di Richiamo');
+      if (pendingChiusure.length > 0) pendingTypes.push('Chiusura Procedura');
+      if (pendingRegolamenti.length > 0) pendingTypes.push('Regolamento');
+
+      if (pendingTypes.length > 0) {
+        return Response.json({
+          error: 'Hai documenti obbligatori da firmare prima di timbrare: ' + pendingTypes.join(', ') + '. Vai alla sezione Documenti per firmarli.',
+          pendingDocumentTypes: pendingTypes
+        }, { status: 403 });
+      }
     }
 
     const updateData = {};
