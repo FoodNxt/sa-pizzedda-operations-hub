@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Package,
   CheckCircle2 as CheckCircle,
@@ -8,12 +10,164 @@ import {
   Edit,
   Trash2,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Mail,
+  Save,
+  Bell
 } from "lucide-react";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
-import OrderArrivalAlert from "./OrderArrivalAlert";
+import OrderArrivalAlert, { useOrderArrivalDetection } from "./OrderArrivalAlert";
 import { format, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
+
+function GlobalArrivalBanner({ ordiniInviati, inventory, inventoryCantina }) {
+  const totalAlerts = ordiniInviati.filter((ordine) => {
+    if (!ordine?.data_invio || !ordine?.prodotti) return false;
+    const allInv = [...(inventory || []), ...(inventoryCantina || [])];
+    const dataInvio = new Date(ordine.data_invio);
+
+    return ordine.prodotti.some((prod) => {
+      if (prod.quantita_ordinata <= 0) return false;
+      const readings = allInv
+        .filter((r) => r.prodotto_id === prod.prodotto_id && r.store_id === ordine.store_id)
+        .sort((a, b) => new Date(a.data_rilevazione) - new Date(b.data_rilevazione));
+      if (readings.length < 2) return false;
+      const readingsBeforeOrder = readings.filter((r) => new Date(r.data_rilevazione) <= dataInvio);
+      const readingsAfterOrder = readings.filter((r) => new Date(r.data_rilevazione) > dataInvio);
+      if (readingsBeforeOrder.length === 0 || readingsAfterOrder.length === 0) return false;
+      const lastBefore = readingsBeforeOrder[readingsBeforeOrder.length - 1];
+      const lastAfter = readingsAfterOrder[readingsAfterOrder.length - 1];
+      return (lastAfter.quantita_rilevata || 0) > (lastBefore.quantita_rilevata || 0);
+    });
+  }).length;
+
+  if (totalAlerts === 0) return null;
+
+  return (
+    <div className="mb-6 p-5 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl shadow-xl text-white">
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 rounded-full bg-white bg-opacity-20 flex items-center justify-center flex-shrink-0">
+          <AlertTriangle className="w-7 h-7 text-white" />
+        </div>
+        <div>
+          <p className="text-xl font-bold">⚠️ {totalAlerts} ordini con possibile arrivo NON SEGNATO</p>
+          <p className="text-sm text-white text-opacity-90 mt-1">
+            L'inventario è aumentato dopo l'invio per alcuni prodotti. Controlla e conferma la ricezione.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmailAlertConfig() {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [email, setEmail] = useState('');
+  const [attivo, setAttivo] = useState(true);
+
+  const { data: configs = [] } = useQuery({
+    queryKey: ['order-arrival-alert-config'],
+    queryFn: () => base44.entities.OrderArrivalAlertConfig.list(),
+    onSuccess: (data) => {
+      if (data.length > 0) {
+        setEmail(data[0].email_destinatario || '');
+        setAttivo(data[0].attivo !== false);
+      }
+    }
+  });
+
+  const currentConfig = configs[0];
+
+  React.useEffect(() => {
+    if (currentConfig) {
+      setEmail(currentConfig.email_destinatario || '');
+      setAttivo(currentConfig.attivo !== false);
+    }
+  }, [currentConfig]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (currentConfig) {
+        return base44.entities.OrderArrivalAlertConfig.update(currentConfig.id, {
+          email_destinatario: email,
+          attivo
+        });
+      }
+      return base44.entities.OrderArrivalAlertConfig.create({
+        email_destinatario: email,
+        attivo
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order-arrival-alert-config'] });
+      setEditing(false);
+    }
+  });
+
+  if (!editing) {
+    return (
+      <div className="mb-4">
+        <button
+          onClick={() => setEditing(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all"
+        >
+          <Bell className="w-4 h-4" />
+          {currentConfig?.email_destinatario
+            ? `Notifiche email: ${currentConfig.email_destinatario} (${currentConfig.attivo !== false ? 'attivo' : 'disattivo'})`
+            : 'Configura notifiche email arrivi non segnati'}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <NeumorphicCard className="p-4 mb-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Mail className="w-5 h-5 text-blue-600" />
+        <h3 className="font-bold text-slate-800 text-sm">Notifica email arrivi non segnati</h3>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email destinatario..."
+          className="flex-1 neumorphic-pressed px-4 py-2 rounded-xl text-slate-700 outline-none text-sm"
+        />
+        <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={attivo}
+            onChange={(e) => setAttivo(e.target.checked)}
+            className="w-4 h-4"
+          />
+          Attivo
+        </label>
+        <button
+          onClick={() => {
+            if (!email) { alert('Inserisci una email'); return; }
+            saveMutation.mutate();
+          }}
+          disabled={saveMutation.isPending}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all"
+        >
+          <Save className="w-4 h-4" />
+          Salva
+        </button>
+        <button
+          onClick={() => setEditing(false)}
+          className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-all"
+        >
+          Annulla
+        </button>
+      </div>
+      <p className="text-xs text-slate-500 mt-2">
+        Riceverai una email automatica ogni giorno se ci sono ordini con possibile arrivo non segnato.
+      </p>
+    </NeumorphicCard>
+  );
+}
 
 export default function OrdiniInviatiTab({
   ordiniInviati,
@@ -71,6 +225,12 @@ export default function OrdiniInviatiTab({
 
   return (
     <div className="space-y-4">
+      <GlobalArrivalBanner
+        ordiniInviati={ordiniInviati}
+        inventory={inventory}
+        inventoryCantina={inventoryCantina}
+      />
+      <EmailAlertConfig />
       {Object.entries(ordersBySupplier).map(([fornitore, ordini]) => {
         const isExpanded = expandedFornitori[fornitore];
         const totalOrders = ordini.length;
