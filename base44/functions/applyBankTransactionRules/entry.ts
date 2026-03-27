@@ -1,29 +1,47 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.22';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
     
-    // Fetch all rules (sorted by priority)
-    const rules = await base44.asServiceRole.entities.BankTransactionRule.filter({
-      is_active: true
-    });
+    if (user?.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
+
+    // Fetch ALL rules (no is_active filter - get everything and filter manually)
+    const allRules = await base44.asServiceRole.entities.BankTransactionRule.list('-priority', 500);
+    
+    // Filter: include rules where is_active is true OR is_active is not set (default true)
+    const rules = allRules.filter(r => r.is_active !== false);
     
     // Sort by priority (higher first)
     rules.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
-    // Fetch all transactions
-    const transactions = await base44.asServiceRole.entities.BankTransaction.list();
+    console.log(`Found ${rules.length} active rules`);
+
+    // Fetch ALL transactions (paginate to get all)
+    let allTransactions = [];
+    let offset = 0;
+    const batchSize = 500;
+    
+    while (true) {
+      const batch = await base44.asServiceRole.entities.BankTransaction.list('-madeOn', batchSize, offset);
+      allTransactions = allTransactions.concat(batch);
+      if (batch.length < batchSize) break;
+      offset += batchSize;
+    }
+
+    console.log(`Found ${allTransactions.length} total transactions`);
 
     let updated = 0;
 
-    for (const tx of transactions) {
+    for (const tx of allTransactions) {
       // Find first matching rule
       const matchedRule = rules.find(rule => {
         const pattern = rule.pattern.toLowerCase();
         const searchIn = rule.search_in || 'description';
         
-        // Determine which fields to check
         const fieldsToCheck = [];
         if (searchIn === 'description' || searchIn === 'both') {
           if (tx.description) fieldsToCheck.push(tx.description.toLowerCase());
@@ -34,7 +52,6 @@ Deno.serve(async (req) => {
         
         if (fieldsToCheck.length === 0) return false;
         
-        // Check if any field matches
         return fieldsToCheck.some(text => {
           switch (rule.match_type) {
             case 'contains': return text.includes(pattern);
@@ -63,15 +80,18 @@ Deno.serve(async (req) => {
       status: 'success'
     });
 
+    console.log(`Updated ${updated} transactions`);
+
     return Response.json({
       success: true,
-      updated
+      updated,
+      total_transactions: allTransactions.length,
+      total_rules: rules.length
     });
 
   } catch (error) {
     console.error('Error applying rules:', error);
     
-    // Log error
     try {
       const errorBase44 = createClientFromRequest(req);
       await errorBase44.asServiceRole.entities.BankImportLog.create({

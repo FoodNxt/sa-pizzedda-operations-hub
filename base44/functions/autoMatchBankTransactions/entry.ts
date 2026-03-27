@@ -1,19 +1,36 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.22';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Fetch all active rules (sorted by priority)
-    const rules = await base44.asServiceRole.entities.BankTransactionRule.filter({
-      is_active: true
-    });
+    // Fetch ALL rules (no is_active filter - get everything and filter manually)
+    const allRules = await base44.asServiceRole.entities.BankTransactionRule.list('-priority', 500);
+    
+    // Filter: include rules where is_active is true OR is_active is not set (default true)
+    const rules = allRules.filter(r => r.is_active !== false);
     rules.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
-    // Fetch only uncategorized transactions
-    const transactions = await base44.asServiceRole.entities.BankTransaction.filter({
-      category: { $in: [null, '', 'non_categorizzato'] }
-    });
+    console.log(`Found ${rules.length} active rules`);
+
+    // Fetch uncategorized transactions - paginate to get all
+    let allTransactions = [];
+    let offset = 0;
+    const batchSize = 500;
+    
+    while (true) {
+      const batch = await base44.asServiceRole.entities.BankTransaction.list('-madeOn', batchSize, offset);
+      allTransactions = allTransactions.concat(batch);
+      if (batch.length < batchSize) break;
+      offset += batchSize;
+    }
+
+    // Filter to uncategorized only
+    const transactions = allTransactions.filter(tx => 
+      !tx.category || tx.category === '' || tx.category === 'non_categorizzato' || tx.category === 'uncategorized'
+    );
+
+    console.log(`Found ${transactions.length} uncategorized transactions out of ${allTransactions.length} total`);
 
     let updated = 0;
 
@@ -43,7 +60,7 @@ Deno.serve(async (req) => {
         });
       });
 
-      if (matchedRule && (tx.category !== matchedRule.category || tx.subcategory !== matchedRule.subcategory)) {
+      if (matchedRule) {
         await base44.asServiceRole.entities.BankTransaction.update(tx.id, {
           category: matchedRule.category,
           subcategory: matchedRule.subcategory || ''
@@ -60,7 +77,9 @@ Deno.serve(async (req) => {
       status: 'success'
     });
 
-    return Response.json({ success: true, updated });
+    console.log(`Auto-matched ${updated} transactions`);
+
+    return Response.json({ success: true, updated, uncategorized_checked: transactions.length });
 
   } catch (error) {
     console.error('Error in auto matching:', error);
