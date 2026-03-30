@@ -101,7 +101,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    return Response.json({ dipendenti, turni });
+    // Also fetch stores using service role so non-admin users can see them
+    const stores = await base44.asServiceRole.entities.Store.list();
+
+    return Response.json({ dipendenti, turni, stores });
   } catch (error) {
     console.error('Error in getAllDipendentiForPlanday:', error);
     return Response.json({ error: error.message }, { status: 500 });

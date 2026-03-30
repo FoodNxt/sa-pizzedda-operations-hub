@@ -51,10 +51,21 @@ export default function PlandayStoreManager() {
     queryFn: () => base44.auth.me()
   });
 
-  const { data: allStores = [] } = useQuery({
-    queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list()
+  // Carica dipendenti E stores usando funzione backend con service role
+  // (non-admin users cannot call Store.list() directly)
+  const { data: backendData = { dipendenti: [], stores: [] } } = useQuery({
+    queryKey: ['all-dipendenti-planday'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {});
+      return {
+        dipendenti: response.data.dipendenti || [],
+        stores: response.data.stores || []
+      };
+    }
   });
+
+  const users = backendData.dipendenti;
+  const allStores = backendData.stores;
 
   // Store manager ha accesso a TUTTI gli store
   const myStores = useMemo(() => {
@@ -67,15 +78,6 @@ export default function PlandayStoreManager() {
       setSelectedStore(myStores[0].id);
     }
   }, [myStores, selectedStore]);
-
-  // Carica TUTTI i dipendenti usando funzione backend con service role
-  const { data: users = [] } = useQuery({
-    queryKey: ['all-dipendenti-planday'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {});
-      return response.data.dipendenti || [];
-    }
-  });
 
   // Carica TUTTI i turni della settimana usando service role
   const { data: allTurniWeek = [], isLoading } = useQuery({
