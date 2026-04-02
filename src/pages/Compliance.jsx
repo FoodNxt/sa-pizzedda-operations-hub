@@ -612,7 +612,7 @@ export default function Compliance() {
                     data_consegna: new Date().toISOString(),
                     tipo_consegna: consegnaForm.tipo_consegna,
                     elementi_consegnati: consegnaForm.elementi_consegnati,
-                    consegnato_da: currentUser?.email || '',
+                    consegnato_da: '',
                     note: consegnaForm.note
                   });
                 }} className="space-y-4">

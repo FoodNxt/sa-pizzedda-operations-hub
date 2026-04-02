@@ -106,46 +106,59 @@ export default function PlandayStoreManager() {
 
   const { data: tipiTurnoConfigs = [] } = useQuery({
     queryKey: ['tipo-turno-configs'],
-    queryFn: () => base44.entities.TipoTurnoConfig.list()
+    queryFn: async () => {
+      try { return await base44.entities.TipoTurnoConfig.list(); } catch { return []; }
+    }
   });
 
   const { data: formTrackerConfigs = [] } = useQuery({
     queryKey: ['form-tracker-configs'],
-    queryFn: () => base44.entities.FormTrackerConfig.list()
+    queryFn: async () => {
+      try { return await base44.entities.FormTrackerConfig.list(); } catch { return []; }
+    }
   });
 
   const { data: struttureTurno = [] } = useQuery({
     queryKey: ['strutture-turno'],
-    queryFn: () => base44.entities.StrutturaTurno.list()
+    queryFn: async () => {
+      try { return await base44.entities.StrutturaTurno.list(); } catch { return []; }
+    }
   });
 
   const { data: candidati = [] } = useQuery({
     queryKey: ['candidati-planday'],
-    queryFn: () => base44.entities.Candidato.filter({ stato: { $in: ['nuovo', 'in_valutazione', 'prova_programmata'] } })
+    queryFn: async () => {
+      try { return await base44.entities.Candidato.filter({ stato: { $in: ['nuovo', 'in_valutazione', 'prova_programmata'] } }); } catch { return []; }
+    }
   });
 
-  // Richieste scambi turni per i miei store
+  // Richieste scambi turni per i miei store (usa service role via backend)
   const { data: scambiTurni = [] } = useQuery({
     queryKey: ['scambi-turni-sm', selectedStore],
     queryFn: async () => {
       const oggi = moment().format('YYYY-MM-DD');
+      const maxDate = moment().add(60, 'days').format('YYYY-MM-DD');
       const myStoreIds = myStores.map((s) => s.id);
-      const allTurni = await base44.entities.TurnoPlanday.filter({
-        data: { $gte: oggi }
+      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {
+        filter_data_range: { start: oggi, end: maxDate }
       });
+      const allTurni = response.data.turni || [];
       // Filtra solo turni dei miei store con richieste pending/accepted
       return allTurni.filter((t) =>
-      myStoreIds.includes(t.store_id) &&
-      t.richiesta_scambio &&
-      ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato) &&
-      t.id === t.richiesta_scambio?.mio_turno_id // Solo il turno del richiedente
+        myStoreIds.includes(t.store_id) &&
+        t.richiesta_scambio &&
+        ['pending', 'accepted_by_colleague'].includes(t.richiesta_scambio?.stato) &&
+        t.id === t.richiesta_scambio?.mio_turno_id // Solo il turno del richiedente
       );
     },
     enabled: myStores.length > 0
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.TurnoPlanday.create(data),
+    mutationFn: async (data) => {
+      const res = await base44.functions.invoke('manageTurnoForStoreManager', { action: 'create', turnoData: data });
+      return res.data.turno;
+    },
     onSuccess: async (newTurno, variables) => {
       queryClient.invalidateQueries({ queryKey: ['turni-store-manager'] });
       queryClient.invalidateQueries({ queryKey: ['turni-store-manager-all'] });
@@ -209,7 +222,10 @@ export default function PlandayStoreManager() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.TurnoPlanday.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const res = await base44.functions.invoke('manageTurnoForStoreManager', { action: 'update', turnoId: id, turnoData: data });
+      return res.data.turno;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-store-manager'] });
       queryClient.invalidateQueries({ queryKey: ['turni-store-manager-all'] });
@@ -221,7 +237,9 @@ export default function PlandayStoreManager() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.TurnoPlanday.delete(id),
+    mutationFn: async (id) => {
+      await base44.functions.invoke('manageTurnoForStoreManager', { action: 'delete', turnoId: id });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-store-manager-all'] });
       queryClient.invalidateQueries({ queryKey: ['scambi-turni-sm'] });
@@ -1025,8 +1043,13 @@ function ScambioTurnoCard({ turnoRichiedente, scambio, currentUser, queryClient,
   const { data: turnoAltro } = useQuery({
     queryKey: ['turno-altro-sm', scambio.suo_turno_id],
     queryFn: async () => {
-      const turni = await base44.entities.TurnoPlanday.filter({ id: scambio.suo_turno_id });
-      return turni[0] || null;
+      const oggi = moment().format('YYYY-MM-DD');
+      const maxDate = moment().add(60, 'days').format('YYYY-MM-DD');
+      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {
+        filter_data_range: { start: oggi, end: maxDate }
+      });
+      const allTurni = response.data.turni || [];
+      return allTurni.find(t => t.id === scambio.suo_turno_id) || null;
     },
     enabled: !!scambio.suo_turno_id
   });
@@ -1095,13 +1118,14 @@ function ScambioTurnoCard({ turnoRichiedente, scambio, currentUser, queryClient,
         <div className="flex flex-col gap-2 ml-3">
             <button
             onClick={async () => {
-              const [turno1List, turno2List] = await Promise.all([
-              base44.entities.TurnoPlanday.filter({ id: scambio.mio_turno_id }),
-              base44.entities.TurnoPlanday.filter({ id: scambio.suo_turno_id })]
-              );
-
-              const turno1 = turno1List[0];
-              const turno2 = turno2List[0];
+              const oggi = new Date().toISOString().split('T')[0];
+              const maxDate = new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0];
+              const allTurniRes = await base44.functions.invoke('getAllDipendentiForPlanday', {
+                filter_data_range: { start: oggi, end: maxDate }
+              });
+              const allTurni = allTurniRes.data.turni || [];
+              const turno1 = allTurni.find(t => t.id === scambio.mio_turno_id);
+              const turno2 = allTurni.find(t => t.id === scambio.suo_turno_id);
 
               if (!turno1 || !turno2) {
                 alert('Errore: turni non trovati');
@@ -1117,17 +1141,25 @@ function ScambioTurnoCard({ turnoRichiedente, scambio, currentUser, queryClient,
               };
 
               await Promise.all([
-              base44.entities.TurnoPlanday.update(turno1.id, {
-                dipendente_id: turno2.dipendente_id,
-                dipendente_nome: turno2.dipendente_nome,
-                richiesta_scambio: updatedRichiesta
-              }),
-              base44.entities.TurnoPlanday.update(turno2.id, {
-                dipendente_id: turno1.dipendente_id,
-                dipendente_nome: turno1.dipendente_nome,
-                richiesta_scambio: updatedRichiesta
-              })]
-              );
+                base44.functions.invoke('manageTurnoForStoreManager', {
+                  action: 'update',
+                  turnoId: turno1.id,
+                  turnoData: {
+                    dipendente_id: turno2.dipendente_id,
+                    dipendente_nome: turno2.dipendente_nome,
+                    richiesta_scambio: updatedRichiesta
+                  }
+                }),
+                base44.functions.invoke('manageTurnoForStoreManager', {
+                  action: 'update',
+                  turnoId: turno2.id,
+                  turnoData: {
+                    dipendente_id: turno1.dipendente_id,
+                    dipendente_nome: turno1.dipendente_nome,
+                    richiesta_scambio: updatedRichiesta
+                  }
+                })
+              ]);
 
               queryClient.invalidateQueries({ queryKey: ['scambi-turni-sm'] });
               queryClient.invalidateQueries({ queryKey: ['turni-store-manager'] });
@@ -1147,13 +1179,17 @@ function ScambioTurnoCard({ turnoRichiedente, scambio, currentUser, queryClient,
               };
 
               await Promise.all([
-              base44.entities.TurnoPlanday.update(scambio.mio_turno_id, {
-                richiesta_scambio: updatedRichiesta
-              }),
-              base44.entities.TurnoPlanday.update(scambio.suo_turno_id, {
-                richiesta_scambio: updatedRichiesta
-              })]
-              );
+                base44.functions.invoke('manageTurnoForStoreManager', {
+                  action: 'update',
+                  turnoId: scambio.mio_turno_id,
+                  turnoData: { richiesta_scambio: updatedRichiesta }
+                }),
+                base44.functions.invoke('manageTurnoForStoreManager', {
+                  action: 'update',
+                  turnoId: scambio.suo_turno_id,
+                  turnoData: { richiesta_scambio: updatedRichiesta }
+                })
+              ]);
 
               queryClient.invalidateQueries({ queryKey: ['scambi-turni-sm'] });
             }}
@@ -1173,8 +1209,13 @@ function TurnoAltroDisplay({ turnoId, richiestoANome, getStoreName }) {
   const { data: turnoAltro, isLoading } = useQuery({
     queryKey: ['turno-altro-sm', turnoId],
     queryFn: async () => {
-      const turni = await base44.entities.TurnoPlanday.filter({ id: turnoId });
-      return turni[0] || null;
+      const oggi = moment().format('YYYY-MM-DD');
+      const maxDate = moment().add(60, 'days').format('YYYY-MM-DD');
+      const response = await base44.functions.invoke('getAllDipendentiForPlanday', {
+        filter_data_range: { start: oggi, end: maxDate }
+      });
+      const allTurni = response.data.turni || [];
+      return allTurni.find(t => t.id === turnoId) || null;
     },
     enabled: !!turnoId
   });

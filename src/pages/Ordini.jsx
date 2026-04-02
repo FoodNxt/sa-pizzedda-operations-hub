@@ -66,7 +66,7 @@ export default function Ordini() {
       setShowCreateMultiStoreOrder(false);
       setSelectedFornitore(null);
       setDestinationStore(null);
-      setSelectedProductsForOrder({});
+      setSelectedStoresForConsolidation({});
       alert('✅ Ordine creato e inviato!');
     }
   });

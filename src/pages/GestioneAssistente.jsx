@@ -8,7 +8,7 @@ import {
   Bot, Plus, Edit, Trash2, Save, X, Search, AlertTriangle,
   MessageSquare, Book, Tag, Store, CheckCircle, XCircle, Loader2,
   ChevronDown, ChevronRight, Eye, Folder, RefreshCw, Key, EyeOff, HelpCircle,
-  Calendar, User, Sparkles, BarChart3, FileText, Upload, MapPin } from
+  Calendar, User, Sparkles, BarChart3, FileText, Upload, MapPin, GraduationCap } from
 "lucide-react";
 import moment from "moment";
 import KnowledgeTree from "../components/assistente/KnowledgeTree";

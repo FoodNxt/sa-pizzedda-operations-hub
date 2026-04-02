@@ -626,12 +626,8 @@ export default function Activation() {
   const handleGetSuggestions = async () => {
     setLoadingSuggestions(true);
     try {
-      const monthStart = calendarView === 'week' ?
-      format(calendarData.start, 'yyyy-MM-dd') :
-      format(startOfMonth(currentDate), 'yyyy-MM-dd');
-      const monthEnd = calendarView === 'week' ?
-      format(calendarData.end, 'yyyy-MM-dd') :
-      format(endOfMonth(currentDate), 'yyyy-MM-dd');
+      const monthStart = format(startOfMonth(currentDate), 'yyyy-MM-dd');
+      const monthEnd = format(endOfMonth(currentDate), 'yyyy-MM-dd');
 
       const excludedEventsText = dismissedEvents.length > 0 ?
       `\n\nNON includere i seguenti eventi già suggeriti in precedenza: ${dismissedEvents.join(', ')}` :

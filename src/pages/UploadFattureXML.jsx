@@ -547,7 +547,7 @@ export default function UploadFattureXML() {
 
               <div className="space-y-4">
                 {matchingProducts.map((fp, idx) => {
-                  const [selectedMatch, setSelectedMatchLocal] = useState(getSuggestedMatch(fp));
+                  const suggestedMatch = getSuggestedMatch(fp);
                   const existingMatch = existingMatches.find(m => 
                     m.prodotto_fattura_descrizione === fp.descrizione ||
                     (fp.codice && m.prodotto_fattura_codice === fp.codice)
@@ -576,9 +576,8 @@ export default function UploadFattureXML() {
                             Abbina a Materia Prima
                           </label>
                           <select
-                            value={selectedMatch}
+                            defaultValue={suggestedMatch}
                             onChange={(e) => {
-                              setSelectedMatchLocal(e.target.value);
                               if (e.target.value) {
                                 handleSaveMatch(fp, e.target.value);
                               }

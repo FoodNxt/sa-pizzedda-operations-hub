@@ -53,12 +53,24 @@ export default function PlandayStoreView({
 
   const { data: usciteData = [] } = useQuery({
     queryKey: ['uscite-store-view'],
-    queryFn: () => base44.entities.Uscita.list()
+    queryFn: async () => {
+      try {
+        return await base44.entities.Uscita.list();
+      } catch {
+        return [];
+      }
+    }
   });
 
   const { data: ferieApprovateData = [] } = useQuery({
     queryKey: ['ferie-approvate-store-view'],
-    queryFn: () => base44.entities.RichiestaFerie.filter({ stato: 'approvata' })
+    queryFn: async () => {
+      try {
+        return await base44.entities.RichiestaFerie.filter({ stato: 'approvata' });
+      } catch {
+        return [];
+      }
+    }
   });
 
   // Mappa ferie per giorno: { 'YYYY-MM-DD': [{ dipendente_id, dipendente_nome }] }
