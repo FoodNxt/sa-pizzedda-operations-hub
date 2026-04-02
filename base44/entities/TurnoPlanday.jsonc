@@ -1,0 +1,235 @@
+{
+  "name": "TurnoPlanday",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_nome": {
+      "type": "string",
+      "description": "Nome dello store (denormalizzato)"
+    },
+    "data": {
+      "type": "string",
+      "format": "date",
+      "description": "Data del turno"
+    },
+    "ora_inizio": {
+      "type": "string",
+      "description": "Ora inizio turno (HH:MM)"
+    },
+    "ora_fine": {
+      "type": "string",
+      "description": "Ora fine turno (HH:MM)"
+    },
+    "ruolo": {
+      "type": "string",
+      "enum": [
+        "Pizzaiolo",
+        "Cassiere",
+        "Store Manager"
+      ],
+      "description": "Ruolo del turno"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente assegnato"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente (denormalizzato)"
+    },
+    "tipo_turno": {
+      "type": "string",
+      "default": "Normale",
+      "description": "Tipo di turno"
+    },
+    "momento_turno": {
+      "type": "string",
+      "enum": [
+        "Mattina",
+        "Sera"
+      ],
+      "description": "Momento del turno"
+    },
+    "turno_sequence": {
+      "type": "string",
+      "enum": [
+        "first",
+        "second"
+      ],
+      "description": "Sequenza turno (first=mattina, second=sera)"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "programmato",
+        "in_corso",
+        "completato",
+        "annullato"
+      ],
+      "default": "programmato",
+      "description": "Stato del turno"
+    },
+    "timbratura_entrata": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp timbratura entrata"
+    },
+    "timbratura_uscita": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp timbratura uscita"
+    },
+    "posizione_entrata": {
+      "type": "object",
+      "description": "Coordinate GPS timbratura entrata"
+    },
+    "posizione_uscita": {
+      "type": "object",
+      "description": "Coordinate GPS timbratura uscita"
+    },
+    "in_ritardo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True se il dipendente \u00e8 arrivato in ritardo"
+    },
+    "minuti_ritardo": {
+      "type": "number",
+      "default": 0,
+      "description": "DEPRECATO - Usare minuti_ritardo_reale"
+    },
+    "minuti_ritardo_reale": {
+      "type": "number",
+      "default": 0,
+      "description": "Ritardo reale in minuti dalla timbratura"
+    },
+    "minuti_ritardo_conteggiato": {
+      "type": "number",
+      "default": 0,
+      "description": "Ritardo conteggiato (arrotondato per policy aziendale)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sul turno"
+    },
+    "is_prova": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e8 un turno di prova per un candidato"
+    },
+    "candidato_id": {
+      "type": "string",
+      "description": "ID del candidato (se is_prova=true)"
+    },
+    "richiesta_scambio": {
+      "type": "object",
+      "description": "Informazioni sulla richiesta di scambio turno",
+      "properties": {
+        "richiesto_da": {
+          "type": "string",
+          "description": "ID del dipendente che richiede lo scambio"
+        },
+        "richiesto_da_nome": {
+          "type": "string",
+          "description": "Nome del dipendente che richiede"
+        },
+        "richiesto_a": {
+          "type": "string",
+          "description": "ID del dipendente a cui \u00e8 richiesto lo scambio"
+        },
+        "richiesto_a_nome": {
+          "type": "string",
+          "description": "Nome del dipendente a cui \u00e8 richiesto"
+        },
+        "mio_turno_id": {
+          "type": "string",
+          "description": "ID del turno di chi richiede"
+        },
+        "suo_turno_id": {
+          "type": "string",
+          "description": "ID del turno dell'altro dipendente"
+        },
+        "stato": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "accepted_by_colleague",
+            "rejected_by_colleague",
+            "approved_by_manager",
+            "rejected_by_manager"
+          ],
+          "description": "Stato della richiesta di scambio"
+        },
+        "data_richiesta": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data della richiesta iniziale"
+        },
+        "data_risposta_collega": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data risposta del collega"
+        },
+        "data_approvazione_manager": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data approvazione/rifiuto del manager"
+        },
+        "approvato_da": {
+          "type": "string",
+          "description": "ID di chi ha approvato (admin o store manager)"
+        },
+        "approvato_da_nome": {
+          "type": "string",
+          "description": "Nome di chi ha approvato"
+        }
+      }
+    },
+    "straordinario_pagato": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se lo straordinario \u00e8 stato pagato"
+    },
+    "sms_cm_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "failed"
+      ],
+      "description": "Stato SMS automatico per turni CM - Chiamata (null = non applicabile)"
+    },
+    "sms_cm_scheduled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Orario pianificato per l'invio SMS CM (shift_start - 12h)"
+    },
+    "sms_cm_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Orario effettivo di invio SMS CM"
+    },
+    "timbrato_da_admin": {
+      "type": "boolean",
+      "default": false,
+      "description": "True se la timbratura \u00e8 stata effettuata manualmente da un admin"
+    },
+    "timbrato_da": {
+      "type": "string",
+      "description": "Email dell'admin che ha effettuato la timbratura manuale"
+    },
+    "timbrato_da_nome": {
+      "type": "string",
+      "description": "Nome dell'admin che ha effettuato la timbratura manuale"
+    }
+  },
+  "required": [
+    "store_id",
+    "data",
+    "ora_inizio",
+    "ora_fine",
+    "ruolo"
+  ]
+}

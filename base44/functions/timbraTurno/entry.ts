@@ -61,7 +61,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Audit: if admin is clocking on behalf of another employee, record it
+    const isAdminManualAction = user.user_type === 'admin' && turno.dipendente_id !== user.id;
+
     const updateData = {};
+    if (isAdminManualAction) {
+      updateData.timbrato_da_admin = true;
+      updateData.timbrato_da = user.email;
+      updateData.timbrato_da_nome = user.full_name || user.nome_cognome || user.email;
+    }
+
     if (tipo === 'entrata') {
       // Verifica che non ci sia già una timbratura entrata
       if (turno.timbratura_entrata) {

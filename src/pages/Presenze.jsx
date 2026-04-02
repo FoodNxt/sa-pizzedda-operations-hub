@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
-import { Users, Clock, CheckCircle, AlertCircle, MapPin, Loader2, Settings, X } from "lucide-react";
+import { Users, Clock, CheckCircle, AlertCircle, MapPin, Loader2, Settings, X, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { format, parseISO, isWithinInterval, parse } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -11,6 +11,37 @@ export default function Presenze() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showSettings, setShowSettings] = useState(false);
   const [includedTipiTurno, setIncludedTipiTurno] = useState([]);
+  const [confirmAction, setConfirmAction] = useState(null); // {turno, tipo}
+  const [timbraturaMessage, setTimbraturaMessage] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
+
+  const isAdmin = currentUser?.user_type === 'admin';
+
+  const adminTimbraMutation = useMutation({
+    mutationFn: async ({ turnoId, tipo }) => {
+      const response = await base44.functions.invoke('timbraTurno', { turnoId, tipo });
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['turni-oggi'] });
+      setConfirmAction(null);
+      setTimbraturaMessage({
+        type: 'success',
+        text: `${variables.tipo === 'entrata' ? 'Entrata' : 'Uscita'} timbrata con successo (Admin)`
+      });
+      setTimeout(() => setTimbraturaMessage(null), 4000);
+    },
+    onError: (error) => {
+      setConfirmAction(null);
+      setTimbraturaMessage({ type: 'error', text: error?.response?.data?.error || error.message });
+      setTimeout(() => setTimbraturaMessage(null), 5000);
+    }
+  });
 
   // Update time every minute
   useEffect(() => {
@@ -315,12 +346,34 @@ export default function Presenze() {
                               <p className="text-xs">
                                 {format(parseISO(turno.timbratura_entrata), 'HH:mm', { locale: it })}
                               </p>
+                              {turno.timbrato_da_admin &&
+                                <p className="text-[10px] text-purple-600 flex items-center gap-0.5 justify-end">
+                                  <ShieldCheck className="w-3 h-3" /> Admin
+                                </p>
+                              }
                             </div>
                           </div> :
                           <div className="flex items-center gap-2 text-orange-600">
                             <AlertCircle className="w-5 h-5" />
                             <p className="text-xs font-medium">Non Timbrata</p>
                           </div>
+                        }
+                        {/* Admin action buttons */}
+                        {isAdmin && !turno.timbratura_entrata &&
+                          <button
+                            onClick={() => setConfirmAction({ turno, tipo: 'entrata' })}
+                            className="ml-2 px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 flex items-center gap-1 shadow-sm"
+                          >
+                            <LogIn className="w-3 h-3" /> Entrata
+                          </button>
+                        }
+                        {isAdmin && turno.timbratura_entrata && !turno.timbratura_uscita &&
+                          <button
+                            onClick={() => setConfirmAction({ turno, tipo: 'uscita' })}
+                            className="ml-2 px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium hover:bg-blue-600 flex items-center gap-1 shadow-sm"
+                          >
+                            <LogOut className="w-3 h-3" /> Uscita
+                          </button>
                         }
                       </div>
                     </div>
@@ -377,6 +430,11 @@ export default function Presenze() {
                               <span className="text-green-700 font-medium">
                                 Timbrato: {format(parseISO(turno.timbratura_entrata), 'HH:mm')} - {format(parseISO(turno.timbratura_uscita), 'HH:mm')}
                               </span>
+                              {turno.timbrato_da_admin &&
+                                <span className="text-[10px] text-purple-600 flex items-center gap-0.5 bg-purple-50 px-1.5 py-0.5 rounded-full">
+                                  <ShieldCheck className="w-3 h-3" /> {turno.timbrato_da_nome || 'Admin'}
+                                </span>
+                              }
                             </div>
                           </div>
                           <CheckCircle className="w-5 h-5 text-green-600" />
@@ -447,6 +505,77 @@ export default function Presenze() {
             </div>
           </div>
         </NeumorphicCard>
+
+        {/* Admin Timbratura Message */}
+        {timbraturaMessage &&
+          <div className={`fixed top-4 right-4 z-[70] p-4 rounded-xl shadow-lg flex items-center gap-3 max-w-sm ${
+            timbraturaMessage.type === 'success' ? 'bg-green-100 border border-green-300' : 'bg-red-100 border border-red-300'
+          }`}>
+            {timbraturaMessage.type === 'success' ?
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" /> :
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            }
+            <span className={`text-sm ${timbraturaMessage.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+              {timbraturaMessage.text}
+            </span>
+          </div>
+        }
+
+        {/* Admin Confirm Dialog */}
+        {confirmAction &&
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+            <NeumorphicCard className="p-6 max-w-sm w-full">
+              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-purple-600" />
+                Timbratura Manuale Admin
+              </h3>
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Dipendente</span>
+                  <span className="font-bold text-slate-800">{confirmAction.turno.dipendente_nome}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Turno</span>
+                  <span className="font-medium text-slate-700">{confirmAction.turno.ora_inizio} - {confirmAction.turno.ora_fine}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Ruolo</span>
+                  <span className="font-medium text-slate-700">{confirmAction.turno.ruolo}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Azione</span>
+                  <span className={`font-bold ${confirmAction.tipo === 'entrata' ? 'text-green-700' : 'text-blue-700'}`}>
+                    {confirmAction.tipo === 'entrata' ? 'Timbra Entrata' : 'Timbra Uscita'}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                La timbratura userà l'ora corrente del server e sarà registrata come eseguita da admin.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmAction(null)}
+                  disabled={adminTimbraMutation.isPending}
+                  className="flex-1 px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-medium hover:bg-slate-50"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={() => adminTimbraMutation.mutate({ turnoId: confirmAction.turno.id, tipo: confirmAction.tipo })}
+                  disabled={adminTimbraMutation.isPending}
+                  className={`flex-1 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 ${
+                    confirmAction.tipo === 'entrata' ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
+                  }`}
+                >
+                  {adminTimbraMutation.isPending ?
+                    <Loader2 className="w-4 h-4 animate-spin" /> :
+                    confirmAction.tipo === 'entrata' ? <><LogIn className="w-4 h-4" /> Conferma</> : <><LogOut className="w-4 h-4" /> Conferma</>
+                  }
+                </button>
+              </div>
+            </NeumorphicCard>
+          </div>
+        }
 
         {/* Settings Modal */}
         {showSettings &&
