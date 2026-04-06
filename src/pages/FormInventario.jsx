@@ -371,7 +371,7 @@ export default function FormInventario() {
                     <div className="flex flex-col gap-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-slate-800 text-base">{product.nome_interno || product.nome_prodotto}</h3>
+                          <h3 className="font-bold text-slate-800 text-base">{product.nome_prodotto}</h3>
                           <p className="text-sm text-slate-500">
                             {product.unita_misura === 'confezioni' || product.unita_misura === 'pacchi' 
                               ? `${product.unita_misura} chiuse` 
