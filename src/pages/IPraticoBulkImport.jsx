@@ -79,7 +79,11 @@ export default function IPraticoBulkImport() {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const csvText = e.target.result;
+          let csvText = e.target.result;
+          // Remove BOM if present
+          if (csvText.charCodeAt(0) === 0xFEFF) {
+            csvText = csvText.slice(1);
+          }
           const records = parseCsvToRecords(csvText, selectedStore);
           
           if (records.length === 0) {
@@ -95,10 +99,11 @@ export default function IPraticoBulkImport() {
           setJsonInput(JSON.stringify(jsonData, null, 2));
           alert(`✅ CSV caricato con successo! ${records.length} record pronti per l'importazione`);
         } catch (error) {
+          console.error('CSV parse error:', error);
           alert('Errore nel leggere il file CSV: ' + error.message);
         }
       };
-      reader.readAsText(file);
+      reader.readAsText(file, 'UTF-8');
     }
   };
 
@@ -174,14 +179,9 @@ export default function IPraticoBulkImport() {
       
       if (values.length !== headers.length) {
         console.warn(`⚠️ Riga ${i + 1} ha ${values.length} colonne invece di ${headers.length}`);
-        console.warn(`   Headers: ${headers.length} colonne`);
-        console.warn(`   Values: ${values.length} colonne`);
-        console.warn(`   Contenuto riga: ${line.substring(0, 150)}...`);
-        
-        // Try to continue anyway if we have at least the required fields
-        if (values.length < headers.length) {
-          console.warn(`   ⚠️ Saltata perché ha meno colonne del necessario`);
-          continue;
+        // Pad with empty values if fewer columns, or trim if more
+        while (values.length < headers.length) {
+          values.push('');
         }
       }
 
