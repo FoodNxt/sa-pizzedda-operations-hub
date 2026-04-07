@@ -16,19 +16,34 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
         
-        // Validate webhook secret
-        const providedSecret = body.secret;
-        const expectedSecret = Deno.env.get('ZAPIER_IPRATICO_WEBHOOK_SECRET');
+        // Auth: accept either admin user session OR valid webhook secret
+        let isAuthorized = false;
         
-        if (!expectedSecret) {
-            return Response.json({ 
-                error: 'Server configuration error: ZAPIER_IPRATICO_WEBHOOK_SECRET not set'
-            }, { status: 500 });
+        // Try user auth first
+        try {
+            const user = await base44.auth.me();
+            if (user && (user.role === 'admin' || user.user_type === 'admin')) {
+                isAuthorized = true;
+                console.log(`✅ Authorized via admin user: ${user.email}`);
+            }
+        } catch (e) {
+            // Not logged in, try webhook secret
         }
         
-        if (!providedSecret || providedSecret !== expectedSecret) {
+        // Fallback to webhook secret
+        if (!isAuthorized) {
+            const providedSecret = body.secret;
+            const expectedSecret = Deno.env.get('ZAPIER_IPRATICO_WEBHOOK_SECRET');
+            
+            if (expectedSecret && providedSecret === expectedSecret) {
+                isAuthorized = true;
+                console.log('✅ Authorized via webhook secret');
+            }
+        }
+        
+        if (!isAuthorized) {
             return Response.json({ 
-                error: 'Unauthorized: Invalid or missing webhook secret'
+                error: 'Unauthorized: Devi essere admin o inserire il webhook secret corretto'
             }, { status: 401 });
         }
         

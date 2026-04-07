@@ -219,11 +219,6 @@ export default function IPraticoBulkImport() {
   };
 
   const handleImport = async () => {
-    if (!webhookSecret) {
-      alert('Inserisci il Webhook Secret');
-      return;
-    }
-
     if (!jsonInput.trim()) {
       alert('Inserisci i dati JSON');
       return;
@@ -340,15 +335,16 @@ export default function IPraticoBulkImport() {
       <NeumorphicCard className="p-6">
         <div className="flex items-center gap-3 mb-4">
           <FileText className="w-5 h-5 text-[#8b7355]" />
-          <h2 className="text-xl font-bold text-[#6b6b6b]">🔐 Step 1: Webhook Secret</h2>
+          <h2 className="text-xl font-bold text-[#6b6b6b]">🔐 Step 1: Webhook Secret (opzionale)</h2>
         </div>
         <input
           type="password"
-          placeholder="Inserisci ZAPIER_IPRATICO_WEBHOOK_SECRET..."
+          placeholder="Opzionale — gli admin sono autenticati automaticamente"
           value={webhookSecret}
           onChange={(e) => setWebhookSecret(e.target.value)}
           className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
         />
+        <p className="text-xs text-green-600 mt-2">✅ Se sei loggato come admin, non serve inserire il secret</p>
       </NeumorphicCard>
 
       {/* CSV Import Section - NEW */}
@@ -482,7 +478,7 @@ export default function IPraticoBulkImport() {
 
         <NeumorphicButton
           onClick={handleImport}
-          disabled={importing || !webhookSecret || !jsonInput.trim()}
+          disabled={importing || !jsonInput.trim()}
           variant="primary"
           className="w-full mt-4"
         >
