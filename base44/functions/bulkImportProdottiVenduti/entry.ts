@@ -94,14 +94,42 @@ Deno.serve(async (req) => {
 
     console.log(`📦 Starting bulk import: ${rows.length} rows for store ${store_name}`);
 
-    // Pre-load ALL existing ProdottiVenduti for this store to avoid per-row queries
-    const allExisting = await base44.asServiceRole.entities.ProdottiVenduti.filter({ store_id });
+    // Helper: retry with exponential backoff
+    const withRetry = async (fn, maxRetries = 3) => {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          return await fn();
+        } catch (err) {
+          if (attempt === maxRetries || (err.status !== 429 && err.status !== 500)) throw err;
+          const delay = 2000 * Math.pow(2, attempt);
+          console.log(`⏳ Rate limited, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(r => setTimeout(r, delay));
+        }
+      }
+    };
+
+    // Pre-load existing ProdottiVenduti for this store
+    // Collect unique dates from CSV to narrow the query
+    const uniqueDates = [...new Set(rows.map(r => r.date).filter(Boolean))];
     const existingMap = new Map();
-    allExisting.forEach(record => {
-      const key = `${record.data_vendita}|${record.flavor}`;
-      existingMap.set(key, record);
-    });
-    console.log(`✅ Pre-loaded ${allExisting.length} existing records`);
+
+    // Load in date chunks to avoid fetching too many records at once
+    const DATE_CHUNK = 10;
+    for (let i = 0; i < uniqueDates.length; i += DATE_CHUNK) {
+      const dateBatch = uniqueDates.slice(i, i + DATE_CHUNK);
+      for (const d of dateBatch) {
+        const records = await withRetry(() =>
+          base44.asServiceRole.entities.ProdottiVenduti.filter({ store_id, data_vendita: d })
+        );
+        records.forEach(record => {
+          existingMap.set(`${record.data_vendita}|${record.flavor}`, record);
+        });
+      }
+      if (i + DATE_CHUNK < uniqueDates.length) {
+        await new Promise(r => setTimeout(r, 300));
+      }
+    }
+    console.log(`✅ Pre-loaded ${existingMap.size} existing records for ${uniqueDates.length} dates`);
 
     // Process rows
     const results = [];
@@ -130,17 +158,17 @@ Deno.serve(async (req) => {
         const existing = existingMap.get(lookupKey);
 
         if (existing) {
-          await base44.asServiceRole.entities.ProdottiVenduti.update(existing.id, recordData);
+          await withRetry(() => base44.asServiceRole.entities.ProdottiVenduti.update(existing.id, recordData));
           results.push({ row: i + 1, action: 'updated', date: row.date, flavor: row.flavor });
         } else {
-          const created = await base44.asServiceRole.entities.ProdottiVenduti.create(recordData);
-          existingMap.set(lookupKey, created); // Prevent duplicates within same batch
+          const created = await withRetry(() => base44.asServiceRole.entities.ProdottiVenduti.create(recordData));
+          existingMap.set(lookupKey, created);
           results.push({ row: i + 1, action: 'created', date: row.date, flavor: row.flavor });
         }
 
-        // Small delay every BATCH_SIZE records to avoid rate limiting
+        // Delay every BATCH_SIZE records to avoid rate limiting
         if ((i + 1) % BATCH_SIZE === 0 && i + 1 < rows.length) {
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
 
         if ((i + 1) % 20 === 0) {
