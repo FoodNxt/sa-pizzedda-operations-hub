@@ -17,6 +17,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import moment from "moment";
 import "moment/locale/it";
+import { isFormSubmittedForTurno } from "../lib/formCompletionCheck";
 
 const COLORI_RUOLO = {
   "Pizzaiolo": "bg-orange-100 border-orange-300 text-orange-800",
@@ -1133,11 +1134,8 @@ export default function TurniDipendente() {
       const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
       if (!configSequences.includes(turnoSequence)) return;
 
-      // METODO PRINCIPALE: Controlla AttivitaCompletata tramite form_page e turno_id
-      // CRITICAL: NON basta controllare solo turno_id e form_page, perché potrebbero esserci più attività dello stesso tipo
-      const completatoInAttivita = false; // Non usato più, usa il check nelle attività
-
-      formDovuti.push({ nome: config.form_name, page: config.form_page, completato: completatoInAttivita });
+      const completato = isFormSubmittedForTurno(config.form_page, turnoStoreId, turno.data, allFormData);
+      formDovuti.push({ nome: config.form_name, page: config.form_page, completato });
     });
 
     return formDovuti;
