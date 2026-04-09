@@ -52,6 +52,7 @@ Deno.serve(async (req) => {
       for (const turno of turniDaLiberare) {
         await base44.asServiceRole.entities.TurnoPlanday.update(turno.id, {
           dipendente_id: null,
+          dipendente_nome: null,
           stato: 'programmato'
         });
         turniLiberati++;
