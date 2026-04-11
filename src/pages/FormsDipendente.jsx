@@ -14,7 +14,8 @@ import {
   Trash2,
   UserCheck,
   AlertTriangle,
-  Truck } from
+  Truck,
+  ClipboardCheck } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -171,6 +172,14 @@ export default function FormsDipendente() {
     icon: Truck,
     url: "FormSpostamenti",
     color: "from-blue-500 to-indigo-600",
+    requiresStoreManager: true
+  },
+  {
+    title: "Check Impasto",
+    description: "Registra palline/barelle presenti",
+    icon: ClipboardCheck,
+    url: "CheckImpastoForm",
+    color: "from-amber-500 to-orange-600",
     requiresStoreManager: true
   }];
 

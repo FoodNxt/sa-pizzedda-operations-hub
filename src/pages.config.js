@@ -67,6 +67,7 @@ import BulkImportProdottiVenduti from './pages/BulkImportProdottiVenduti';
 import BulkImportProduttivita from './pages/BulkImportProduttivita';
 import BulkImportSconti from './pages/BulkImportSconti';
 import Cannibalizzazione from './pages/Cannibalizzazione';
+import CheckImpastoForm from './pages/CheckImpastoForm';
 import ChannelComparison from './pages/ChannelComparison';
 import CleanupDuplicateShifts from './pages/CleanupDuplicateShifts';
 import Compliance from './pages/Compliance';
@@ -210,6 +211,7 @@ export const PAGES = {
     "BulkImportProduttivita": BulkImportProduttivita,
     "BulkImportSconti": BulkImportSconti,
     "Cannibalizzazione": Cannibalizzazione,
+    "CheckImpastoForm": CheckImpastoForm,
     "ChannelComparison": ChannelComparison,
     "CleanupDuplicateShifts": CleanupDuplicateShifts,
     "Compliance": Compliance,
