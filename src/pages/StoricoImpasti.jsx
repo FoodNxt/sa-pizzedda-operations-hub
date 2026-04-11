@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
-import { ChefHat, Calendar, Store, User, TrendingUp, BarChart3, BookOpen, Plus, Edit, Save, Trash2, Settings, X } from "lucide-react";
+import CheckImpastoTab from "../components/impasti/CheckImpastoTab";
+import { ChefHat, Calendar, Store, User, TrendingUp, BarChart3, BookOpen, Plus, Edit, Save, Trash2, Settings, X, ClipboardCheck } from "lucide-react";
 import moment from "moment";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -245,6 +246,17 @@ export default function StoricoImpasti() {
 
             <BookOpen className="w-4 h-4" />
             Ricetta Impasto
+          </button>
+          <button
+            onClick={() => setActiveTab('check')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+            activeTab === 'check' ?
+            'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+            'neumorphic-flat text-slate-700'}`
+            }>
+
+            <ClipboardCheck className="w-4 h-4" />
+            Check Impasto
           </button>
         </div>
 
@@ -494,6 +506,9 @@ export default function StoricoImpasti() {
             </NeumorphicCard>
           </div>
         }
+
+        {/* Tab Check Impasto */}
+        {activeTab === 'check' && <CheckImpastoTab />}
 
         {/* Tab Storico */}
         {activeTab === 'storico' &&

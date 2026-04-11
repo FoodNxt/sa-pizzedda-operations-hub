@@ -1,0 +1,43 @@
+{
+  "name": "CheckImpasto",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale"
+    },
+    "palline_count": {
+      "type": "number",
+      "description": "Numero di palline presenti"
+    },
+    "barelle_count": {
+      "type": "number",
+      "description": "Numero di barelle presenti"
+    },
+    "data_check": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora del check"
+    },
+    "rilevato_da": {
+      "type": "string",
+      "description": "Nome dell'operatore che ha effettuato il check"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "store_id",
+    "store_name",
+    "palline_count",
+    "barelle_count",
+    "data_check",
+    "rilevato_da"
+  ]
+}
