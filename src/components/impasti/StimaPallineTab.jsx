@@ -7,6 +7,7 @@ import moment from "moment";
 
 const PALLINE_PER_BARELLA = 6;
 const PIZZE_PER_PALLINA = 12;
+// Ogni teglia buttata = 1 pallina sprecata
 
 export default function StimaPallineTab() {
   const [selectedStore, setSelectedStore] = useState("");
@@ -27,7 +28,12 @@ export default function StimaPallineTab() {
     queryFn: () => base44.entities.ProdottiVenduti.filter({ category: "pizza" }, "-data_vendita", 5000),
   });
 
-  const isLoading = loadingLogs || loadingProdotti;
+  const { data: teglieButtate = [], isLoading: loadingTeglie } = useQuery({
+    queryKey: ["teglie-buttate-stima"],
+    queryFn: () => base44.entities.TeglieButtate.list("-data_rilevazione", 2000),
+  });
+
+  const isLoading = loadingLogs || loadingProdotti || loadingTeglie;
 
   const analysis = useMemo(() => {
     if (!impastoLogs.length) return [];
@@ -62,6 +68,18 @@ export default function StimaPallineTab() {
       pizzaByStoreDate[key] += pv.total_pizzas_sold || 0;
     });
 
+    // Group teglie buttate by store + date
+    const teglieByStoreDate = {};
+    teglieButtate.forEach((tb) => {
+      if (selectedStore && tb.store_id !== selectedStore) return;
+      if (!tb.data_rilevazione) return;
+      const date = moment(tb.data_rilevazione).format("YYYY-MM-DD");
+      if (moment(date).isBefore(cutoff)) return;
+      const key = `${tb.store_id}_${date}`;
+      if (!teglieByStoreDate[key]) teglieByStoreDate[key] = 0;
+      teglieByStoreDate[key] += (tb.teglie_rosse_buttate || 0) + (tb.teglie_bianche_buttate || 0);
+    });
+
     // Build daily analysis rows
     const rows = [];
     const allDates = new Set();
@@ -80,11 +98,6 @@ export default function StimaPallineTab() {
         const log = logsByStoreDate[key];
         if (!log) return;
 
-        // Get previous day's log for this store
-        const prevDate = moment(date).subtract(1, "days").format("YYYY-MM-DD");
-        const prevKey = `${storeId}_${prevDate}`;
-        const prevLog = logsByStoreDate[prevKey];
-
         const barelleFrigo = log.barelle_in_frigo || 0;
         const pallineDaBarelle = barelleFrigo * PALLINE_PER_BARELLA;
 
@@ -95,10 +108,26 @@ export default function StimaPallineTab() {
         const pizzeVendute = pizzaByStoreDate[key] || 0;
         const pallineUsatePerPizze = pizzeVendute / PIZZE_PER_PALLINA;
 
-        // Formula: Palline (barelle×6) - Impasto suggerito - Palline usate (pizze÷12)
-        const stimaPalline = pallineDaBarelle - impastoSuggerito - pallineUsatePerPizze;
+        // Teglie buttate in quel giorno (ogni teglia = 1 pallina sprecata)
+        const teglieButtateGiorno = teglieByStoreDate[key] || 0;
 
+        // Formula Delta: Palline (barelle×6) - Impasto suggerito - Palline usate (pizze÷12)
+        const stimaPalline = pallineDaBarelle - impastoSuggerito - pallineUsatePerPizze;
         const delta = Math.round(stimaPalline * 10) / 10;
+
+        // Delta Mattina: palline giorno prima + impasto suggerito giorno prima - palline usate giorno prima - teglie buttate giorno prima
+        const prevDate = moment(date).subtract(1, "days").format("YYYY-MM-DD");
+        const prevKey = `${storeId}_${prevDate}`;
+        const prevLog = logsByStoreDate[prevKey];
+        let deltaMattina = null;
+        if (prevLog) {
+          const prevPalline = (prevLog.barelle_in_frigo || 0) * PALLINE_PER_BARELLA;
+          const prevImpasto = prevLog.impasto_suggerito || 0;
+          const prevPizzeVendute = pizzaByStoreDate[prevKey] || 0;
+          const prevPallineUsate = prevPizzeVendute / PIZZE_PER_PALLINA;
+          const prevTeglie = teglieByStoreDate[prevKey] || 0;
+          deltaMattina = Math.round((prevPalline + prevImpasto - prevPallineUsate - prevTeglie) * 10) / 10;
+        }
 
         const storeName = log.store_name || stores.find((s) => s.id === storeId)?.name || storeId;
 
@@ -111,7 +140,9 @@ export default function StimaPallineTab() {
           impastoSuggerito,
           pizzeVendute: Math.round(pizzeVendute),
           pallineUsatePerPizze: Math.round(pallineUsatePerPizze * 10) / 10,
+          teglieButtate: teglieButtateGiorno,
           stimaPalline: delta,
+          deltaMattina,
         });
       });
     });
@@ -239,7 +270,9 @@ export default function StimaPallineTab() {
                   <th className="text-right py-3 px-2 text-slate-700">Impasto Suggerito</th>
                   <th className="text-right py-3 px-2 text-slate-700">Pizze Vendute</th>
                   <th className="text-right py-3 px-2 text-slate-700">Palline Usate (÷12)</th>
+                  <th className="text-right py-3 px-2 text-slate-700">Teglie Buttate</th>
                   <th className="text-right py-3 px-2 text-slate-700 font-bold">Delta Palline</th>
+                  <th className="text-right py-3 px-2 text-slate-700 font-bold">Delta Mattina</th>
                 </tr>
               </thead>
               <tbody>
@@ -254,6 +287,7 @@ export default function StimaPallineTab() {
                     <td className="py-3 px-2 text-right text-slate-700">{row.impastoSuggerito}</td>
                     <td className="py-3 px-2 text-right text-slate-700">{row.pizzeVendute}</td>
                     <td className="py-3 px-2 text-right text-orange-700 font-medium">{row.pallineUsatePerPizze}</td>
+                    <td className="py-3 px-2 text-right text-red-600">{row.teglieButtate || 0}</td>
                     <td className="py-3 px-2 text-right font-bold">
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-sm ${
                           row.stimaPalline > 2
@@ -271,6 +305,28 @@ export default function StimaPallineTab() {
                           )}
                           {row.stimaPalline > 0 ? "+" : ""}{row.stimaPalline}
                         </span>
+                    </td>
+                    <td className="py-3 px-2 text-right font-bold">
+                      {row.deltaMattina !== null ? (
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-sm ${
+                          row.deltaMattina > 2
+                            ? "bg-green-100 text-green-700"
+                            : row.deltaMattina < -2
+                            ? "bg-red-100 text-red-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}>
+                          {row.deltaMattina > 0 ? (
+                            <TrendingUp className="w-3 h-3" />
+                          ) : row.deltaMattina < 0 ? (
+                            <TrendingDown className="w-3 h-3" />
+                          ) : (
+                            <Minus className="w-3 h-3" />
+                          )}
+                          {row.deltaMattina > 0 ? "+" : ""}{row.deltaMattina}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-xs">N/D</span>
+                      )}
                     </td>
                   </tr>
                 ))}
