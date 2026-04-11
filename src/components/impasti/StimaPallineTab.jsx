@@ -88,23 +88,17 @@ export default function StimaPallineTab() {
         const barelleFrigo = log.barelle_in_frigo || 0;
         const pallineDaBarelle = barelleFrigo * PALLINE_PER_BARELLA;
 
-        // Impasto suggerito del giorno prima
-        const impastoSuggeritoGiornoPrima = prevLog ? (prevLog.impasto_suggerito || 0) : null;
+        // Impasto suggerito dello stesso giorno
+        const impastoSuggerito = log.impasto_suggerito || 0;
 
         // Pizza vendute in quel giorno
         const pizzeVendute = pizzaByStoreDate[key] || 0;
         const pallineUsatePerPizze = pizzeVendute / PIZZE_PER_PALLINA;
 
-        // Stima: palline da barelle in frigo + impasto suggerito giorno prima - palline usate per pizze
-        // Formula: (barelle_frigo * 6) + impasto_suggerito_ieri - (pizze_vendute / 12)
-        // Il risultato è: le palline che dovrebbero rimanere
-        let stimaPalline = null;
-        if (impastoSuggeritoGiornoPrima !== null) {
-          stimaPalline = pallineDaBarelle + impastoSuggeritoGiornoPrima - pallineUsatePerPizze;
-        }
+        // Formula: Palline (barelle×6) - Impasto suggerito - Palline usate (pizze÷12)
+        const stimaPalline = pallineDaBarelle - impastoSuggerito - pallineUsatePerPizze;
 
-        // Delta = surplus/deficit
-        const delta = stimaPalline !== null ? Math.round(stimaPalline * 10) / 10 : null;
+        const delta = Math.round(stimaPalline * 10) / 10;
 
         const storeName = log.store_name || stores.find((s) => s.id === storeId)?.name || storeId;
 
@@ -114,7 +108,7 @@ export default function StimaPallineTab() {
           storeName,
           barelleFrigo,
           pallineDaBarelle,
-          impastoSuggeritoGiornoPrima,
+          impastoSuggerito,
           pizzeVendute: Math.round(pizzeVendute),
           pallineUsatePerPizze: Math.round(pallineUsatePerPizze * 10) / 10,
           stimaPalline: delta,
@@ -126,8 +120,8 @@ export default function StimaPallineTab() {
   }, [impastoLogs, prodottiVenduti, selectedStore, stores, days]);
 
   const summary = useMemo(() => {
-    const validRows = analysis.filter((r) => r.stimaPalline !== null);
-    if (validRows.length === 0) return null;
+    if (analysis.length === 0) return null;
+    const validRows = analysis;
     const surplusCount = validRows.filter((r) => r.stimaPalline > 0).length;
     const deficitCount = validRows.filter((r) => r.stimaPalline < 0).length;
     const avgDelta = validRows.reduce((s, r) => s + r.stimaPalline, 0) / validRows.length;
@@ -144,7 +138,7 @@ export default function StimaPallineTab() {
             <p className="font-medium mb-1">Come funziona la stima</p>
             <p>
               Per ogni giorno: <strong>Barelle in frigo × 6</strong> (palline presenti) 
-              + <strong>Impasto suggerito del giorno prima</strong> (palline aggiunte)
+              − <strong>Impasto suggerito</strong> (palline da preparare)
               − <strong>Pizze vendute ÷ 12</strong> (palline consumate).
             </p>
             <p className="mt-1">Un valore <span className="text-green-700 font-medium">positivo</span> indica surplus, un valore <span className="text-red-700 font-medium">negativo</span> indica deficit.</p>
@@ -242,7 +236,7 @@ export default function StimaPallineTab() {
                   <th className="text-left py-3 px-2 text-slate-700">Locale</th>
                   <th className="text-right py-3 px-2 text-slate-700">Barelle Frigo</th>
                   <th className="text-right py-3 px-2 text-slate-700">Palline (×6)</th>
-                  <th className="text-right py-3 px-2 text-slate-700">Impasto Sugg. Ieri</th>
+                  <th className="text-right py-3 px-2 text-slate-700">Impasto Suggerito</th>
                   <th className="text-right py-3 px-2 text-slate-700">Pizze Vendute</th>
                   <th className="text-right py-3 px-2 text-slate-700">Palline Usate (÷12)</th>
                   <th className="text-right py-3 px-2 text-slate-700 font-bold">Delta Palline</th>
@@ -257,15 +251,10 @@ export default function StimaPallineTab() {
                     <td className="py-3 px-2 text-slate-800 font-medium">{row.storeName}</td>
                     <td className="py-3 px-2 text-right text-slate-700">{row.barelleFrigo}</td>
                     <td className="py-3 px-2 text-right text-blue-700 font-medium">{row.pallineDaBarelle}</td>
-                    <td className="py-3 px-2 text-right text-slate-700">
-                      {row.impastoSuggeritoGiornoPrima !== null ? row.impastoSuggeritoGiornoPrima : (
-                        <span className="text-slate-400 text-xs">N/D</span>
-                      )}
-                    </td>
+                    <td className="py-3 px-2 text-right text-slate-700">{row.impastoSuggerito}</td>
                     <td className="py-3 px-2 text-right text-slate-700">{row.pizzeVendute}</td>
                     <td className="py-3 px-2 text-right text-orange-700 font-medium">{row.pallineUsatePerPizze}</td>
                     <td className="py-3 px-2 text-right font-bold">
-                      {row.stimaPalline !== null ? (
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-sm ${
                           row.stimaPalline > 2
                             ? "bg-green-100 text-green-700"
@@ -280,11 +269,8 @@ export default function StimaPallineTab() {
                           ) : (
                             <Minus className="w-3 h-3" />
                           )}
-                          {row.stimaPalline > 0 ? "+" : ""}{Math.round(row.stimaPalline)}
+                          {row.stimaPalline > 0 ? "+" : ""}{row.stimaPalline}
                         </span>
-                      ) : (
-                        <span className="text-slate-400 text-xs">N/D</span>
-                      )}
                     </td>
                   </tr>
                 ))}
