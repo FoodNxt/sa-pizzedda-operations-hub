@@ -15,7 +15,8 @@ import {
   UserCheck,
   AlertTriangle,
   Truck,
-  ClipboardCheck } from
+  ClipboardCheck,
+  Calculator } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 
@@ -181,6 +182,13 @@ export default function FormsDipendente() {
     url: "CheckImpastoForm",
     color: "from-amber-500 to-orange-600",
     requiresStoreManager: true
+  },
+  {
+    title: "Impasto Preciso",
+    description: "Calcola la ricetta per un numero esatto di palline",
+    icon: Calculator,
+    url: "ImpastoPreciso",
+    color: "from-yellow-500 to-amber-600"
   }];
 
 

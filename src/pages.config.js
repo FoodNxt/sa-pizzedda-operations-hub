@@ -121,6 +121,7 @@ import Home from './pages/Home';
 import IPraticoBulkImport from './pages/IPraticoBulkImport';
 import IPraticoSetup from './pages/IPraticoSetup';
 import Impasto from './pages/Impasto';
+import ImpastoPreciso from './pages/ImpastoPreciso';
 import ImportReviews from './pages/ImportReviews';
 import InventarioStoreManager from './pages/InventarioStoreManager';
 import Inventory from './pages/Inventory';
@@ -265,6 +266,7 @@ export const PAGES = {
     "IPraticoBulkImport": IPraticoBulkImport,
     "IPraticoSetup": IPraticoSetup,
     "Impasto": Impasto,
+    "ImpastoPreciso": ImpastoPreciso,
     "ImportReviews": ImportReviews,
     "InventarioStoreManager": InventarioStoreManager,
     "Inventory": Inventory,
