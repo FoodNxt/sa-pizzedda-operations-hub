@@ -115,7 +115,9 @@ export default function StimaPallineTab() {
         const stimaPalline = pallineDaBarelle - impastoSuggerito - pallineUsatePerPizze;
         const delta = Math.round(stimaPalline * 10) / 10;
 
-        // Delta Mattina: palline giorno prima + impasto suggerito giorno prima - palline usate giorno prima - teglie buttate giorno prima
+        // Delta Mattina: confronto tra stima teorica (da ieri) e palline effettive oggi
+        // Stima teorica = palline ieri + impasto suggerito ieri - palline usate ieri - teglie buttate ieri
+        // Delta = palline effettive oggi - stima teorica (se positivo → ne abbiamo di più, segno invertito)
         const prevDate = moment(date).subtract(1, "days").format("YYYY-MM-DD");
         const prevKey = `${storeId}_${prevDate}`;
         const prevLog = logsByStoreDate[prevKey];
@@ -126,7 +128,9 @@ export default function StimaPallineTab() {
           const prevPizzeVendute = pizzaByStoreDate[prevKey] || 0;
           const prevPallineUsate = prevPizzeVendute / PIZZE_PER_PALLINA;
           const prevTeglie = teglieByStoreDate[prevKey] || 0;
-          deltaMattina = Math.round((prevPalline + prevImpasto - prevPallineUsate - prevTeglie) * 10) / 10;
+          const stimaTeorica = prevPalline + prevImpasto - prevPallineUsate - prevTeglie;
+          // Differenza: palline reali oggi vs stima teorica, segno invertito (positivo = mancano palline)
+          deltaMattina = Math.round((pallineDaBarelle - stimaTeorica) * 10) / 10;
         }
 
         const storeName = log.store_name || stores.find((s) => s.id === storeId)?.name || storeId;
