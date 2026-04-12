@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ProtectedPage from '../components/ProtectedPage';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
-import { Settings, Package, AlertTriangle, ChefHat, TrendingUp, BarChart3, Truck, Link as LinkIcon, MapPin } from 'lucide-react';
+import { Settings, Package, AlertTriangle, ChefHat, TrendingUp, BarChart3, Truck, Link as LinkIcon, MapPin, Calculator } from 'lucide-react';
 
 const sectionAdminPages = [
   { title: 'Analisi Sprechi', page: 'AnalisiSprechi', icon: AlertTriangle, description: 'Configura e monitora sprechi' },
@@ -11,6 +11,7 @@ const sectionAdminPages = [
   { title: 'Confronto Listini', page: 'ConfrontoListini', icon: BarChart3, description: 'Confronta prezzi fornitori' },
   { title: 'Mapping Prodotti', page: 'MappingProdottiVenduti', icon: LinkIcon, description: 'Collega prodotti venduti e materie prime' },
   { title: 'Impasto', page: 'StoricoImpasti', icon: ChefHat, description: 'Storico e configurazione impasti' },
+  { title: 'Impasto Preciso', page: 'ImpastoPreciso', icon: Calculator, description: 'Calcola ricetta per numero esatto di palline' },
   { title: 'Ordini Fornitori', page: 'OrdiniAdmin', icon: Truck, description: 'Gestione ordini' },
   { title: 'Controllo Consumi', page: 'ControlloConsumi', icon: TrendingUp, description: 'Analizza consumi vs vendite' },
   { title: 'Posizione Prodotti', page: 'PosizioniProdotti', icon: MapPin, description: 'Piantine locali e aree di stoccaggio' }
