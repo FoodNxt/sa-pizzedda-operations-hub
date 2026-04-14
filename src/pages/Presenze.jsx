@@ -12,6 +12,9 @@ export default function Presenze() {
   const [showSettings, setShowSettings] = useState(false);
   const [includedTipiTurno, setIncludedTipiTurno] = useState([]);
   const [confirmAction, setConfirmAction] = useState(null); // {turno, tipo}
+  const [manualDate, setManualDate] = useState('');
+  const [manualTime, setManualTime] = useState('');
+  const [adminNote, setAdminNote] = useState('');
   const [timbraturaMessage, setTimbraturaMessage] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const queryClient = useQueryClient();
@@ -22,14 +25,24 @@ export default function Presenze() {
 
   const isAdmin = currentUser?.user_type === 'admin';
 
+  const resetManualFields = () => {
+    setManualDate('');
+    setManualTime('');
+    setAdminNote('');
+  };
+
   const adminTimbraMutation = useMutation({
-    mutationFn: async ({ turnoId, tipo }) => {
-      const response = await base44.functions.invoke('timbraTurno', { turnoId, tipo });
+    mutationFn: async ({ turnoId, tipo, oraManuale, notaAdmin }) => {
+      const payload = { turnoId, tipo };
+      if (oraManuale) payload.oraManuale = oraManuale;
+      if (notaAdmin) payload.notaAdmin = notaAdmin;
+      const response = await base44.functions.invoke('timbraTurno', payload);
       return response.data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['turni-oggi'] });
       setConfirmAction(null);
+      resetManualFields();
       setTimbraturaMessage({
         type: 'success',
         text: `${variables.tipo === 'entrata' ? 'Entrata' : 'Uscita'} timbrata con successo (Admin)`
@@ -37,7 +50,6 @@ export default function Presenze() {
       setTimeout(() => setTimbraturaMessage(null), 4000);
     },
     onError: (error) => {
-      setConfirmAction(null);
       setTimbraturaMessage({ type: 'error', text: error?.response?.data?.error || error.message });
       setTimeout(() => setTimbraturaMessage(null), 5000);
     }
@@ -521,10 +533,10 @@ export default function Presenze() {
           </div>
         }
 
-        {/* Admin Confirm Dialog */}
+        {/* Admin Confirm Dialog with Manual Time Selection */}
         {confirmAction &&
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-            <NeumorphicCard className="p-6 max-w-sm w-full">
+            <NeumorphicCard className="p-6 max-w-md w-full">
               <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-purple-600" />
                 Timbratura Manuale Admin
@@ -536,7 +548,7 @@ export default function Presenze() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Turno</span>
-                  <span className="font-medium text-slate-700">{confirmAction.turno.ora_inizio} - {confirmAction.turno.ora_fine}</span>
+                  <span className="font-medium text-slate-700">{confirmAction.turno.data} • {confirmAction.turno.ora_inizio} - {confirmAction.turno.ora_fine}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Ruolo</span>
@@ -548,20 +560,74 @@ export default function Presenze() {
                     {confirmAction.tipo === 'entrata' ? 'Timbra Entrata' : 'Timbra Uscita'}
                   </span>
                 </div>
+                {confirmAction.tipo === 'uscita' && confirmAction.turno.timbratura_entrata &&
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Entrata registrata</span>
+                    <span className="font-medium text-green-700">{format(parseISO(confirmAction.turno.timbratura_entrata), 'dd/MM HH:mm')}</span>
+                  </div>
+                }
               </div>
-              <p className="text-xs text-slate-500 mb-4">
-                La timbratura userà l'ora corrente del server e sarà registrata come eseguita da admin.
-              </p>
+
+              {/* Manual Date & Time Selection */}
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4 space-y-3">
+                <p className="text-sm font-bold text-slate-700">Orario timbratura:</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Data</label>
+                    <input
+                      type="date"
+                      value={manualDate || confirmAction.turno.data}
+                      onChange={(e) => setManualDate(e.target.value)}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-500 mb-1 block">Ora</label>
+                    <input
+                      type="time"
+                      value={manualTime || (confirmAction.tipo === 'entrata' ? confirmAction.turno.ora_inizio : confirmAction.turno.ora_fine)}
+                      onChange={(e) => setManualTime(e.target.value)}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none text-sm"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Lascia i valori predefiniti per usare l'orario programmato del turno, oppure modifica per un orario personalizzato.
+                </p>
+              </div>
+
+              {/* Admin Note */}
+              <div className="mb-4">
+                <label className="text-xs text-slate-500 mb-1 block">Nota admin (opzionale)</label>
+                <input
+                  type="text"
+                  value={adminNote}
+                  onChange={(e) => setAdminNote(e.target.value)}
+                  placeholder="Es: dipendente ha dimenticato di timbrare"
+                  className="w-full neumorphic-pressed px-3 py-2 rounded-lg outline-none text-sm"
+                />
+              </div>
+
               <div className="flex gap-3">
                 <button
-                  onClick={() => setConfirmAction(null)}
+                  onClick={() => { setConfirmAction(null); resetManualFields(); }}
                   disabled={adminTimbraMutation.isPending}
                   className="flex-1 px-4 py-3 rounded-xl border border-slate-300 text-slate-700 font-medium hover:bg-slate-50"
                 >
                   Annulla
                 </button>
                 <button
-                  onClick={() => adminTimbraMutation.mutate({ turnoId: confirmAction.turno.id, tipo: confirmAction.tipo })}
+                  onClick={() => {
+                    const selectedDate = manualDate || confirmAction.turno.data;
+                    const selectedTime = manualTime || (confirmAction.tipo === 'entrata' ? confirmAction.turno.ora_inizio : confirmAction.turno.ora_fine);
+                    const oraManuale = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
+                    adminTimbraMutation.mutate({
+                      turnoId: confirmAction.turno.id,
+                      tipo: confirmAction.tipo,
+                      oraManuale,
+                      notaAdmin: adminNote || undefined
+                    });
+                  }}
                   disabled={adminTimbraMutation.isPending}
                   className={`flex-1 px-4 py-3 rounded-xl text-white font-medium flex items-center justify-center gap-2 ${
                     confirmAction.tipo === 'entrata' ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'

@@ -13,14 +13,30 @@ Deno.serve(async (req) => {
     const configs = await base44.asServiceRole.entities.TimbraturaConfig.filter({ is_active: true });
     const config = configs[0] || { tolleranza_ritardo_minuti: 0, arrotonda_ritardo: true, arrotondamento_minuti: 15 };
 
-    const { turnoId, tipo, posizione } = await req.json();
+    const { turnoId, tipo, posizione, oraManuale, notaAdmin } = await req.json();
 
     if (!turnoId || !tipo) {
       return Response.json({ error: 'turnoId e tipo sono richiesti' }, { status: 400 });
     }
 
-    // Usa il timestamp del SERVER (non del client)
-    const serverTimestamp = new Date().toISOString();
+    // === MANUAL TIMESTAMP VALIDATION ===
+    // Only admins can use oraManuale
+    if (oraManuale && user.user_type !== 'admin') {
+      return Response.json({ error: 'Solo gli admin possono impostare un orario manuale' }, { status: 403 });
+    }
+
+    // Validate oraManuale format if provided
+    let effectiveTimestamp;
+    if (oraManuale && user.user_type === 'admin') {
+      const parsed = new Date(oraManuale);
+      if (isNaN(parsed.getTime())) {
+        return Response.json({ error: 'Formato orario manuale non valido' }, { status: 400 });
+      }
+      effectiveTimestamp = parsed.toISOString();
+    } else {
+      // Default: server time
+      effectiveTimestamp = new Date().toISOString();
+    }
 
     // Recupera il turno esistente per validazione
     const turni = await base44.asServiceRole.entities.TurnoPlanday.filter({ id: turnoId });
@@ -35,18 +51,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Non puoi timbrare un turno di un altro dipendente' }, { status: 403 });
     }
 
-    // === DOCUMENT COMPLIANCE CHECK (Phase 1) - Only for clock-in ===
+    // === DOCUMENT COMPLIANCE CHECK (Phase 1) - Only for clock-in, only for non-admin ===
     if (tipo === 'entrata' && user.user_type !== 'admin') {
       const employeeId = turno.dipendente_id;
       
-      // Use specific filters to minimize API calls
       const [pendingContratti, pendingRichiami, pendingChiusure] = await Promise.all([
         base44.asServiceRole.entities.Contratto.filter({ user_id: employeeId, status: 'inviato' }),
         base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId, tipo_lettera: 'lettera_richiamo', status: 'inviata' }),
         base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId, tipo_lettera: 'chiusura_procedura', status: 'inviata' })
       ]);
 
-      // Also check 'visualizzata' status for lettere (unsigned but viewed)
       const [richiamiVisualizzati, chiusureVisualizzate] = pendingRichiami.length === 0 && pendingChiusure.length === 0 
         ? await Promise.all([
             base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId, tipo_lettera: 'lettera_richiamo', status: 'visualizzata' }),
@@ -77,20 +91,45 @@ Deno.serve(async (req) => {
       updateData.timbrato_da_nome = user.full_name || user.nome_cognome || user.email;
     }
 
+    // Store admin note if provided
+    if (notaAdmin && user.user_type === 'admin') {
+      const existingNote = turno.note || '';
+      const adminNotePrefix = `[Admin ${new Date().toISOString().split('T')[0]}] `;
+      updateData.note = existingNote 
+        ? existingNote + '\n' + adminNotePrefix + notaAdmin 
+        : adminNotePrefix + notaAdmin;
+    }
+
     if (tipo === 'entrata') {
       // Verifica che non ci sia già una timbratura entrata
       if (turno.timbratura_entrata) {
         return Response.json({ error: 'Timbratura entrata già registrata' }, { status: 400 });
       }
-      updateData.timbratura_entrata = serverTimestamp;
+
+      // Admin manual clock-out validation: if oraManuale for entrata, 
+      // ensure it's not after an existing uscita (shouldn't happen, but safety)
+      if (oraManuale && turno.timbratura_uscita) {
+        const manualTime = new Date(effectiveTimestamp);
+        const uscitaTime = new Date(turno.timbratura_uscita);
+        if (manualTime >= uscitaTime) {
+          return Response.json({ error: 'L\'orario di entrata non può essere dopo l\'uscita già registrata' }, { status: 400 });
+        }
+      }
+
+      updateData.timbratura_entrata = effectiveTimestamp;
       updateData.posizione_entrata = posizione;
       updateData.stato = 'in_corso';
       
-      // CALCOLA RITARDO
-      const clockInTime = new Date(serverTimestamp);
+      // CALCOLA RITARDO using effectiveTimestamp (manual or server)
+      const clockInTime = new Date(effectiveTimestamp);
+      
+      // Build scheduled start using the SHIFT DATE, not the clock-in date
+      // This is important for manual timestamps on different dates
       const [oraInizioHH, oraInizioMM] = turno.ora_inizio.split(':').map(Number);
-      const scheduledStart = new Date(clockInTime);
+      const shiftDate = new Date(turno.data + 'T00:00:00');
+      const scheduledStart = new Date(shiftDate);
       scheduledStart.setHours(oraInizioHH, oraInizioMM, 0, 0);
+      
       const delayMs = clockInTime - scheduledStart;
       const delayMinutes = Math.floor(delayMs / 60000);
       
@@ -125,7 +164,17 @@ Deno.serve(async (req) => {
       if (turno.timbratura_uscita) {
         return Response.json({ error: 'Timbratura uscita già registrata' }, { status: 400 });
       }
-      updateData.timbratura_uscita = serverTimestamp;
+
+      // Admin manual clock-out validation: uscita must be after entrata
+      if (oraManuale) {
+        const manualTime = new Date(effectiveTimestamp);
+        const entrataTime = new Date(turno.timbratura_entrata);
+        if (manualTime <= entrataTime) {
+          return Response.json({ error: 'L\'orario di uscita deve essere dopo l\'entrata (' + entrataTime.toISOString().substring(11, 16) + ')' }, { status: 400 });
+        }
+      }
+
+      updateData.timbratura_uscita = effectiveTimestamp;
       updateData.posizione_uscita = posizione;
       updateData.stato = 'completato';
     } else {
@@ -146,7 +195,7 @@ Deno.serve(async (req) => {
         store_nome: turno.store_nome,
         data: turno.data,
         ora_inizio_prevista: turno.ora_inizio,
-        ora_timbratura_entrata: serverTimestamp,
+        ora_timbratura_entrata: effectiveTimestamp,
         minuti_ritardo_reale: updateData.minuti_ritardo_reale,
         minuti_ritardo_conteggiato: updateData.minuti_ritardo_conteggiato,
         ruolo: turno.ruolo
@@ -162,7 +211,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       turno: updatedTurno,
-      serverTimestamp
+      serverTimestamp: effectiveTimestamp
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
