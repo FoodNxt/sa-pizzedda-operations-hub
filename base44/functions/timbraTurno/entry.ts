@@ -38,18 +38,26 @@ Deno.serve(async (req) => {
     // === DOCUMENT COMPLIANCE CHECK (Phase 1) - Only for clock-in ===
     if (tipo === 'entrata' && user.user_type !== 'admin') {
       const employeeId = turno.dipendente_id;
-      const [pendingContratti, pendingLettere] = await Promise.all([
+      
+      // Use specific filters to minimize API calls
+      const [pendingContratti, pendingRichiami, pendingChiusure] = await Promise.all([
         base44.asServiceRole.entities.Contratto.filter({ user_id: employeeId, status: 'inviato' }),
-        base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId })
+        base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId, tipo_lettera: 'lettera_richiamo', status: 'inviata' }),
+        base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId, tipo_lettera: 'chiusura_procedura', status: 'inviata' })
       ]);
 
-      const pendingRichiami = pendingLettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && ['inviata', 'visualizzata'].includes(l.status));
-      const pendingChiusure = pendingLettere.filter(l => l.tipo_lettera === 'chiusura_procedura' && ['inviata', 'visualizzata'].includes(l.status));
+      // Also check 'visualizzata' status for lettere (unsigned but viewed)
+      const [richiamiVisualizzati, chiusureVisualizzate] = pendingRichiami.length === 0 && pendingChiusure.length === 0 
+        ? await Promise.all([
+            base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId, tipo_lettera: 'lettera_richiamo', status: 'visualizzata' }),
+            base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId, tipo_lettera: 'chiusura_procedura', status: 'visualizzata' })
+          ])
+        : [[], []];
 
       const pendingTypes = [];
       if (pendingContratti.length > 0) pendingTypes.push('Contratti');
-      if (pendingRichiami.length > 0) pendingTypes.push('Lettere di Richiamo');
-      if (pendingChiusure.length > 0) pendingTypes.push('Chiusura Procedura');
+      if (pendingRichiami.length > 0 || richiamiVisualizzati.length > 0) pendingTypes.push('Lettere di Richiamo');
+      if (pendingChiusure.length > 0 || chiusureVisualizzate.length > 0) pendingTypes.push('Chiusura Procedura');
 
       if (pendingTypes.length > 0) {
         return Response.json({

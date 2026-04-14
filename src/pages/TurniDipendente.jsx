@@ -393,25 +393,12 @@ export default function TurniDipendente() {
 
   const timbraMutation = useMutation({
     mutationFn: async ({ turnoId, tipo, posizione }) => {
-      // Usa backend function per ottenere timestamp dal server
-      const response = await base44.functions.invoke('timbraTurno', {
-        turnoId,
-        tipo,
-        posizione
-      });
+      const response = await base44.functions.invoke('timbraTurno', { turnoId, tipo, posizione });
       return response.data;
     },
     onSuccess: async (_, variables) => {
-      // Invalida e aspetta il refetch dei dati
-      await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] }),
-      queryClient.invalidateQueries({ queryKey: ['turni-futuri'] })]
-      );
-
-      // Aspetta che i dati siano ricaricati
-      await queryClient.refetchQueries({ queryKey: ['turni-dipendente'] });
-      await queryClient.refetchQueries({ queryKey: ['turni-futuri'] });
-
+      await queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
+      await queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
       setTimbraturaMessage({
         type: 'success',
         text: variables.tipo === 'entrata' ? 'Entrata timbrata con successo!' : 'Uscita timbrata con successo!'
@@ -419,8 +406,9 @@ export default function TurniDipendente() {
       setTimeout(() => setTimbraturaMessage(null), 3000);
     },
     onError: (error) => {
-      setTimbraturaMessage({ type: 'error', text: error.message });
-      setTimeout(() => setTimbraturaMessage(null), 3000);
+      const msg = error?.response?.data?.error || error.message || 'Errore timbratura. Riprova tra qualche secondo.';
+      setTimbraturaMessage({ type: 'error', text: msg });
+      setTimeout(() => setTimbraturaMessage(null), 5000);
     }
   });
 

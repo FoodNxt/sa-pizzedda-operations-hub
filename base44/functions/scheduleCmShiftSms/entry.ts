@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.22';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 // Entity automation handler: triggered on TurnoPlanday create
 // Purpose: marks CM - Chiamata shifts as pending for SMS, calculates send time (shift_start - 12h)
