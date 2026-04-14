@@ -1,0 +1,74 @@
+{
+  "name": "AltroDocumento",
+  "type": "object",
+  "properties": {
+    "titolo": {
+      "type": "string",
+      "description": "Titolo del documento"
+    },
+    "contenuto": {
+      "type": "string",
+      "description": "Contenuto testuale del documento"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID del dipendente destinatario"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del dipendente"
+    },
+    "user_nome": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "richiede_firma": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, il dipendente deve firmare il documento"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "inviato",
+        "visualizzato",
+        "firmato"
+      ],
+      "default": "inviato",
+      "description": "Stato del documento"
+    },
+    "data_invio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di invio"
+    },
+    "data_visualizzazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data prima visualizzazione"
+    },
+    "data_firma": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di firma"
+    },
+    "firma_digitale": {
+      "type": "string",
+      "description": "Nome firmato dal dipendente"
+    },
+    "inviato_da": {
+      "type": "string",
+      "description": "Email dell'admin che ha inviato"
+    },
+    "inviato_da_nome": {
+      "type": "string",
+      "description": "Nome dell'admin che ha inviato"
+    }
+  },
+  "required": [
+    "titolo",
+    "contenuto",
+    "user_id",
+    "user_nome"
+  ]
+}

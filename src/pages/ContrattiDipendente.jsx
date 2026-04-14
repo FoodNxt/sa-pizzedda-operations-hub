@@ -15,6 +15,7 @@ import {
   DollarSign } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import AltriDocumentiDipendente from "../components/documenti/AltriDocumentiDipendente";
 import { isValid } from 'date-fns';
 
 export default function ContrattiDipendente() {
@@ -247,11 +248,19 @@ export default function ContrattiDipendente() {
     };
   });
 
+  const { data: altriDocs = [] } = useQuery({
+    queryKey: ['miei-altri-documenti', currentUser?.id],
+    queryFn: () => base44.entities.AltroDocumento.filter({ user_id: currentUser.id }),
+    enabled: !!currentUser
+  });
+  const altriDaFirmare = altriDocs.filter(d => d.richiede_firma && d.status !== 'firmato');
+
   const tabs = [
   { id: 'contratti', label: 'Contratti', icon: FileText, count: toSignContracts.length },
   { id: 'lettere', label: 'Lettere', icon: AlertTriangle, count: lettereDaFirmare.length },
   { id: 'regolamento', label: 'Regolamento', icon: BookOpen, count: regolamentiDaFirmare.length },
-  { id: 'buste_paga', label: 'Buste Paga', icon: FileText, count: 0 }];
+  { id: 'buste_paga', label: 'Buste Paga', icon: FileText, count: 0 },
+  { id: 'altri', label: 'Altri', icon: FileText, count: altriDaFirmare.length }];
 
 
   if (isLoading) {
@@ -1024,6 +1033,9 @@ export default function ContrattiDipendente() {
           </div>
         </div>
       }
+
+      {/* Altri Documenti Tab */}
+      {activeTab === 'altri' && <AltriDocumentiDipendente currentUser={currentUser} />}
 
       {/* Regolamento Viewing Modal */}
       {viewingRegolamento &&

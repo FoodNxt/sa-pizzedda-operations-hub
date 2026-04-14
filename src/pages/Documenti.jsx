@@ -13,6 +13,8 @@ import BustePagaSection from "../components/documenti/BustePagaSection";
 import UnilavSection from "../components/documenti/UnilavSection";
 import RegolamentoSection from "../components/documenti/RegolamentoSection";
 import LettereSection from "../components/documenti/LettereSection";
+import AltriDocumentiSection from "../components/documenti/AltriDocumentiSection";
+import AltriDocumentiDipendente from "../components/documenti/AltriDocumentiDipendente";
 
 export default function Documenti() {
   const [activeTab, setActiveTab] = useState('contratti');
@@ -90,6 +92,14 @@ export default function Documenti() {
 
               Unilav
             </button>
+            <button
+              onClick={() => setActiveTab('altri')}
+              className={`px-3 py-2 rounded-xl font-medium transition-all text-xs whitespace-nowrap ${
+              activeTab === 'altri' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'nav-button text-slate-700'}`
+              }>
+
+              Altri
+            </button>
           </div>
 
           {activeTab === 'contratti' && <DipendenteContrattiSection currentUser={currentUser} />}
@@ -97,6 +107,7 @@ export default function Documenti() {
           {activeTab === 'regolamento' && <DipendenteRegolamentoSection currentUser={currentUser} />}
           {activeTab === 'buste_paga' && <DipendenteBustePagaSection currentUser={currentUser} />}
           {activeTab === 'unilav' && <DipendenteUnilavSection currentUser={currentUser} />}
+          {activeTab === 'altri' && <AltriDocumentiDipendente currentUser={currentUser} />}
         </div>
       </ProtectedPage>);
 
@@ -157,6 +168,14 @@ export default function Documenti() {
 
             Unilav
           </button>
+          <button
+            onClick={() => setActiveTab('altri')}
+            className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all ${
+            activeTab === 'altri' ? 'neumorphic-pressed text-[#8b7355]' : 'neumorphic-flat text-[#9b9b9b]'}`
+            }>
+
+            Altri Documenti
+          </button>
         </div>
 
         {activeTab === 'contratti' && <ContrattiSection />}
@@ -164,6 +183,7 @@ export default function Documenti() {
         {activeTab === 'regolamento' && <RegolamentoSection />}
         {activeTab === 'buste_paga' && <BustePagaSection />}
         {activeTab === 'unilav' && <UnilavSection />}
+        {activeTab === 'altri' && <AltriDocumentiSection />}
       </div>
     </ProtectedPage>);
 
