@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
@@ -38,10 +38,9 @@ Deno.serve(async (req) => {
     // === DOCUMENT COMPLIANCE CHECK (Phase 1) - Only for clock-in ===
     if (tipo === 'entrata' && user.user_type !== 'admin') {
       const employeeId = turno.dipendente_id;
-      const [pendingContratti, pendingLettere, pendingRegolamenti] = await Promise.all([
+      const [pendingContratti, pendingLettere] = await Promise.all([
         base44.asServiceRole.entities.Contratto.filter({ user_id: employeeId, status: 'inviato' }),
-        base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId }),
-        base44.asServiceRole.entities.RegolamentoFirmato.filter({ user_id: employeeId, firmato: false })
+        base44.asServiceRole.entities.LetteraRichiamo.filter({ user_id: employeeId })
       ]);
 
       const pendingRichiami = pendingLettere.filter(l => l.tipo_lettera === 'lettera_richiamo' && ['inviata', 'visualizzata'].includes(l.status));
@@ -51,7 +50,6 @@ Deno.serve(async (req) => {
       if (pendingContratti.length > 0) pendingTypes.push('Contratti');
       if (pendingRichiami.length > 0) pendingTypes.push('Lettere di Richiamo');
       if (pendingChiusure.length > 0) pendingTypes.push('Chiusura Procedura');
-      if (pendingRegolamenti.length > 0) pendingTypes.push('Regolamento');
 
       if (pendingTypes.length > 0) {
         return Response.json({
