@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import moment from "moment";
 import NeumorphicCard from "@/components/neumorphic/NeumorphicCard";
+import WeeklyDetailModal from "./WeeklyDetailModal";
 import {
   DollarSign,
   Star,
@@ -28,6 +29,7 @@ function getWeekRange(weekOffset = 0) {
 
 export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
   const [weekOffset, setWeekOffset] = useState(0);
+  const [detailModal, setDetailModal] = useState(null); // { type, storeId }
   const { start: weekStart, end: weekEnd } = getWeekRange(weekOffset);
 
   const prevWeek = getWeekRange(weekOffset - 1);
@@ -65,6 +67,11 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
   const { data: pulizie = [] } = useQuery({
     queryKey: ["wm-pulizie", startStr, prevStartStr],
     queryFn: () => base44.entities.CleaningInspection.filter({})
+  });
+
+  const { data: wrongOrderMatches = [] } = useQuery({
+    queryKey: ["wm-wo-matches"],
+    queryFn: () => base44.entities.WrongOrderMatch.filter({})
   });
 
   const inRange = (dateVal, rangeStart, rangeEnd) => {
@@ -266,12 +273,12 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
               <p className="font-bold text-slate-800">{curOrders.toLocaleString("it-IT")}</p>
               <DeltaBadge current={curOrders} previous={prevOrders} />
             </div>
-            <div className="neumorphic-flat p-3 rounded-xl">
+            <div className="neumorphic-flat p-3 rounded-xl cursor-pointer hover:ring-2 hover:ring-yellow-300 transition-all" onClick={() => setDetailModal({ type: "reviews", storeId: store.id, storeName: store.name })}>
               <div className="flex items-center gap-1 mb-1"><Star className="w-4 h-4 text-yellow-500" /><span className="text-xs text-slate-500">Recensioni</span></div>
               <p className="font-bold text-slate-800">{curAvgRating ? curAvgRating.toFixed(1) : "-"} <span className="text-xs font-normal text-slate-400">({curReviewCount})</span></p>
               <DeltaBadge current={curAvgRating} previous={prevAvgRating} />
             </div>
-            <div className="neumorphic-flat p-3 rounded-xl">
+            <div className="neumorphic-flat p-3 rounded-xl cursor-pointer hover:ring-2 hover:ring-red-300 transition-all" onClick={() => setDetailModal({ type: "wrongOrders", storeId: store.id, storeName: store.name })}>
               <div className="flex items-center gap-1 mb-1"><AlertTriangle className="w-4 h-4 text-red-500" /><span className="text-xs text-slate-500">Ord. Sbagliati</span></div>
               <p className="font-bold text-slate-800">{curWrongOrders}</p>
               <DeltaBadge current={curWrongOrders} previous={prevWrongOrders} isLowerBetter />
@@ -324,6 +331,20 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
           </div>
         </NeumorphicCard>
       ))}
+
+      {detailModal && (
+        <WeeklyDetailModal
+          type={detailModal.type}
+          storeName={detailModal.storeName}
+          items={
+            detailModal.type === "reviews"
+              ? reviews.filter((r) => r.store_id === detailModal.storeId && inRange(r.review_date, weekStart, weekEnd))
+              : wrongOrders.filter((o) => o.store_id === detailModal.storeId && inRange(o.order_date || o.created_date, weekStart, weekEnd))
+          }
+          matches={wrongOrderMatches}
+          onClose={() => setDetailModal(null)}
+        />
+      )}
 
       {stores.length === 0 && (
         <div className="text-center py-12 text-slate-500">
