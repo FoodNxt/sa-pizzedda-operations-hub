@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.26';
 
 const NOTIFY_EMAIL = 'admin@sapizzedda.it';
 const MAX_DAYS_WITHOUT_DATA = 3;

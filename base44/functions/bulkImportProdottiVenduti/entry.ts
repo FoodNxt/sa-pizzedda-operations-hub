@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.26';
 
 function parseCSV(csvText) {
   if (csvText.charCodeAt(0) === 0xFEFF) csvText = csvText.slice(1);
