@@ -280,11 +280,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
               <p className="font-bold text-slate-800">{curDelayMins} min</p>
               <DeltaBadge current={curDelayMins} previous={prevDelayMins} isLowerBetter suffix=" min" />
             </div>
-            <div className="neumorphic-flat p-3 rounded-xl">
-              <div className="flex items-center gap-1 mb-1"><Sparkles className="w-4 h-4 text-purple-500" /><span className="text-xs text-slate-500">Pulizie</span></div>
-              <p className="font-bold text-slate-800">{curCleanAvg ? Math.round(curCleanAvg) : "-"}</p>
-              <DeltaBadge current={curCleanAvg ? Math.round(curCleanAvg) : null} previous={prevCleanAvg ? Math.round(prevCleanAvg) : null} />
-            </div>
+
           </div>
 
           {/* Channel Avg Ticket */}
