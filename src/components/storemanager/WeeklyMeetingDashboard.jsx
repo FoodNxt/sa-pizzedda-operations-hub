@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import moment from "moment";
 import NeumorphicCard from "@/components/neumorphic/NeumorphicCard";
 import WeeklyDetailModal from "./WeeklyDetailModal";
+import EmployeeRankings from "./EmployeeRankings";
 import {
   DollarSign,
   Star,
@@ -198,6 +199,52 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
 
       const sm = users.find((u) => u.id === store.store_manager_id);
 
+      // Employee rankings
+      const countByName = (arr, nameField) => {
+        const counts = {};
+        arr.forEach((item) => {
+          const name = item[nameField];
+          if (name) counts[name] = (counts[name] || 0) + 1;
+        });
+        return Object.entries(counts)
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 3);
+      };
+
+      const topReviewers = countByName(curReviews, "employee_assigned_name")
+        .map((e) => ({ name: e.name, value: `${e.count} rec.`, valueColor: "text-yellow-600" }));
+
+      const storeWrongOrdersCur = wrongOrders.filter(
+        (o) => o.store_id === store.id && inRange(o.order_date || o.created_date, weekStart, weekEnd)
+      );
+      const woMatchesByEmployee = {};
+      storeWrongOrdersCur.forEach((wo) => {
+        const match = wrongOrderMatches.find((m) => m.wrong_order_id === wo.id);
+        if (match?.matched_employee_name) {
+          const n = match.matched_employee_name;
+          woMatchesByEmployee[n] = (woMatchesByEmployee[n] || 0) + 1;
+        }
+      });
+      const topWrongOrdersRank = Object.entries(woMatchesByEmployee)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
+        .map((e) => ({ name: e.name, value: `${e.count} ord.`, valueColor: "text-red-500" }));
+
+      const delayByEmployee = {};
+      curShifts.forEach((t) => {
+        const d = calcDelay(t);
+        if (d > 0 && t.dipendente_nome) {
+          delayByEmployee[t.dipendente_nome] = (delayByEmployee[t.dipendente_nome] || 0) + d;
+        }
+      });
+      const topDelayers = Object.entries(delayByEmployee)
+        .map(([name, mins]) => ({ name, mins }))
+        .sort((a, b) => b.mins - a.mins)
+        .slice(0, 3)
+        .map((e) => ({ name: e.name, value: `${e.mins} min`, valueColor: "text-orange-600" }));
+
       return {
         store,
         sm,
@@ -209,10 +256,11 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
         curDelayMins, prevDelayMins,
         curCleanAvg, prevCleanAvg,
         dailyRevenue,
-        curChannels, prevChannels
+        curChannels, prevChannels,
+        topReviewers, topDelayers, topWrongOrders: topWrongOrdersRank
       };
     });
-  }, [stores, users, iPratico, reviews, wrongOrders, turni, pulizie, weekStart, weekEnd, prevWeek]);
+  }, [stores, users, iPratico, reviews, wrongOrders, wrongOrderMatches, turni, pulizie, weekStart, weekEnd, prevWeek]);
 
   const DeltaBadge = ({ current, previous, isLowerBetter = false, suffix = "" }) => {
     if (previous === null || previous === undefined || current === null || current === undefined) {
@@ -251,7 +299,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
       </div>
 
       {/* Store Cards */}
-      {storeMetrics.map(({ store, sm, curRevenue, prevRevenue, curOrders, prevOrders, curAvgRating, prevAvgRating, curReviewCount, curWrongOrders, prevWrongOrders, curDelayMins, prevDelayMins, curCleanAvg, prevCleanAvg, dailyRevenue, curChannels, prevChannels }) => (
+      {storeMetrics.map(({ store, sm, curRevenue, prevRevenue, curOrders, prevOrders, curAvgRating, prevAvgRating, curReviewCount, curWrongOrders, prevWrongOrders, curDelayMins, prevDelayMins, curCleanAvg, prevCleanAvg, dailyRevenue, curChannels, prevChannels, topReviewers, topDelayers, topWrongOrders }) => (
         <NeumorphicCard key={store.id} className="p-5">
           <div className="flex items-center gap-3 mb-4">
             <Store className="w-6 h-6 text-blue-600" />
@@ -314,6 +362,13 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
               </div>
             </div>
           )}
+
+          {/* Employee Rankings */}
+          <EmployeeRankings
+            topReviewers={topReviewers}
+            topDelayers={topDelayers}
+            topWrongOrders={topWrongOrders}
+          />
 
           {/* Daily Revenue */}
           <div>
