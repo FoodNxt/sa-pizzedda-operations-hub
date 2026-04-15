@@ -1,0 +1,37 @@
+{
+  "name": "ImpastoExtra",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store (denormalizzato)"
+    },
+    "data": {
+      "type": "string",
+      "format": "date",
+      "description": "Data specifica per la quantit\u00e0 aggiuntiva"
+    },
+    "palline_extra": {
+      "type": "number",
+      "description": "Numero di palline extra da aggiungere al calcolo base"
+    },
+    "ignora_limite_max": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, il limite massimo da ImpastiConfig viene ignorato per questa data"
+    },
+    "note": {
+      "type": "string",
+      "description": "Nota opzionale (es. evento speciale, festa)"
+    }
+  },
+  "required": [
+    "store_id",
+    "data",
+    "palline_extra"
+  ]
+}

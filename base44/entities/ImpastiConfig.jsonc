@@ -1,0 +1,31 @@
+{
+  "name": "ImpastiConfig",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store (se vuoto = configurazione globale)"
+    },
+    "impasto_minimo": {
+      "type": "number",
+      "default": 0,
+      "description": "Valore minimo di impasto da preparare"
+    },
+    "impasto_massimo": {
+      "type": "number",
+      "default": 100,
+      "description": "Valore massimo di impasto da preparare"
+    },
+    "buffer_palline": {
+      "type": "number",
+      "default": 0,
+      "description": "Buffer giornaliero di palline extra da aggiungere al fabbisogno precotture ogni giorno"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    }
+  },
+  "required": []
+}

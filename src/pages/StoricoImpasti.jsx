@@ -6,7 +6,8 @@ import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import CheckImpastoTab from "../components/impasti/CheckImpastoTab";
 import StimaPallineTab from "../components/impasti/StimaPallineTab";
-import { ChefHat, Calendar, Store, User, TrendingUp, BarChart3, BookOpen, Plus, Edit, Save, Trash2, Settings, X, ClipboardCheck, Calculator } from "lucide-react";
+import ImpastoConfigTab from "../components/impasti/ImpastoConfigTab";
+import { ChefHat, Calendar, Store, User, TrendingUp, BarChart3, BookOpen, Plus, Edit, Save, Trash2, Settings, X, ClipboardCheck, Calculator, Sliders } from "lucide-react";
 import moment from "moment";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -270,6 +271,17 @@ export default function StoricoImpasti() {
             <Calculator className="w-4 h-4" />
             Stima Palline
           </button>
+          <button
+            onClick={() => setActiveTab('config')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+            activeTab === 'config' ?
+            'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' :
+            'neumorphic-flat text-slate-700'}`
+            }>
+
+            <Sliders className="w-4 h-4" />
+            Configurazione
+          </button>
         </div>
 
         {/* Tab Ricetta */}
@@ -524,6 +536,9 @@ export default function StoricoImpasti() {
 
         {/* Tab Stima Palline */}
         {activeTab === 'stima' && <StimaPallineTab />}
+
+        {/* Tab Configurazione */}
+        {activeTab === 'config' && <ImpastoConfigTab />}
 
         {/* Tab Storico */}
         {activeTab === 'storico' &&

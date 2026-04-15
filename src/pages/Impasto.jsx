@@ -58,6 +58,11 @@ export default function Impasto() {
     queryFn: () => base44.entities.ImpastiConfig.list(),
   });
 
+  const { data: impastoExtras = [] } = useQuery({
+    queryKey: ['impasto-extra'],
+    queryFn: () => base44.entities.ImpastoExtra.list(),
+  });
+
   // Preselezione store da URL
   React.useEffect(() => {
     if (preselectedStoreId && !selectedStore) {
@@ -158,38 +163,59 @@ export default function Impasto() {
     const oggi = new Date().getDay();
     const storeImpasti = impasti.filter(i => i.store_id === selectedStore || i.store_name === selectedStore);
 
+    // Buffer: store-specific o globale
+    const globalConfig = impastiConfig.find(c => c.is_active && !c.store_id);
+    const storeConfig = impastiConfig.find(c => c.is_active && c.store_id === selectedStore);
+    const bufferGiornaliero = storeConfig?.buffer_palline ?? globalConfig?.buffer_palline ?? 0;
+
     let totaleProssimi3Giorni = 0;
     let giorniConfigurati = 0;
+    let hasIgnoraLimiteMax = false;
+    let totaleExtra = 0;
     
     for (let i = 0; i < 3; i++) {
       const giornoIdx = (oggi + i) % 7;
       const giornoNome = giorni[giornoIdx];
       const data = storeImpasti.find(imp => imp.giorno_settimana === giornoNome);
       
+      const dataStr = new Date(Date.now() + i * 86400000).toISOString().split('T')[0];
+
+      let fabbisognoGiorno = 0;
       if (data) {
         giorniConfigurati++;
-        // Usa totale_giornata come valore autoritativo (coerente con Gestione Teglie)
-        totaleProssimi3Giorni += (data.totale_giornata || 0);
+        fabbisognoGiorno = (data.totale_giornata || 0);
       }
+
+      // Aggiungi buffer giornaliero
+      fabbisognoGiorno += bufferGiornaliero;
+
+      // Aggiungi extra per data specifica
+      const extraForDay = impastoExtras.find(e => e.store_id === selectedStore && e.data === dataStr);
+      if (extraForDay) {
+        fabbisognoGiorno += (extraForDay.palline_extra || 0);
+        totaleExtra += (extraForDay.palline_extra || 0);
+        if (extraForDay.ignora_limite_max) hasIgnoraLimiteMax = true;
+      }
+
+      totaleProssimi3Giorni += fabbisognoGiorno;
     }
 
-    // Se non ci sono giorni configurati, usa una media di sicurezza
+    // Se non ci sono giorni configurati, usa una media di sicurezza + buffer
     if (giorniConfigurati === 0) {
-      totaleProssimi3Giorni = 60; // Default safety value
+      totaleProssimi3Giorni = 60 + (bufferGiornaliero * 3) + totaleExtra;
     }
 
     const pallinePresenti = parseInt(barelleInFrigo) * 6;
     let impastoNecessario = totaleProssimi3Giorni - pallinePresenti;
     
     // Applica limiti min/max dalla configurazione
-    const activeConfig = impastiConfig.find(c => c.is_active && !c.store_id);
-    const minImpasto = activeConfig?.impasto_minimo || 20;
-    const maxImpasto = activeConfig?.impasto_massimo || 65;
+    const minImpasto = globalConfig?.impasto_minimo || 20;
+    const maxImpasto = globalConfig?.impasto_massimo || 65;
     
     // SEMPRE rispetta il minimo (anche se il calcolo dice meno)
     if (impastoNecessario < minImpasto) {
       impastoNecessario = minImpasto;
-    } else if (impastoNecessario > maxImpasto) {
+    } else if (impastoNecessario > maxImpasto && !hasIgnoraLimiteMax) {
       impastoNecessario = maxImpasto;
     }
     
@@ -217,9 +243,12 @@ export default function Impasto() {
       barelleInFrigo: parseInt(barelleInFrigo),
       pallinePresenti,
       impastoNecessario,
-      ingredientiNecessari
+      ingredientiNecessari,
+      bufferGiornaliero,
+      totaleExtra,
+      hasIgnoraLimiteMax
     };
-  }, [selectedStore, barelleInFrigo, impasti, sortedIngredienti, impastiConfig]);
+  }, [selectedStore, barelleInFrigo, impasti, sortedIngredienti, impastiConfig, impastoExtras]);
 
   const handleCalcolaImpasto = async () => {
     if (!risultato) return;
@@ -473,6 +502,25 @@ export default function Impasto() {
                   <div className="neumorphic-pressed p-4 rounded-xl">
                     <p className="text-sm text-slate-500 mb-1">Fabbisogno prossimi 3 giorni</p>
                     <p className="text-2xl font-bold text-slate-800">{risultato.totaleProssimi3Giorni} palline</p>
+                    {(risultato.bufferGiornaliero > 0 || risultato.totaleExtra > 0) && (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {risultato.bufferGiornaliero > 0 && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                            incl. buffer +{risultato.bufferGiornaliero * 3}
+                          </span>
+                        )}
+                        {risultato.totaleExtra > 0 && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                            incl. extra +{risultato.totaleExtra}
+                          </span>
+                        )}
+                        {risultato.hasIgnoraLimiteMax && (
+                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                            limite max disattivato
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="neumorphic-pressed p-4 rounded-xl">
