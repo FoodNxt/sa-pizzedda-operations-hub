@@ -1248,15 +1248,19 @@ export default function Layout({ children, currentPageName }) {
   const processMenuStructure = (structure) => {
     if (!structure) return [];
     
-    return structure.map(section => ({
-      ...section,
-      icon: getIconComponent(section.icon),
-      items: section.items.map(item => ({
-        ...item,
-        url: getUrlForPage(item.page),
-        icon: getIconComponent(item.icon)
-      }))
-    }));
+    return structure
+      .filter(section => section && section.items)
+      .map(section => ({
+        ...section,
+        icon: getIconComponent(section.icon),
+        items: (section.items || [])
+          .filter(item => item && item.page)
+          .map(item => ({
+            ...item,
+            url: getUrlForPage(item.page),
+            icon: getIconComponent(item.icon)
+          }))
+      }));
   };
 
   const enrichNavigationWithAdminSections = (nav) => {
