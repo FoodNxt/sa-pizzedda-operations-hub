@@ -15,7 +15,9 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Store
+  Store,
+  Truck,
+  Receipt
 } from "lucide-react";
 
 function getWeekRange(weekOffset = 0) {
@@ -171,6 +173,22 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
         dailyRevenue.push({ day: day.format("ddd DD"), revenue: rev });
       }
 
+      // Channel breakdown (avg ticket) for current and previous week
+      const channels = ["delivery", "takeaway", "takeawayOnSite", "store"];
+      const channelLabels = { delivery: "Delivery", takeaway: "Takeaway", takeawayOnSite: "TakeAway OnSite", store: "Negozio" };
+
+      const calcChannelData = (rangeStart, rangeEnd) => {
+        const filtered = iPratico.filter((i) => i.store_id === store.id && inRange(i.order_date, rangeStart, rangeEnd));
+        return channels.map((ch) => {
+          const rev = filtered.reduce((s, i) => s + (i[`sourceType_${ch}`] || 0), 0);
+          const ord = filtered.reduce((s, i) => s + (i[`sourceType_${ch}_orders`] || 0), 0);
+          return { channel: ch, label: channelLabels[ch], revenue: rev, orders: ord, avgTicket: ord > 0 ? rev / ord : 0 };
+        });
+      };
+
+      const curChannels = calcChannelData(weekStart, weekEnd);
+      const prevChannels = calcChannelData(prevWeek.start, prevWeek.end);
+
       const sm = users.find((u) => u.id === store.store_manager_id);
 
       return {
@@ -183,7 +201,8 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
         curWrongOrders, prevWrongOrders,
         curDelayMins, prevDelayMins,
         curCleanAvg, prevCleanAvg,
-        dailyRevenue
+        dailyRevenue,
+        curChannels, prevChannels
       };
     });
   }, [stores, users, iPratico, reviews, wrongOrders, turni, pulizie, weekStart, weekEnd, prevWeek]);
@@ -224,7 +243,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
       </div>
 
       {/* Store Cards */}
-      {storeMetrics.map(({ store, sm, curRevenue, prevRevenue, curOrders, prevOrders, curAvgRating, prevAvgRating, curReviewCount, curWrongOrders, prevWrongOrders, curDelayMins, prevDelayMins, curCleanAvg, prevCleanAvg, dailyRevenue }) => (
+      {storeMetrics.map(({ store, sm, curRevenue, prevRevenue, curOrders, prevOrders, curAvgRating, prevAvgRating, curReviewCount, curWrongOrders, prevWrongOrders, curDelayMins, prevDelayMins, curCleanAvg, prevCleanAvg, dailyRevenue, curChannels, prevChannels }) => (
         <NeumorphicCard key={store.id} className="p-5">
           <div className="flex items-center gap-3 mb-4">
             <Store className="w-6 h-6 text-blue-600" />
@@ -267,6 +286,30 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
               <DeltaBadge current={curCleanAvg ? Math.round(curCleanAvg) : null} previous={prevCleanAvg ? Math.round(prevCleanAvg) : null} />
             </div>
           </div>
+
+          {/* Channel Avg Ticket */}
+          {curChannels && curChannels.some((c) => c.orders > 0) && (
+            <div className="mb-4">
+              <p className="text-xs text-slate-500 mb-2 font-medium flex items-center gap-1">
+                <Receipt className="w-3 h-3" /> Scontrino medio per canale
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {curChannels.filter((c) => c.orders > 0 || prevChannels?.find((p) => p.channel === c.channel)?.orders > 0).map((c) => {
+                  const prev = prevChannels?.find((p) => p.channel === c.channel);
+                  return (
+                    <div key={c.channel} className="neumorphic-flat p-2.5 rounded-xl">
+                      <p className="text-[10px] text-slate-500 font-medium mb-1">{c.label}</p>
+                      <p className="font-bold text-slate-800 text-sm">€{c.avgTicket.toFixed(2)}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-slate-400">{c.orders} ord.</span>
+                        <DeltaBadge current={c.avgTicket} previous={prev?.avgTicket || null} suffix="€" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Daily Revenue */}
           <div>
