@@ -1,7 +1,7 @@
 import React from "react";
 import { Star, Clock, AlertTriangle, User } from "lucide-react";
 
-function RankingSection({ icon: Icon, iconColor, title, entries }) {
+function RankingSection({ icon: Icon, iconColor, title, entries, isReviews = false }) {
   if (!entries || entries.length === 0) return null;
   return (
     <div className="flex-1 min-w-0">
@@ -19,9 +19,20 @@ function RankingSection({ icon: Icon, iconColor, title, entries }) {
             <span className={`text-[11px] truncate ${idx === 0 ? "font-semibold text-slate-700" : "text-slate-500"}`}>
               {e.name}
             </span>
-            <span className={`text-[10px] font-bold ml-auto flex-shrink-0 ${e.valueColor || "text-slate-600"}`}>
-              {e.value}
-            </span>
+            {isReviews ? (
+              <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+                <span className="text-[10px] font-bold text-yellow-600">{e.count} rec.</span>
+                <span className="text-[10px] text-slate-400">·</span>
+                <span className="flex items-center gap-0.5">
+                  <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
+                  <span className="text-[10px] font-bold text-slate-600">{e.avgRating.toFixed(1)}</span>
+                </span>
+              </div>
+            ) : (
+              <span className={`text-[10px] font-bold ml-auto flex-shrink-0 ${e.valueColor || "text-slate-600"}`}>
+                {e.value}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -44,6 +55,7 @@ export default function EmployeeRankings({ topReviewers, topDelayers, topWrongOr
           iconColor="text-yellow-500"
           title="Più recensioni"
           entries={topReviewers}
+          isReviews
         />
         <RankingSection
           icon={Clock}

@@ -212,8 +212,19 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
           .slice(0, 3);
       };
 
-      const topReviewers = countByName(curReviews, "employee_assigned_name")
-        .map((e) => ({ name: e.name, value: `${e.count} rec.`, valueColor: "text-yellow-600" }));
+      // Reviews: count + avg rating per employee
+      const reviewsByEmployee = {};
+      curReviews.forEach((r) => {
+        const name = r.employee_assigned_name;
+        if (!name) return;
+        if (!reviewsByEmployee[name]) reviewsByEmployee[name] = { count: 0, totalRating: 0 };
+        reviewsByEmployee[name].count += 1;
+        reviewsByEmployee[name].totalRating += (r.rating || 0);
+      });
+      const topReviewers = Object.entries(reviewsByEmployee)
+        .map(([name, d]) => ({ name, count: d.count, avgRating: d.count > 0 ? d.totalRating / d.count : 0 }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3);
 
       const storeWrongOrdersCur = wrongOrders.filter(
         (o) => o.store_id === store.id && inRange(o.order_date || o.created_date, weekStart, weekEnd)
