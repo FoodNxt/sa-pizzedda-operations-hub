@@ -81,7 +81,7 @@ export default function PosizioniProdotti() {
                 <SelectValue placeholder="Seleziona locale..." />
               </SelectTrigger>
               <SelectContent>
-                {stores.map((s) => (
+                {stores.filter(s => s.id).map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}
               </SelectContent>
