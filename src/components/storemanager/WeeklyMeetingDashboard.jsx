@@ -173,16 +173,16 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
         dailyRevenue.push({ day: day.format("ddd DD"), revenue: rev });
       }
 
-      // Channel breakdown (avg ticket) for current and previous week
-      const channels = ["delivery", "takeaway", "takeawayOnSite", "store"];
-      const channelLabels = { delivery: "Delivery", takeaway: "Takeaway", takeawayOnSite: "TakeAway OnSite", store: "Negozio" };
+      // Channel breakdown (avg ticket) by sourceApp for current and previous week
+      const sourceApps = ["glovo", "deliveroo", "justeat", "onlineordering", "ordertable", "tabesto", "store"];
+      const sourceAppLabels = { glovo: "Glovo", deliveroo: "Deliveroo", justeat: "JustEat", onlineordering: "Online Ordering", ordertable: "OrderTable", tabesto: "Tabesto", store: "Negozio" };
 
       const calcChannelData = (rangeStart, rangeEnd) => {
         const filtered = iPratico.filter((i) => i.store_id === store.id && inRange(i.order_date, rangeStart, rangeEnd));
-        return channels.map((ch) => {
-          const rev = filtered.reduce((s, i) => s + (i[`sourceType_${ch}`] || 0), 0);
-          const ord = filtered.reduce((s, i) => s + (i[`sourceType_${ch}_orders`] || 0), 0);
-          return { channel: ch, label: channelLabels[ch], revenue: rev, orders: ord, avgTicket: ord > 0 ? rev / ord : 0 };
+        return sourceApps.map((ch) => {
+          const rev = filtered.reduce((s, i) => s + (i[`sourceApp_${ch}`] || 0), 0);
+          const ord = filtered.reduce((s, i) => s + (i[`sourceApp_${ch}_orders`] || 0), 0);
+          return { channel: ch, label: sourceAppLabels[ch], revenue: rev, orders: ord, avgTicket: ord > 0 ? rev / ord : 0 };
         });
       };
 
