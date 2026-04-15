@@ -621,6 +621,7 @@ const navigationStructure = [
 ];
 
 const getNormalizedUserType = (userType) => {
+  if (!userType) return 'dipendente';
   if (userType === 'admin' || userType === 'manager') {
     return userType;
   }
