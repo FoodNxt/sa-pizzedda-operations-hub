@@ -999,7 +999,7 @@ export default function Layout({ children, currentPageName }) {
       return isActiveLink(section.url);
     }
     if (section.type === 'section') {
-      return section.items.some(item => isActiveLink(item.url));
+      return (section.items || []).some(item => item && isActiveLink(item.url));
     }
     return false;
   };
@@ -1264,11 +1264,12 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const enrichNavigationWithAdminSections = (nav) => {
-    return nav.map(section => {
+    if (!nav) return [];
+    return nav.filter(section => section).map(section => {
       if (section.type !== 'section') return section;
 
       // Controlla se ci sono pagine con parent_admin_section = questo section
-      const hasAdminPages = section.items?.some(item => item.parent_admin_section === section.title);
+      const hasAdminPages = (section.items || []).some(item => item && item.parent_admin_section === section.title);
       
       if (hasAdminPages) {
         // Aggiungi il link "Admin [Sezione]" alla fine della sezione
@@ -1295,9 +1296,11 @@ export default function Layout({ children, currentPageName }) {
   
   const filteredNavigation = (!isLoadingConfig && !isLoadingUser && currentUser) 
     ? processedNavigation
+        .filter(section => section && section.items)
         .map(section => {
           // For managers, filter items based on allowed pages
-          const filteredItems = section.items.filter(item => {
+          const filteredItems = (section.items || []).filter(item => {
+            if (!item) return false;
             // Extract page name from URL - handle both /PageName and PageName formats
             let pageName = item.page || item.url?.split('/').filter(Boolean).pop() || '';
 
@@ -1623,7 +1626,7 @@ export default function Layout({ children, currentPageName }) {
                       const sectionActive = isSectionActive(section);
                       
                       // Filter items: show only those without parent_admin_section
-                      const visibleItems = section.items.filter(item => !item.parent_admin_section);
+                      const visibleItems = (section.items || []).filter(item => item && !item.parent_admin_section);
 
                       return (
                         <div key={section.title}>
