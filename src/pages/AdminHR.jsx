@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { ChevronRight, Settings, Users, MapPin, TrendingUp, Loader2, FileText } from 'lucide-react';
+import { ChevronRight, Settings, Users, MapPin, TrendingUp, Loader2, FileText, Shirt } from 'lucide-react';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
 
 const sectionAdminPages = {
@@ -10,7 +10,8 @@ const sectionAdminPages = {
     { title: 'Assegnazione Locali', page: 'HRAdmin', icon: MapPin, description: 'Assegna dipendenti ai locali', gradient: 'from-blue-500 to-indigo-600' },
     { title: 'Store Manager Admin', page: 'StoreManagerAdmin', icon: Users, description: 'Gestisci target Store Manager', gradient: 'from-purple-500 to-pink-600' },
     { title: 'Compliance', page: 'Compliance', icon: Settings, description: 'Requisiti compliance dipendenti', gradient: 'from-amber-500 to-orange-600' },
-    { title: 'Lettere di Richiamo', page: 'LettereRichiamo', icon: FileText, description: 'Gestisci lettere di richiamo e chiusure procedura', gradient: 'from-red-500 to-rose-600' }
+    { title: 'Lettere di Richiamo', page: 'LettereRichiamo', icon: FileText, description: 'Gestisci lettere di richiamo e chiusure procedura', gradient: 'from-red-500 to-rose-600' },
+    { title: 'Divise', page: 'Divise', icon: Shirt, description: 'Gestione dotazione e consegna divise dipendenti', gradient: 'from-indigo-500 to-purple-600' }
   ]
 };
 
@@ -57,7 +58,7 @@ export default function AdminHR() {
   }, []);
 
   const getIcon = (iconName) => {
-    const icons = { MapPin, Users, Settings, TrendingUp, ChevronRight, FileText };
+    const icons = { MapPin, Users, Settings, TrendingUp, ChevronRight, FileText, Shirt };
     return icons[iconName] || Settings;
   };
 

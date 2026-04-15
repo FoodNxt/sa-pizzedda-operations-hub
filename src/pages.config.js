@@ -89,6 +89,7 @@ import DailyRevenueAggregation from './pages/DailyRevenueAggregation';
 import Dashboard from './pages/Dashboard';
 import DashboardStoreManager from './pages/DashboardStoreManager';
 import Disponibilita from './pages/Disponibilita';
+import Divise from './pages/Divise';
 import Documenti from './pages/Documenti';
 import ElencoFornitori from './pages/ElencoFornitori';
 import EmployeeReviewsPerformance from './pages/EmployeeReviewsPerformance';
@@ -234,6 +235,7 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "DashboardStoreManager": DashboardStoreManager,
     "Disponibilita": Disponibilita,
+    "Divise": Divise,
     "Documenti": Documenti,
     "ElencoFornitori": ElencoFornitori,
     "EmployeeReviewsPerformance": EmployeeReviewsPerformance,

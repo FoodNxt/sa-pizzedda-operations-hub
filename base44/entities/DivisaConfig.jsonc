@@ -1,0 +1,36 @@
+{
+  "name": "DivisaConfig",
+  "type": "object",
+  "properties": {
+    "config_name": {
+      "type": "string",
+      "default": "default",
+      "description": "Nome della configurazione"
+    },
+    "dotazione_per_gruppo": {
+      "type": "object",
+      "description": "Quantit\u00e0 per tipo contratto. Formato: {FT: {Maglietta: 3, Pantaloni: 2, ...}, PT: {...}, CM: {...}}",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "number"
+        }
+      }
+    },
+    "elementi_divisa": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista nomi elementi divisa (es. Maglietta, Pantaloni, Grembiule, Bandana)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "config_name"
+  ]
+}
