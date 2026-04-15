@@ -263,6 +263,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
         curOrders, prevOrders,
         curAvgRating, prevAvgRating,
         curReviewCount: curReviews.length,
+        prevReviewCount: prevReviews.length,
         curWrongOrders, prevWrongOrders,
         curDelayMins, prevDelayMins,
         curCleanAvg, prevCleanAvg,
@@ -310,7 +311,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
       </div>
 
       {/* Store Cards */}
-      {storeMetrics.map(({ store, sm, curRevenue, prevRevenue, curOrders, prevOrders, curAvgRating, prevAvgRating, curReviewCount, curWrongOrders, prevWrongOrders, curDelayMins, prevDelayMins, curCleanAvg, prevCleanAvg, dailyRevenue, curChannels, prevChannels, topReviewers, topDelayers, topWrongOrders }) => (
+      {storeMetrics.map(({ store, sm, curRevenue, prevRevenue, curOrders, prevOrders, curAvgRating, prevAvgRating, curReviewCount, prevReviewCount, curWrongOrders, prevWrongOrders, curDelayMins, prevDelayMins, curCleanAvg, prevCleanAvg, dailyRevenue, curChannels, prevChannels, topReviewers, topDelayers, topWrongOrders }) => (
         <NeumorphicCard key={store.id} className="p-5">
           <div className="flex items-center gap-3 mb-4">
             <Store className="w-6 h-6 text-blue-600" />
@@ -333,8 +334,13 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
               <DeltaBadge current={curOrders} previous={prevOrders} />
             </div>
             <div className="neumorphic-flat p-3 rounded-xl cursor-pointer hover:ring-2 hover:ring-yellow-300 transition-all" onClick={() => setDetailModal({ type: "reviews", storeId: store.id, storeName: store.name })}>
-              <div className="flex items-center gap-1 mb-1"><Star className="w-4 h-4 text-yellow-500" /><span className="text-xs text-slate-500">Recensioni</span></div>
-              <p className="font-bold text-slate-800">{curAvgRating ? curAvgRating.toFixed(1) : "-"} <span className="text-xs font-normal text-slate-400">({curReviewCount})</span></p>
+              <div className="flex items-center gap-1 mb-1"><Star className="w-4 h-4 text-yellow-500" /><span className="text-xs text-slate-500">N° Recensioni</span></div>
+              <p className="font-bold text-slate-800">{curReviewCount}</p>
+              <DeltaBadge current={curReviewCount} previous={prevReviewCount} />
+            </div>
+            <div className="neumorphic-flat p-3 rounded-xl cursor-pointer hover:ring-2 hover:ring-yellow-300 transition-all" onClick={() => setDetailModal({ type: "reviews", storeId: store.id, storeName: store.name })}>
+              <div className="flex items-center gap-1 mb-1"><Star className="w-4 h-4 text-yellow-400" /><span className="text-xs text-slate-500">Media Voto</span></div>
+              <p className="font-bold text-slate-800">{curAvgRating ? curAvgRating.toFixed(1) : "-"}</p>
               <DeltaBadge current={curAvgRating} previous={prevAvgRating} />
             </div>
             <div className="neumorphic-flat p-3 rounded-xl cursor-pointer hover:ring-2 hover:ring-red-300 transition-all" onClick={() => setDetailModal({ type: "wrongOrders", storeId: store.id, storeName: store.name })}>
