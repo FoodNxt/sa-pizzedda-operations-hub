@@ -304,7 +304,11 @@ export default function Contratti() {
       '{{data_oggi}}': oggi,
       '{{data_fine_contratto}}': dataFineContratto,
       '{{ruoli}}': (data.ruoli_dipendente || []).join(', '),
-      '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali',
+      '{{locali}}': (data.assigned_stores || []).map(s => {
+        // If it looks like an ID, resolve to store name
+        const store = stores.find(st => st.id === s);
+        return store ? store.name : s;
+      }).join(', ') || 'Tutti i locali',
       '{{data_prima_assunzione}}': dataPrimaAssunzione
     };
 
@@ -480,9 +484,17 @@ Genera sia l'oggetto che il corpo dell'email. L'email deve essere in italiano, p
         taglia_maglietta: user.taglia_maglietta || '',
         user_type: user.user_type || 'dipendente',
         ruoli_dipendente: user.ruoli_dipendente || [],
-        assigned_stores: user.assigned_stores || [],
+        assigned_stores: (user.assigned_stores || []).map(s => {
+          const store = stores.find(st => st.id === s || st.name === s);
+          return store ? store.name : s;
+        }),
         tipo_contratto: user.employee_group === 'FT' ? 'full_time' : user.employee_group === 'PT' ? 'part_time' : '',
-        sede_lavoro: user.assigned_stores?.[0] || '',
+        sede_lavoro: (() => {
+          const firstStore = user.assigned_stores?.[0];
+          if (!firstStore) return '';
+          const store = stores.find(st => st.id === firstStore || st.name === firstStore);
+          return store ? store.name : firstStore;
+        })(),
         employee_group: user.employee_group || '',
         function_name: user.function_name || '',
         ore_settimanali: user.ore_settimanali || 0,
