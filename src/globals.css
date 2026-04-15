@@ -443,7 +443,7 @@ svg defs {
 }
 
 /* Dark SaaS Forms */
-.compact-layout input,
+.compact-layout input:not([type="date"]):not([type="time"]):not([type="checkbox"]):not([type="radio"]),
 .compact-layout select,
 .compact-layout textarea {
   padding: 0.5rem !important;
@@ -451,6 +451,17 @@ svg defs {
   background: rgba(15, 23, 42, 0.5) !important;
   border: 1px solid var(--card-border) !important;
   color: var(--text-primary) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.compact-layout input[type="date"],
+.compact-layout input[type="time"] {
+  padding: 0.5rem !important;
+  font-size: 0.875rem !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
   border-radius: 8px !important;
   transition: all 0.2s ease !important;
 }
