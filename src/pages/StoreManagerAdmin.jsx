@@ -25,7 +25,7 @@ import {
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import WeeklyMeetingDashboard from "../components/storemanager/WeeklyMeetingDashboard";
+import WeeklyMeetingDashboard from "@/components/storemanager/WeeklyMeetingDashboard";
 import moment from "moment";
 
 export default function StoreManagerAdmin() {
