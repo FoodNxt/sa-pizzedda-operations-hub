@@ -76,16 +76,20 @@ export default function PosizioniProdotti() {
 
         <div className="bg-white rounded-xl border p-4 space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Select value={selectedStoreId} onValueChange={handleStoreChange}>
-              <SelectTrigger className="w-60">
-                <SelectValue placeholder="Seleziona locale..." />
-              </SelectTrigger>
-              <SelectContent>
-                {stores.filter(s => s.id).map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {stores.length > 0 ? (
+              <Select value={selectedStoreId} onValueChange={handleStoreChange}>
+                <SelectTrigger className="w-60">
+                  <SelectValue placeholder="Seleziona locale..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {stores.filter(s => s && s.id && s.name).map((s) => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="w-60 h-10 bg-slate-100 rounded-md animate-pulse" />
+            )}
 
             {selectedStoreId && (
               <>
