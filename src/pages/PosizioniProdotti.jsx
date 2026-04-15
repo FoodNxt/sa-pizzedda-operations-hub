@@ -10,7 +10,7 @@ import StorageAreaEditor from "../components/inventory/StorageAreaEditor";
 
 export default function PosizioniProdotti() {
   const queryClient = useQueryClient();
-  const [selectedStoreId, setSelectedStoreId] = useState("");
+  const [selectedStoreId, setSelectedStoreId] = useState(undefined);
   const [saving, setSaving] = useState(false);
   const [localAreas, setLocalAreas] = useState([]);
   const [localBg, setLocalBg] = useState("");
@@ -77,7 +77,7 @@ export default function PosizioniProdotti() {
         <div className="bg-white rounded-xl border p-4 space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             {stores.length > 0 ? (
-              <Select value={selectedStoreId} onValueChange={handleStoreChange}>
+              <Select value={selectedStoreId || undefined} onValueChange={handleStoreChange}>
                 <SelectTrigger className="w-60">
                   <SelectValue placeholder="Seleziona locale..." />
                 </SelectTrigger>
