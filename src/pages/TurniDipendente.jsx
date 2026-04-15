@@ -1630,24 +1630,24 @@ export default function TurniDipendente() {
                 const isFormActivity = att.form_page || att.richiede_form;
                 const isCorsoActivity = att.corsi_ids?.length > 0;
                 if (isFormActivity) {
-                  // Controlla prima per form_page in AttivitaCompletata con posizione e ora
+                  // Per attività da StrutturaTurno, controlla SOLO AttivitaCompletata (ha turno_id)
+                  // NON usare formDovuti che controlla solo store+data (senza distinguere il turno)
                   const completatoViaPagina = attivitaCompletate.some((ac) => {
-                    if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
+                    if (ac.turno_id !== prossimoTurno.id) return false;
+                    // Match per form_page O per attivita_nome
+                    if (ac.form_page !== att.form_page && ac.attivita_nome !== att.nome) return false;
 
-                    // Se l'attività ha posizione_turno, verifica anche quella
                     if (att.posizione_turno && ac.posizione_turno) {
                       return ac.posizione_turno === att.posizione_turno;
                     }
 
-                    // Se l'attività ha ora_inizio, verifica anche quella
                     if (att.ora_inizio && ac.ora_attivita) {
                       return ac.ora_attivita === att.ora_inizio;
                     }
 
                     return true;
                   });
-                  if (completatoViaPagina) return true;
-                  return formDovuti.some((f) => f.page === att.form_page && f.completato);
+                  return completatoViaPagina;
                 }
                 if (isCorsoActivity) return true; // Corsi sono opzionali
                 return isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
@@ -1681,12 +1681,12 @@ export default function TurniDipendente() {
                       const isCorsoActivity = att.corsi_ids?.length > 0;
                       const isCompleted = isFormActivity ?
                       attivitaCompletate.some((ac) => {
-                        if (ac.turno_id !== prossimoTurno.id || ac.form_page !== att.form_page) return false;
+                        if (ac.turno_id !== prossimoTurno.id) return false;
+                        if (ac.form_page !== att.form_page && ac.attivita_nome !== att.nome) return false;
                         if (att.posizione_turno && ac.posizione_turno) return ac.posizione_turno === att.posizione_turno;
                         if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
                         return true;
-                      }) || formDovuti.some((f) => f.page === att.form_page && f.completato) :
-                      isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
+                      }) : isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
 
                       return (
                         <div key={`att-${idx}-${att.nome}`} className={`p-3 rounded-xl ${isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-white border-2 border-blue-200'} shadow-sm`}>
@@ -2024,16 +2024,10 @@ export default function TurniDipendente() {
                 const isFormActivity = att.form_page || att.richiede_form;
                 const isCorsoActivity = att.corsi_ids?.length > 0;
                 if (isFormActivity) {
-                  // Controlla per attivita_nome + ora_attivita in AttivitaCompletata
                   return attivitaCompletate.some((ac) => {
-                    if (ac.turno_id !== prossimoTurno.id || ac.attivita_nome !== att.nome) return false;
-
-                    // Se l'attività ha ora_inizio, verifica anche l'ora_attivita
-                    if (att.ora_inizio && ac.ora_attivita) {
-                      return ac.ora_attivita === att.ora_inizio;
-                    }
-
-                    // Se non c'è ora, basta il nome
+                    if (ac.turno_id !== prossimoTurno.id) return false;
+                    if (ac.form_page !== att.form_page && ac.attivita_nome !== att.nome) return false;
+                    if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
                     return !att.ora_inizio || !ac.ora_attivita;
                   });
                 }
@@ -2050,9 +2044,9 @@ export default function TurniDipendente() {
                 const isFormActivity = att.form_page || att.richiede_form;
                 const isCorsoActivity = att.corsi_ids?.length > 0;
                 if (isFormActivity) {
-                  // Controlla per attivita_nome + ora_attivita
                   return !attivitaCompletate.some((ac) => {
-                    if (ac.turno_id !== prossimoTurno.id || ac.attivita_nome !== att.nome) return false;
+                    if (ac.turno_id !== prossimoTurno.id) return false;
+                    if (ac.form_page !== att.form_page && ac.attivita_nome !== att.nome) return false;
                     if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
                     return !att.ora_inizio || !ac.ora_attivita;
                   });
