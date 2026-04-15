@@ -1379,29 +1379,26 @@ export default function Layout({ children, currentPageName }) {
   // Get main navigation items for bottom bar (ALL roles) - STABILE
   const bottomNavItems = useMemo(() => {
     if (normalizedUserType === 'dipendente') {
-      // ALWAYS ensure we have items - never return empty
       if (!dipendenteNav || dipendenteNav.length === 0 || !dipendenteNav[0]?.items || dipendenteNav[0].items.length === 0) {
-        // Fallback garantito - SEMPRE visibile
         return [
           { title: 'Profilo', url: createPageUrl('ProfiloDipendente'), icon: User },
           { title: 'Turni', url: createPageUrl('TurniDipendente'), icon: Clock }
         ];
       }
-      
-      // Return all items from dipendente nav
-      return dipendenteNav[0].items;
+      return dipendenteNav[0].items.filter(item => item && item.url && item.title);
     }
     
-    // For admin and manager - get top-level sections
     if (!filteredNavigation || filteredNavigation.length === 0) return [];
     
-    // Extract main sections as bottom nav items
-    const mainSections = filteredNavigation.slice(0, 5).map(section => ({
-      title: section.title,
-      url: section.items[0]?.url || '#',
-      icon: section.icon,
-      isSection: true
-    }));
+    const mainSections = filteredNavigation
+      .filter(section => section && section.items && section.items.length > 0)
+      .slice(0, 5)
+      .map(section => ({
+        title: section.title,
+        url: section.items[0]?.url || '#',
+        icon: section.icon || User,
+        isSection: true
+      }));
     
     return mainSections;
   }, [normalizedUserType, dipendenteNav, filteredNavigation]);
@@ -1836,7 +1833,7 @@ export default function Layout({ children, currentPageName }) {
             </button>
             <div className="neumorphic-card p-2">
               {(() => {
-                const allItems = [...bottomNavItems, { title: 'Logout', icon: LogOut, isLogout: true }];
+                const allItems = [...bottomNavItems.filter(Boolean), { title: 'Logout', icon: LogOut, isLogout: true }];
 
                 if (compactMenu) {
                   return (
