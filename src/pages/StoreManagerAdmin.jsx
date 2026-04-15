@@ -20,13 +20,16 @@ import {
   CheckCircle,
   Gift,
   BarChart3,
-  Copy } from
+  Copy,
+  Calendar } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import WeeklyMeetingDashboard from "../components/storemanager/WeeklyMeetingDashboard";
 import moment from "moment";
 
 export default function StoreManagerAdmin() {
+  const [activeTab, setActiveTab] = useState('targets'); // 'targets' or 'meeting'
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -376,7 +379,7 @@ export default function StoreManagerAdmin() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <Crown className="w-10 h-10 text-purple-600" />
@@ -384,12 +387,33 @@ export default function StoreManagerAdmin() {
           </div>
           <p style={{ color: '#000000' }}>Gestisci i target per gli Store Manager</p>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setActiveTab('targets')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'targets' ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white' : 'neumorphic-flat text-slate-700'}`}
+        >
+          <Target className="w-4 h-4" /> Target Mensili
+        </button>
+        <button
+          onClick={() => setActiveTab('meeting')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'meeting' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'neumorphic-flat text-slate-700'}`}
+        >
+          <Calendar className="w-4 h-4" /> Meeting Settimanale
+        </button>
+      </div>
+
+      {activeTab === 'meeting' && <WeeklyMeetingDashboard stores={stores} users={users} />}
+
+      {activeTab === 'targets' && <>
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-3 mb-6">
         <div className="flex gap-3">
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="neumorphic-pressed px-4 py-2 rounded-xl outline-none">
-
             {monthOptions.map((opt) =>
             <option key={opt.value} value={opt.value}>{opt.label}</option>
             )}
@@ -398,7 +422,6 @@ export default function StoreManagerAdmin() {
             onClick={() => setShowForm(true)}
             variant="primary"
             className="flex items-center gap-2">
-
             <Plus className="w-5 h-5" />
             Nuovo Target
           </NeumorphicButton>
@@ -959,6 +982,7 @@ export default function StoreManagerAdmin() {
           </div>
         </>
       }
+      </>}
     </div>);
 
 }
