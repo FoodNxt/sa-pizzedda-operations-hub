@@ -213,10 +213,11 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
     }
     const diff = current - previous;
     if (diff === 0) return <span className="inline-flex items-center gap-0.5 text-xs text-slate-400"><Minus className="w-3 h-3" /> 0{suffix}</span>;
-    const positive = isLowerBetter ? diff < 0 : diff > 0;
+    const isGood = isLowerBetter ? diff < 0 : diff > 0;
+    const arrowUp = diff > 0;
     return (
-      <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${positive ? "text-green-600" : "text-red-500"}`}>
-        {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+      <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${isGood ? "text-green-600" : "text-red-500"}`}>
+        {arrowUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
         {diff > 0 ? "+" : ""}{typeof diff === "number" ? diff.toLocaleString("it-IT", { maximumFractionDigits: 1 }) : diff}{suffix}
       </span>
     );
