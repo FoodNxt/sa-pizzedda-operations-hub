@@ -76,11 +76,20 @@ export default function ProfiloDipendente() {
     mutationFn: async (data) => {
       return await base44.auth.updateMe(data);
     },
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       setSuccess('Profilo aggiornato! ✅');
       setError('');
       setEditing(false);
+
+      // Sync taglia to contracts if changed
+      if (variables.taglia_maglietta && variables.taglia_maglietta !== user?.taglia_maglietta) {
+        try {
+          await base44.functions.invoke('syncTagliaToContratto', { taglia_maglietta: variables.taglia_maglietta });
+        } catch (e) {
+          console.error('Error syncing taglia to contracts:', e);
+        }
+      }
 
       setTimeout(() => setSuccess(''), 3000);
     },

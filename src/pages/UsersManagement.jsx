@@ -138,19 +138,31 @@ export default function UsersManagement() {
     setViewingUser(user);
   };
 
-  const handleSave = async () => {// Made async
+  const handleSave = async () => {
     if (!formData.nome_cognome?.trim()) {
       alert('Il Nome Cognome è obbligatorio');
       return;
     }
 
-    await updateMutation.mutateAsync({ // Await the mutation
+    await updateMutation.mutateAsync({
       id: editingUser.id,
       data: formData
     });
 
-    setEditingUser(null); // Moved here after successful update
-    setSelectedTemplate(''); // Moved here after successful update
+    // Sync taglia to contracts if changed
+    if (formData.taglia_maglietta && formData.taglia_maglietta !== editingUser.taglia_maglietta) {
+      try {
+        await base44.functions.invoke('syncTagliaToContratto', {
+          user_id: editingUser.id,
+          taglia_maglietta: formData.taglia_maglietta
+        });
+      } catch (e) {
+        console.error('Error syncing taglia to contracts:', e);
+      }
+    }
+
+    setEditingUser(null);
+    setSelectedTemplate('');
   };
 
   const handleCancel = () => {
