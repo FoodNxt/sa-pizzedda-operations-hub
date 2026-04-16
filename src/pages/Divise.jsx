@@ -139,7 +139,7 @@ export default function Divise() {
           contratti={contratti}
           consegne={consegne}
           config={activeConfig}
-          usciteIds={usciteIds}
+          usciteIds={usciteDipendenteIds}
         />
       )}
 
