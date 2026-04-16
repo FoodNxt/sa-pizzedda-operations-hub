@@ -1,12 +1,10 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.26';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // Check if called by automation (no user context) or by admin user
     const isAuthenticated = await base44.auth.isAuthenticated();
-    
     if (isAuthenticated) {
       const user = await base44.auth.me();
       if (!user || user.role !== 'admin') {
@@ -21,59 +19,77 @@ Deno.serve(async (req) => {
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
 
     // Fetch sheet data
-    const range = `${sheetName}!A:AB`; // Covers all columns
+    const range = `${sheetName}!A:AB`;
     const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      }
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`,
+      { headers: { 'Authorization': `Bearer ${accessToken}` } }
     );
 
     if (!response.ok) {
       const error = await response.text();
+      console.error('Sheet fetch error:', error);
       return Response.json({ error: 'Failed to fetch sheet data', details: error }, { status: 500 });
     }
 
     const data = await response.json();
     const rows = data.values || [];
 
-    if (rows.length === 0) {
+    if (rows.length <= 1) {
       return Response.json({ message: 'No data in sheet', imported: 0 });
     }
 
-    // First row is header
-    const headers = rows[0];
     const dataRows = rows.slice(1);
 
-    // Get existing transaction IDs to avoid duplicates (paginated)
+    // Only process last 300 rows (new transactions are appended at bottom)
+    const recentRows = dataRows.slice(-300);
+
+    // Load recent DB transaction IDs for duplicate check
+    // Use 2 paginated calls with delays (max 400 records) - enough for 5-min interval
     const existingIds = new Set();
-    let skip = 0;
-    const batchSize = 200;
-    while (true) {
-      const batch = await base44.asServiceRole.entities.BankTransaction.list('-created_date', batchSize, skip);
-      if (!batch || batch.length === 0) break;
-      for (const t of batch) {
-        if (t.transactionId) existingIds.add(t.transactionId);
+    const pages = [
+      { limit: 200, skip: 0 },
+      { limit: 200, skip: 200 }
+    ];
+    for (const page of pages) {
+      try {
+        const batch = await base44.asServiceRole.entities.BankTransaction.list(
+          '-created_date', page.limit, page.skip
+        );
+        if (!batch || batch.length === 0) break;
+        for (const t of batch) {
+          if (t.transactionId) existingIds.add(t.transactionId);
+        }
+        if (batch.length < page.limit) break;
+        // Wait between pages to avoid rate limit
+        await new Promise(r => setTimeout(r, 1000));
+      } catch (e) {
+        console.error('Error fetching existing page:', page.skip, e.message);
+        await new Promise(r => setTimeout(r, 3000));
+        // Retry once
+        try {
+          const batch = await base44.asServiceRole.entities.BankTransaction.list(
+            '-created_date', page.limit, page.skip
+          );
+          if (batch) {
+            for (const t of batch) {
+              if (t.transactionId) existingIds.add(t.transactionId);
+            }
+          }
+        } catch (e2) {
+          console.error('Retry failed for page:', page.skip, e2.message);
+        }
       }
-      if (batch.length < batchSize) break;
-      skip += batchSize;
-      // Small delay between pagination calls
-      await new Promise(r => setTimeout(r, 200));
     }
+
+    console.log(`Loaded ${existingIds.size} existing transaction IDs from DB`);
 
     let imported = 0;
     let skipped = 0;
     const errors = [];
-
-    // Collect new transactions to import
     const toImport = [];
 
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i];
+    for (const row of recentRows) {
       if (!row || row.length === 0) { skipped++; continue; }
-
       const transactionId = row[0] || '';
       if (!transactionId || existingIds.has(transactionId)) { skipped++; continue; }
 
@@ -108,7 +124,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Bulk create in batches of 25 with delays to avoid rate limits
+    console.log(`Found ${toImport.length} new transactions to import`);
+
+    if (toImport.length === 0) {
+      return Response.json({ success: true, imported: 0, skipped, total_rows: recentRows.length });
+    }
+
+    // Bulk create in batches of 25 with delays
     const bulkBatchSize = 25;
     for (let i = 0; i < toImport.length; i += bulkBatchSize) {
       const batch = toImport.slice(i, i + bulkBatchSize);
@@ -116,7 +138,6 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.entities.BankTransaction.bulkCreate(batch);
         imported += batch.length;
       } catch (error) {
-        // Fallback: try one by one for this batch
         for (const item of batch) {
           try {
             await base44.asServiceRole.entities.BankTransaction.create(item);
@@ -127,31 +148,34 @@ Deno.serve(async (req) => {
         }
       }
       if (i + bulkBatchSize < toImport.length) {
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 1000));
       }
     }
 
-    // Log import action
-    await base44.asServiceRole.entities.BankImportLog.create({
-      action_type: 'import',
-      timestamp: new Date().toISOString(),
-      imported_count: imported,
-      skipped_count: skipped,
-      status: 'success'
-    });
+    // Log import
+    try {
+      await base44.asServiceRole.entities.BankImportLog.create({
+        action_type: 'import',
+        timestamp: new Date().toISOString(),
+        imported_count: imported,
+        skipped_count: skipped,
+        status: 'success'
+      });
+    } catch (logErr) {
+      console.error('Failed to create log:', logErr.message);
+    }
 
     return Response.json({
       success: true,
       imported,
       skipped,
-      total_rows: dataRows.length,
+      total_rows: recentRows.length,
       errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (error) {
     console.error('Error importing bank transactions:', error);
     
-    // Log error
     try {
       const errorBase44 = createClientFromRequest(req);
       await errorBase44.asServiceRole.entities.BankImportLog.create({
