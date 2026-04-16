@@ -19,8 +19,9 @@ import {
   FileText,
   Send,
   Eye,
-  FastForward, // Added FastForward icon
-  FileCheck // Added FileCheck icon
+  FastForward,
+  FileCheck,
+  Trash2
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -54,7 +55,9 @@ export default function UsersManagement() {
     status: 'active'
   });
   const [sendingContract, setSendingContract] = useState(false);
-  const [skippingContract, setSkippingContract] = useState(false); // Added skippingContract state
+  const [skippingContract, setSkippingContract] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -87,6 +90,20 @@ export default function UsersManagement() {
       queryClient.invalidateQueries({ queryKey: ['contratti'] });
     }
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.User.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setDeletingUser(null);
+      setDeleteConfirmText('');
+    }
+  });
+
+  const handleDeleteUser = async () => {
+    if (deleteConfirmText !== 'CONFERMA') return;
+    await deleteMutation.mutateAsync(deletingUser.id);
+  };
 
   const handleEdit = (user) => {
     setEditingUser(user);
@@ -1435,6 +1452,12 @@ export default function UsersManagement() {
 
                             <Edit className="w-4 h-4 text-blue-600" />
                           </button>
+                          <button
+                          onClick={() => { setDeletingUser(user); setDeleteConfirmText(''); }}
+                          className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Elimina utente">
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
                         </div>
                       </td>
                     </tr>);
@@ -1445,6 +1468,70 @@ export default function UsersManagement() {
           </div>
         }
       </NeumorphicCard>
+
+      {/* Delete User Modal */}
+      {deletingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <NeumorphicCard className="max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">Elimina Utente</h2>
+                <p className="text-sm text-slate-500">Questa azione è irreversibile</p>
+              </div>
+            </div>
+
+            <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+              <p className="text-sm text-slate-700 mb-1">Stai per eliminare:</p>
+              <p className="font-bold text-slate-800">{deletingUser.nome_cognome || deletingUser.full_name || deletingUser.email}</p>
+              <p className="text-xs text-slate-500">{deletingUser.email}</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Scrivi <span className="font-bold text-red-600">CONFERMA</span> per procedere:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none"
+                placeholder="Scrivi CONFERMA..."
+                autoFocus
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setDeletingUser(null); setDeleteConfirmText(''); }}
+                className="flex-1 neumorphic-flat px-4 py-3 rounded-xl text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={deleteConfirmText !== 'CONFERMA' || deleteMutation.isPending}
+                className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
+                  deleteConfirmText === 'CONFERMA'
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-red-200 text-red-400 cursor-not-allowed'
+                }`}
+              >
+                {deleteMutation.isPending ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Elimina
+                  </>
+                )}
+              </button>
+            </div>
+          </NeumorphicCard>
+        </div>
+      )}
 
       {/* Info Box */}
       <NeumorphicCard className="p-6 bg-blue-50">
