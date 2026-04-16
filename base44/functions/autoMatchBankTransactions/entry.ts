@@ -1,39 +1,37 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.26';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-
-    // Fetch ALL rules (no is_active filter - get everything and filter manually)
-    const allRules = await base44.asServiceRole.entities.BankTransactionRule.list('-priority', 500);
     
-    // Filter: include rules where is_active is true OR is_active is not set (default true)
-    const rules = allRules.filter(r => r.is_active !== false);
-    rules.sort((a, b) => (b.priority || 0) - (a.priority || 0));
-
-    console.log(`Found ${rules.length} active rules`);
-
-    // Fetch uncategorized transactions - paginate to get all
-    let allTransactions = [];
-    let offset = 0;
-    const batchSize = 500;
-    
-    while (true) {
-      const batch = await base44.asServiceRole.entities.BankTransaction.list('-madeOn', batchSize, offset);
-      allTransactions = allTransactions.concat(batch);
-      if (batch.length < batchSize) break;
-      offset += batchSize;
+    // Verify caller is admin (for manual calls) or allow scheduled automations
+    try {
+      const user = await base44.auth.me();
+      if (user && user.role !== 'admin') {
+        return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+      }
+    } catch (e) {
+      // Scheduled automations don't have user context - that's OK
     }
 
-    // Filter to uncategorized only
-    const transactions = allTransactions.filter(tx => 
+    // Fetch active rules (single call)
+    const allRules = await base44.asServiceRole.entities.BankTransactionRule.list('-priority', 500);
+    const rules = allRules.filter(r => r.is_active !== false);
+    rules.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    console.log(`Found ${rules.length} active rules`);
+
+    // Fetch only recent transactions (last 500 by date) - 1 API call
+    // The automation runs hourly, so it only needs to catch recent uncategorized ones
+    const recentTransactions = await base44.asServiceRole.entities.BankTransaction.list('-created_date', 500);
+    
+    const transactions = recentTransactions.filter(tx => 
       !tx.category || tx.category === '' || tx.category === 'non_categorizzato' || tx.category === 'uncategorized'
     );
 
-    console.log(`Found ${transactions.length} uncategorized transactions out of ${allTransactions.length} total`);
+    console.log(`Found ${transactions.length} uncategorized out of ${recentTransactions.length} recent transactions`);
 
-    let updated = 0;
-
+    // Match transactions against rules
+    const updates = [];
     for (const tx of transactions) {
       const matchedRule = rules.find(rule => {
         const pattern = rule.pattern.toLowerCase();
@@ -61,11 +59,29 @@ Deno.serve(async (req) => {
       });
 
       if (matchedRule) {
-        await base44.asServiceRole.entities.BankTransaction.update(tx.id, {
+        updates.push({
+          id: tx.id,
           category: matchedRule.category,
           subcategory: matchedRule.subcategory || ''
         });
-        updated++;
+      }
+    }
+
+    console.log(`Matched ${updates.length} transactions, updating...`);
+
+    // Execute updates one by one with delay to respect rate limits
+    let updated = 0;
+    for (let i = 0; i < updates.length; i++) {
+      const u = updates[i];
+      await base44.asServiceRole.entities.BankTransaction.update(u.id, {
+        category: u.category,
+        subcategory: u.subcategory
+      });
+      updated++;
+      
+      // Delay every 3 updates
+      if (i > 0 && i % 3 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
 
@@ -78,7 +94,6 @@ Deno.serve(async (req) => {
     });
 
     console.log(`Auto-matched ${updated} transactions`);
-
     return Response.json({ success: true, updated, uncategorized_checked: transactions.length });
 
   } catch (error) {
