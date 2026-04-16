@@ -14,9 +14,9 @@ export default function DivisaEmployeeTable({
   const elementi = config?.elementi_divisa || ["Maglietta", "Pantaloni", "Grembiule", "Bandana"];
   const dotazione = config?.dotazione_per_gruppo || {};
 
-  // Active employees (not exited)
+  // Active employees (not exited) - Uscita.dipendente_id is the User ID, match against both emp.id and emp.employee_id_external
   const usciteIds = new Set(uscite.map(u => u.dipendente_id));
-  const activeEmployees = employees.filter(e => e.status === "active" && !usciteIds.has(e.id));
+  const activeEmployees = employees.filter(e => e.status === "active" && !usciteIds.has(e.id) && !usciteIds.has(e.employee_id_external));
 
   // Get employee contract info
   const getContractInfo = (emp) => {

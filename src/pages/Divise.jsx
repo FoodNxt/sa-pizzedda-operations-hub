@@ -45,7 +45,8 @@ export default function Divise() {
   const activeConfig = configs.find(c => c.is_active) || null;
 
   // Active employees (exclude those with a registered uscita where data_uscita <= today)
-  const usciteIds = useMemo(() => {
+  // Uscita.dipendente_id stores the User ID, Employee.employee_id_external also stores the User ID
+  const usciteDipendenteIds = useMemo(() => {
     const oggi = new Date().toISOString().split('T')[0];
     return new Set(
       uscite
@@ -54,8 +55,10 @@ export default function Divise() {
     );
   }, [uscite]);
   const activeEmployees = useMemo(
-    () => employees.filter(e => !usciteIds.has(e.id)),
-    [employees, usciteIds]
+    () => employees.filter(e => 
+      !usciteDipendenteIds.has(e.id) && !usciteDipendenteIds.has(e.employee_id_external)
+    ),
+    [employees, usciteDipendenteIds]
   );
 
   // Save config mutation
