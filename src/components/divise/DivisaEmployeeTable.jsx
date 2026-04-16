@@ -18,11 +18,19 @@ export default function DivisaEmployeeTable({
   const usciteIds = new Set(uscite.map(u => u.dipendente_id));
   const activeEmployees = employees.filter(e => e.status === "active" && !usciteIds.has(e.id) && !usciteIds.has(e.employee_id_external));
 
-  // Get employee contract info
+  // Get employee contract info - match by employee_id_external (User ID), emp.id, or email
   const getContractInfo = (emp) => {
-    const userContratti = contratti.filter(c => c.user_id === emp.id || c.user_email === emp.email);
+    const userContratti = contratti.filter(c => 
+      c.user_id === emp.employee_id_external || c.user_id === emp.id || c.user_email === emp.email
+    );
     const latest = userContratti.sort((a, b) => (b.created_date || "").localeCompare(a.created_date || ""))[0];
     return latest;
+  };
+
+  // Get display name: prefer contract nome_cognome > Employee full_name
+  const getDisplayName = (emp) => {
+    const contract = getContractInfo(emp);
+    return contract?.nome_cognome || contract?.user_nome_cognome || emp.full_name || emp.email || "N/A";
   };
 
   // Get deliveries for an employee
@@ -65,7 +73,8 @@ export default function DivisaEmployeeTable({
   const filtered = activeEmployees.filter(emp => {
     if (search) {
       const s = search.toLowerCase();
-      if (!(emp.full_name || "").toLowerCase().includes(s)) return false;
+      const displayName = getDisplayName(emp);
+      if (!displayName.toLowerCase().includes(s)) return false;
     }
     const contract = getContractInfo(emp);
     const gruppo = contract?.employee_group || emp.employee_group;
@@ -143,7 +152,7 @@ export default function DivisaEmployeeTable({
               return (
                 <tr key={emp.id} className={`border-b last:border-0 hover:bg-slate-50 ${isNonNecessaria ? "opacity-50" : ""}`}>
                   <td className="py-2.5 px-2">
-                    <span className="font-medium text-slate-800">{emp.full_name}</span>
+                    <span className="font-medium text-slate-800">{getDisplayName(emp)}</span>
                     {isNonNecessaria && (
                       <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-slate-200 text-slate-500">Non necessaria</span>
                     )}
