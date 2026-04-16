@@ -118,7 +118,8 @@ Deno.serve(async (req) => {
         avgByDayOfWeek[dayOfWeek] = avg;
       });
       
-      const totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+      let totalDays = Math.ceil((periodEnd - periodStart) / (1000 * 60 * 60 * 24)) + 1;
+      if (!totalDays || totalDays < 1 || isNaN(totalDays)) totalDays = 1;
       
       // Calculate total seasonality weight
       let totalSeasonalityWeight = 0;
