@@ -44,8 +44,15 @@ export default function Divise() {
 
   const activeConfig = configs.find(c => c.is_active) || null;
 
-  // Active employees (not exited)
-  const usciteIds = useMemo(() => new Set(uscite.map(u => u.dipendente_id)), [uscite]);
+  // Active employees (exclude those with a registered uscita where data_uscita <= today)
+  const usciteIds = useMemo(() => {
+    const oggi = new Date().toISOString().split('T')[0];
+    return new Set(
+      uscite
+        .filter(u => !u.data_uscita || u.data_uscita <= oggi)
+        .map(u => u.dipendente_id)
+    );
+  }, [uscite]);
   const activeEmployees = useMemo(
     () => employees.filter(e => !usciteIds.has(e.id)),
     [employees, usciteIds]
