@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Shirt, Settings, Users, Loader2 } from "lucide-react";
+import { ArrowLeft, Shirt, Settings, Users, Loader2, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import DivisaConfigSection from "@/components/divise/DivisaConfigSection";
 import DivisaEmployeeTable from "@/components/divise/DivisaEmployeeTable";
 import DivisaSummaryCards from "@/components/divise/DivisaSummaryCards";
 import ConsegnaDivisaModal from "@/components/divise/ConsegnaDivisaModal";
+import DivisaAcquistiTab from "@/components/divise/DivisaAcquistiTab";
 
 export default function Divise() {
   const queryClient = useQueryClient();
@@ -62,6 +63,12 @@ export default function Divise() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["divisa-config"] }),
   });
 
+  // Toggle divisa non necessaria
+  const toggleNonNecessariaMutation = useMutation({
+    mutationFn: ({ id, value }) => base44.entities.Employee.update(id, { divisa_non_necessaria: value }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["employees-divise"] }),
+  });
+
   // Save consegna mutation
   const saveConsegnaMutation = useMutation({
     mutationFn: async (data) => {
@@ -87,6 +94,7 @@ export default function Divise() {
 
   const tabs = [
     { id: "dipendenti", label: "Dipendenti", icon: Users },
+    { id: "acquisti", label: "Acquisti", icon: ShoppingCart },
     { id: "config", label: "Configurazione", icon: Settings },
   ];
 
@@ -150,6 +158,7 @@ export default function Divise() {
             consegne={consegne}
             config={activeConfig}
             onOpenConsegna={(emp, contract) => setConsegnaModal({ employee: emp, contract })}
+            onToggleNonNecessaria={(id, value) => toggleNonNecessariaMutation.mutate({ id, value })}
           />
         ) : (
           <NeumorphicCard className="p-8 text-center">
@@ -160,6 +169,15 @@ export default function Divise() {
             </Button>
           </NeumorphicCard>
         )
+      )}
+
+      {activeTab === "acquisti" && activeConfig && (
+        <DivisaAcquistiTab
+          activeEmployees={activeEmployees}
+          contratti={contratti}
+          consegne={consegne}
+          config={activeConfig}
+        />
       )}
 
       {activeTab === "config" && (

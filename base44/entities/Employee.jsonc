@@ -1,0 +1,63 @@
+{
+  "name": "Employee",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Nome completo dipendente"
+    },
+    "initials": {
+      "type": "string",
+      "description": "Iniziali"
+    },
+    "employee_id_external": {
+      "type": "string",
+      "description": "ID dipendente da Planday"
+    },
+    "employee_group": {
+      "type": "string",
+      "enum": [
+        "FT",
+        "PT",
+        "CM"
+      ],
+      "description": "Gruppo contrattuale (FT=Full Time, PT=Part Time, CM=Contratto Misto)"
+    },
+    "function_name": {
+      "type": "string",
+      "description": "Ruolo (es. Pizzaiolo, Cassiere, Preparazioni, Volantinaggio)"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefono contatto"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Stato dipendente"
+    },
+    "assigned_stores": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista dei nomi degli store a cui il dipendente \u00e8 assegnato"
+    },
+    "divisa_non_necessaria": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, la divisa non \u00e8 necessaria per questo dipendente"
+    }
+  },
+  "required": [
+    "full_name"
+  ]
+}

@@ -16,7 +16,9 @@ export default function DivisaSummaryCards({
   let missingTaglia = 0;
   let completeCount = 0;
 
-  activeEmployees.forEach(emp => {
+  const countableEmployees = activeEmployees.filter(e => !e.divisa_non_necessaria);
+
+  countableEmployees.forEach(emp => {
     const userContratti = contratti.filter(c => c.user_id === emp.id || c.user_email === emp.email);
     const latest = userContratti.sort((a, b) => (b.created_date || "").localeCompare(a.created_date || ""))[0];
     const gruppo = latest?.employee_group || emp.employee_group;
@@ -57,7 +59,7 @@ export default function DivisaSummaryCards({
           <Users className="w-5 h-5 text-blue-500" />
           <span className="text-xs text-slate-500">Dipendenti Attivi</span>
         </div>
-        <p className="text-2xl font-bold text-slate-800">{activeEmployees.length}</p>
+        <p className="text-2xl font-bold text-slate-800">{countableEmployees.length}</p>
       </NeumorphicCard>
 
       <NeumorphicCard className="p-4">
@@ -73,7 +75,7 @@ export default function DivisaSummaryCards({
           <CheckCircle2 className="w-5 h-5 text-green-500" />
           <span className="text-xs text-slate-500">Divise Complete</span>
         </div>
-        <p className="text-2xl font-bold text-green-600">{completeCount}/{activeEmployees.length}</p>
+        <p className="text-2xl font-bold text-green-600">{completeCount}/{countableEmployees.length}</p>
       </NeumorphicCard>
 
       <NeumorphicCard className="p-4">

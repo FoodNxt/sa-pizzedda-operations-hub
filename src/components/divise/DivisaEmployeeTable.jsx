@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertTriangle, Package, Search } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Package, Search, Ban } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import NeumorphicCard from "@/components/neumorphic/NeumorphicCard";
 
 export default function DivisaEmployeeTable({
-  employees, contratti, uscite, consegne, config, onOpenConsegna
+  employees, contratti, uscite, consegne, config, onOpenConsegna, onToggleNonNecessaria
 }) {
   const [search, setSearch] = useState("");
   const [filterGruppo, setFilterGruppo] = useState("all");
@@ -138,9 +138,16 @@ export default function DivisaEmployeeTable({
               const taglia = contract?.taglia_maglietta;
               const { complete, delivered, expected, gruppo } = getCompletionStatus(emp);
 
+              const isNonNecessaria = emp.divisa_non_necessaria === true;
+
               return (
-                <tr key={emp.id} className="border-b last:border-0 hover:bg-slate-50">
-                  <td className="py-2.5 px-2 font-medium text-slate-800">{emp.full_name}</td>
+                <tr key={emp.id} className={`border-b last:border-0 hover:bg-slate-50 ${isNonNecessaria ? "opacity-50" : ""}`}>
+                  <td className="py-2.5 px-2">
+                    <span className="font-medium text-slate-800">{emp.full_name}</span>
+                    {isNonNecessaria && (
+                      <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-slate-200 text-slate-500">Non necessaria</span>
+                    )}
+                  </td>
                   <td className="py-2.5 px-2 text-center">
                     {gruppo ? (
                       <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">{gruppo}</span>
@@ -175,21 +182,37 @@ export default function DivisaEmployeeTable({
                     );
                   })}
                   <td className="py-2.5 px-2 text-center">
-                    {complete && gruppo ? (
+                    {isNonNecessaria ? (
+                      <Ban className="w-5 h-5 text-slate-400 mx-auto" />
+                    ) : complete && gruppo ? (
                       <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto" />
                     ) : (
                       <AlertTriangle className="w-5 h-5 text-amber-500 mx-auto" />
                     )}
                   </td>
                   <td className="py-2.5 px-2 text-center">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs gap-1"
-                      onClick={() => onOpenConsegna(emp, contract)}
-                    >
-                      <Package className="w-3 h-3" /> Consegna
-                    </Button>
+                    <div className="flex items-center justify-center gap-1">
+                      {!isNonNecessaria && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1"
+                          onClick={() => onOpenConsegna(emp, contract)}
+                        >
+                          <Package className="w-3 h-3" /> Consegna
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant={isNonNecessaria ? "default" : "ghost"}
+                        className={`h-7 text-xs gap-1 ${isNonNecessaria ? "bg-slate-600 hover:bg-slate-700 text-white" : "text-slate-500 hover:text-slate-700"}`}
+                        onClick={() => onToggleNonNecessaria(emp.id, !isNonNecessaria)}
+                        title={isNonNecessaria ? "Segna come necessaria" : "Segna come non necessaria"}
+                      >
+                        <Ban className="w-3 h-3" />
+                        {isNonNecessaria ? "Riattiva" : "Non nec."}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );
