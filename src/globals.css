@@ -443,7 +443,7 @@ svg defs {
 }
 
 /* Dark SaaS Forms */
-.compact-layout input:not([type="date"]):not([type="time"]):not([type="checkbox"]):not([type="radio"]),
+.compact-layout input:not([type="date"]):not([type="time"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 .compact-layout select,
 .compact-layout textarea {
   padding: 0.5rem !important;

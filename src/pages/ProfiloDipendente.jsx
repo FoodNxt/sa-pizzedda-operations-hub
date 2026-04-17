@@ -140,6 +140,8 @@ export default function ProfiloDipendente() {
     setSuccess('');
   };
 
+  const [uploadingDocType, setUploadingDocType] = useState(null);
+
   const handleDocumentChange = (docType, file) => {
     if (file) {
       setDocumentFiles((prev) => ({ ...prev, [docType]: file }));
@@ -153,26 +155,21 @@ export default function ProfiloDipendente() {
       return;
     }
 
-    try {
-      setUploadingDocs(true);
-      setError('');
+    setUploadingDocType(docType);
+    setUploadingDocs(true);
+    setError('');
 
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      const fieldName = `${docType}_url`;
-      await base44.auth.updateMe({ [fieldName]: file_url });
+    const fieldName = `${docType}_url`;
+    await base44.auth.updateMe({ [fieldName]: file_url });
 
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      setDocumentFiles((prev) => ({ ...prev, [docType]: null }));
-      setSuccess(`Documento caricato! ✅`);
-      setTimeout(() => setSuccess(''), 3000);
-
-    } catch (error) {
-      console.error('Error uploading document:', error);
-      setError('Errore durante il caricamento');
-    } finally {
-      setUploadingDocs(false);
-    }
+    queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+    setDocumentFiles((prev) => ({ ...prev, [docType]: null }));
+    setSuccess(`Documento caricato! ✅`);
+    setUploadingDocs(false);
+    setUploadingDocType(null);
+    setTimeout(() => setSuccess(''), 3000);
   };
 
   const handleDocumentDelete = async (docType) => {
@@ -645,38 +642,35 @@ export default function ProfiloDipendente() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 hover:underline truncate block">
-
                     Visualizza
                   </a>
                 </div>
               </div> :
 
             <div>
-                <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => handleDocumentChange('documento_identita', e.target.files[0])}
-                className="hidden"
-                id="doc-identita" />
-
-                <label
-                htmlFor="doc-identita"
-                className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full">
-
+                <div
+                  onClick={() => document.getElementById('doc-identita')?.click()}
+                  className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
+                  style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                   <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
                   <span className="text-sm text-slate-700 truncate">
                     {documentFiles.documento_identita ? documentFiles.documento_identita.name : 'Seleziona file'}
                   </span>
-                </label>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => { if (e.target.files[0]) handleDocumentChange('documento_identita', e.target.files[0]); }}
+                  style={{ display: 'none' }}
+                  id="doc-identita" />
                 {documentFiles.documento_identita &&
-              <button
-                onClick={() => handleDocumentUpload('documento_identita')}
-                disabled={uploadingDocs}
-                className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50">
-
-                    {uploadingDocs ? 'Caricamento...' : 'Carica'}
-                  </button>
-              }
+                  <div
+                    onClick={() => { if (!uploadingDocs) handleDocumentUpload('documento_identita'); }}
+                    className="mt-2 w-full px-4 py-2 rounded-lg text-white text-sm font-medium text-center cursor-pointer"
+                    style={{ background: uploadingDocs ? '#93c5fd' : 'linear-gradient(to right, #3b82f6, #2563eb)', pointerEvents: uploadingDocs ? 'none' : 'auto' }}>
+                    {uploadingDocType === 'documento_identita' ? 'Caricamento...' : 'Carica'}
+                  </div>
+                }
               </div>
             }
           </div>
@@ -706,38 +700,35 @@ export default function ProfiloDipendente() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 hover:underline truncate block">
-
                     Visualizza
                   </a>
                 </div>
               </div> :
 
             <div>
-                <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => handleDocumentChange('codice_fiscale_documento', e.target.files[0])}
-                className="hidden"
-                id="doc-cf" />
-
-                <label
-                htmlFor="doc-cf"
-                className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full">
-
+                <div
+                  onClick={() => document.getElementById('doc-cf')?.click()}
+                  className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
+                  style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                   <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
                   <span className="text-sm text-slate-700 truncate">
                     {documentFiles.codice_fiscale_documento ? documentFiles.codice_fiscale_documento.name : 'Seleziona file'}
                   </span>
-                </label>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => { if (e.target.files[0]) handleDocumentChange('codice_fiscale_documento', e.target.files[0]); }}
+                  style={{ display: 'none' }}
+                  id="doc-cf" />
                 {documentFiles.codice_fiscale_documento &&
-              <button
-                onClick={() => handleDocumentUpload('codice_fiscale_documento')}
-                disabled={uploadingDocs}
-                className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50">
-
-                    {uploadingDocs ? 'Caricamento...' : 'Carica'}
-                  </button>
-              }
+                  <div
+                    onClick={() => { if (!uploadingDocs) handleDocumentUpload('codice_fiscale_documento'); }}
+                    className="mt-2 w-full px-4 py-2 rounded-lg text-white text-sm font-medium text-center cursor-pointer"
+                    style={{ background: uploadingDocs ? '#93c5fd' : 'linear-gradient(to right, #3b82f6, #2563eb)', pointerEvents: uploadingDocs ? 'none' : 'auto' }}>
+                    {uploadingDocType === 'codice_fiscale_documento' ? 'Caricamento...' : 'Carica'}
+                  </div>
+                }
               </div>
             }
           </div>
@@ -764,42 +755,39 @@ export default function ProfiloDipendente() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-green-700 font-medium">Caricato</p>
                     <a
-                  href={user.permesso_soggiorno_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:underline truncate block">
-
+                      href={user.permesso_soggiorno_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline truncate block">
                       Visualizza
                     </a>
                   </div>
                 </div> :
 
             <div>
-                  <input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => handleDocumentChange('permesso_soggiorno', e.target.files[0])}
-                className="hidden"
-                id="doc-permesso" />
-
-                  <label
-                htmlFor="doc-permesso"
-                className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full">
-
+                  <div
+                    onClick={() => document.getElementById('doc-permesso')?.click()}
+                    className="nav-button px-4 py-3 rounded-lg cursor-pointer flex items-center gap-2 hover:shadow-lg transition-all w-full"
+                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                     <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
                     <span className="text-sm text-slate-700 truncate">
                       {documentFiles.permesso_soggiorno ? documentFiles.permesso_soggiorno.name : 'Seleziona file'}
                     </span>
-                  </label>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => { if (e.target.files[0]) handleDocumentChange('permesso_soggiorno', e.target.files[0]); }}
+                    style={{ display: 'none' }}
+                    id="doc-permesso" />
                   {documentFiles.permesso_soggiorno &&
-              <button
-                onClick={() => handleDocumentUpload('permesso_soggiorno')}
-                disabled={uploadingDocs}
-                className="mt-2 w-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:opacity-50">
-
-                      {uploadingDocs ? 'Caricamento...' : 'Carica'}
-                    </button>
-              }
+                    <div
+                      onClick={() => { if (!uploadingDocs) handleDocumentUpload('permesso_soggiorno'); }}
+                      className="mt-2 w-full px-4 py-2 rounded-lg text-white text-sm font-medium text-center cursor-pointer"
+                      style={{ background: uploadingDocs ? '#93c5fd' : 'linear-gradient(to right, #3b82f6, #2563eb)', pointerEvents: uploadingDocs ? 'none' : 'auto' }}>
+                      {uploadingDocType === 'permesso_soggiorno' ? 'Caricamento...' : 'Carica'}
+                    </div>
+                  }
                 </div>
             }
             </div>
