@@ -305,7 +305,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
         </div>
         <button
           onClick={() => setWeekOffset((w) => w + 1)}
-          disabled={weekOffset >= 0}
+          disabled={weekOffset >= 1}
           className="neumorphic-flat p-2 rounded-xl disabled:opacity-30"
         >
           <ChevronRight className="w-5 h-5 text-slate-600" />
@@ -380,6 +380,16 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
                         <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-100">
                           <span className="text-[10px] text-slate-400">30gg: €{l30.avgTicket.toFixed(2)}</span>
                           <DeltaBadge current={c.avgTicket} previous={l30.avgTicket} suffix="€" />
+                        </div>
+                      )}
+                      {c.channel === "store" && l30 && l30.orders > 0 && (
+                        <div className="flex items-center justify-between mt-1 pt-1 border-t border-dashed border-blue-200 bg-blue-50/50 -mx-2.5 -mb-2.5 px-2.5 pb-2 rounded-b-xl">
+                          <span className="text-[10px] text-blue-600 font-semibold">🎯 Target: €{(l30.avgTicket * 1.1).toFixed(2)}</span>
+                          {c.orders > 0 && (
+                            <span className={`text-[10px] font-bold ${c.avgTicket >= l30.avgTicket * 1.1 ? "text-green-600" : "text-red-500"}`}>
+                              {c.avgTicket >= l30.avgTicket * 1.1 ? "✅" : "❌"}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
