@@ -40,11 +40,12 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
   const endStr = weekEnd.format("YYYY-MM-DD");
   const prevStartStr = prevWeek.start.format("YYYY-MM-DD");
   const prevEndStr = prevWeek.end.format("YYYY-MM-DD");
+  const last30Start = moment(weekEnd).subtract(30, "days").format("YYYY-MM-DD");
 
   const { data: iPratico = [] } = useQuery({
-    queryKey: ["wm-ipratico", startStr, prevStartStr],
+    queryKey: ["wm-ipratico", startStr, prevStartStr, last30Start],
     queryFn: () => base44.entities.iPratico.filter({
-      order_date: { $gte: prevStartStr, $lte: endStr }
+      order_date: { $gte: last30Start < prevStartStr ? last30Start : prevStartStr, $lte: endStr }
     })
   });
 
@@ -196,6 +197,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
 
       const curChannels = calcChannelData(weekStart, weekEnd);
       const prevChannels = calcChannelData(prevWeek.start, prevWeek.end);
+      const last30Channels = calcChannelData(moment(weekEnd).subtract(30, "days"), weekEnd);
 
       const sm = users.find((u) => u.id === store.store_manager_id);
 
@@ -264,7 +266,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
         curDelayMins, prevDelayMins,
         curCleanAvg, prevCleanAvg,
         dailyRevenue,
-        curChannels, prevChannels,
+        curChannels, prevChannels, last30Channels,
         topReviewers, topDelayers, topWrongOrders: topWrongOrdersRank
       };
     });
@@ -307,7 +309,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
       </div>
 
       {/* Store Cards */}
-      {storeMetrics.map(({ store, sm, curRevenue, prevRevenue, curOrders, prevOrders, curAvgRating, prevAvgRating, curReviewCount, prevReviewCount, curWrongOrders, prevWrongOrders, curDelayMins, prevDelayMins, curCleanAvg, prevCleanAvg, dailyRevenue, curChannels, prevChannels, topReviewers, topDelayers, topWrongOrders }) => (
+      {storeMetrics.map(({ store, sm, curRevenue, prevRevenue, curOrders, prevOrders, curAvgRating, prevAvgRating, curReviewCount, prevReviewCount, curWrongOrders, prevWrongOrders, curDelayMins, prevDelayMins, curCleanAvg, prevCleanAvg, dailyRevenue, curChannels, prevChannels, last30Channels, topReviewers, topDelayers, topWrongOrders }) => (
         <NeumorphicCard key={store.id} className="p-5">
           <div className="flex items-center gap-3 mb-4">
             <Store className="w-6 h-6 text-blue-600" />
@@ -361,6 +363,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {curChannels.filter((c) => c.orders > 0 || prevChannels?.find((p) => p.channel === c.channel)?.orders > 0).map((c) => {
                   const prev = prevChannels?.find((p) => p.channel === c.channel);
+                  const l30 = last30Channels?.find((p) => p.channel === c.channel);
                   return (
                     <div key={c.channel} className="neumorphic-flat p-2.5 rounded-xl">
                       <p className="text-[10px] text-slate-500 font-medium mb-1">{c.label}</p>
@@ -369,6 +372,12 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
                         <span className="text-[10px] text-slate-400">{c.orders} ord.</span>
                         <DeltaBadge current={c.avgTicket} previous={prev?.avgTicket || null} suffix="€" />
                       </div>
+                      {l30 && l30.orders > 0 && (
+                        <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-100">
+                          <span className="text-[10px] text-slate-400">30gg: €{l30.avgTicket.toFixed(2)}</span>
+                          <DeltaBadge current={c.avgTicket} previous={l30.avgTicket} suffix="€" />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
