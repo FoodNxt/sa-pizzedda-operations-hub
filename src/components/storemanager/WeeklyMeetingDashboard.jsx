@@ -40,13 +40,17 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
   const endStr = weekEnd.format("YYYY-MM-DD");
   const prevStartStr = prevWeek.start.format("YYYY-MM-DD");
   const prevEndStr = prevWeek.end.format("YYYY-MM-DD");
-  const last30Start = moment(weekEnd).subtract(30, "days").format("YYYY-MM-DD");
+  const last30Start = moment(weekStart).subtract(30, "days").format("YYYY-MM-DD");
+  const last30End = moment(weekStart).subtract(1, "days").format("YYYY-MM-DD");
 
   const { data: iPratico = [] } = useQuery({
     queryKey: ["wm-ipratico", startStr, prevStartStr, last30Start],
-    queryFn: () => base44.entities.iPratico.filter({
-      order_date: { $gte: last30Start < prevStartStr ? last30Start : prevStartStr, $lte: endStr }
-    })
+    queryFn: () => {
+      const minDate = last30Start < prevStartStr ? last30Start : prevStartStr;
+      return base44.entities.iPratico.filter({
+        order_date: { $gte: minDate, $lte: endStr }
+      });
+    }
   });
 
   const { data: reviews = [] } = useQuery({
@@ -197,7 +201,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
 
       const curChannels = calcChannelData(weekStart, weekEnd);
       const prevChannels = calcChannelData(prevWeek.start, prevWeek.end);
-      const last30Channels = calcChannelData(moment(weekEnd).subtract(30, "days"), weekEnd);
+      const last30Channels = calcChannelData(moment(weekStart).subtract(30, "days"), moment(weekStart).subtract(1, "days"));
 
       const sm = users.find((u) => u.id === store.store_manager_id);
 
