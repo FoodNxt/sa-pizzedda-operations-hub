@@ -208,8 +208,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
         });
         return Object.entries(counts)
           .map(([name, count]) => ({ name, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 3);
+          .sort((a, b) => b.count - a.count);
       };
 
       // Reviews: count + avg rating per employee
@@ -223,8 +222,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
       });
       const topReviewers = Object.entries(reviewsByEmployee)
         .map(([name, d]) => ({ name, count: d.count, avgRating: d.count > 0 ? d.totalRating / d.count : 0 }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 3);
+        .sort((a, b) => b.count - a.count);
 
       const storeWrongOrdersCur = wrongOrders.filter(
         (o) => o.store_id === store.id && inRange(o.order_date || o.created_date, weekStart, weekEnd)
@@ -240,7 +238,6 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
       const topWrongOrdersRank = Object.entries(woMatchesByEmployee)
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 3)
         .map((e) => ({ name: e.name, value: `${e.count} ord.`, valueColor: "text-red-500" }));
 
       const delayByEmployee = {};
@@ -253,7 +250,6 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
       const topDelayers = Object.entries(delayByEmployee)
         .map(([name, mins]) => ({ name, mins }))
         .sort((a, b) => b.mins - a.mins)
-        .slice(0, 3)
         .map((e) => ({ name: e.name, value: `${e.mins} min`, valueColor: "text-orange-600" }));
 
       return {
