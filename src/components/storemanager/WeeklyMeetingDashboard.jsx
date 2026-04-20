@@ -411,6 +411,35 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
             </div>
           )}
 
+          {/* Target Scontrino Medio - shown even when no current week data */}
+          {curChannels && !curChannels.some((c) => c.orders > 0) && (() => {
+            const storeL30 = last30Channels?.find((p) => p.channel === "store");
+            const storeNwl30 = nextWeekLast30Channels?.find((p) => p.channel === "store");
+            if ((!storeL30 || storeL30.orders === 0) && (!storeNwl30 || storeNwl30.orders === 0)) return null;
+            return (
+              <div className="mb-4">
+                <p className="text-xs text-slate-500 mb-2 font-medium flex items-center gap-1">
+                  <Receipt className="w-3 h-3" /> 🎯 Obiettivo Scontrino Medio Negozio
+                </p>
+                <div className="neumorphic-flat p-3 rounded-xl space-y-2">
+                  <p className="text-[10px] text-slate-400">Nessun dato revenue per questa settimana</p>
+                  {storeL30 && storeL30.orders > 0 && (
+                    <div className="flex items-center justify-between pt-1 border-t border-dashed border-blue-200 bg-blue-50/50 rounded-lg px-2.5 py-1.5">
+                      <span className="text-[10px] text-blue-600 font-semibold">🎯 Target sett. corrente: €{(storeL30.avgTicket * 1.1).toFixed(2)}</span>
+                      <span className="text-[10px] text-slate-400">(media 30gg: €{storeL30.avgTicket.toFixed(2)})</span>
+                    </div>
+                  )}
+                  {storeNwl30 && storeNwl30.orders > 0 && (
+                    <div className="flex items-center justify-between pt-1 border-t border-dashed border-purple-200 bg-purple-50/50 rounded-lg px-2.5 py-1.5">
+                      <span className="text-[10px] text-purple-600 font-semibold">🔮 Target {nextWeek.start.format("DD/MM")}-{nextWeek.end.format("DD/MM")}: €{(storeNwl30.avgTicket * 1.1).toFixed(2)}</span>
+                      <span className="text-[10px] text-slate-400">(media 30gg: €{storeNwl30.avgTicket.toFixed(2)})</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Employee Rankings */}
           <EmployeeRankings
             topReviewers={topReviewers}
