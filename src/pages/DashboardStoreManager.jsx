@@ -1312,7 +1312,7 @@ export default function DashboardStoreManager() {
           }
           </NeumorphicCard>
         </>
-      )}
+      }
 
       {/* Modal Approvazioni */}
       {showApprovazioniModal &&
