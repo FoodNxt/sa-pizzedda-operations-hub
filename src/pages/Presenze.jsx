@@ -107,14 +107,11 @@ export default function Presenze() {
   });
 
   const availableTipiTurno = useMemo(() => {
-    // Prendi da config
-    if (tipiTurnoConfig.length > 0) {
-      return tipiTurnoConfig.
-      map((t) => t.tipo_turno).
-      sort();
-    }
-    // Fallback: raccogli dai turni
-    const tipiSet = new Set();
+    // Start with config types
+    const tipiSet = new Set(
+      tipiTurnoConfig.map((t) => t.tipo_turno).filter(Boolean)
+    );
+    // Merge any tipo_turno found in actual shift data (handles missing config entries like "Formazione")
     turni.forEach((t) => {
       if (t.tipo_turno) tipiSet.add(t.tipo_turno);
     });
