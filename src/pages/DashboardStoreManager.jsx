@@ -398,6 +398,17 @@ export default function DashboardStoreManager() {
         }
       }
 
+      // Calcola deficit per ogni store e totale da produrre per lo store origine
+      const deficitPerStore = {};
+      let totaleDaProdurre = 0;
+      storeQuantita.forEach((sq) => {
+        if (sq.differenza < 0) {
+          const deficit = Math.abs(sq.differenza);
+          deficitPerStore[sq.storeId] = deficit;
+          totaleDaProdurre += deficit;
+        }
+      });
+
       return {
         tipo: tipo.nome,
         semilavorato: semilavorato.nome_prodotto,
@@ -405,6 +416,8 @@ export default function DashboardStoreManager() {
         storePreparazioneId: tipo.store_preparazione_id,
         storeQuantita,
         suggerimenti,
+        deficitPerStore,
+        totaleDaProdurre,
         unitaMisura: semilavorato.unita_misura_prodotta || 'grammi'
       };
     }).filter(Boolean);
@@ -1039,27 +1052,45 @@ export default function DashboardStoreManager() {
                             <th className="text-left p-2 text-slate-600 font-medium">Locale</th>
                             <th className="text-center p-2 text-slate-600 font-medium">Quantità</th>
                             <th className="text-center p-2 text-slate-600 font-medium">Minimo</th>
+                            <th className="text-center p-2 text-slate-600 font-medium">Azione</th>
                             <th className="text-center p-2 text-slate-600 font-medium">Ultima Rilevazione</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {data.storeQuantita.map((sq) =>
+                          {data.storeQuantita.map((sq) => {
+                    const isOrigine = sq.storeId === data.storePreparazioneId;
+                    const deficit = data.deficitPerStore[sq.storeId] || 0;
+                    return (
                     <tr key={sq.storeId} className={`border-b border-slate-100 hover:bg-slate-50 ${
-                    sq.differenza < 0 ? 'bg-red-50' : sq.differenza > 0 && sq.storeId === data.storePreparazioneId ? 'bg-green-50' : ''}`
+                    sq.differenza < 0 ? 'bg-red-50' : isOrigine ? 'bg-green-50' : ''}`
                     }>
                               <td className="p-2 text-slate-700">
                                 {sq.storeName}
-                                {sq.storeId === data.storePreparazioneId &&
+                                {isOrigine &&
                         <span className="ml-2 text-xs text-blue-600">🏭 Origine</span>
                         }
                               </td>
                               <td className="p-2 text-center font-bold text-blue-600">{sq.quantita} {data.unitaMisura}</td>
                               <td className="p-2 text-center text-slate-600">{sq.quantitaMinima}</td>
+                              <td className="p-2 text-center">
+                                {isOrigine && data.totaleDaProdurre > 0 ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-bold">
+                                    🔧 Produrre {data.totaleDaProdurre} {data.unitaMisura}
+                                  </span>
+                                ) : deficit > 0 ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">
+                                    📦 Ricevere {deficit} {data.unitaMisura}
+                                  </span>
+                                ) : (
+                                  <span className="text-green-600 text-xs font-medium">✅ OK</span>
+                                )}
+                              </td>
                               <td className="p-2 text-center text-xs text-slate-500">
                                 {moment(sq.dataRilevazione).format('DD/MM HH:mm')}
                               </td>
                             </tr>
-                    )}
+                    );
+                    })}
                         </tbody>
                       </table>
                     </div>
