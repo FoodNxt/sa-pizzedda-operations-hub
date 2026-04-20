@@ -26,8 +26,11 @@ import {
   Truck } from
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import WeeklyMeetingDashboard from "@/components/storemanager/WeeklyMeetingDashboard";
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 export default function DashboardStoreManager() {
+  const [activeTab, setActiveTab] = useState('monthly'); // 'monthly' or 'meeting'
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -597,19 +600,43 @@ export default function DashboardStoreManager() {
               {myStores[0].name}
             </div>
           }
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="neumorphic-pressed px-4 py-3 rounded-xl outline-none">
-
-            {monthOptions.map((opt) =>
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-            )}
-          </select>
+          {activeTab === 'monthly' && (
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="neumorphic-pressed px-4 py-3 rounded-xl outline-none">
+              {monthOptions.map((opt) =>
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              )}
+            </select>
+          )}
         </div>
       </div>
 
-      {metrics &&
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setActiveTab('monthly')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'monthly' ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white' : 'neumorphic-flat text-slate-700'}`}
+        >
+          <Crown className="w-4 h-4" /> Obiettivi Mensili
+        </button>
+        <button
+          onClick={() => setActiveTab('meeting')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'meeting' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 'neumorphic-flat text-slate-700'}`}
+        >
+          <CalendarIcon className="w-4 h-4" /> Meeting Settimanale
+        </button>
+      </div>
+
+      {activeTab === 'meeting' && (
+        <WeeklyMeetingDashboard
+          stores={myStores.filter(s => s.id === selectedStoreId)}
+          users={users}
+        />
+      )}
+
+      {activeTab === 'monthly' && metrics &&
       <>
           {/* Ultimo Conteggio Cassa */}
           {ultimoConteggioCassa &&
@@ -1285,7 +1312,7 @@ export default function DashboardStoreManager() {
           }
           </NeumorphicCard>
         </>
-      }
+      )}
 
       {/* Modal Approvazioni */}
       {showApprovazioniModal &&
@@ -1379,7 +1406,7 @@ export default function DashboardStoreManager() {
       }
 
       {/* Detail Modals */}
-      {showDetailModal === 'reviews' &&
+      {activeTab === 'monthly' && showDetailModal === 'reviews' &&
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <NeumorphicCard className="p-6">
@@ -1430,7 +1457,7 @@ export default function DashboardStoreManager() {
         </div>
       }
 
-      {showDetailModal === 'wrongOrders' &&
+      {activeTab === 'monthly' && showDetailModal === 'wrongOrders' &&
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <NeumorphicCard className="p-6">
@@ -1474,7 +1501,7 @@ export default function DashboardStoreManager() {
         </div>
       }
 
-      {showDetailModal === 'delays' &&
+      {activeTab === 'monthly' && showDetailModal === 'delays' &&
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <NeumorphicCard className="p-6">
@@ -1536,7 +1563,7 @@ export default function DashboardStoreManager() {
         </div>
       }
 
-      {showDetailModal === 'cleanings' &&
+      {activeTab === 'monthly' && showDetailModal === 'cleanings' &&
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <NeumorphicCard className="p-6">
