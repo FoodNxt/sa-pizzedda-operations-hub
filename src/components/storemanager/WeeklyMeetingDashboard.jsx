@@ -34,14 +34,17 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
   const { start: weekStart, end: weekEnd } = getWeekRange(weekOffset);
 
   const prevWeek = getWeekRange(weekOffset - 1);
+  const nextWeek = getWeekRange(weekOffset + 1);
 
   const dateRange = `${weekStart.format("DD MMM")} - ${weekEnd.format("DD MMM YYYY")}`;
+  const nextWeekRange = `${nextWeek.start.format("DD MMM")} - ${nextWeek.end.format("DD MMM YYYY")}`;
   const startStr = weekStart.format("YYYY-MM-DD");
   const endStr = weekEnd.format("YYYY-MM-DD");
   const prevStartStr = prevWeek.start.format("YYYY-MM-DD");
   const prevEndStr = prevWeek.end.format("YYYY-MM-DD");
   const last30Start = moment(weekStart).subtract(30, "days").format("YYYY-MM-DD");
   const last30End = moment(weekStart).subtract(1, "days").format("YYYY-MM-DD");
+  const nextWeekLast30Start = moment(nextWeek.start).subtract(30, "days").format("YYYY-MM-DD");
 
   const { data: iPratico = [] } = useQuery({
     queryKey: ["wm-ipratico", startStr, prevStartStr, last30Start],
@@ -202,6 +205,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
       const curChannels = calcChannelData(weekStart, weekEnd);
       const prevChannels = calcChannelData(prevWeek.start, prevWeek.end);
       const last30Channels = calcChannelData(moment(weekStart).subtract(30, "days"), moment(weekStart).subtract(1, "days"));
+      const nextWeekLast30Channels = calcChannelData(moment(nextWeek.start).subtract(30, "days"), moment(nextWeek.start).subtract(1, "days"));
 
       const sm = users.find((u) => u.id === store.store_manager_id);
 
@@ -270,7 +274,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
         curDelayMins, prevDelayMins,
         curCleanAvg, prevCleanAvg,
         dailyRevenue,
-        curChannels, prevChannels, last30Channels,
+        curChannels, prevChannels, last30Channels, nextWeekLast30Channels,
         topReviewers, topDelayers, topWrongOrders: topWrongOrdersRank
       };
     });
@@ -313,7 +317,7 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
       </div>
 
       {/* Store Cards */}
-      {storeMetrics.map(({ store, sm, curRevenue, prevRevenue, curOrders, prevOrders, curAvgRating, prevAvgRating, curReviewCount, prevReviewCount, curWrongOrders, prevWrongOrders, curDelayMins, prevDelayMins, curCleanAvg, prevCleanAvg, dailyRevenue, curChannels, prevChannels, last30Channels, topReviewers, topDelayers, topWrongOrders }) => (
+      {storeMetrics.map(({ store, sm, curRevenue, prevRevenue, curOrders, prevOrders, curAvgRating, prevAvgRating, curReviewCount, prevReviewCount, curWrongOrders, prevWrongOrders, curDelayMins, prevDelayMins, curCleanAvg, prevCleanAvg, dailyRevenue, curChannels, prevChannels, last30Channels, nextWeekLast30Channels, topReviewers, topDelayers, topWrongOrders }) => (
         <NeumorphicCard key={store.id} className="p-5">
           <div className="flex items-center gap-3 mb-4">
             <Store className="w-6 h-6 text-blue-600" />
@@ -383,8 +387,8 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
                         </div>
                       )}
                       {c.channel === "store" && l30 && l30.orders > 0 && (
-                        <div className="flex items-center justify-between mt-1 pt-1 border-t border-dashed border-blue-200 bg-blue-50/50 -mx-2.5 -mb-2.5 px-2.5 pb-2 rounded-b-xl">
-                          <span className="text-[10px] text-blue-600 font-semibold">🎯 Target: €{(l30.avgTicket * 1.1).toFixed(2)}</span>
+                        <div className="flex items-center justify-between mt-1 pt-1 border-t border-dashed border-blue-200 bg-blue-50/50 -mx-2.5 px-2.5 pb-1">
+                          <span className="text-[10px] text-blue-600 font-semibold">🎯 Target sett.: €{(l30.avgTicket * 1.1).toFixed(2)}</span>
                           {c.orders > 0 && (
                             <span className={`text-[10px] font-bold ${c.avgTicket >= l30.avgTicket * 1.1 ? "text-green-600" : "text-red-500"}`}>
                               {c.avgTicket >= l30.avgTicket * 1.1 ? "✅" : "❌"}
@@ -392,6 +396,14 @@ export default function WeeklyMeetingDashboard({ stores = [], users = [] }) {
                           )}
                         </div>
                       )}
+                      {c.channel === "store" && (() => {
+                        const nwl30 = nextWeekLast30Channels?.find((p) => p.channel === "store");
+                        return nwl30 && nwl30.orders > 0 ? (
+                          <div className="flex items-center justify-between pt-1 border-t border-dashed border-purple-200 bg-purple-50/50 -mx-2.5 -mb-2.5 px-2.5 pb-2 rounded-b-xl">
+                            <span className="text-[10px] text-purple-600 font-semibold">🔮 Target {nextWeek.start.format("DD/MM")}-{nextWeek.end.format("DD/MM")}: €{(nwl30.avgTicket * 1.1).toFixed(2)}</span>
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   );
                 })}
