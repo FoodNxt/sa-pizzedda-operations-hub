@@ -8,6 +8,7 @@ import RevenueOrariaFilters from "../components/revenue-oraria/RevenueOrariaFilt
 import RevenueOrariaKPIs from "../components/revenue-oraria/RevenueOrariaKPIs";
 import RevenueOrariaTable from "../components/revenue-oraria/RevenueOrariaTable";
 import RevenueOrariaCharts from "../components/revenue-oraria/RevenueOrariaCharts";
+import RevenueOrariaEmployeeTable from "../components/revenue-oraria/RevenueOrariaEmployeeTable";
 import { Clock, Loader2 } from "lucide-react";
 
 export default function RevenueOraria() {
@@ -124,6 +125,7 @@ export default function RevenueOraria() {
         ) : (
           <>
             <RevenueOrariaKPIs metrics={metrics} />
+            <RevenueOrariaEmployeeTable employeeData={metrics.employeeData} />
             <RevenueOrariaCharts metrics={metrics} />
             <RevenueOrariaTable data={revenueData} />
           </>
