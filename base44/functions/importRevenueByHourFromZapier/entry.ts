@@ -3,7 +3,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const body = await req.json();
+    const rawBody = await req.json();
+
+    // Support both flat payload and nested under "data"
+    const body = rawBody.data ? rawBody.data : rawBody;
 
     // Validate webhook secret
     const expectedSecret = Deno.env.get('ZAPIER_REVENUE_BY_HOUR_WEBHOOK_SECRET');
@@ -11,7 +14,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized: Invalid or missing webhook secret' }, { status: 401 });
     }
 
-    const { store, order_date, order_hour, total_revenue, total_orders, secret } = body;
+    const { store, order_date, order_hour, total_revenue, total_orders } = body;
 
     if (!store || !order_date || order_hour === undefined || order_hour === null) {
       return Response.json({ error: 'Missing required fields: store, order_date, order_hour' }, { status: 400 });
