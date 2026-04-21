@@ -410,7 +410,6 @@ const navigationStructure = [
       }
     ]
   },
-
   {
     title: "Marketing",
     icon: TrendingUp,
@@ -448,7 +447,6 @@ const navigationStructure = [
       }
     ]
   },
-
   {
     title: "Zapier Guide",
     icon: Zap,
@@ -514,7 +512,9 @@ const navigationStructure = [
         page: "BulkImportSconti",
         url: createPageUrl("BulkImportSconti"),
         icon: Upload,
-      }
+      },
+      { title: "Zapier Revenue Oraria", page: "ZapierRevenueByHour", url: createPageUrl("ZapierRevenueByHour"), icon: Zap },
+      { title: "Bulk Import Revenue Oraria", page: "BulkImportRevenueByHour", url: createPageUrl("BulkImportRevenueByHour"), icon: Upload }
       ]
       },
   {
@@ -878,9 +878,6 @@ export default function Layout({ children, currentPageName }) {
       fetchUser();
     }
   }, [pageAccessConfig, isLoadingConfig]);
-
-
-
   useEffect(() => {
     if (currentUser && !isLoadingConfig && !isLoadingUser && pageAccessConfig) {
       const normalizedUserType = getNormalizedUserType(currentUser.user_type);

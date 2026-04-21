@@ -1,0 +1,69 @@
+{
+  "name": "RevenueByHour",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "description": "Nome del negozio"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data (YYYY-MM-DD)"
+    },
+    "order_hour": {
+      "type": "number",
+      "description": "Ora del giorno (0-23)"
+    },
+    "total_revenue": {
+      "type": "number",
+      "description": "Fatturato totale per quell'ora"
+    },
+    "total_orders": {
+      "type": "number",
+      "description": "Numero ordini/scontrini per quell'ora"
+    },
+    "avg_ticket": {
+      "type": "number",
+      "description": "Scontrino medio (total_revenue / total_orders)"
+    },
+    "matched_employees": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "employee_name": {
+            "type": "string"
+          },
+          "employee_id": {
+            "type": "string"
+          },
+          "shift_id": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Cassieri in turno durante quell'ora"
+    },
+    "import_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data importazione"
+    },
+    "imported_by": {
+      "type": "string",
+      "description": "Chi ha importato"
+    }
+  },
+  "required": [
+    "store_name",
+    "order_date",
+    "order_hour",
+    "total_revenue",
+    "total_orders"
+  ]
+}

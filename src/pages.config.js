@@ -189,6 +189,9 @@ import ZapierProdottiVenduti from './pages/ZapierProdottiVenduti';
 import ZapierProduttivita from './pages/ZapierProduttivita';
 import ZapierSconti from './pages/ZapierSconti';
 import ZapierSetup from './pages/ZapierSetup';
+import ZapierRevenueByHour from './pages/ZapierRevenueByHour';
+import BulkImportRevenueByHour from './pages/BulkImportRevenueByHour';
+import RevenueOraria from './pages/RevenueOraria';
 import __Layout from './Layout.jsx';
 
 
@@ -335,6 +338,9 @@ export const PAGES = {
     "ZapierProduttivita": ZapierProduttivita,
     "ZapierSconti": ZapierSconti,
     "ZapierSetup": ZapierSetup,
+    "ZapierRevenueByHour": ZapierRevenueByHour,
+    "BulkImportRevenueByHour": BulkImportRevenueByHour,
+    "RevenueOraria": RevenueOraria,
 }
 
 export const pagesConfig = {
