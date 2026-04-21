@@ -59,24 +59,28 @@ export default function RevenueOraria() {
       }))
       .filter(h => h.orders > 0);
 
-    // By employee
+    // By employee (normalize name to handle case differences)
     const byEmployee = {};
     revenueData.forEach(r => {
       (r.matched_employees || []).forEach(emp => {
         if (!emp.employee_name || emp.employee_name === 'N/A') return;
-        if (!byEmployee[emp.employee_name]) {
-          byEmployee[emp.employee_name] = { revenue: 0, orders: 0, hours: 0 };
+        const key = emp.employee_name.trim().toLowerCase();
+        if (!byEmployee[key]) {
+          byEmployee[key] = { displayName: emp.employee_name.trim(), revenue: 0, orders: 0, hours: 0 };
         }
-        // Split evenly among matched employees
+        // Keep the capitalized version as display name
+        if (emp.employee_name.trim() !== emp.employee_name.trim().toLowerCase()) {
+          byEmployee[key].displayName = emp.employee_name.trim();
+        }
         const share = (r.matched_employees || []).length;
-        byEmployee[emp.employee_name].revenue += (r.total_revenue || 0) / share;
-        byEmployee[emp.employee_name].orders += (r.total_orders || 0) / share;
-        byEmployee[emp.employee_name].hours++;
+        byEmployee[key].revenue += (r.total_revenue || 0) / share;
+        byEmployee[key].orders += (r.total_orders || 0) / share;
+        byEmployee[key].hours++;
       });
     });
-    const employeeData = Object.entries(byEmployee)
-      .map(([name, d]) => ({
-        name,
+    const employeeData = Object.values(byEmployee)
+      .map(d => ({
+        name: d.displayName,
         revenue: d.revenue,
         orders: d.orders,
         hours: d.hours,
