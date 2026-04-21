@@ -4,14 +4,19 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const rawBody = await req.json();
+    console.log('Raw body received:', JSON.stringify(rawBody));
 
     // Support both flat payload and nested under "data"
     const body = rawBody.data ? rawBody.data : rawBody;
+    console.log('Parsed body:', JSON.stringify(body));
 
     // Validate webhook secret
     const expectedSecret = Deno.env.get('ZAPIER_REVENUE_BY_HOUR_WEBHOOK_SECRET');
+    console.log('Expected secret:', expectedSecret);
+    console.log('Received secret:', body.secret);
+    
     if (!expectedSecret || body.secret !== expectedSecret) {
-      return Response.json({ error: 'Unauthorized: Invalid or missing webhook secret' }, { status: 401 });
+      return Response.json({ error: 'Unauthorized: Invalid or missing webhook secret', received_keys: Object.keys(body) }, { status: 401 });
     }
 
     const { store, order_date, order_hour, total_revenue, total_orders } = body;
