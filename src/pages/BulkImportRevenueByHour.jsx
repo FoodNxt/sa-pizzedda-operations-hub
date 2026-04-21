@@ -18,27 +18,44 @@ export default function BulkImportRevenueByHour() {
   const parseCSV = (text) => {
     const lines = text.trim().split('\n');
     if (lines.length < 2) return [];
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    
+    // Expected 5 columns: store, order_date, order_hour, total_revenue, total_orders
+    const headers = ['store', 'order_date', 'order_hour', 'total_revenue', 'total_orders'];
+    
+    // Verify first line is header
+    const headerLine = lines[0].toLowerCase().trim();
+    const startIdx = headerLine.includes('store') ? 1 : 0;
+    
     const rows = [];
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = startIdx; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
-      // Split by comma but handle quoted fields and Italian decimal commas
-      const values = [];
-      let current = '';
-      let inQuotes = false;
-      for (const char of line) {
-        if (char === '"') { inQuotes = !inQuotes; }
-        else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
-        else { current += char; }
-      }
-      values.push(current.trim());
       
-      const row = {};
-      headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
-      // Fix Italian decimal comma in revenue (e.g. "9,5" -> "9.5")
-      if (row.total_revenue) row.total_revenue = row.total_revenue.replace(',', '.');
-      rows.push(row);
+      // Split all commas
+      const parts = line.split(',').map(p => p.trim().replace(/"/g, ''));
+      
+      // We expect 5 columns, but Italian decimals like "9,5" create 6 parts
+      // Strategy: first 3 fields (store, date, hour) are never decimal
+      // total_revenue might have a decimal comma, total_orders is always integer
+      if (parts.length < 5) continue;
+      
+      let store, order_date, order_hour, total_revenue, total_orders;
+      
+      if (parts.length === 5) {
+        // Normal case: no decimal comma
+        [store, order_date, order_hour, total_revenue, total_orders] = parts;
+      } else if (parts.length === 6) {
+        // One decimal comma - likely in total_revenue (e.g. "9,5")
+        store = parts[0];
+        order_date = parts[1];
+        order_hour = parts[2];
+        total_revenue = parts[3] + '.' + parts[4]; // rejoin with dot
+        total_orders = parts[5];
+      } else {
+        continue; // skip malformed lines
+      }
+      
+      rows.push({ store, order_date, order_hour, total_revenue, total_orders });
     }
     return rows;
   };

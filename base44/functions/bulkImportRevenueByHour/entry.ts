@@ -8,7 +8,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    const { rows } = await req.json();
+    const body = await req.json();
+    const rows = body.rows;
+    
+    console.log('Received body keys:', Object.keys(body));
+    console.log('Rows type:', typeof rows, 'isArray:', Array.isArray(rows), 'length:', rows?.length);
+    if (rows && rows.length > 0) {
+      console.log('First row:', JSON.stringify(rows[0]));
+    }
 
     if (!rows || !Array.isArray(rows) || rows.length === 0) {
       return Response.json({ error: 'Missing or empty rows array' }, { status: 400 });
