@@ -15,47 +15,45 @@ export default function BulkImportRevenueByHour() {
     setResult(null);
   };
 
+  const parseCSV = (text) => {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      // Split by comma but handle quoted fields and Italian decimal commas
+      const values = [];
+      let current = '';
+      let inQuotes = false;
+      for (const char of line) {
+        if (char === '"') { inQuotes = !inQuotes; }
+        else if (char === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
+        else { current += char; }
+      }
+      values.push(current.trim());
+      
+      const row = {};
+      headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
+      // Fix Italian decimal comma in revenue (e.g. "9,5" -> "9.5")
+      if (row.total_revenue) row.total_revenue = row.total_revenue.replace(',', '.');
+      rows.push(row);
+    }
+    return rows;
+  };
+
   const handleImport = async () => {
     if (!file) return;
     setLoading(true);
     setResult(null);
 
     try {
-      // Upload file
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      // Parse CSV locally to handle Italian decimal commas correctly
+      const text = await file.text();
+      const rows = parseCSV(text);
 
-      // Extract data
-      const extracted = await base44.integrations.Core.ExtractDataFromUploadedFile({
-        file_url,
-        json_schema: {
-          type: "object",
-          properties: {
-            rows: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  store: { type: "string" },
-                  order_date: { type: "string" },
-                  order_hour: { type: "string" },
-                  total_revenue: { type: "string" },
-                  total_orders: { type: "string" }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      if (extracted.status === 'error') {
-        setResult({ success: false, error: extracted.details });
-        setLoading(false);
-        return;
-      }
-
-      const rows = extracted.output?.rows || extracted.output || [];
-
-      if (!Array.isArray(rows) || rows.length === 0) {
+      if (rows.length === 0) {
         setResult({ success: false, error: 'Nessuna riga trovata nel file' });
         setLoading(false);
         return;

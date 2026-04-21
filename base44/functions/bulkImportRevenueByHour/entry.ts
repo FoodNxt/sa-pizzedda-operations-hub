@@ -21,9 +21,14 @@ Deno.serve(async (req) => {
 
     const results = { created: 0, updated: 0, errors: [] };
 
+    // Store name aliases
+    const storeAliases = { 'lazzaro': 'palazzi' };
+
     for (const row of rows) {
       try {
-        const storeName = (row.store || '').trim();
+        let storeName = (row.store || '').trim();
+        const alias = storeAliases[storeName.toLowerCase()];
+        if (alias) storeName = alias;
         const storeRecord = storeMap[storeName.toLowerCase()];
 
         if (!storeRecord) {
