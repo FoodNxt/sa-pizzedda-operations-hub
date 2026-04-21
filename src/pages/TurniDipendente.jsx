@@ -1122,7 +1122,7 @@ export default function TurniDipendente() {
       const configSequences = config.shift_sequences || [config.shift_sequence || 'first'];
       if (!configSequences.includes(turnoSequence)) return;
 
-      const completato = isFormSubmittedForTurno(config.form_page, turnoStoreId, turno.data, allFormData);
+      const completato = isFormSubmittedForTurno(config.form_page, turnoStoreId, turno.data, allFormData, currentUser?.email);
       formDovuti.push({ nome: config.form_name, page: config.form_page, completato });
     });
 

@@ -1,21 +1,33 @@
 /**
  * Check if a form was actually submitted for a given store + date
  * by checking allFormData (actual database records).
+ * 
+ * For forms that can be submitted multiple times per day by different employees
+ * (like ConteggioCassa), we also check created_by to avoid false positives
+ * where another employee's submission marks the form as completed for everyone.
  */
-export function isFormSubmittedForTurno(formPage, storeId, turnoDate, allFormData) {
+export function isFormSubmittedForTurno(formPage, storeId, turnoDate, allFormData, userEmail) {
   const checkRecords = (records, dateField) =>
     (records || []).some(r => r.store_id === storeId && r[dateField]?.startsWith(turnoDate));
+
+  // For per-employee forms, also match on created_by when userEmail is provided
+  const checkRecordsPerEmployee = (records, dateField) =>
+    (records || []).some(r => 
+      r.store_id === storeId && 
+      r[dateField]?.startsWith(turnoDate) &&
+      (!userEmail || r.created_by === userEmail)
+    );
 
   switch (formPage) {
     case 'FormInventario': return checkRecords(allFormData.FormInventario, 'data_rilevazione');
     case 'FormTeglieButtate': return checkRecords(allFormData.FormTeglieButtate, 'data_rilevazione');
     case 'FormCantina': return checkRecords(allFormData.FormCantina, 'data_rilevazione');
-    case 'ConteggioCassa': return checkRecords(allFormData.ConteggioCassa, 'data_conteggio');
+    case 'ConteggioCassa': return checkRecordsPerEmployee(allFormData.ConteggioCassa, 'data_conteggio');
     case 'FormPreparazioni': return checkRecords(allFormData.FormPreparazioni, 'data_rilevazione');
     case 'Impasto': return checkRecords(allFormData.Impasto, 'data_calcolo');
-    case 'ControlloPuliziaCassiere': return checkRecords(allFormData.ControlloPuliziaCassiere, 'inspection_date');
-    case 'ControlloPuliziaPizzaiolo': return checkRecords(allFormData.ControlloPuliziaPizzaiolo, 'inspection_date');
-    case 'ControlloPuliziaStoreManager': return checkRecords(allFormData.ControlloPuliziaStoreManager, 'inspection_date');
+    case 'ControlloPuliziaCassiere': return checkRecordsPerEmployee(allFormData.ControlloPuliziaCassiere, 'inspection_date');
+    case 'ControlloPuliziaPizzaiolo': return checkRecordsPerEmployee(allFormData.ControlloPuliziaPizzaiolo, 'inspection_date');
+    case 'ControlloPuliziaStoreManager': return checkRecordsPerEmployee(allFormData.ControlloPuliziaStoreManager, 'inspection_date');
     default: return false;
   }
 }
