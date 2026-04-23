@@ -119,8 +119,16 @@ export default function Presenze() {
   }, [tipiTurnoConfig, turni]);
 
   useEffect(() => {
-    if (includedTipiTurno.length === 0 && availableTipiTurno.length > 0) {
+    if (availableTipiTurno.length === 0) return;
+    if (includedTipiTurno.length === 0) {
+      // First load: include all
       setIncludedTipiTurno([...availableTipiTurno]);
+    } else {
+      // Subsequent updates: auto-include any newly discovered types
+      const newTypes = availableTipiTurno.filter(t => !includedTipiTurno.includes(t));
+      if (newTypes.length > 0) {
+        setIncludedTipiTurno(prev => [...prev, ...newTypes]);
+      }
     }
   }, [availableTipiTurno]);
 
