@@ -1094,7 +1094,7 @@ export default function TurniDipendente() {
   };
 
   const getFormDovutiPerTurno = (turno) => {
-    if (!turno) return [];
+    if (!turno || !currentUser?.email) return [];
 
     const tipoTurno = turno.tipo_turno || 'Normale';
     const tipoConfig = tipoTurnoConfigs.find((tc) => tc.tipo_turno === tipoTurno);

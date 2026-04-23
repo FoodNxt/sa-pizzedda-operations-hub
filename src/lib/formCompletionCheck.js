@@ -10,13 +10,17 @@ export function isFormSubmittedForTurno(formPage, storeId, turnoDate, allFormDat
   const checkRecords = (records, dateField) =>
     (records || []).some(r => r.store_id === storeId && r[dateField]?.startsWith(turnoDate));
 
-  // For per-employee forms, also match on created_by when userEmail is provided
-  const checkRecordsPerEmployee = (records, dateField) =>
-    (records || []).some(r => 
+  // For per-employee forms, ALWAYS match on created_by.
+  // If userEmail is not available, return false (not completed) to prevent false positives
+  // where another employee's submission marks the form as completed.
+  const checkRecordsPerEmployee = (records, dateField) => {
+    if (!userEmail) return false;
+    return (records || []).some(r => 
       r.store_id === storeId && 
       r[dateField]?.startsWith(turnoDate) &&
-      (!userEmail || r.created_by === userEmail)
+      r.created_by === userEmail
     );
+  };
 
   switch (formPage) {
     case 'FormInventario': return checkRecords(allFormData.FormInventario, 'data_rilevazione');
