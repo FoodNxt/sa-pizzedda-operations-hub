@@ -42,7 +42,7 @@ export default function PagamentoStraordinari() {
 
   const queryClient = useQueryClient();
 
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: isLoadingUser } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me()
   });
@@ -437,6 +437,27 @@ export default function PagamentoStraordinari() {
       dipendente_nome: employee?.full_name || ''
     });
   };
+
+  // Solo admin e Erick Franceschi possono accedere a questa pagina
+  const ALLOWED_EMPLOYEE_EMAIL = 'franceschierick0209@gmail.com';
+  const isAllowed = currentUser && (
+    currentUser.user_type === 'admin' ||
+    currentUser.email === ALLOWED_EMPLOYEE_EMAIL
+  );
+
+  if (!isLoadingUser && currentUser && !isAllowed) {
+    return (
+      <ProtectedPage pageName="PagamentoStraordinari">
+        <div className="max-w-4xl mx-auto p-8">
+          <NeumorphicCard className="p-8 text-center">
+            <AlertCircle className="w-16 h-16 text-orange-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-slate-700 mb-2">Accesso Negato</h2>
+            <p className="text-slate-500">Non hai i permessi per visualizzare questa pagina.</p>
+          </NeumorphicCard>
+        </div>
+      </ProtectedPage>
+    );
+  }
 
   return (
     <ProtectedPage pageName="PagamentoStraordinari">
