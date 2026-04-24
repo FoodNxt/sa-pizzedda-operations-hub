@@ -18,6 +18,7 @@ import { createPageUrl } from "@/utils";
 import moment from "moment";
 import "moment/locale/it";
 import { isFormSubmittedForTurno } from "../lib/formCompletionCheck";
+import { isActivityCompleted } from "../lib/activityCompletionCheck";
 
 const COLORI_RUOLO = {
   "Pizzaiolo": "bg-orange-100 border-orange-300 text-orange-800",
@@ -1625,36 +1626,9 @@ export default function TurniDipendente() {
 
               const formDovuti = getFormDovutiPerTurno(prossimoTurno);
 
-              // Calcola se tutte le attività sono completate
-              const allAttivitaComplete = attivita.every((att) => {
-                const isFormActivity = att.form_page || att.richiede_form;
-                const isCorsoActivity = att.corsi_ids?.length > 0;
-                if (isFormActivity) {
-                  // Per attività da StrutturaTurno, controlla SOLO AttivitaCompletata (ha turno_id)
-                  // NON usare formDovuti che controlla solo store+data (senza distinguere il turno)
-                  const completatoViaPagina = attivitaCompletate.some((ac) => {
-                    if (ac.turno_id !== prossimoTurno.id) return false;
-                    // Match per form_page O per attivita_nome
-                    if (ac.form_page !== att.form_page && ac.attivita_nome !== att.nome) return false;
-
-                    if (att.posizione_turno && ac.posizione_turno) {
-                      return ac.posizione_turno === att.posizione_turno;
-                    }
-
-                    if (att.ora_inizio && ac.ora_attivita) {
-                      return ac.ora_attivita === att.ora_inizio;
-                    }
-
-                    return true;
-                  });
-                  return completatoViaPagina;
-                }
-                if (isCorsoActivity) return true; // Corsi sono opzionali
-                return isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
-              });
-              const formNonAssociatiComplete = formDovuti.
-              filter((form) => !attivita.some((a) => a.form_page === form.page)).
-              every((f) => f.completato);
+              const isActDone = (att) => isActivityCompleted(attivitaCompletate, prossimoTurno.id, att, isAttivitaCompletata);
+              const allAttivitaComplete = attivita.every(isActDone);
+              const formNonAssociatiComplete = formDovuti.filter((form) => !attivita.some((a) => a.form_page === form.page)).every((f) => f.completato);
               const tuttoCompleto = allAttivitaComplete && formNonAssociatiComplete;
 
               return (
@@ -1666,11 +1640,7 @@ export default function TurniDipendente() {
                       </h3>
                       {prossimoTurno.timbrata_entrata &&
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${tuttoCompleto ? 'bg-green-200 text-green-800' : 'bg-orange-200 text-orange-800'}`}>
-                          {tuttoCompleto ? '✓ Tutto completato' : `${attivita.filter((a) => {
-                        const isFormActivity = a.form_page || a.richiede_form;
-                        if (isFormActivity) return formDovuti.some((f) => f.page === a.form_page && f.completato);
-                        return isAttivitaCompletata(prossimoTurno.id, a.nome);
-                      }).length}/${attivita.length} completate`}
+                          {tuttoCompleto ? '✓ Tutto completato' : `${attivita.filter(isActDone).length}/${attivita.length} completate`}
                         </span>
                     }
                     </div>
@@ -1679,14 +1649,7 @@ export default function TurniDipendente() {
                       {attivita.filter(att => !att.isPagamentoStraordinari).map((att, idx) => {
                       const isFormActivity = att.form_page || att.richiede_form;
                       const isCorsoActivity = att.corsi_ids?.length > 0;
-                      const isCompleted = isFormActivity ?
-                      attivitaCompletate.some((ac) => {
-                        if (ac.turno_id !== prossimoTurno.id) return false;
-                        if (ac.form_page !== att.form_page && ac.attivita_nome !== att.nome) return false;
-                        if (att.posizione_turno && ac.posizione_turno) return ac.posizione_turno === att.posizione_turno;
-                        if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
-                        return true;
-                      }) : isAttivitaCompletata(prossimoTurno.id, att.nome, att.posizione_turno, att.ora_inizio);
+                      const isCompleted = isActDone(att);
 
                       return (
                         <div key={`att-${idx}-${att.nome}`} className={`p-3 rounded-xl ${isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-white border-2 border-blue-200'} shadow-sm`}>
@@ -1726,7 +1689,7 @@ export default function TurniDipendente() {
                               }
                                 {isFormActivity &&
                               <Link
-                                to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id + (att.ora_inizio ? '&ora_attivita=' + att.ora_inizio : '')}
+                                to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id + (att.ora_inizio ? '&ora_attivita=' + att.ora_inizio : '') + (att.posizione_turno ? '&posizione_turno=' + att.posizione_turno : '')}
                                 className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm">
 
                                     <FileText className="w-4 h-4" /> Compila Form
@@ -2020,40 +1983,11 @@ export default function TurniDipendente() {
               // Se non ci sono attività da fare, permetti sempre timbratura
               const haAttivita = attivita.length > 0;
 
-              const allAttivitaComplete = attivita.every((att) => {
-                const isFormActivity = att.form_page || att.richiede_form;
-                const isCorsoActivity = att.corsi_ids?.length > 0;
-                if (isFormActivity) {
-                  return attivitaCompletate.some((ac) => {
-                    if (ac.turno_id !== prossimoTurno.id) return false;
-                    if (ac.form_page !== att.form_page && ac.attivita_nome !== att.nome) return false;
-                    if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
-                    return !att.ora_inizio || !ac.ora_attivita;
-                  });
-                }
-                if (isCorsoActivity) return true;
-                return isAttivitaCompletata(prossimoTurno.id, att.nome, att.ora_inizio);
-              });
-              const formNonAssociatiComplete = formDovuti.
-              filter((form) => !attivita.some((a) => a.form_page === form.page)).
-              every((f) => f.completato);
+              const isUscActDone = (att) => isActivityCompleted(attivitaCompletate, prossimoTurno.id, att, isAttivitaCompletata);
+              const allAttivitaComplete = attivita.every(isUscActDone);
+              const formNonAssociatiComplete = formDovuti.filter((form) => !attivita.some((a) => a.form_page === form.page)).every((f) => f.completato);
               const tuttoCompleto = !haAttivita || allAttivitaComplete && formNonAssociatiComplete;
-
-              // Trova attività non completate
-              const attivitaNonComplete = attivita.filter((att) => {
-                const isFormActivity = att.form_page || att.richiede_form;
-                const isCorsoActivity = att.corsi_ids?.length > 0;
-                if (isFormActivity) {
-                  return !attivitaCompletate.some((ac) => {
-                    if (ac.turno_id !== prossimoTurno.id) return false;
-                    if (ac.form_page !== att.form_page && ac.attivita_nome !== att.nome) return false;
-                    if (att.ora_inizio && ac.ora_attivita) return ac.ora_attivita === att.ora_inizio;
-                    return !att.ora_inizio || !ac.ora_attivita;
-                  });
-                }
-                if (isCorsoActivity) return false;
-                return !isAttivitaCompletata(prossimoTurno.id, att.nome, att.ora_inizio);
-              });
+              const attivitaNonComplete = attivita.filter((att) => !isUscActDone(att));
 
               const handleTimbraUscita = () => {
                 if (haAttivita && !tuttoCompleto) {

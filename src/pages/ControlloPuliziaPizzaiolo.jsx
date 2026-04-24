@@ -281,7 +281,9 @@ export default function ControlloPuliziaPizzaiolo() {
       }).catch(err => console.error('Errore AI:', err));
 
       if (turnoId && attivitaNome) {
-        await base44.entities.AttivitaCompletata.create({
+        const oraAttivita = urlParams.get('ora_attivita');
+        const posizioneTurno = urlParams.get('posizione_turno');
+        const actData = {
           dipendente_id: currentUser.id,
           dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
           turno_id: turnoId,
@@ -290,7 +292,10 @@ export default function ControlloPuliziaPizzaiolo() {
           attivita_nome: decodeURIComponent(attivitaNome),
           form_page: 'ControlloPuliziaPizzaiolo',
           completato_at: new Date().toISOString()
-        });
+        };
+        if (oraAttivita) actData.ora_attivita = oraAttivita;
+        if (posizioneTurno) actData.posizione_turno = posizioneTurno;
+        await base44.entities.AttivitaCompletata.create(actData);
       }
 
       console.log('=== SUBMIT COMPLETATO ===');

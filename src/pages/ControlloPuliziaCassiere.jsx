@@ -289,8 +289,10 @@ export default function ControlloPuliziaCassiere() {
 
       // Segna attività completata
       if (turnoId && attivitaNome) {
+        const oraAttivita = urlParams.get('ora_attivita');
+        const posizioneTurno = urlParams.get('posizione_turno');
         console.log('Segno attività completata...');
-        await base44.entities.AttivitaCompletata.create({
+        const actData = {
           dipendente_id: currentUser.id,
           dipendente_nome: currentUser.nome_cognome || currentUser.full_name,
           turno_id: turnoId,
@@ -299,7 +301,10 @@ export default function ControlloPuliziaCassiere() {
           attivita_nome: decodeURIComponent(attivitaNome),
           form_page: 'ControlloPuliziaCassiere',
           completato_at: new Date().toISOString()
-        });
+        };
+        if (oraAttivita) actData.ora_attivita = oraAttivita;
+        if (posizioneTurno) actData.posizione_turno = posizioneTurno;
+        await base44.entities.AttivitaCompletata.create(actData);
         console.log('Attività segnata come completata');
       }
 

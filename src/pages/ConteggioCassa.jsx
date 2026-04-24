@@ -99,15 +99,17 @@ export default function ConteggioCassa() {
       setSaveSuccess(true);
       queryClient.invalidateQueries({ queryKey: ['conteggi-cassa'] });
 
-      // Segna attività come completata - SOLO SE NON ESISTE GIÀ con stesso nome + ora
+      // Segna attività come completata - SOLO SE NON ESISTE GIÀ con stesso nome + ora/posizione
       if (turnoId && attivitaNome && currentUser) {
         const oraAttivita = urlParams.get('ora_attivita');
+        const posizioneTurno = urlParams.get('posizione_turno');
         
         const filter = {
           turno_id: turnoId,
           attivita_nome: decodeURIComponent(attivitaNome)
         };
         if (oraAttivita) filter.ora_attivita = oraAttivita;
+        if (posizioneTurno) filter.posizione_turno = posizioneTurno;
         
         const esistente = await base44.entities.AttivitaCompletata.filter(filter);
         
@@ -124,6 +126,7 @@ export default function ConteggioCassa() {
           };
           
           if (oraAttivita) activityData.ora_attivita = oraAttivita;
+          if (posizioneTurno) activityData.posizione_turno = posizioneTurno;
           
           console.log('Salvataggio attività ConteggioCassa:', activityData);
           await base44.entities.AttivitaCompletata.create(activityData);
