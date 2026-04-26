@@ -56,7 +56,7 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
           const dailyTickets = dailyDays.filter(dd => dd.ord > 0).map(dd => dd.rev / dd.ord);
           const maxTicket = dailyTickets.length > 0 ? Math.max(...dailyTickets) : avg;
           // Flag anomaly: max daily avg ticket > 4x the weekly average AND at least 2 days of data
-          const hasAnomaly = dailyTickets.length >= 2 && maxTicket > avg * 4;
+          const hasAnomaly = dailyTickets.length >= 2 && maxTicket > avg * 5;
           row[w] = { avg: parseFloat(avg.toFixed(2)), ord: Math.round(d.ord), maxTicket: parseFloat(maxTicket.toFixed(2)), hasAnomaly };
         } else {
           row[w] = null;
