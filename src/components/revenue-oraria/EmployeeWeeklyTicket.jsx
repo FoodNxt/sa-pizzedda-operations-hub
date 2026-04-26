@@ -13,23 +13,25 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
   const { weeks, employeeNames, tableData, chartData } = useMemo(() => {
     if (!revenueData?.length) return { weeks: [], employeeNames: [], tableData: [], chartData: [] };
 
-    // Aggregate by week + employee, also track daily ticket values
+    // Aggregate by week + employee, also track daily totals for anomaly detection
     const byWeekEmp = {};
     revenueData.forEach(r => {
       const weekStart = moment(r.order_date).startOf("isoWeek").format("YYYY-MM-DD");
+      const date = r.order_date;
       (r.matched_employees || []).forEach(emp => {
         if (!emp.employee_name || emp.employee_name === "N/A") return;
         const name = emp.employee_name.trim();
         const key = `${weekStart}__${name}`;
         const share = (r.matched_employees || []).length;
-        if (!byWeekEmp[key]) byWeekEmp[key] = { weekStart, name, rev: 0, ord: 0, dailyTickets: [] };
-        const dayRev = (r.total_revenue || 0) / share;
-        const dayOrd = (r.total_orders || 0) / share;
-        byWeekEmp[key].rev += dayRev;
-        byWeekEmp[key].ord += dayOrd;
-        if (dayOrd > 0) {
-          byWeekEmp[key].dailyTickets.push(dayRev / dayOrd);
-        }
+        if (!byWeekEmp[key]) byWeekEmp[key] = { weekStart, name, rev: 0, ord: 0, dailyAgg: {} };
+        const slotRev = (r.total_revenue || 0) / share;
+        const slotOrd = (r.total_orders || 0) / share;
+        byWeekEmp[key].rev += slotRev;
+        byWeekEmp[key].ord += slotOrd;
+        // Aggregate per day within the week
+        if (!byWeekEmp[key].dailyAgg[date]) byWeekEmp[key].dailyAgg[date] = { rev: 0, ord: 0 };
+        byWeekEmp[key].dailyAgg[date].rev += slotRev;
+        byWeekEmp[key].dailyAgg[date].ord += slotOrd;
       });
     });
 
@@ -49,10 +51,12 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
         const d = lookup[`${w}__${name}`];
         if (d && d.ord > 0) {
           const avg = d.rev / d.ord;
-          const tickets = d.dailyTickets;
-          const maxTicket = tickets.length > 0 ? Math.max(...tickets) : avg;
-          // Flag anomaly: max daily ticket > 2x the weekly average AND at least 2 days of data
-          const hasAnomaly = tickets.length >= 2 && maxTicket > avg * 4;
+          // Compute daily ticket averages (revenue/orders per day)
+          const dailyDays = Object.values(d.dailyAgg);
+          const dailyTickets = dailyDays.filter(dd => dd.ord > 0).map(dd => dd.rev / dd.ord);
+          const maxTicket = dailyTickets.length > 0 ? Math.max(...dailyTickets) : avg;
+          // Flag anomaly: max daily avg ticket > 4x the weekly average AND at least 2 days of data
+          const hasAnomaly = dailyTickets.length >= 2 && maxTicket > avg * 4;
           row[w] = { avg: parseFloat(avg.toFixed(2)), ord: Math.round(d.ord), maxTicket: parseFloat(maxTicket.toFixed(2)), hasAnomaly };
         } else {
           row[w] = null;
