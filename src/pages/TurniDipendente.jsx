@@ -808,22 +808,19 @@ export default function TurniDipendente() {
     if (richiedeGPS) {
       setLoadingGPS(true);
       setGpsError(null);
-
       try {
         const position = await getGPSPosition();
         setCurrentPosition(position);
-
         const distance = calculateDistance(position.lat, position.lng, store.latitude, store.longitude);
-
         if (distance > (config.distanza_massima_metri || 100)) {
-          setGpsError(`Sei troppo lontano dal locale (${Math.round(distance)}m). Devi essere entro ${config.distanza_massima_metri || 100}m per timbrare.`);
+          setGpsError(`Sei troppo lontano dal locale (${Math.round(distance)}m). Devi essere entro ${config.distanza_massima_metri || 100}m.`);
           setLoadingGPS(false);
           return;
         }
-
         timbraMutation.mutate({ turnoId: turno.id, tipo, posizione: position });
-      } catch (error) {
-        setGpsError(error.message);
+      } catch {
+        // GPS non disponibile: procedi comunque senza posizione
+        timbraMutation.mutate({ turnoId: turno.id, tipo, posizione: null });
       }
       setLoadingGPS(false);
     } else {
@@ -964,20 +961,15 @@ export default function TurniDipendente() {
       config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) &&
       store?.latitude && store?.longitude;
 
-      // Controllo GPS anche per uscita
+      // Controllo GPS per uscita (se disponibile verifica distanza, altrimenti permetti)
       let gpsOk = true;
       let gpsReason = null;
-      if (richiedeGPS) {
-        if (!userPosition) {
+      if (richiedeGPS && userPosition) {
+        const distance = calculateDistance(userPosition.lat, userPosition.lng, store.latitude, store.longitude);
+        const maxDistance = config.distanza_massima_metri || 100;
+        if (distance > maxDistance) {
           gpsOk = false;
-          gpsReason = 'Attiva il GPS';
-        } else {
-          const distance = calculateDistance(userPosition.lat, userPosition.lng, store.latitude, store.longitude);
-          const maxDistance = config.distanza_massima_metri || 100;
-          if (distance > maxDistance) {
-            gpsOk = false;
-            gpsReason = `Sei a ${Math.round(distance)}m dal locale`;
-          }
+          gpsReason = `Sei a ${Math.round(distance)}m dal locale`;
         }
       }
 
@@ -1007,11 +999,8 @@ export default function TurniDipendente() {
     config.ruoli_gps_abilitati?.length === 0 || config.ruoli_gps_abilitati?.includes(prossimoTurno.ruolo)) &&
     store?.latitude && store?.longitude;
 
-    // Controllo GPS
-    if (richiedeGPS) {
-      if (!userPosition) {
-        return { canTimbra: false, reason: 'Attiva il GPS', needsGPS: true };
-      }
+    // Controllo GPS (se disponibile, verifica distanza; se non disponibile, permetti comunque)
+    if (richiedeGPS && userPosition) {
       const distance = calculateDistance(userPosition.lat, userPosition.lng, store.latitude, store.longitude);
       const maxDistance = config.distanza_massima_metri || 100;
       if (distance > maxDistance) {
@@ -1019,7 +1008,7 @@ export default function TurniDipendente() {
       }
     }
 
-    return { canTimbra: true, tipo: 'entrata', reason: null };
+    return { canTimbra: true, tipo: 'entrata', reason: !userPosition && richiedeGPS ? 'GPS non disponibile - timbratura senza posizione' : null };
   }, [prossimoTurno, storesData, config, userPosition, now]);
 
   // Helper per controllare sovrapposizione oraria
