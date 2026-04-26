@@ -42,10 +42,11 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
       let totalRev = 0, totalOrd = 0;
       weekSet.forEach(w => {
         const d = lookup[`${w}__${name}`];
-        row[w] = d && d.ord > 0 ? parseFloat((d.rev / d.ord).toFixed(2)) : null;
+        row[w] = d && d.ord > 0 ? { avg: parseFloat((d.rev / d.ord).toFixed(2)), ord: Math.round(d.ord) } : null;
         if (d) { totalRev += d.rev; totalOrd += d.ord; }
       });
       row._avg = totalOrd > 0 ? parseFloat((totalRev / totalOrd).toFixed(2)) : 0;
+      row._totalOrd = Math.round(totalOrd);
       return row;
     });
 
@@ -55,9 +56,9 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
     // Chart data = one point per week, one line per employee
     const chart = weekSet.map(w => {
       const point = { week: moment(w).format("DD/MM") };
-      empSet.forEach(name => {
-        const d = lookup[`${w}__${name}`];
-        point[name] = d && d.ord > 0 ? parseFloat((d.rev / d.ord).toFixed(2)) : null;
+      table.forEach(row => {
+        const cell = row[w];
+        point[row.name] = cell ? cell.avg : null;
       });
       return point;
     });
@@ -105,17 +106,18 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
                     </span>
                   </td>
                   {weeks.map((w, wi) => {
-                    const val = row[w];
+                    const cell = row[w];
                     const prevW = wi > 0 ? weeks[wi - 1] : null;
-                    const prevVal = prevW ? row[prevW] : null;
-                    const diff = val !== null && prevVal !== null && prevVal > 0
-                      ? ((val - prevVal) / prevVal) * 100
+                    const prevCell = prevW ? row[prevW] : null;
+                    const diff = cell && prevCell && prevCell.avg > 0
+                      ? ((cell.avg - prevCell.avg) / prevCell.avg) * 100
                       : null;
                     return (
                       <td key={w} className="p-2 text-right text-sm">
-                        {val !== null ? (
+                        {cell ? (
                           <div>
-                            <span className="font-bold text-slate-700">€{val.toFixed(2)}</span>
+                            <span className="font-bold text-slate-700">€{cell.avg.toFixed(2)}</span>
+                            <span className="text-xs text-slate-400 ml-1">({cell.ord})</span>
                             {diff !== null && (
                               <span className={`ml-1 text-xs ${diff > 0 ? "text-green-600" : diff < 0 ? "text-red-600" : "text-slate-400"}`}>
                                 {diff > 0 ? "↑" : diff < 0 ? "↓" : "="}{Math.abs(diff).toFixed(1)}%
@@ -128,7 +130,7 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
                       </td>
                     );
                   })}
-                  <td className="p-2 text-right text-sm font-bold text-blue-600">€{row._avg.toFixed(2)}</td>
+                  <td className="p-2 text-right text-sm font-bold text-blue-600">€{row._avg.toFixed(2)} <span className="text-xs text-slate-400 font-normal">({row._totalOrd})</span></td>
                 </tr>
               ))}
             </tbody>
