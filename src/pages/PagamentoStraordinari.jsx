@@ -53,8 +53,8 @@ export default function PagamentoStraordinari() {
   });
 
   const { data: shifts = [] } = useQuery({
-    queryKey: ['planday-shifts'],
-    queryFn: () => base44.entities.TurnoPlanday.list('-data', 500)
+    queryKey: ['planday-shifts-straordinari'],
+    queryFn: () => base44.entities.TurnoPlanday.filter({ tipo_turno: 'Straordinario' }, '-data', 500)
   });
 
   const { data: straordinariConfigs = [] } = useQuery({
@@ -189,18 +189,14 @@ export default function PagamentoStraordinari() {
   const straordinariDaTurni = useMemo(() => {
     const straordinari = [];
     
-    // Get all shifts with tipo_turno = "Straordinario" or ore_straordinarie > 0
-    const shiftsWithOvertime = shifts.filter(s => 
-      s.tipo_turno === 'Straordinario' || (s.ore_straordinarie && s.ore_straordinarie > 0)
-    );
-
+    // All loaded shifts are already tipo_turno = "Straordinario"
     // Filter by store manager's stores if user is store manager
-    let relevantShifts = shiftsWithOvertime;
+    let relevantShifts = [...shifts];
     if (currentUser?.user_type === 'manager' && currentUser?.assigned_stores) {
       const assignedStoreIds = stores
         .filter(s => currentUser.assigned_stores.includes(s.name))
         .map(s => s.id);
-      relevantShifts = shiftsWithOvertime.filter(s => assignedStoreIds.includes(s.store_id));
+      relevantShifts = shifts.filter(s => assignedStoreIds.includes(s.store_id));
     }
 
     relevantShifts.forEach(shift => {
