@@ -9,9 +9,11 @@ import RevenueOrariaKPIs from "../components/revenue-oraria/RevenueOrariaKPIs";
 import RevenueOrariaTable from "../components/revenue-oraria/RevenueOrariaTable";
 import RevenueOrariaCharts from "../components/revenue-oraria/RevenueOrariaCharts";
 import RevenueOrariaEmployeeTable from "../components/revenue-oraria/RevenueOrariaEmployeeTable";
-import { Clock, Loader2 } from "lucide-react";
+import ScontrinoMedioTab from "../components/revenue-oraria/ScontrinoMedioTab";
+import { Clock, Loader2, BarChart3, Receipt } from "lucide-react";
 
 export default function RevenueOraria() {
+  const [activeTab, setActiveTab] = useState("oraria");
   const [selectedStore, setSelectedStore] = useState("all");
   const [dateFrom, setDateFrom] = useState(moment().subtract(7, "days").format("YYYY-MM-DD"));
   const [dateTo, setDateTo] = useState(moment().format("YYYY-MM-DD"));
@@ -108,30 +110,58 @@ export default function RevenueOraria() {
           </div>
         </div>
 
-        <RevenueOrariaFilters
-          stores={stores}
-          selectedStore={selectedStore}
-          setSelectedStore={setSelectedStore}
-          dateFrom={dateFrom}
-          setDateFrom={setDateFrom}
-          dateTo={dateTo}
-          setDateTo={setDateTo}
-        />
+        {/* Tab switcher */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab("oraria")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              activeTab === "oraria" ? "bg-blue-500 text-white shadow-lg" : "neumorphic-flat text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Revenue Oraria
+          </button>
+          <button
+            onClick={() => setActiveTab("scontrino")}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              activeTab === "scontrino" ? "bg-blue-500 text-white shadow-lg" : "neumorphic-flat text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <Receipt className="w-4 h-4" />
+            Scontrino Medio
+          </button>
+        </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-          </div>
-        ) : !metrics ? (
-          <NeumorphicCard className="p-8 text-center">
-            <p className="text-slate-500">Nessun dato trovato per il periodo selezionato</p>
-          </NeumorphicCard>
+        {activeTab === "scontrino" ? (
+          <ScontrinoMedioTab stores={stores} />
         ) : (
           <>
-            <RevenueOrariaKPIs metrics={metrics} />
-            <RevenueOrariaEmployeeTable employeeData={metrics.employeeData} />
-            <RevenueOrariaCharts metrics={metrics} />
-            <RevenueOrariaTable data={revenueData} />
+            <RevenueOrariaFilters
+              stores={stores}
+              selectedStore={selectedStore}
+              setSelectedStore={setSelectedStore}
+              dateFrom={dateFrom}
+              setDateFrom={setDateFrom}
+              dateTo={dateTo}
+              setDateTo={setDateTo}
+            />
+
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            ) : !metrics ? (
+              <NeumorphicCard className="p-8 text-center">
+                <p className="text-slate-500">Nessun dato trovato per il periodo selezionato</p>
+              </NeumorphicCard>
+            ) : (
+              <>
+                <RevenueOrariaKPIs metrics={metrics} />
+                <RevenueOrariaEmployeeTable employeeData={metrics.employeeData} />
+                <RevenueOrariaCharts metrics={metrics} />
+                <RevenueOrariaTable data={revenueData} />
+              </>
+            )}
           </>
         )}
       </div>
