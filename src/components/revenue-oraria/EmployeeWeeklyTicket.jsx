@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import moment from "moment";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
-import { Users } from "lucide-react";
+import { Users, AlertTriangle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const COLORS = [
@@ -13,7 +13,7 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
   const { weeks, employeeNames, tableData, chartData } = useMemo(() => {
     if (!revenueData?.length) return { weeks: [], employeeNames: [], tableData: [], chartData: [] };
 
-    // Aggregate by week + employee
+    // Aggregate by week + employee, also track daily ticket values
     const byWeekEmp = {};
     revenueData.forEach(r => {
       const weekStart = moment(r.order_date).startOf("isoWeek").format("YYYY-MM-DD");
@@ -22,9 +22,14 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
         const name = emp.employee_name.trim();
         const key = `${weekStart}__${name}`;
         const share = (r.matched_employees || []).length;
-        if (!byWeekEmp[key]) byWeekEmp[key] = { weekStart, name, rev: 0, ord: 0 };
-        byWeekEmp[key].rev += (r.total_revenue || 0) / share;
-        byWeekEmp[key].ord += (r.total_orders || 0) / share;
+        if (!byWeekEmp[key]) byWeekEmp[key] = { weekStart, name, rev: 0, ord: 0, dailyTickets: [] };
+        const dayRev = (r.total_revenue || 0) / share;
+        const dayOrd = (r.total_orders || 0) / share;
+        byWeekEmp[key].rev += dayRev;
+        byWeekEmp[key].ord += dayOrd;
+        if (dayOrd > 0) {
+          byWeekEmp[key].dailyTickets.push(dayRev / dayOrd);
+        }
       });
     });
 
@@ -42,7 +47,16 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
       let totalRev = 0, totalOrd = 0;
       weekSet.forEach(w => {
         const d = lookup[`${w}__${name}`];
-        row[w] = d && d.ord > 0 ? { avg: parseFloat((d.rev / d.ord).toFixed(2)), ord: Math.round(d.ord) } : null;
+        if (d && d.ord > 0) {
+          const avg = d.rev / d.ord;
+          const tickets = d.dailyTickets;
+          const maxTicket = tickets.length > 0 ? Math.max(...tickets) : avg;
+          // Flag anomaly: max daily ticket > 2x the weekly average AND at least 2 days of data
+          const hasAnomaly = tickets.length >= 2 && maxTicket > avg * 2;
+          row[w] = { avg: parseFloat(avg.toFixed(2)), ord: Math.round(d.ord), maxTicket: parseFloat(maxTicket.toFixed(2)), hasAnomaly };
+        } else {
+          row[w] = null;
+        }
         if (d) { totalRev += d.rev; totalOrd += d.ord; }
       });
       row._avg = totalOrd > 0 ? parseFloat((totalRev / totalOrd).toFixed(2)) : 0;
@@ -121,6 +135,11 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
                             {diff !== null && (
                               <span className={`ml-1 text-xs ${diff > 0 ? "text-green-600" : diff < 0 ? "text-red-600" : "text-slate-400"}`}>
                                 {diff > 0 ? "↑" : diff < 0 ? "↓" : "="}{Math.abs(diff).toFixed(1)}%
+                              </span>
+                            )}
+                            {cell.hasAnomaly && (
+                              <span className="ml-1 inline-flex items-center" title={`Scontrino max giornaliero: €${cell.maxTicket} (media sett. €${cell.avg.toFixed(2)})`}>
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                               </span>
                             )}
                           </div>
