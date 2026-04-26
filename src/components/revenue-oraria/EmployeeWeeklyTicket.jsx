@@ -52,7 +52,7 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
           const tickets = d.dailyTickets;
           const maxTicket = tickets.length > 0 ? Math.max(...tickets) : avg;
           // Flag anomaly: max daily ticket > 2x the weekly average AND at least 2 days of data
-          const hasAnomaly = tickets.length >= 2 && maxTicket > avg * 2;
+          const hasAnomaly = tickets.length >= 2 && maxTicket > avg * 4;
           row[w] = { avg: parseFloat(avg.toFixed(2)), ord: Math.round(d.ord), maxTicket: parseFloat(maxTicket.toFixed(2)), hasAnomaly };
         } else {
           row[w] = null;
