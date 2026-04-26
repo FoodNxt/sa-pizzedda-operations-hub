@@ -54,7 +54,8 @@ export default function PagamentoStraordinari() {
 
   const { data: shifts = [] } = useQuery({
     queryKey: ['planday-shifts-straordinari'],
-    queryFn: () => base44.entities.TurnoPlanday.filter({ tipo_turno: 'Straordinario' }, '-data', 500)
+    queryFn: () => base44.entities.TurnoPlanday.filter({ tipo_turno: 'Straordinario' }, '-data', 500),
+    staleTime: 0
   });
 
   const { data: straordinariConfigs = [] } = useQuery({
