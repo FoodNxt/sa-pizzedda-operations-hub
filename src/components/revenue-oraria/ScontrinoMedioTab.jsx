@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import moment from "moment";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { TrendingUp, TrendingDown, Minus, Loader2, Store as StoreIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Loader2, Store as StoreIcon, Calendar } from "lucide-react";
 
 const PERIOD_OPTIONS = [
   { label: "30 giorni", days: 30 },
@@ -19,153 +19,120 @@ const COLORS = [
 
 export default function ScontrinoMedioTab({ stores }) {
   const [selectedPeriod, setSelectedPeriod] = useState(30);
+  const [chartMode, setChartMode] = useState("weekly");
 
-  const dateFrom = useMemo(() => moment().subtract(selectedPeriod, "days").format("YYYY-MM-DD"), [selectedPeriod]);
-  const dateTo = useMemo(() => moment().format("YYYY-MM-DD"), []);
+  const dateTo = moment().format("YYYY-MM-DD");
+  const dateFrom = moment().subtract(selectedPeriod, "days").format("YYYY-MM-DD");
 
   const { data: revenueData = [], isLoading } = useQuery({
-    queryKey: ["scontrino-medio-data", dateFrom, dateTo],
+    queryKey: ["scontrino-medio-data", selectedPeriod],
     queryFn: () => base44.entities.RevenueByHour.filter({
       order_date: { $gte: dateFrom, $lte: dateTo }
-    }),
-    staleTime: 60000
+    })
   });
+
+  const getStoreName = (r) => r.store_name || stores.find(s => s.id === r.store_id)?.name || "Sconosciuto";
+
+  const storeNames = useMemo(() =>
+    [...new Set(revenueData.map(r => getStoreName(r)))],
+    [revenueData, stores]
+  );
 
   // Aggregate by store
   const storeStats = useMemo(() => {
     if (!revenueData.length) return [];
-
     const byStore = {};
     revenueData.forEach(r => {
-      const sid = r.store_id || r.store_name;
-      if (!byStore[sid]) {
-        byStore[sid] = {
-          store_id: r.store_id,
-          store_name: r.store_name || stores.find(s => s.id === r.store_id)?.name || sid,
-          totalRevenue: 0,
-          totalOrders: 0
-        };
-      }
-      byStore[sid].totalRevenue += r.total_revenue || 0;
-      byStore[sid].totalOrders += r.total_orders || 0;
+      const name = getStoreName(r);
+      if (!byStore[name]) byStore[name] = { store_id: r.store_id, store_name: name, totalRevenue: 0, totalOrders: 0 };
+      byStore[name].totalRevenue += r.total_revenue || 0;
+      byStore[name].totalOrders += r.total_orders || 0;
     });
-
     return Object.values(byStore)
-      .map(s => ({
-        ...s,
-        avgTicket: s.totalOrders > 0 ? s.totalRevenue / s.totalOrders : 0
-      }))
+      .map(s => ({ ...s, avgTicket: s.totalOrders > 0 ? s.totalRevenue / s.totalOrders : 0 }))
       .sort((a, b) => b.avgTicket - a.avgTicket);
   }, [revenueData, stores]);
 
-  // Global avg ticket
   const globalStats = useMemo(() => {
     const totRev = storeStats.reduce((s, r) => s + r.totalRevenue, 0);
     const totOrd = storeStats.reduce((s, r) => s + r.totalOrders, 0);
     return { totalRevenue: totRev, totalOrders: totOrd, avgTicket: totOrd > 0 ? totRev / totOrd : 0 };
   }, [storeStats]);
 
-  // Trend data: aggregate by week per store
-  const trendData = useMemo(() => {
+  // Weekly data per store (for chart and table)
+  const weeklyData = useMemo(() => {
     if (!revenueData.length) return [];
-
-    const byWeekStore = {};
+    const byWeek = {};
     revenueData.forEach(r => {
-      const weekKey = moment(r.order_date).startOf("isoWeek").format("YYYY-MM-DD");
-      const storeName = r.store_name || stores.find(s => s.id === r.store_id)?.name || "Sconosciuto";
-
-      if (!byWeekStore[weekKey]) byWeekStore[weekKey] = { week: weekKey };
-      if (!byWeekStore[weekKey][`${storeName}_rev`]) {
-        byWeekStore[weekKey][`${storeName}_rev`] = 0;
-        byWeekStore[weekKey][`${storeName}_ord`] = 0;
-      }
-      byWeekStore[weekKey][`${storeName}_rev`] += r.total_revenue || 0;
-      byWeekStore[weekKey][`${storeName}_ord`] += r.total_orders || 0;
+      const weekStart = moment(r.order_date).startOf("isoWeek").format("YYYY-MM-DD");
+      const name = getStoreName(r);
+      if (!byWeek[weekStart]) byWeek[weekStart] = {};
+      if (!byWeek[weekStart][name]) byWeek[weekStart][name] = { rev: 0, ord: 0 };
+      byWeek[weekStart][name].rev += r.total_revenue || 0;
+      byWeek[weekStart][name].ord += r.total_orders || 0;
     });
-
-    const storeNames = [...new Set(revenueData.map(r => r.store_name || stores.find(s => s.id === r.store_id)?.name || "Sconosciuto"))];
-
-    return Object.values(byWeekStore)
-      .map(w => {
-        const row = { week: moment(w.week).format("DD/MM") };
+    return Object.entries(byWeek)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([weekStart, stores]) => {
+        const weekEnd = moment(weekStart).endOf("isoWeek").format("DD/MM");
+        const label = `${moment(weekStart).format("DD/MM")} - ${weekEnd}`;
+        const row = { weekStart, label, shortLabel: moment(weekStart).format("DD/MM") };
+        let totalRev = 0, totalOrd = 0;
         storeNames.forEach(name => {
-          const rev = w[`${name}_rev`] || 0;
-          const ord = w[`${name}_ord`] || 0;
-          row[name] = ord > 0 ? parseFloat((rev / ord).toFixed(2)) : 0;
+          const d = stores[name];
+          const avg = d && d.ord > 0 ? parseFloat((d.rev / d.ord).toFixed(2)) : null;
+          row[name] = avg;
+          if (d) { totalRev += d.rev; totalOrd += d.ord; }
         });
+        row._globalAvg = totalOrd > 0 ? parseFloat((totalRev / totalOrd).toFixed(2)) : 0;
         return row;
-      })
-      .sort((a, b) => {
-        const dA = moment(a.week, "DD/MM");
-        const dB = moment(b.week, "DD/MM");
-        return dA - dB;
       });
-  }, [revenueData, stores]);
+  }, [revenueData, stores, storeNames]);
 
-  // Daily trend per store
-  const dailyTrendData = useMemo(() => {
+  // Daily data for chart
+  const dailyData = useMemo(() => {
     if (!revenueData.length) return [];
-
-    const byDayStore = {};
+    const byDay = {};
     revenueData.forEach(r => {
-      const dayKey = r.order_date;
-      const storeName = r.store_name || stores.find(s => s.id === r.store_id)?.name || "Sconosciuto";
-
-      if (!byDayStore[dayKey]) byDayStore[dayKey] = { day: dayKey };
-      if (!byDayStore[dayKey][`${storeName}_rev`]) {
-        byDayStore[dayKey][`${storeName}_rev`] = 0;
-        byDayStore[dayKey][`${storeName}_ord`] = 0;
-      }
-      byDayStore[dayKey][`${storeName}_rev`] += r.total_revenue || 0;
-      byDayStore[dayKey][`${storeName}_ord`] += r.total_orders || 0;
+      const day = r.order_date;
+      const name = getStoreName(r);
+      if (!byDay[day]) byDay[day] = {};
+      if (!byDay[day][name]) byDay[day][name] = { rev: 0, ord: 0 };
+      byDay[day][name].rev += r.total_revenue || 0;
+      byDay[day][name].ord += r.total_orders || 0;
     });
-
-    const storeNames = [...new Set(revenueData.map(r => r.store_name || stores.find(s => s.id === r.store_id)?.name || "Sconosciuto"))];
-
-    return Object.values(byDayStore)
-      .map(d => {
-        const row = { day: moment(d.day).format("DD/MM") };
+    return Object.entries(byDay)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([day, stores]) => {
+        const row = { day: moment(day).format("DD/MM") };
         storeNames.forEach(name => {
-          const rev = d[`${name}_rev`] || 0;
-          const ord = d[`${name}_ord`] || 0;
-          row[name] = ord > 0 ? parseFloat((rev / ord).toFixed(2)) : 0;
+          const d = stores[name];
+          row[name] = d && d.ord > 0 ? parseFloat((d.rev / d.ord).toFixed(2)) : null;
         });
         return row;
-      })
-      .sort((a, b) => moment(a.day, "DD/MM") - moment(b.day, "DD/MM"));
-  }, [revenueData, stores]);
+      });
+  }, [revenueData, stores, storeNames]);
 
-  const storeNames = useMemo(() =>
-    [...new Set(revenueData.map(r => r.store_name || stores.find(s => s.id === r.store_id)?.name || "Sconosciuto"))],
-    [revenueData, stores]
-  );
-
-  // Compare first half vs second half for trend indicator
+  // Trend: first half vs second half
   const getTrend = (storeName) => {
-    const storeData = revenueData.filter(r => (r.store_name || stores.find(s => s.id === r.store_id)?.name) === storeName);
+    const storeData = revenueData.filter(r => getStoreName(r) === storeName);
     if (storeData.length < 4) return null;
-
     const sorted = [...storeData].sort((a, b) => a.order_date.localeCompare(b.order_date));
     const mid = Math.floor(sorted.length / 2);
-    const firstHalf = sorted.slice(0, mid);
-    const secondHalf = sorted.slice(mid);
-
-    const avg1Rev = firstHalf.reduce((s, r) => s + (r.total_revenue || 0), 0);
-    const avg1Ord = firstHalf.reduce((s, r) => s + (r.total_orders || 0), 0);
-    const avg2Rev = secondHalf.reduce((s, r) => s + (r.total_revenue || 0), 0);
-    const avg2Ord = secondHalf.reduce((s, r) => s + (r.total_orders || 0), 0);
-
-    const avg1 = avg1Ord > 0 ? avg1Rev / avg1Ord : 0;
-    const avg2 = avg2Ord > 0 ? avg2Rev / avg2Ord : 0;
-
+    const calc = (slice) => {
+      const rev = slice.reduce((s, r) => s + (r.total_revenue || 0), 0);
+      const ord = slice.reduce((s, r) => s + (r.total_orders || 0), 0);
+      return ord > 0 ? rev / ord : 0;
+    };
+    const avg1 = calc(sorted.slice(0, mid));
+    const avg2 = calc(sorted.slice(mid));
     if (avg1 === 0) return null;
-    const change = ((avg2 - avg1) / avg1) * 100;
-    return change;
+    return ((avg2 - avg1) / avg1) * 100;
   };
 
-  const [chartMode, setChartMode] = useState("weekly"); // weekly or daily
-
-  const chartData = chartMode === "weekly" ? trendData : dailyTrendData;
+  const chartData = chartMode === "weekly"
+    ? weeklyData.map(w => ({ ...w, week: w.shortLabel }))
+    : dailyData;
 
   if (isLoading) {
     return (
@@ -285,6 +252,61 @@ export default function ScontrinoMedioTab({ stores }) {
         </div>
       </NeumorphicCard>
 
+      {/* Weekly breakdown table */}
+      <NeumorphicCard className="p-4 lg:p-6">
+        <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-blue-600" />
+          Scontrino Medio Settimana per Settimana
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b-2 border-blue-600">
+                <th className="text-left p-2 text-slate-600 text-xs font-medium sticky left-0 bg-white z-10">Settimana</th>
+                {storeNames.map(name => (
+                  <th key={name} className="text-right p-2 text-slate-600 text-xs font-medium whitespace-nowrap">{name}</th>
+                ))}
+                <th className="text-right p-2 text-slate-600 text-xs font-medium font-bold">Media</th>
+              </tr>
+            </thead>
+            <tbody>
+              {weeklyData.map((week, idx) => {
+                const prevWeek = idx > 0 ? weeklyData[idx - 1] : null;
+                return (
+                  <tr key={week.weekStart} className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className="p-2 text-sm font-medium text-slate-700 whitespace-nowrap sticky left-0 bg-white z-10">{week.label}</td>
+                    {storeNames.map(name => {
+                      const val = week[name];
+                      const prevVal = prevWeek ? prevWeek[name] : null;
+                      const diff = val !== null && prevVal !== null && prevVal > 0
+                        ? ((val - prevVal) / prevVal) * 100
+                        : null;
+                      return (
+                        <td key={name} className="p-2 text-right text-sm">
+                          {val !== null ? (
+                            <div>
+                              <span className="font-bold text-slate-700">€{val.toFixed(2)}</span>
+                              {diff !== null && (
+                                <span className={`ml-1 text-xs ${diff > 0 ? "text-green-600" : diff < 0 ? "text-red-600" : "text-slate-400"}`}>
+                                  {diff > 0 ? "↑" : diff < 0 ? "↓" : "="}{Math.abs(diff).toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="p-2 text-right text-sm font-bold text-blue-600">€{week._globalAvg.toFixed(2)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </NeumorphicCard>
+
       {/* Trend chart */}
       <NeumorphicCard className="p-4 lg:p-6">
         <div className="flex items-center justify-between mb-4">
@@ -313,7 +335,7 @@ export default function ScontrinoMedioTab({ stores }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey={chartMode === "weekly" ? "week" : "day"} tick={{ fontSize: 11 }} />
             <YAxis tickFormatter={v => `€${v}`} />
-            <Tooltip formatter={(v) => `€${v.toFixed(2)}`} />
+            <Tooltip formatter={(v) => v !== null ? `€${v.toFixed(2)}` : "—"} />
             <Legend />
             {storeNames.map((name, idx) => (
               <Line
