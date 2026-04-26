@@ -65,7 +65,14 @@ export default function EmployeeWeeklyTicket({ revenueData }) {
     return { weeks: weekSet, employeeNames: empSet, tableData: table, chartData: chart };
   }, [revenueData]);
 
-  if (!weeks.length || !employeeNames.length) return null;
+  if (!weeks.length || !employeeNames.length) {
+    return (
+      <NeumorphicCard className="p-6 text-center">
+        <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+        <p className="text-sm text-slate-500">Nessun dato dipendente disponibile per il periodo selezionato. Assicurati che i dati abbiano cassieri assegnati (matched_employees).</p>
+      </NeumorphicCard>
+    );
+  }
 
   return (
     <div className="space-y-4">

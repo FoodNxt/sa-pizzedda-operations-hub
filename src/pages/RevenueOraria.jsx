@@ -16,7 +16,7 @@ import { Clock, Loader2, BarChart3, Receipt } from "lucide-react";
 export default function RevenueOraria() {
   const [activeTab, setActiveTab] = useState("oraria");
   const [selectedStore, setSelectedStore] = useState("all");
-  const [dateFrom, setDateFrom] = useState(moment().subtract(7, "days").format("YYYY-MM-DD"));
+  const [dateFrom, setDateFrom] = useState(moment().subtract(30, "days").format("YYYY-MM-DD"));
   const [dateTo, setDateTo] = useState(moment().format("YYYY-MM-DD"));
 
   const { data: stores = [] } = useQuery({
