@@ -10,6 +10,7 @@ import RevenueOrariaTable from "../components/revenue-oraria/RevenueOrariaTable"
 import RevenueOrariaCharts from "../components/revenue-oraria/RevenueOrariaCharts";
 import RevenueOrariaEmployeeTable from "../components/revenue-oraria/RevenueOrariaEmployeeTable";
 import ScontrinoMedioTab from "../components/revenue-oraria/ScontrinoMedioTab";
+import EmployeeWeeklyTicket from "../components/revenue-oraria/EmployeeWeeklyTicket";
 import { Clock, Loader2, BarChart3, Receipt } from "lucide-react";
 
 export default function RevenueOraria() {
@@ -158,6 +159,7 @@ export default function RevenueOraria() {
               <>
                 <RevenueOrariaKPIs metrics={metrics} />
                 <RevenueOrariaEmployeeTable employeeData={metrics.employeeData} />
+                <EmployeeWeeklyTicket revenueData={revenueData} />
                 <RevenueOrariaCharts metrics={metrics} />
                 <RevenueOrariaTable data={revenueData} />
               </>
