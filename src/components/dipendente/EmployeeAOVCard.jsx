@@ -6,23 +6,25 @@ import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import moment from "moment";
 
 export default function EmployeeAOVCard({ user, stores }) {
-  const primaryStoreIds = user?.primary_stores || [];
   const isCassiere = (user?.ruoli_dipendente || []).includes("Cassiere");
 
   const weekStart = useMemo(() => moment().startOf("isoWeek"), []);
   const weekEnd = useMemo(() => moment().endOf("isoWeek"), []);
   const targetMonth = weekStart.format("YYYY-MM");
 
+  // Fetch revenue data for the current week
   const { data: revenueByHour = [], isLoading } = useQuery({
-    queryKey: ["rev-by-hour-emp-aov"],
-    queryFn: () => base44.entities.RevenueByHour.filter({}),
-    enabled: isCassiere && primaryStoreIds.length > 0
+    queryKey: ["rev-by-hour-emp-aov", weekStart.format("YYYY-MM-DD")],
+    queryFn: () => base44.entities.RevenueByHour.filter({
+      order_date: { $gte: weekStart.format("YYYY-MM-DD"), $lte: weekEnd.format("YYYY-MM-DD") }
+    }),
+    enabled: isCassiere
   });
 
   const { data: aovTargets = [] } = useQuery({
     queryKey: ["target-aov-emp", targetMonth],
     queryFn: () => base44.entities.TargetAOV.filter({ mese: targetMonth }),
-    enabled: isCassiere && primaryStoreIds.length > 0
+    enabled: isCassiere
   });
 
   const storeIdToName = useMemo(() => {
@@ -39,14 +41,33 @@ export default function EmployeeAOVCard({ user, stores }) {
 
   const empName = (user?.nome_cognome || user?.full_name || "").trim().toLowerCase();
 
-  const storeAovData = useMemo(() => {
-    if (!empName || primaryStoreIds.length === 0) return [];
+  // Derive assigned store IDs from: user.assigned_stores, or from revenue data matched to this employee
+  const assignedStoreIds = useMemo(() => {
+    // Try assigned_stores from user profile first
+    if (user?.assigned_stores && user.assigned_stores.length > 0) {
+      // assigned_stores may contain store names, need to map to IDs
+      const storeNameToId = {};
+      (stores || []).forEach(s => { storeNameToId[s.name] = s.id; });
+      const ids = user.assigned_stores.map(s => storeNameToId[s] || s).filter(Boolean);
+      if (ids.length > 0) return ids;
+    }
+    // Fallback: derive from revenue data where this employee is matched
+    if (!empName || revenueByHour.length === 0) return [];
+    const storeSet = new Set();
+    revenueByHour.forEach(r => {
+      if (r.matched_employees?.some(e => (e.employee_name || "").trim().toLowerCase() === empName)) {
+        storeSet.add(r.store_id);
+      }
+    });
+    return Array.from(storeSet);
+  }, [user?.assigned_stores, stores, empName, revenueByHour]);
 
-    return primaryStoreIds.map(storeId => {
+  const storeAovData = useMemo(() => {
+    if (!empName || assignedStoreIds.length === 0) return [];
+
+    return assignedStoreIds.map(storeId => {
       const filtered = revenueByHour.filter(r => {
         if (r.store_id !== storeId || !r.order_date) return false;
-        const d = moment(r.order_date);
-        if (!d.isBetween(weekStart, weekEnd, "day", "[]")) return false;
         if (!r.matched_employees || r.matched_employees.length === 0) return false;
         return r.matched_employees.some(e =>
           (e.employee_name || "").trim().toLowerCase() === empName
@@ -64,24 +85,16 @@ export default function EmployeeAOVCard({ user, stores }) {
       const target = targetByStore[storeId] || null;
       const delta = aov != null && target ? ((aov - target) / target) * 100 : null;
 
-      return {
-        storeId,
-        storeName: storeIdToName[storeId] || storeId,
-        aov,
-        orders: Math.round(orders),
-        revenue,
-        target,
-        delta
-      };
+      return { storeId, storeName: storeIdToName[storeId] || storeId, aov, orders: Math.round(orders), revenue, target, delta };
     });
-  }, [revenueByHour, primaryStoreIds, empName, weekStart, weekEnd, targetByStore, storeIdToName]);
+  }, [revenueByHour, assignedStoreIds, empName, targetByStore, storeIdToName]);
 
-  if (!isCassiere || primaryStoreIds.length === 0 || isLoading) return null;
-  if (storeAovData.every(d => d.aov == null)) return null;
+  if (!isCassiere || isLoading) return null;
+  if (storeAovData.length === 0 || storeAovData.every(d => d.aov == null)) return null;
 
   return (
     <div className="space-y-3">
-      {storeAovData.map(data => (
+      {storeAovData.filter(d => d.aov != null).map(data => (
         <NeumorphicCard key={data.storeId} className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
           <div className="flex items-center gap-2 mb-2">
             <ShoppingCart className="w-4 h-4 text-blue-600" />
@@ -93,12 +106,8 @@ export default function EmployeeAOVCard({ user, stores }) {
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-[10px] text-slate-500 mb-0.5">Il tuo AOV</p>
-              <p className="text-xl font-bold text-slate-800">
-                {data.aov != null ? `€${data.aov.toFixed(2)}` : "—"}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                {data.orders > 0 ? `${data.orders} ordini` : "Nessun dato"}
-              </p>
+              <p className="text-xl font-bold text-slate-800">€{data.aov.toFixed(2)}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{data.orders} ordini</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] text-slate-500 mb-0.5">Target</p>
