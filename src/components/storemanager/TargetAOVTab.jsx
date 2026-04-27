@@ -21,21 +21,15 @@ export default function TargetAOVTab({ stores }) {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  // iPratico data for store-level AOV (canale "store" = Negozio, same as meeting settimanale)
-  const { data: iPraticoData = [], isLoading: loadingIPratico } = useQuery({
-    queryKey: ["ipratico-aov-all"],
-    queryFn: () => base44.entities.iPratico.filter({})
+  // RevenueByHour — same data source as "Revenue Oraria" in Financials
+  const { data: revenueByHour = [], isLoading: loadingRevByHour } = useQuery({
+    queryKey: ["revenue-by-hour-aov"],
+    queryFn: () => base44.entities.RevenueByHour.filter({})
   });
 
   const { data: targets = [], isLoading: loadingTargets } = useQuery({
     queryKey: ["target-aov", selectedMonth],
     queryFn: () => base44.entities.TargetAOV.filter({ mese: selectedMonth })
-  });
-
-  // RevenueByHour for employee-level AOV
-  const { data: revenueByHour = [], isLoading: loadingRevByHour } = useQuery({
-    queryKey: ["revenue-by-hour-aov"],
-    queryFn: () => base44.entities.RevenueByHour.filter({})
   });
 
   const saveMutation = useMutation({
@@ -53,20 +47,20 @@ export default function TargetAOVTab({ stores }) {
     }
   });
 
-  // AOV per store using ONLY sourceApp_store (Negozio channel), same as meeting settimanale
+  // AOV per store from RevenueByHour — same data source as "Revenue Oraria" in Financials
   const aovByStore = useMemo(() => {
     const today = moment();
     const result = {};
 
     (stores || []).forEach(store => {
-      const storeData = iPraticoData.filter(r => r.store_id === store.id);
+      const storeData = revenueByHour.filter(r => r.store_id === store.id);
       const periods = {};
 
       PERIOD_OPTIONS.forEach(({ value: days }) => {
         const cutoff = moment(today).subtract(days, "days");
         const filtered = storeData.filter(r => r.order_date && moment(r.order_date).isAfter(cutoff));
-        const totalRev = filtered.reduce((s, r) => s + (r.sourceApp_store || 0), 0);
-        const totalOrd = filtered.reduce((s, r) => s + (r.sourceApp_store_orders || 0), 0);
+        const totalRev = filtered.reduce((s, r) => s + (r.total_revenue || 0), 0);
+        const totalOrd = filtered.reduce((s, r) => s + (r.total_orders || 0), 0);
         periods[days] = totalOrd > 0 ? totalRev / totalOrd : null;
       });
 
@@ -74,7 +68,7 @@ export default function TargetAOVTab({ stores }) {
     });
 
     return result;
-  }, [iPraticoData, stores]);
+  }, [revenueByHour, stores]);
 
   const targetMap = useMemo(() => {
     const map = {};
@@ -100,7 +94,7 @@ export default function TargetAOVTab({ stores }) {
     return options;
   }, []);
 
-  const isLoading = loadingIPratico || loadingTargets;
+  const isLoading = loadingRevByHour || loadingTargets;
 
   if (isLoading) {
     return (
@@ -133,7 +127,7 @@ export default function TargetAOVTab({ stores }) {
 
       <NeumorphicCard className="p-4 lg:p-6">
         <p className="text-xs text-slate-500 mb-4">
-          AOV calcolato sul canale <strong>Negozio</strong> (sourceApp_store), stesso metodo del Meeting Settimanale.
+          AOV calcolato da <strong>Revenue Oraria</strong> (RevenueByHour: total_revenue / total_orders), stessi dati di Financials.
         </p>
 
         <div className="overflow-x-auto">
