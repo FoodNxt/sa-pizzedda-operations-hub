@@ -177,6 +177,20 @@ export default function StimaPallineTab() {
               − <strong>Pizze vendute ÷ 12</strong> (palline consumate).
             </p>
             <p className="mt-1">Un valore <span className="text-green-700 font-medium">positivo</span> indica surplus, un valore <span className="text-red-700 font-medium">negativo</span> indica deficit.</p>
+            <hr className="my-2 border-blue-200" />
+            <p className="font-medium mb-1">📊 Delta Palline</p>
+            <p>
+              Misura il <strong>bilancio giornaliero</strong>: palline in frigo − impasto suggerito − palline consumate (pizze vendute ÷ 12).
+              Se è <span className="text-green-700 font-medium">positivo</span>, quel giorno c'erano più palline del necessario (surplus).
+              Se è <span className="text-red-700 font-medium">negativo</span>, ne servivano di più (deficit).
+            </p>
+            <p className="font-medium mt-2 mb-1">🌅 Delta Mattina</p>
+            <p>
+              Confronta le <strong>palline trovate in frigo la mattina</strong> con la <strong>stima teorica</strong> calcolata dal giorno prima.
+              La stima teorica = palline ieri + impasto preparato ieri − palline consumate ieri − teglie buttate ieri.
+              Se è <span className="text-green-700 font-medium">positivo</span>, ci sono più palline del previsto (es. meno consumo reale).
+              Se è <span className="text-red-700 font-medium">negativo</span>, ne mancano rispetto al previsto (es. consumo extra non tracciato, errore conteggio).
+            </p>
           </div>
         </div>
       </NeumorphicCard>
