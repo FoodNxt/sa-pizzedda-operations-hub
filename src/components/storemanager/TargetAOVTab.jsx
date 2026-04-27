@@ -1,38 +1,50 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Store, TrendingUp, TrendingDown, Save, Loader2, ShoppingCart } from "lucide-react";
+import { Store, TrendingUp, TrendingDown, Save, Loader2, ShoppingCart, Users } from "lucide-react";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
+import EmployeeAOVList from "./EmployeeAOVList";
 import moment from "moment";
 
 const PERIOD_OPTIONS = [
-  { value: 30, label: "30 giorni" },
-  { value: 60, label: "60 giorni" },
-  { value: 90, label: "90 giorni" }
+  { value: 30, label: "30gg" },
+  { value: 60, label: "60gg" },
+  { value: 90, label: "90gg" }
 ];
 
 export default function TargetAOVTab({ stores }) {
   const queryClient = useQueryClient();
   const [editingStore, setEditingStore] = useState(null);
   const [editValue, setEditValue] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
+  // iPratico data for store-level AOV (canale "store" = Negozio, same as meeting settimanale)
   const { data: iPraticoData = [], isLoading: loadingIPratico } = useQuery({
     queryKey: ["ipratico-aov-all"],
     queryFn: () => base44.entities.iPratico.filter({})
   });
 
   const { data: targets = [], isLoading: loadingTargets } = useQuery({
-    queryKey: ["target-aov"],
-    queryFn: () => base44.entities.TargetAOV.list()
+    queryKey: ["target-aov", selectedMonth],
+    queryFn: () => base44.entities.TargetAOV.filter({ mese: selectedMonth })
+  });
+
+  // RevenueByHour for employee-level AOV
+  const { data: revenueByHour = [], isLoading: loadingRevByHour } = useQuery({
+    queryKey: ["revenue-by-hour-aov"],
+    queryFn: () => base44.entities.RevenueByHour.filter({})
   });
 
   const saveMutation = useMutation({
     mutationFn: async ({ storeId, storeName, value }) => {
-      const existing = targets.find(t => t.store_id === storeId);
+      const existing = targets.find(t => t.store_id === storeId && t.mese === selectedMonth);
       if (existing) {
         return base44.entities.TargetAOV.update(existing.id, { target_aov: value });
       }
-      return base44.entities.TargetAOV.create({ store_id: storeId, store_name: storeName, target_aov: value });
+      return base44.entities.TargetAOV.create({ store_id: storeId, store_name: storeName, mese: selectedMonth, target_aov: value });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["target-aov"] });
@@ -41,6 +53,7 @@ export default function TargetAOVTab({ stores }) {
     }
   });
 
+  // AOV per store using ONLY sourceApp_store (Negozio channel), same as meeting settimanale
   const aovByStore = useMemo(() => {
     const today = moment();
     const result = {};
@@ -52,8 +65,8 @@ export default function TargetAOVTab({ stores }) {
       PERIOD_OPTIONS.forEach(({ value: days }) => {
         const cutoff = moment(today).subtract(days, "days");
         const filtered = storeData.filter(r => r.order_date && moment(r.order_date).isAfter(cutoff));
-        const totalRev = filtered.reduce((s, r) => s + (r.total_revenue || 0), 0);
-        const totalOrd = filtered.reduce((s, r) => s + (r.total_orders || 0), 0);
+        const totalRev = filtered.reduce((s, r) => s + (r.sourceApp_store || 0), 0);
+        const totalOrd = filtered.reduce((s, r) => s + (r.sourceApp_store_orders || 0), 0);
         periods[days] = totalOrd > 0 ? totalRev / totalOrd : null;
       });
 
@@ -75,6 +88,18 @@ export default function TargetAOVTab({ stores }) {
     saveMutation.mutate({ storeId, storeName, value: val });
   };
 
+  const monthOptions = useMemo(() => {
+    const options = [];
+    const now = new Date();
+    for (let i = -3; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+      options.push({ value, label });
+    }
+    return options;
+  }, []);
+
   const isLoading = loadingIPratico || loadingTargets;
 
   if (isLoading) {
@@ -89,13 +114,26 @@ export default function TargetAOVTab({ stores }) {
 
   return (
     <div className="space-y-4">
-      <NeumorphicCard className="p-4 lg:p-6">
-        <h3 className="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+      {/* Month selector */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
           <ShoppingCart className="w-5 h-5 text-blue-600" />
           Target AOV per Locale
         </h3>
+        <select
+          value={selectedMonth}
+          onChange={e => setSelectedMonth(e.target.value)}
+          className="neumorphic-pressed px-4 py-2 rounded-xl outline-none text-sm"
+        >
+          {monthOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <NeumorphicCard className="p-4 lg:p-6">
         <p className="text-xs text-slate-500 mb-4">
-          AOV = Revenue Totale / Numero Ordini. Imposta un target per ogni locale per monitorare la crescita.
+          AOV calcolato sul canale <strong>Negozio</strong> (sourceApp_store), stesso metodo del Meeting Settimanale.
         </p>
 
         <div className="overflow-x-auto">
@@ -106,9 +144,11 @@ export default function TargetAOVTab({ stores }) {
                 {PERIOD_OPTIONS.map(p => (
                   <th key={p.value} className="text-right p-2 text-slate-600 text-xs font-medium">AOV {p.label}</th>
                 ))}
-                <th className="text-right p-2 text-slate-600 text-xs font-medium">Target AOV</th>
+                <th className="text-right p-2 text-slate-600 text-xs font-medium">
+                  Target {monthOptions.find(m => m.value === selectedMonth)?.label}
+                </th>
                 {PERIOD_OPTIONS.map(p => (
-                  <th key={`delta-${p.value}`} className="text-right p-2 text-slate-600 text-xs font-medium">Δ vs {p.value}gg</th>
+                  <th key={`delta-${p.value}`} className="text-right p-2 text-slate-600 text-xs font-medium">Δ vs {p.label}</th>
                 ))}
                 <th className="text-center p-2 text-slate-600 text-xs font-medium w-16"></th>
               </tr>
@@ -210,6 +250,9 @@ export default function TargetAOVTab({ stores }) {
           </table>
         </div>
       </NeumorphicCard>
+
+      {/* Employee AOV List */}
+      <EmployeeAOVList revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} />
     </div>
   );
 }

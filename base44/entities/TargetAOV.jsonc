@@ -10,6 +10,10 @@
       "type": "string",
       "description": "Nome dello store (denormalizzato)"
     },
+    "mese": {
+      "type": "string",
+      "description": "Mese di riferimento (YYYY-MM)"
+    },
     "target_aov": {
       "type": "number",
       "description": "AOV target in euro"
@@ -17,6 +21,7 @@
   },
   "required": [
     "store_id",
+    "mese",
     "target_aov"
   ]
 }
