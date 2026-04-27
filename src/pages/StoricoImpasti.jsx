@@ -46,6 +46,11 @@ export default function StoricoImpasti() {
     queryFn: () => base44.entities.RicettaImpasto.list()
   });
 
+  const { data: impastoExtras = [] } = useQuery({
+    queryKey: ['impasto-extra-storico'],
+    queryFn: () => base44.entities.ImpastoExtra.list()
+  });
+
   const { data: impastiConfig = [] } = useQuery({
     queryKey: ['impasti-config'],
     queryFn: async () => {
@@ -729,6 +734,7 @@ export default function StoricoImpasti() {
                         <th className="text-right py-3 px-2 text-slate-700">Barelle in Frigo</th>
                         <th className="text-right py-3 px-2 text-slate-700">Palline Presenti</th>
                         <th className="text-right py-3 px-2 text-slate-700">Fabbisogno 3gg</th>
+                        <th className="text-right py-3 px-2 text-slate-700 bg-orange-50">Extra</th>
                         <th className="text-right py-3 px-2 text-slate-700 bg-green-50">Impasto Suggerito</th>
                       </tr>
                     </thead>
@@ -746,6 +752,23 @@ export default function StoricoImpasti() {
                           <td className="py-3 px-2 text-right text-slate-700">{log.barelle_in_frigo}</td>
                           <td className="py-3 px-2 text-right text-slate-700">{log.palline_presenti}</td>
                           <td className="py-3 px-2 text-right text-slate-700">{log.fabbisogno_3_giorni}</td>
+                          <td className="py-3 px-2 text-right bg-orange-50">
+                            {(() => {
+                              const calcDate = moment(log.data_calcolo).format('YYYY-MM-DD');
+                              const extras = impastoExtras.filter(e => e.store_id === log.store_id && e.data >= calcDate && e.data < moment(calcDate).add(3, 'days').format('YYYY-MM-DD'));
+                              const totalExtra = extras.reduce((sum, e) => sum + (e.palline_extra || 0), 0);
+                              if (totalExtra > 0) {
+                                const hasIgnora = extras.some(e => e.ignora_limite_max);
+                                return (
+                                  <span className="font-medium text-orange-700">
+                                    +{totalExtra}
+                                    {hasIgnora && <span className="text-xs ml-1" title="Limite max ignorato">⚡</span>}
+                                  </span>
+                                );
+                              }
+                              return <span className="text-slate-400">-</span>;
+                            })()}
+                          </td>
                           <td className="py-3 px-2 text-right font-bold text-green-700 bg-green-50">
                             {log.impasto_suggerito}
                           </td>
