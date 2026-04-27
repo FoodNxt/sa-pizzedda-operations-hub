@@ -53,14 +53,15 @@ export default function Impasto() {
     queryFn: () => base44.entities.RicettaImpasto.list(),
   });
 
-  const { data: impastiConfig = [] } = useQuery({
+  const { data: impastiConfig = [], isLoading: loadingConfig } = useQuery({
     queryKey: ['impasti-config'],
     queryFn: () => base44.entities.ImpastiConfig.list(),
   });
 
-  const { data: impastoExtras = [] } = useQuery({
+  const { data: impastoExtras = [], isLoading: loadingExtras } = useQuery({
     queryKey: ['impasto-extra'],
     queryFn: () => base44.entities.ImpastoExtra.list(),
+    staleTime: 0,
   });
 
   // Preselezione store da URL
@@ -157,8 +158,10 @@ export default function Impasto() {
     },
   });
 
+  const dataReady = !loadingExtras && !loadingConfig;
+
   const risultato = useMemo(() => {
-    if (!selectedStore || !barelleInFrigo) return null;
+    if (!selectedStore || !barelleInFrigo || !dataReady) return null;
 
     const oggi = new Date().getDay();
     const storeImpasti = impasti.filter(i => i.store_id === selectedStore || i.store_name === selectedStore);
@@ -248,7 +251,7 @@ export default function Impasto() {
       totaleExtra,
       hasIgnoraLimiteMax
     };
-  }, [selectedStore, barelleInFrigo, impasti, sortedIngredienti, impastiConfig, impastoExtras]);
+  }, [selectedStore, barelleInFrigo, impasti, sortedIngredienti, impastiConfig, impastoExtras, dataReady]);
 
   const handleCalcolaImpasto = async () => {
     if (!risultato) return;
