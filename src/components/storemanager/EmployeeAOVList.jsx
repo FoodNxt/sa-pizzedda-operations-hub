@@ -40,12 +40,29 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
     queryFn: () => base44.entities.TurnoPlanday.filter({ ruolo: "Cassiere" })
   });
 
+  // Fetch employees to identify CM (contratto a chiamata) to exclude them
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees-for-aov-cm"],
+    queryFn: () => base44.entities.Employee.list()
+  });
+
   // Build target map: store_id -> target_aov
   const targetByStore = useMemo(() => {
     const map = {};
     aovTargets.forEach(t => { map[t.store_id] = t.target_aov; });
     return map;
   }, [aovTargets]);
+
+  // Build CM set from Employee entity to exclude them
+  const cmSet = useMemo(() => {
+    const set = new Set();
+    employees.forEach(e => {
+      if (e.employee_group === "CM" && e.full_name) {
+        set.add(e.full_name.trim().toLowerCase());
+      }
+    });
+    return set;
+  }, [employees]);
 
   // Build cassiere set from shifts (ruolo=Cassiere) + User ruoli_dipendente as fallback
   const cassiereSet = useMemo(() => {
@@ -91,8 +108,9 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
       return d.isValid() && d.isBetween(rangeStart, rangeEnd, "day", "[]");
     };
 
-    const calcEmployees = (rangeStart, rangeEnd) => {
-      const empMap = {};
+    // Calculate per-employee per-store revenue
+    const calcEmployeesByStore = (rangeStart, rangeEnd) => {
+      const empStoreMap = {}; // key: empId_storeId
       const filteredHours = revenueByHour.filter(r => {
         if (!inRange(r.order_date, rangeStart, rangeEnd)) return false;
         if (filterStore !== "all" && r.store_id !== filterStore) return false;
@@ -103,59 +121,119 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
         if (!hour.matched_employees || hour.matched_employees.length === 0) return;
         const revenuePerEmp = (hour.total_revenue || 0) / hour.matched_employees.length;
         const ordersPerEmp = (hour.total_orders || 0) / hour.matched_employees.length;
+        const storeId = hour.store_id;
 
         hour.matched_employees.forEach(emp => {
-          const key = emp.employee_id || emp.employee_name;
-          if (!key) return;
-          if (!empMap[key]) {
-            empMap[key] = { name: emp.employee_name || "N/A", id: emp.employee_id, revenue: 0, orders: 0 };
+          const empId = emp.employee_id || emp.employee_name;
+          if (!empId) return;
+          const key = `${empId}__${storeId}`;
+          if (!empStoreMap[key]) {
+            empStoreMap[key] = { name: emp.employee_name || "N/A", id: emp.employee_id, storeId, revenue: 0, orders: 0 };
           }
-          empMap[key].revenue += revenuePerEmp;
-          empMap[key].orders += ordersPerEmp;
+          empStoreMap[key].revenue += revenuePerEmp;
+          empStoreMap[key].orders += ordersPerEmp;
         });
       });
 
-      return empMap;
+      return empStoreMap;
     };
 
-    const curMap = calcEmployees(weekStart, weekEnd);
-    const prevMap = calcEmployees(prevWeek.start, prevWeek.end);
+    const curMap = calcEmployeesByStore(weekStart, weekEnd);
+    const prevMap = calcEmployeesByStore(prevWeek.start, prevWeek.end);
 
-    const result = Object.values(curMap)
-      .map(emp => {
-        const aov = emp.orders > 0 ? emp.revenue / emp.orders : null;
-        const prev = prevMap[emp.id || emp.name];
-        const prevAov = prev && prev.orders > 0 ? prev.revenue / prev.orders : null;
+    // Build rows: one per employee per primary store
+    const rows = [];
+    
+    // Group current data by employee
+    const empDataByName = {};
+    Object.values(curMap).forEach(entry => {
+      const empKey = (entry.name || "").trim().toLowerCase();
+      if (!empDataByName[empKey]) empDataByName[empKey] = {};
+      empDataByName[empKey][entry.storeId] = entry;
+    });
+
+    // Group prev data by employee
+    const prevDataByName = {};
+    Object.values(prevMap).forEach(entry => {
+      const empKey = (entry.name || "").trim().toLowerCase();
+      if (!prevDataByName[empKey]) prevDataByName[empKey] = {};
+      prevDataByName[empKey][entry.storeId] = entry;
+    });
+
+    // For each cassiere (non-CM), create one row per primary store
+    const processedEmployees = new Set();
+    Object.values(curMap).forEach(entry => {
+      const empKey = (entry.name || "").trim().toLowerCase();
+      if (processedEmployees.has(empKey)) return;
+      processedEmployees.add(empKey);
+
+      // Skip non-cassiere
+      if (!cassiereSet.has(empKey)) return;
+      // Skip CM employees
+      if (cmSet.has(empKey)) return;
+
+      const primaryStoreIds = employeePrimaryStoresMap[empKey] || [];
+      const storesToShow = primaryStoreIds.length > 0 ? primaryStoreIds : [null];
+
+      storesToShow.forEach(storeId => {
+        // Calculate AOV for this employee in this specific store
+        let revenue = 0, orders = 0;
+        if (storeId) {
+          // Only data for this store
+          const storeEntry = (empDataByName[empKey] || {})[storeId];
+          if (storeEntry) {
+            revenue = storeEntry.revenue;
+            orders = storeEntry.orders;
+          }
+        } else {
+          // No primary store assigned, sum all stores
+          Object.values(empDataByName[empKey] || {}).forEach(e => {
+            revenue += e.revenue;
+            orders += e.orders;
+          });
+        }
+
+        const aov = orders > 0 ? revenue / orders : null;
+        if (aov == null) return;
+
+        // Previous week for same store
+        let prevRevenue = 0, prevOrders = 0;
+        if (storeId) {
+          const prevEntry = (prevDataByName[empKey] || {})[storeId];
+          if (prevEntry) { prevRevenue = prevEntry.revenue; prevOrders = prevEntry.orders; }
+        } else {
+          Object.values(prevDataByName[empKey] || {}).forEach(e => {
+            prevRevenue += e.revenue;
+            prevOrders += e.orders;
+          });
+        }
+        const prevAov = prevOrders > 0 ? prevRevenue / prevOrders : null;
         const delta = aov != null && prevAov != null ? ((aov - prevAov) / prevAov) * 100 : null;
 
-        // Find target for this employee's primary store(s) from User entity
-        const empKey = (emp.name || "").trim().toLowerCase();
-        const primaryStoreIds = employeePrimaryStoresMap[empKey] || [];
-        let empTarget = null;
-        const empTargetStores = [];
-        primaryStoreIds.forEach(storeId => {
-          if (targetByStore[storeId] != null) {
-            empTargetStores.push({ storeName: storeIdToName[storeId] || storeId, target: targetByStore[storeId] });
-          }
-        });
-        // Use average of all primary store targets if multiple
-        if (empTargetStores.length > 0) {
-          empTarget = empTargetStores.reduce((s, t) => s + t.target, 0) / empTargetStores.length;
-        }
+        // Target for this specific store
+        const empTarget = storeId && targetByStore[storeId] != null ? targetByStore[storeId] : null;
         const deltaVsTarget = aov != null && empTarget != null ? ((aov - empTarget) / empTarget) * 100 : null;
+        const storeName = storeId ? (storeIdToName[storeId] || storeId) : null;
 
-        return { ...emp, aov, prevAov, delta, empTarget, deltaVsTarget, empTargetStores };
-      })
-      .filter(e => {
-        if (e.aov == null) return false;
-        // Only show Cassiere employees
-        const empKey = (e.name || "").trim().toLowerCase();
-        return cassiereSet.has(empKey);
-      })
-      .sort((a, b) => b.aov - a.aov);
+        rows.push({
+          name: entry.name,
+          id: entry.id,
+          storeId,
+          storeName,
+          revenue,
+          orders,
+          aov,
+          prevAov,
+          delta,
+          empTarget,
+          deltaVsTarget,
+          rowKey: `${empKey}_${storeId || "all"}`
+        });
+      });
+    });
 
-    return result;
-  }, [revenueByHour, weekStart, weekEnd, prevWeek, filterStore, cassiereSet, employeePrimaryStoresMap, storeIdToName, targetByStore]);
+    return rows.sort((a, b) => b.aov - a.aov);
+  }, [revenueByHour, weekStart, weekEnd, prevWeek, filterStore, cassiereSet, cmSet, employeePrimaryStoresMap, storeIdToName, targetByStore]);
 
   if (loadingRevByHour) {
     return (
@@ -223,13 +301,13 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
             </thead>
             <tbody>
               {employeeData.map((emp, idx) => (
-                <tr key={emp.id || emp.name} className="border-b border-slate-100 hover:bg-slate-50">
+                <tr key={emp.rowKey} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="p-2 text-sm text-slate-400 font-bold">{idx + 1}</td>
                   <td className="p-2 text-sm font-medium text-slate-700">
                     {emp.name}
-                    {emp.empTargetStores.length > 0 && (
+                    {emp.storeName && (
                       <span className="block text-[10px] text-slate-400">
-                        {emp.empTargetStores.map(t => t.storeName).join(", ")}
+                        {emp.storeName}
                       </span>
                     )}
                   </td>
