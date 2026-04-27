@@ -28,10 +28,10 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
     queryFn: () => base44.entities.TargetAOV.filter({ mese: targetMonth })
   });
 
-  // Fetch employees for store assignment info
-  const { data: employees = [] } = useQuery({
-    queryKey: ["employees-cassiere"],
-    queryFn: () => base44.entities.Employee.filter({ status: "active" })
+  // Fetch Users for primary_stores assignment (store assignments are on User entity, not Employee)
+  const { data: users = [] } = useQuery({
+    queryKey: ["users-for-aov"],
+    queryFn: () => base44.entities.User.list()
   });
 
   // Fetch shifts to identify who works as Cassiere (more reliable than Employee.function_name)
@@ -47,38 +47,40 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
     return map;
   }, [aovTargets]);
 
-  // Build cassiere set from shifts (ruolo=Cassiere) + Employee.function_name as fallback
+  // Build cassiere set from shifts (ruolo=Cassiere) + User ruoli_dipendente as fallback
   const cassiereSet = useMemo(() => {
     const set = new Set();
     // From shifts: anyone who has ever had a Cassiere shift
     shifts.forEach(s => {
       if (s.dipendente_nome) set.add(s.dipendente_nome.trim().toLowerCase());
     });
-    // From Employee entity as fallback
-    employees.forEach(emp => {
-      if (emp.function_name === "Cassiere" && emp.full_name) {
-        set.add(emp.full_name.trim().toLowerCase());
+    // From User entity: users with "Cassiere" in ruoli_dipendente
+    users.forEach(u => {
+      const name = u.nome_cognome || u.full_name;
+      if (name && (u.ruoli_dipendente || []).includes("Cassiere")) {
+        set.add(name.trim().toLowerCase());
       }
     });
     return set;
-  }, [shifts, employees]);
+  }, [shifts, users]);
 
-  // Build employee -> assigned_stores mapping
-  const employeeStoresMap = useMemo(() => {
+  // Build employee -> primary_stores mapping from User entity
+  const employeePrimaryStoresMap = useMemo(() => {
     const map = {};
-    employees.forEach(emp => {
-      if (emp.full_name) {
-        const key = emp.full_name.trim().toLowerCase();
-        map[key] = emp.assigned_stores || [];
+    users.forEach(u => {
+      const name = u.nome_cognome || u.full_name;
+      if (name) {
+        const key = name.trim().toLowerCase();
+        map[key] = u.primary_stores || [];
       }
     });
     return map;
-  }, [employees]);
+  }, [users]);
 
-  // Resolve store name -> store id
-  const storeNameToId = useMemo(() => {
+  // Build store_id -> store_name for display
+  const storeIdToName = useMemo(() => {
     const map = {};
-    stores.forEach(s => { map[s.name] = s.id; });
+    stores.forEach(s => { map[s.id] = s.name; });
     return map;
   }, [stores]);
 
@@ -126,18 +128,17 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
         const prevAov = prev && prev.orders > 0 ? prev.revenue / prev.orders : null;
         const delta = aov != null && prevAov != null ? ((aov - prevAov) / prevAov) * 100 : null;
 
-        // Find target for this employee's store(s)
+        // Find target for this employee's primary store(s) from User entity
         const empKey = (emp.name || "").trim().toLowerCase();
-        const assignedStores = employeeStoresMap[empKey] || [];
+        const primaryStoreIds = employeePrimaryStoresMap[empKey] || [];
         let empTarget = null;
         const empTargetStores = [];
-        assignedStores.forEach(storeName => {
-          const storeId = storeNameToId[storeName];
-          if (storeId && targetByStore[storeId] != null) {
-            empTargetStores.push({ storeName, target: targetByStore[storeId] });
+        primaryStoreIds.forEach(storeId => {
+          if (targetByStore[storeId] != null) {
+            empTargetStores.push({ storeName: storeIdToName[storeId] || storeId, target: targetByStore[storeId] });
           }
         });
-        // Use average of all store targets if multiple
+        // Use average of all primary store targets if multiple
         if (empTargetStores.length > 0) {
           empTarget = empTargetStores.reduce((s, t) => s + t.target, 0) / empTargetStores.length;
         }
@@ -154,7 +155,7 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
       .sort((a, b) => b.aov - a.aov);
 
     return result;
-  }, [revenueByHour, weekStart, weekEnd, prevWeek, filterStore, cassiereSet, employeeStoresMap, storeNameToId, targetByStore]);
+  }, [revenueByHour, weekStart, weekEnd, prevWeek, filterStore, cassiereSet, employeePrimaryStoresMap, storeIdToName, targetByStore]);
 
   if (loadingRevByHour) {
     return (
