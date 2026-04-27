@@ -490,7 +490,6 @@ export default function TurniDipendente() {
       });
     },
     onSuccess: () => {
-      setShowFerieModal(false);
       setFerieForm({ data_inizio: '', data_fine: '', motivo: '' });
       setTimbraturaMessage({ type: 'success', text: 'Richiesta ferie inviata!' });
       setTimeout(() => setTimbraturaMessage(null), 3000);
@@ -528,7 +527,6 @@ export default function TurniDipendente() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['turni-dipendente'] });
       queryClient.invalidateQueries({ queryKey: ['turni-futuri'] });
-      setShowMalattiaModal(false);
       setMalattiaForm({ data_inizio: '', data_fine: '', descrizione: '', certificato: null });
       setTimbraturaMessage({ type: 'success', text: 'Malattia segnalata!' });
       setTimeout(() => setTimbraturaMessage(null), 3000);
