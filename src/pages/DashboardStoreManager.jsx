@@ -27,6 +27,7 @@ import {
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import WeeklyMeetingDashboard from "@/components/storemanager/WeeklyMeetingDashboard";
+import StoreAOVCard from "@/components/storemanager/StoreAOVCard";
 import { Calendar as CalendarIcon } from 'lucide-react';
 
 export default function DashboardStoreManager() {
@@ -651,6 +652,9 @@ export default function DashboardStoreManager() {
 
       {activeTab === 'monthly' && metrics &&
       <>
+          {/* AOV Target vs Effettivo */}
+          <StoreAOVCard storeId={selectedStoreId} storeName={myStores.find(s => s.id === selectedStoreId)?.name || ''} />
+
           {/* Ultimo Conteggio Cassa */}
           {ultimoConteggioCassa &&
         <NeumorphicCard className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
