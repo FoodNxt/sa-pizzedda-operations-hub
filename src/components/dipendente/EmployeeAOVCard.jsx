@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { ShoppingCart, TrendingUp, TrendingDown, Target } from "lucide-react";
+import { ShoppingCart, TrendingUp, TrendingDown, Target, Loader2 } from "lucide-react";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import moment from "moment";
 
@@ -10,19 +10,21 @@ export default function EmployeeAOVCard({ user, stores }) {
 
   const weekStart = useMemo(() => moment().startOf("isoWeek"), []);
   const weekEnd = useMemo(() => moment().endOf("isoWeek"), []);
+  const prevWeekStart = useMemo(() => moment().startOf("isoWeek").subtract(1, "week"), []);
+  const prevWeekEnd = useMemo(() => moment().endOf("isoWeek").subtract(1, "week"), []);
   const targetMonth = weekStart.format("YYYY-MM");
 
-  // Fetch revenue data for the current week
+  // Fetch ALL revenue by hour (same approach as admin EmployeeAOVList)
   const { data: revenueByHour = [], isLoading } = useQuery({
-    queryKey: ["rev-by-hour-emp-aov", weekStart.format("YYYY-MM-DD")],
+    queryKey: ["rev-by-hour-emp-card", weekStart.format("YYYY-MM-DD")],
     queryFn: () => base44.entities.RevenueByHour.filter({
-      order_date: { $gte: weekStart.format("YYYY-MM-DD"), $lte: weekEnd.format("YYYY-MM-DD") }
+      order_date: { $gte: prevWeekStart.format("YYYY-MM-DD"), $lte: weekEnd.format("YYYY-MM-DD") }
     }),
     enabled: isCassiere
   });
 
   const { data: aovTargets = [] } = useQuery({
-    queryKey: ["target-aov-emp", targetMonth],
+    queryKey: ["target-aov-emp-card", targetMonth],
     queryFn: () => base44.entities.TargetAOV.filter({ mese: targetMonth }),
     enabled: isCassiere
   });
@@ -41,60 +43,77 @@ export default function EmployeeAOVCard({ user, stores }) {
 
   const empName = (user?.nome_cognome || user?.full_name || "").trim().toLowerCase();
 
-  // Derive assigned store IDs from: user.assigned_stores, or from revenue data matched to this employee
-  const assignedStoreIds = useMemo(() => {
-    // Try assigned_stores from user profile first
-    if (user?.assigned_stores && user.assigned_stores.length > 0) {
-      // assigned_stores may contain store names, need to map to IDs
-      const storeNameToId = {};
-      (stores || []).forEach(s => { storeNameToId[s.name] = s.id; });
-      const ids = user.assigned_stores.map(s => storeNameToId[s] || s).filter(Boolean);
-      if (ids.length > 0) return ids;
-    }
-    // Fallback: derive from revenue data where this employee is matched
-    if (!empName || revenueByHour.length === 0) return [];
-    const storeSet = new Set();
-    revenueByHour.forEach(r => {
-      if (r.matched_employees?.some(e => (e.employee_name || "").trim().toLowerCase() === empName)) {
-        storeSet.add(r.store_id);
-      }
-    });
-    return Array.from(storeSet);
-  }, [user?.assigned_stores, stores, empName, revenueByHour]);
-
+  // Calculate AOV per store for this employee — same logic as admin EmployeeAOVList
   const storeAovData = useMemo(() => {
-    if (!empName || assignedStoreIds.length === 0) return [];
+    if (!empName || revenueByHour.length === 0) return [];
 
-    return assignedStoreIds.map(storeId => {
-      const filtered = revenueByHour.filter(r => {
-        if (r.store_id !== storeId || !r.order_date) return false;
-        if (!r.matched_employees || r.matched_employees.length === 0) return false;
-        return r.matched_employees.some(e =>
+    const calcForRange = (rangeStart, rangeEnd) => {
+      const storeMap = {}; // store_id -> { revenue, orders }
+      revenueByHour.forEach(r => {
+        if (!r.order_date || !r.matched_employees?.length) return;
+        const d = moment(r.order_date);
+        if (!d.isBetween(rangeStart, rangeEnd, "day", "[]")) return;
+
+        const isMatched = r.matched_employees.some(e =>
           (e.employee_name || "").trim().toLowerCase() === empName
         );
-      });
+        if (!isMatched) return;
 
-      let revenue = 0, orders = 0;
-      filtered.forEach(r => {
+        const storeId = r.store_id;
         const empCount = r.matched_employees.length;
-        revenue += (r.total_revenue || 0) / empCount;
-        orders += (r.total_orders || 0) / empCount;
+        if (!storeMap[storeId]) storeMap[storeId] = { revenue: 0, orders: 0 };
+        storeMap[storeId].revenue += (r.total_revenue || 0) / empCount;
+        storeMap[storeId].orders += (r.total_orders || 0) / empCount;
       });
+      return storeMap;
+    };
 
-      const aov = orders > 0 ? revenue / orders : null;
+    const curData = calcForRange(weekStart, weekEnd);
+    const prevData = calcForRange(prevWeekStart, prevWeekEnd);
+
+    // Build rows for each store where employee has data this week
+    const rows = [];
+    Object.keys(curData).forEach(storeId => {
+      const cur = curData[storeId];
+      const aov = cur.orders > 0 ? cur.revenue / cur.orders : null;
+      if (aov == null) return;
+
+      const prev = prevData[storeId];
+      const prevAov = prev && prev.orders > 0 ? prev.revenue / prev.orders : null;
+      const deltaVsPrev = aov != null && prevAov != null ? ((aov - prevAov) / prevAov) * 100 : null;
+
       const target = targetByStore[storeId] || null;
-      const delta = aov != null && target ? ((aov - target) / target) * 100 : null;
+      const deltaVsTarget = aov != null && target ? ((aov - target) / target) * 100 : null;
 
-      return { storeId, storeName: storeIdToName[storeId] || storeId, aov, orders: Math.round(orders), revenue, target, delta };
+      rows.push({
+        storeId,
+        storeName: storeIdToName[storeId] || storeId,
+        aov,
+        orders: Math.round(cur.orders),
+        revenue: cur.revenue,
+        target,
+        deltaVsTarget,
+        prevAov,
+        deltaVsPrev
+      });
     });
-  }, [revenueByHour, assignedStoreIds, empName, targetByStore, storeIdToName]);
 
-  if (!isCassiere || isLoading) return null;
-  if (storeAovData.length === 0 || storeAovData.every(d => d.aov == null)) return null;
+    return rows.sort((a, b) => b.revenue - a.revenue);
+  }, [revenueByHour, empName, weekStart, weekEnd, prevWeekStart, prevWeekEnd, targetByStore, storeIdToName]);
+
+  if (!isCassiere) return null;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-3">
+        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+  if (storeAovData.length === 0) return null;
 
   return (
     <div className="space-y-3">
-      {storeAovData.filter(d => d.aov != null).map(data => (
+      {storeAovData.map(data => (
         <NeumorphicCard key={data.storeId} className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
           <div className="flex items-center gap-2 mb-2">
             <ShoppingCart className="w-4 h-4 text-blue-600" />
@@ -107,7 +126,7 @@ export default function EmployeeAOVCard({ user, stores }) {
             <div>
               <p className="text-[10px] text-slate-500 mb-0.5">Il tuo AOV</p>
               <p className="text-xl font-bold text-slate-800">€{data.aov.toFixed(2)}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">{data.orders} ordini</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{data.orders} ordini · €{data.revenue.toFixed(0)} revenue</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] text-slate-500 mb-0.5">Target</p>
@@ -115,14 +134,26 @@ export default function EmployeeAOVCard({ user, stores }) {
                 <Target className="w-3 h-3" />
                 {data.target ? `€${data.target.toFixed(2)}` : "—"}
               </p>
-              {data.delta != null && (
-                <span className={`inline-flex items-center gap-0.5 text-xs font-bold mt-0.5 ${data.delta >= 0 ? "text-green-600" : "text-red-500"}`}>
-                  {data.delta >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {data.delta >= 0 ? "+" : ""}{data.delta.toFixed(1)}%
+              {data.deltaVsTarget != null && (
+                <span className={`inline-flex items-center gap-0.5 text-xs font-bold mt-0.5 ${data.deltaVsTarget >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  {data.deltaVsTarget >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {data.deltaVsTarget >= 0 ? "+" : ""}{data.deltaVsTarget.toFixed(1)}%
                 </span>
               )}
             </div>
           </div>
+          {/* Previous week comparison */}
+          {data.prevAov != null && (
+            <div className="mt-2 pt-2 border-t border-blue-200 flex items-center justify-between">
+              <span className="text-[10px] text-slate-500">Sett. precedente: €{data.prevAov.toFixed(2)}</span>
+              {data.deltaVsPrev != null && (
+                <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold ${data.deltaVsPrev >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  {data.deltaVsPrev >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {data.deltaVsPrev >= 0 ? "+" : ""}{data.deltaVsPrev.toFixed(1)}% vs prec.
+                </span>
+              )}
+            </div>
+          )}
         </NeumorphicCard>
       ))}
     </div>
