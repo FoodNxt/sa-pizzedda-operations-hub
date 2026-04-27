@@ -26,10 +26,11 @@ import {
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import WeeklyMeetingDashboard from "@/components/storemanager/WeeklyMeetingDashboard";
+import TargetAOVTab from "@/components/storemanager/TargetAOVTab";
 import moment from "moment";
 
 export default function StoreManagerAdmin() {
-  const [activeTab, setActiveTab] = useState('targets'); // 'targets' or 'meeting'
+  const [activeTab, setActiveTab] = useState('targets'); // 'targets', 'meeting', or 'target_aov'
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -403,9 +404,17 @@ export default function StoreManagerAdmin() {
         >
           <Calendar className="w-4 h-4" /> Meeting Settimanale
         </button>
+        <button
+          onClick={() => setActiveTab('target_aov')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'target_aov' ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white' : 'neumorphic-flat text-slate-700'}`}
+        >
+          <TrendingUp className="w-4 h-4" /> Target AOV
+        </button>
       </div>
 
       {activeTab === 'meeting' && <WeeklyMeetingDashboard stores={stores} users={users} />}
+
+      {activeTab === 'target_aov' && <TargetAOVTab stores={stores} />}
 
       {activeTab === 'targets' && <>
       <div className="flex flex-col md:flex-row md:items-center justify-end gap-3 mb-6">

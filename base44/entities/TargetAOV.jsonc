@@ -1,0 +1,22 @@
+{
+  "name": "TargetAOV",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store (denormalizzato)"
+    },
+    "target_aov": {
+      "type": "number",
+      "description": "AOV target in euro"
+    }
+  },
+  "required": [
+    "store_id",
+    "target_aov"
+  ]
+}
