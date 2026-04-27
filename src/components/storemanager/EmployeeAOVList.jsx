@@ -28,10 +28,16 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
     queryFn: () => base44.entities.TargetAOV.filter({ mese: targetMonth })
   });
 
-  // Fetch employees to filter only Cassiere
+  // Fetch employees for store assignment info
   const { data: employees = [] } = useQuery({
     queryKey: ["employees-cassiere"],
     queryFn: () => base44.entities.Employee.filter({ status: "active" })
+  });
+
+  // Fetch shifts to identify who works as Cassiere (more reliable than Employee.function_name)
+  const { data: shifts = [] } = useQuery({
+    queryKey: ["shifts-cassiere-roles"],
+    queryFn: () => base44.entities.TurnoPlanday.filter({ ruolo: "Cassiere" })
   });
 
   // Build target map: store_id -> target_aov
@@ -41,16 +47,21 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
     return map;
   }, [aovTargets]);
 
-  // Build cassiere set: employee names that have function_name = "Cassiere"
+  // Build cassiere set from shifts (ruolo=Cassiere) + Employee.function_name as fallback
   const cassiereSet = useMemo(() => {
     const set = new Set();
+    // From shifts: anyone who has ever had a Cassiere shift
+    shifts.forEach(s => {
+      if (s.dipendente_nome) set.add(s.dipendente_nome.trim().toLowerCase());
+    });
+    // From Employee entity as fallback
     employees.forEach(emp => {
       if (emp.function_name === "Cassiere" && emp.full_name) {
         set.add(emp.full_name.trim().toLowerCase());
       }
     });
     return set;
-  }, [employees]);
+  }, [shifts, employees]);
 
   // Build employee -> assigned_stores mapping
   const employeeStoresMap = useMemo(() => {
