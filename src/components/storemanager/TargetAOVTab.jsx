@@ -246,7 +246,7 @@ export default function TargetAOVTab({ stores }) {
       </NeumorphicCard>
 
       {/* Employee AOV List */}
-      <EmployeeAOVList revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} />
+      <EmployeeAOVList revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} allTargets={targets} />
     </div>
   );
 }

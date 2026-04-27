@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from "react";
-import { Users, Store, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Users, Store, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Loader2, Target } from "lucide-react";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import moment from "moment";
 
@@ -16,6 +18,58 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
   const { start: weekStart, end: weekEnd } = getWeekRange(weekOffset);
   const prevWeek = getWeekRange(weekOffset - 1);
   const dateRange = `${weekStart.format("DD MMM")} - ${weekEnd.format("DD MMM YYYY")}`;
+
+  // The target month is determined by the Monday of the selected week
+  const targetMonth = weekStart.format("YYYY-MM");
+
+  // Fetch all TargetAOV for the relevant month
+  const { data: aovTargets = [] } = useQuery({
+    queryKey: ["target-aov-employee", targetMonth],
+    queryFn: () => base44.entities.TargetAOV.filter({ mese: targetMonth })
+  });
+
+  // Fetch employees to filter only Cassiere
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees-cassiere"],
+    queryFn: () => base44.entities.Employee.filter({ status: "active" })
+  });
+
+  // Build target map: store_id -> target_aov
+  const targetByStore = useMemo(() => {
+    const map = {};
+    aovTargets.forEach(t => { map[t.store_id] = t.target_aov; });
+    return map;
+  }, [aovTargets]);
+
+  // Build cassiere set: employee names that have function_name = "Cassiere"
+  const cassiereSet = useMemo(() => {
+    const set = new Set();
+    employees.forEach(emp => {
+      if (emp.function_name === "Cassiere" && emp.full_name) {
+        set.add(emp.full_name.trim().toLowerCase());
+      }
+    });
+    return set;
+  }, [employees]);
+
+  // Build employee -> assigned_stores mapping
+  const employeeStoresMap = useMemo(() => {
+    const map = {};
+    employees.forEach(emp => {
+      if (emp.full_name) {
+        const key = emp.full_name.trim().toLowerCase();
+        map[key] = emp.assigned_stores || [];
+      }
+    });
+    return map;
+  }, [employees]);
+
+  // Resolve store name -> store id
+  const storeNameToId = useMemo(() => {
+    const map = {};
+    stores.forEach(s => { map[s.name] = s.id; });
+    return map;
+  }, [stores]);
 
   const employeeData = useMemo(() => {
     const inRange = (dateVal, rangeStart, rangeEnd) => {
@@ -54,19 +108,42 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
     const curMap = calcEmployees(weekStart, weekEnd);
     const prevMap = calcEmployees(prevWeek.start, prevWeek.end);
 
-    const employees = Object.values(curMap)
+    const result = Object.values(curMap)
       .map(emp => {
         const aov = emp.orders > 0 ? emp.revenue / emp.orders : null;
         const prev = prevMap[emp.id || emp.name];
         const prevAov = prev && prev.orders > 0 ? prev.revenue / prev.orders : null;
         const delta = aov != null && prevAov != null ? ((aov - prevAov) / prevAov) * 100 : null;
-        return { ...emp, aov, prevAov, delta };
+
+        // Find target for this employee's store(s)
+        const empKey = (emp.name || "").trim().toLowerCase();
+        const assignedStores = employeeStoresMap[empKey] || [];
+        let empTarget = null;
+        const empTargetStores = [];
+        assignedStores.forEach(storeName => {
+          const storeId = storeNameToId[storeName];
+          if (storeId && targetByStore[storeId] != null) {
+            empTargetStores.push({ storeName, target: targetByStore[storeId] });
+          }
+        });
+        // Use average of all store targets if multiple
+        if (empTargetStores.length > 0) {
+          empTarget = empTargetStores.reduce((s, t) => s + t.target, 0) / empTargetStores.length;
+        }
+        const deltaVsTarget = aov != null && empTarget != null ? ((aov - empTarget) / empTarget) * 100 : null;
+
+        return { ...emp, aov, prevAov, delta, empTarget, deltaVsTarget, empTargetStores };
       })
-      .filter(e => e.aov != null)
+      .filter(e => {
+        if (e.aov == null) return false;
+        // Only show Cassiere employees
+        const empKey = (e.name || "").trim().toLowerCase();
+        return cassiereSet.has(empKey);
+      })
       .sort((a, b) => b.aov - a.aov);
 
-    return employees;
-  }, [revenueByHour, weekStart, weekEnd, prevWeek, filterStore]);
+    return result;
+  }, [revenueByHour, weekStart, weekEnd, prevWeek, filterStore, cassiereSet, employeeStoresMap, storeNameToId, targetByStore]);
 
   if (loadingRevByHour) {
     return (
@@ -83,7 +160,7 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
         <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
           <Users className="w-5 h-5 text-purple-600" />
-          AOV Settimanale per Dipendente
+          AOV Settimanale per Cassiere
         </h3>
         <div className="flex items-center gap-3">
           <select
@@ -110,30 +187,63 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
         </div>
       </div>
 
+      <p className="text-xs text-slate-400 mb-3">
+        Target mese: <strong>{moment(weekStart).format("MMMM YYYY")}</strong> (dal lunedì della settimana)
+      </p>
+
       {employeeData.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-6">Nessun dato dipendente per questa settimana</p>
+        <p className="text-sm text-slate-400 text-center py-6">Nessun cassiere con dati per questa settimana</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b-2 border-purple-500">
                 <th className="text-left p-2 text-slate-600 text-xs font-medium">#</th>
-                <th className="text-left p-2 text-slate-600 text-xs font-medium">Dipendente</th>
+                <th className="text-left p-2 text-slate-600 text-xs font-medium">Cassiere</th>
                 <th className="text-right p-2 text-slate-600 text-xs font-medium">Revenue</th>
                 <th className="text-right p-2 text-slate-600 text-xs font-medium">Ordini</th>
                 <th className="text-right p-2 text-slate-600 text-xs font-medium">AOV</th>
+                <th className="text-right p-2 text-slate-600 text-xs font-medium">Target</th>
+                <th className="text-right p-2 text-slate-600 text-xs font-medium">Δ vs Target</th>
                 <th className="text-right p-2 text-slate-600 text-xs font-medium">AOV sett. prec.</th>
-                <th className="text-right p-2 text-slate-600 text-xs font-medium">Δ %</th>
+                <th className="text-right p-2 text-slate-600 text-xs font-medium">Δ vs prec.</th>
               </tr>
             </thead>
             <tbody>
               {employeeData.map((emp, idx) => (
                 <tr key={emp.id || emp.name} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="p-2 text-sm text-slate-400 font-bold">{idx + 1}</td>
-                  <td className="p-2 text-sm font-medium text-slate-700">{emp.name}</td>
+                  <td className="p-2 text-sm font-medium text-slate-700">
+                    {emp.name}
+                    {emp.empTargetStores.length > 0 && (
+                      <span className="block text-[10px] text-slate-400">
+                        {emp.empTargetStores.map(t => t.storeName).join(", ")}
+                      </span>
+                    )}
+                  </td>
                   <td className="p-2 text-right text-sm text-slate-600">€{emp.revenue.toFixed(0)}</td>
                   <td className="p-2 text-right text-sm text-slate-600">{Math.round(emp.orders)}</td>
                   <td className="p-2 text-right text-sm font-bold text-slate-800">€{emp.aov.toFixed(2)}</td>
+                  <td className="p-2 text-right text-sm">
+                    {emp.empTarget != null ? (
+                      <span className="font-medium text-blue-600 flex items-center justify-end gap-1">
+                        <Target className="w-3 h-3" />
+                        €{emp.empTarget.toFixed(2)}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
+                  </td>
+                  <td className="p-2 text-right text-sm">
+                    {emp.deltaVsTarget != null ? (
+                      <span className={`inline-flex items-center gap-0.5 font-bold ${emp.deltaVsTarget >= 0 ? "text-green-600" : "text-red-500"}`}>
+                        {emp.deltaVsTarget >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                        {emp.deltaVsTarget >= 0 ? "+" : ""}{emp.deltaVsTarget.toFixed(1)}%
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
+                  </td>
                   <td className="p-2 text-right text-sm text-slate-500">
                     {emp.prevAov != null ? `€${emp.prevAov.toFixed(2)}` : "—"}
                   </td>
