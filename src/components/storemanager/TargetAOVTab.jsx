@@ -70,6 +70,30 @@ export default function TargetAOVTab({ stores }) {
     return result;
   }, [revenueByHour, stores]);
 
+  // AOV effettivo del mese selezionato per ogni store
+  const currentMonthAovByStore = useMemo(() => {
+    const monthStart = moment(selectedMonth, "YYYY-MM").startOf("month");
+    const monthEnd = moment(selectedMonth, "YYYY-MM").endOf("month");
+    const result = {};
+
+    (stores || []).forEach(store => {
+      const storeData = revenueByHour.filter(r => {
+        if (r.store_id !== store.id || !r.order_date) return false;
+        const d = moment(r.order_date);
+        return d.isBetween(monthStart, monthEnd, "day", "[]");
+      });
+      const totalRev = storeData.reduce((s, r) => s + (r.total_revenue || 0), 0);
+      const totalOrd = storeData.reduce((s, r) => s + (r.total_orders || 0), 0);
+      result[store.id] = {
+        aov: totalOrd > 0 ? totalRev / totalOrd : null,
+        revenue: totalRev,
+        orders: totalOrd
+      };
+    });
+
+    return result;
+  }, [revenueByHour, stores, selectedMonth]);
+
   const targetMap = useMemo(() => {
     const map = {};
     targets.forEach(t => { map[t.store_id] = t.target_aov; });
@@ -244,6 +268,49 @@ export default function TargetAOVTab({ stores }) {
           </table>
         </div>
       </NeumorphicCard>
+
+      {/* AOV Mese Corrente per Locale */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {activeStores.map(store => {
+          const data = currentMonthAovByStore[store.id] || {};
+          const target = targetMap[store.id];
+          const deltaVsTarget = data.aov != null && target ? ((data.aov - target) / target) * 100 : null;
+          const monthLabel = monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth;
+
+          return (
+            <NeumorphicCard key={store.id} className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Store className="w-4 h-4 text-purple-500" />
+                <span className="text-sm font-bold text-slate-700">{store.name}</span>
+              </div>
+              <p className="text-[10px] text-slate-400 mb-2 uppercase tracking-wide">{monthLabel}</p>
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[10px] text-slate-400 mb-0.5">AOV Effettivo</p>
+                  <p className="text-xl font-bold text-slate-800">
+                    {data.aov != null ? `€${data.aov.toFixed(2)}` : "—"}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {data.orders > 0 ? `${Math.round(data.orders)} ordini · €${data.revenue.toFixed(0)} rev` : "Nessun dato"}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-slate-400 mb-0.5">Target</p>
+                  <p className="text-lg font-bold text-blue-600">
+                    {target ? `€${target.toFixed(2)}` : "—"}
+                  </p>
+                  {deltaVsTarget != null && (
+                    <span className={`inline-flex items-center gap-0.5 text-xs font-bold mt-0.5 ${deltaVsTarget >= 0 ? "text-green-600" : "text-red-500"}`}>
+                      {deltaVsTarget >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      {deltaVsTarget >= 0 ? "+" : ""}{deltaVsTarget.toFixed(1)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            </NeumorphicCard>
+          );
+        })}
+      </div>
 
       {/* Employee AOV List */}
       <EmployeeAOVList revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} allTargets={targets} />
