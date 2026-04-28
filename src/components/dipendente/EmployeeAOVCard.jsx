@@ -9,6 +9,31 @@ export default function EmployeeAOVCard({ user, stores }) {
   const isCassiere = (user?.ruoli_dipendente || []).includes("Cassiere");
   const [weekOffset, setWeekOffset] = useState(0);
 
+  // Fetch Employee record to check if CM and get assigned_stores (primary store = first)
+  const empName = (user?.nome_cognome || user?.full_name || "").trim();
+  const { data: employeeRecord = null } = useQuery({
+    queryKey: ["employee-record-aov", empName],
+    queryFn: async () => {
+      if (!empName) return null;
+      const employees = await base44.entities.Employee.filter({ full_name: empName });
+      return employees[0] || null;
+    },
+    enabled: isCassiere && !!empName,
+    staleTime: 300000
+  });
+
+  const isCM = employeeRecord?.employee_group === "CM";
+  const primaryStoreId = useMemo(() => {
+    // Primary store = first assigned_stores entry (store name), resolve to ID
+    const assignedStores = employeeRecord?.assigned_stores || user?.assigned_stores || [];
+    if (assignedStores.length === 0 || !stores?.length) return null;
+    const primaryStoreName = assignedStores[0];
+    const store = stores.find(s => s.name === primaryStoreName);
+    return store?.id || null;
+  }, [employeeRecord, user, stores]);
+
+  const shouldShow = isCassiere && !isCM;
+
   const weekStart = useMemo(() => moment().startOf("isoWeek").add(weekOffset, "weeks"), [weekOffset]);
   const weekEnd = useMemo(() => moment().endOf("isoWeek").add(weekOffset, "weeks"), [weekOffset]);
   const prevWeekStart = useMemo(() => weekStart.clone().subtract(1, "week"), [weekStart]);
@@ -21,13 +46,13 @@ export default function EmployeeAOVCard({ user, stores }) {
     queryFn: () => base44.entities.RevenueByHour.filter({
       order_date: { $gte: prevWeekStart.format("YYYY-MM-DD"), $lte: weekEnd.format("YYYY-MM-DD") }
     }),
-    enabled: isCassiere
+    enabled: shouldShow
   });
 
   const { data: aovTargets = [] } = useQuery({
     queryKey: ["target-aov-emp-card", targetMonth],
     queryFn: () => base44.entities.TargetAOV.filter({ mese: targetMonth }),
-    enabled: isCassiere
+    enabled: shouldShow
   });
 
   const storeIdToName = useMemo(() => {
@@ -42,21 +67,23 @@ export default function EmployeeAOVCard({ user, stores }) {
     return map;
   }, [aovTargets]);
 
-  const empName = (user?.nome_cognome || user?.full_name || "").trim().toLowerCase();
+  const empNameLower = empName.toLowerCase();
 
-  // Calculate AOV per store for this employee — same logic as admin EmployeeAOVList
+  // Calculate AOV for the primary store only
   const storeAovData = useMemo(() => {
-    if (!empName || revenueByHour.length === 0) return [];
+    if (!empNameLower || revenueByHour.length === 0) return [];
 
     const calcForRange = (rangeStart, rangeEnd) => {
       const storeMap = {}; // store_id -> { revenue, orders }
       revenueByHour.forEach(r => {
         if (!r.order_date || !r.matched_employees?.length) return;
+        // Filter to primary store only if known
+        if (primaryStoreId && r.store_id !== primaryStoreId) return;
         const d = moment(r.order_date);
         if (!d.isBetween(rangeStart, rangeEnd, "day", "[]")) return;
 
         const isMatched = r.matched_employees.some(e =>
-          (e.employee_name || "").trim().toLowerCase() === empName
+          (e.employee_name || "").trim().toLowerCase() === empNameLower
         );
         if (!isMatched) return;
 
@@ -100,9 +127,9 @@ export default function EmployeeAOVCard({ user, stores }) {
     });
 
     return rows.sort((a, b) => b.revenue - a.revenue);
-  }, [revenueByHour, empName, weekStart, weekEnd, prevWeekStart, prevWeekEnd, targetByStore, storeIdToName]);
+  }, [revenueByHour, empNameLower, primaryStoreId, weekStart, weekEnd, prevWeekStart, prevWeekEnd, targetByStore, storeIdToName]);
 
-  if (!isCassiere) return null;
+  if (!shouldShow) return null;
   if (isLoading) {
     return (
       <div className="flex justify-center py-3">
