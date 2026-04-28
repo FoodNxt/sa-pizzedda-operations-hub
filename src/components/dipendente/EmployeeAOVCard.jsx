@@ -24,13 +24,11 @@ export default function EmployeeAOVCard({ user, stores }) {
 
   const isCM = employeeRecord?.employee_group === "CM";
   const primaryStoreId = useMemo(() => {
-    // Primary store = first assigned_stores entry (store name), resolve to ID
-    const assignedStores = employeeRecord?.assigned_stores || user?.assigned_stores || [];
-    if (assignedStores.length === 0 || !stores?.length) return null;
-    const primaryStoreName = assignedStores[0];
-    const store = stores.find(s => s.name === primaryStoreName);
-    return store?.id || null;
-  }, [employeeRecord, user, stores]);
+    // Primary store from User entity's primary_stores (store IDs set in Gestione Utenti)
+    const primaryStores = user?.primary_stores || [];
+    if (primaryStores.length > 0) return primaryStores[0];
+    return null;
+  }, [user]);
 
   const shouldShow = isCassiere && !isCM;
 
