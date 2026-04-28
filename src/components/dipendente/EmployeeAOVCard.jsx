@@ -1,22 +1,23 @@
-import React, { useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
-import { ShoppingCart, TrendingUp, TrendingDown, Target, Loader2 } from "lucide-react";
+import { ShoppingCart, TrendingUp, TrendingDown, Target, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import moment from "moment";
 
 export default function EmployeeAOVCard({ user, stores }) {
   const isCassiere = (user?.ruoli_dipendente || []).includes("Cassiere");
+  const [weekOffset, setWeekOffset] = useState(0);
 
-  const weekStart = useMemo(() => moment().startOf("isoWeek"), []);
-  const weekEnd = useMemo(() => moment().endOf("isoWeek"), []);
-  const prevWeekStart = useMemo(() => moment().startOf("isoWeek").subtract(1, "week"), []);
-  const prevWeekEnd = useMemo(() => moment().endOf("isoWeek").subtract(1, "week"), []);
+  const weekStart = useMemo(() => moment().startOf("isoWeek").add(weekOffset, "weeks"), [weekOffset]);
+  const weekEnd = useMemo(() => moment().endOf("isoWeek").add(weekOffset, "weeks"), [weekOffset]);
+  const prevWeekStart = useMemo(() => weekStart.clone().subtract(1, "week"), [weekStart]);
+  const prevWeekEnd = useMemo(() => weekEnd.clone().subtract(1, "week"), [weekEnd]);
   const targetMonth = weekStart.format("YYYY-MM");
 
   // Fetch ALL revenue by hour (same approach as admin EmployeeAOVList)
   const { data: revenueByHour = [], isLoading } = useQuery({
-    queryKey: ["rev-by-hour-emp-card", weekStart.format("YYYY-MM-DD")],
+    queryKey: ["rev-by-hour-emp-card", weekStart.format("YYYY-MM-DD"), weekOffset],
     queryFn: () => base44.entities.RevenueByHour.filter({
       order_date: { $gte: prevWeekStart.format("YYYY-MM-DD"), $lte: weekEnd.format("YYYY-MM-DD") }
     }),
@@ -109,22 +110,55 @@ export default function EmployeeAOVCard({ user, stores }) {
       </div>
     );
   }
-  if (storeAovData.length === 0) return null;
+  if (storeAovData.length === 0 && !isLoading) {
+    return (
+      <NeumorphicCard className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-bold text-blue-800">Il tuo Scontrino Medio</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setWeekOffset(w => w - 1)} className="p-1 rounded-lg hover:bg-blue-100">
+              <ChevronLeft className="w-4 h-4 text-blue-600" />
+            </button>
+            <span className="text-[10px] text-slate-500 whitespace-nowrap">
+              {weekStart.format("DD MMM")} - {weekEnd.format("DD MMM")}
+            </span>
+            <button onClick={() => setWeekOffset(w => w + 1)} disabled={weekOffset >= 0} className="p-1 rounded-lg hover:bg-blue-100 disabled:opacity-30">
+              <ChevronRight className="w-4 h-4 text-blue-600" />
+            </button>
+          </div>
+        </div>
+        <p className="text-xs text-slate-400 text-center py-2">Nessun dato per questa settimana</p>
+      </NeumorphicCard>
+    );
+  }
 
   return (
     <div className="space-y-3">
       {storeAovData.map(data => (
         <NeumorphicCard key={data.storeId} className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
-          <div className="flex items-center gap-2 mb-2">
-            <ShoppingCart className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-bold text-blue-800">Il tuo AOV — {data.storeName}</span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-bold text-blue-800">Il tuo Scontrino Medio — {data.storeName}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setWeekOffset(w => w - 1)} className="p-1 rounded-lg hover:bg-blue-100">
+                <ChevronLeft className="w-4 h-4 text-blue-600" />
+              </button>
+              <span className="text-[10px] text-slate-500 whitespace-nowrap">
+                {weekStart.format("DD MMM")} - {weekEnd.format("DD MMM")}
+              </span>
+              <button onClick={() => setWeekOffset(w => w + 1)} disabled={weekOffset >= 0} className="p-1 rounded-lg hover:bg-blue-100 disabled:opacity-30">
+                <ChevronRight className="w-4 h-4 text-blue-600" />
+              </button>
+            </div>
           </div>
-          <p className="text-[10px] text-slate-400 mb-2">
-            Settimana: {weekStart.format("DD MMM")} - {weekEnd.format("DD MMM YYYY")}
-          </p>
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-[10px] text-slate-500 mb-0.5">Il tuo AOV</p>
+              <p className="text-[10px] text-slate-500 mb-0.5">Il tuo Scontrino Medio</p>
               <p className="text-xl font-bold text-slate-800">€{data.aov.toFixed(2)}</p>
               <p className="text-[10px] text-slate-400 mt-0.5">{data.orders} ordini · €{data.revenue.toFixed(0)} revenue</p>
             </div>
