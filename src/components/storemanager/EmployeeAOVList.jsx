@@ -161,7 +161,7 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
       prevDataByName[empKey][entry.storeId] = entry;
     });
 
-    // For each cassiere (non-CM), create one row per primary store
+    // For each cassiere (non-CM), create one row per primary store (or per worked store if no primary)
     const processedEmployees = new Set();
     Object.values(curMap).forEach(entry => {
       const empKey = (entry.name || "").trim().toLowerCase();
@@ -174,7 +174,9 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
       if (cmSet.has(empKey)) return;
 
       const primaryStoreIds = employeePrimaryStoresMap[empKey] || [];
-      const storesToShow = primaryStoreIds.length > 0 ? primaryStoreIds : [null];
+      // If no primary stores, use the actual stores where employee worked this week
+      const workedStoreIds = Object.keys(empDataByName[empKey] || {});
+      const storesToShow = primaryStoreIds.length > 0 ? primaryStoreIds : (workedStoreIds.length > 0 ? workedStoreIds : [null]);
 
       storesToShow.forEach(storeId => {
         // Calculate AOV for this employee in this specific store
@@ -187,7 +189,7 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
             orders = storeEntry.orders;
           }
         } else {
-          // No primary store assigned, sum all stores
+          // No store info at all, sum all stores
           Object.values(empDataByName[empKey] || {}).forEach(e => {
             revenue += e.revenue;
             orders += e.orders;
