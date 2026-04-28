@@ -175,38 +175,44 @@ export default function FormInventario() {
 
       await base44.entities.RilevazioneInventario.bulkCreate(rilevazioni);
 
+      console.log('=== INVENTARIO SALVATO CON SUCCESSO ===');
       setSaveSuccess(true);
+      setSaving(false);
       
       queryClient.invalidateQueries({ queryKey: ['rilevazioni-inventario'] });
 
-      // Segna attività come completata - SOLO SE NON ESISTE GIÀ con stesso nome + ora
+      // Segna attività come completata (non bloccante — inventario già salvato)
       if (turnoId && attivitaNome) {
-        const oraAttivita = urlParams.get('ora_attivita');
-        
-        const filter = {
-          turno_id: turnoId,
-          attivita_nome: decodeURIComponent(attivitaNome)
-        };
-        if (oraAttivita) filter.ora_attivita = oraAttivita;
-        
-        const esistente = await base44.entities.AttivitaCompletata.filter(filter);
-        
-        if (esistente.length === 0) {
-          const attivitaData = {
-            dipendente_id: currentUser.id,
-            dipendente_nome: currentUser.nome_cognome || currentUser.full_name || 'Dipendente',
+        try {
+          const oraAttivita = urlParams.get('ora_attivita');
+          
+          const filter = {
             turno_id: turnoId,
-            turno_data: new Date().toISOString().split('T')[0],
-            store_id: selectedStore,
-            attivita_nome: decodeURIComponent(attivitaNome),
-            form_page: 'FormInventario',
-            completato_at: new Date().toISOString()
+            attivita_nome: decodeURIComponent(attivitaNome)
           };
+          if (oraAttivita) filter.ora_attivita = oraAttivita;
           
-          if (oraAttivita) attivitaData.ora_attivita = oraAttivita;
+          const esistente = await base44.entities.AttivitaCompletata.filter(filter);
           
-          console.log('Salvataggio attività FormInventario:', attivitaData);
-          await base44.entities.AttivitaCompletata.create(attivitaData);
+          if (esistente.length === 0) {
+            const attivitaData = {
+              dipendente_id: currentUser?.id,
+              dipendente_nome: currentUser?.nome_cognome || currentUser?.full_name || 'Dipendente',
+              turno_id: turnoId,
+              turno_data: new Date().toISOString().split('T')[0],
+              store_id: selectedStore,
+              attivita_nome: decodeURIComponent(attivitaNome),
+              form_page: 'FormInventario',
+              completato_at: new Date().toISOString()
+            };
+            
+            if (oraAttivita) attivitaData.ora_attivita = oraAttivita;
+            
+            console.log('Salvataggio attività FormInventario:', attivitaData);
+            await base44.entities.AttivitaCompletata.create(attivitaData);
+          }
+        } catch (activityError) {
+          console.error('Errore registrazione attività (inventario già salvato):', activityError);
         }
       }
       
@@ -223,7 +229,7 @@ export default function FormInventario() {
       }, 1500);
     } catch (error) {
       console.error('=== ERRORE SUBMIT INVENTARIO ===', error);
-      alert(`Errore: ${error.message || 'Errore sconosciuto'}`);
+      alert(`Errore nel salvataggio: ${error.message || 'Errore sconosciuto'}. Riprova.`);
       setSaving(false);
     }
   };
