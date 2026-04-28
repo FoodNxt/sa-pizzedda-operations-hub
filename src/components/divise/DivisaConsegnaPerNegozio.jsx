@@ -83,8 +83,12 @@ export default function DivisaConsegnaPerNegozio({ activeEmployees, contratti, c
       const group = emp.employee_group || contract?.employee_group || userData.employeeGroup || "FT";
       const dotazione = config.dotazione_per_gruppo?.[group] || {};
 
-      // Get taglia from User entity
-      const taglia = userData.taglia || "N/D";
+      // Get taglia from User entity — XS doesn't exist, map to S
+      const rawTaglia = userData.taglia || "N/D";
+      const taglia = rawTaglia === "XS" ? "S" : rawTaglia;
+
+      // Items that don't have sizes (one-size-fits-all)
+      const noSizeItems = ["bandana", "grembiule"];
 
       // Get what's already delivered
       const delivered = getDeliveredQty(emp.id);
@@ -97,11 +101,14 @@ export default function DivisaConsegnaPerNegozio({ activeEmployees, contratti, c
 
         if (missing <= 0) return;
 
+        const isNoSize = noSizeItems.includes(elNome.toLowerCase());
+        const displayTaglia = isNoSize ? "Unica" : taglia;
+
         if (!storeMap[primaryStoreId]) storeMap[primaryStoreId] = {};
         if (!storeMap[primaryStoreId][elNome]) storeMap[primaryStoreId][elNome] = {};
-        if (!storeMap[primaryStoreId][elNome][taglia]) storeMap[primaryStoreId][elNome][taglia] = [];
+        if (!storeMap[primaryStoreId][elNome][displayTaglia]) storeMap[primaryStoreId][elNome][displayTaglia] = [];
 
-        storeMap[primaryStoreId][elNome][taglia].push({
+        storeMap[primaryStoreId][elNome][displayTaglia].push({
           nome: emp.full_name,
           qty: missing
         });
@@ -119,7 +126,7 @@ export default function DivisaConsegnaPerNegozio({ activeEmployees, contratti, c
           totalQty: dipendenti.reduce((s, d) => s + d.qty, 0),
           dipendenti
         })).sort((a, b) => {
-          const order = ["XS", "S", "M", "L", "XL", "XXL"];
+          const order = ["Unica", "S", "M", "L", "XL", "XXL"];
           return (order.indexOf(a.taglia) - order.indexOf(b.taglia)) || a.taglia.localeCompare(b.taglia);
         })
       })).sort((a, b) => a.nome.localeCompare(b.nome))
