@@ -43,6 +43,11 @@ export default function Divise() {
     queryFn: () => base44.entities.DivisaConfig.list(),
   });
 
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["users-divise"],
+    queryFn: () => base44.entities.User.list(),
+  });
+
   const activeConfig = configs.find(c => c.is_active) || null;
 
   // Active employees (exclude those with a registered uscita where data_uscita <= today)
@@ -169,6 +174,7 @@ export default function Divise() {
             uscite={uscite}
             consegne={consegne}
             config={activeConfig}
+            users={allUsers}
             onOpenConsegna={(emp, contract) => setConsegnaModal({ employee: emp, contract })}
             onToggleNonNecessaria={(id, value) => toggleNonNecessariaMutation.mutate({ id, value })}
           />

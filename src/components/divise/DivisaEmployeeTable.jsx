@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import NeumorphicCard from "@/components/neumorphic/NeumorphicCard";
 
 export default function DivisaEmployeeTable({
-  employees, contratti, uscite, consegne, config, onOpenConsegna, onToggleNonNecessaria
+  employees, contratti, uscite, consegne, config, onOpenConsegna, onToggleNonNecessaria, users
 }) {
   const [search, setSearch] = useState("");
   const [filterGruppo, setFilterGruppo] = useState("all");
@@ -13,6 +13,13 @@ export default function DivisaEmployeeTable({
 
   const elementi = config?.elementi_divisa || ["Maglietta", "Pantaloni", "Grembiule", "Bandana"];
   const dotazione = config?.dotazione_per_gruppo || {};
+
+  // Build user map by name (lowercase) for employee_group from User entity (source of truth)
+  const userByName = {};
+  (users || []).forEach(u => {
+    const name = (u.nome_cognome || u.full_name || "").trim().toLowerCase();
+    if (name) userByName[name] = u;
+  });
 
   // Active employees (not exited) - Uscita.dipendente_id is the User ID, match against both emp.id and emp.employee_id_external
   const usciteIds = new Set(uscite.map(u => u.dipendente_id));
@@ -50,10 +57,18 @@ export default function DivisaEmployeeTable({
     return totals;
   };
 
+  // Get employee group: User entity is source of truth, fallback to contract
+  const getGruppo = (emp) => {
+    const empNameLower = (emp.full_name || "").trim().toLowerCase();
+    const userData = userByName[empNameLower];
+    if (userData?.employee_group) return userData.employee_group;
+    const contract = getContractInfo(emp);
+    return contract?.employee_group || emp.employee_group;
+  };
+
   // Check if employee has all expected items
   const getCompletionStatus = (emp) => {
-    const contract = getContractInfo(emp);
-    const gruppo = contract?.employee_group || emp.employee_group;
+    const gruppo = getGruppo(emp);
     if (!gruppo || !dotazione[gruppo]) return { complete: false, missing: elementi, delivered: {} };
 
     const expected = dotazione[gruppo];
@@ -76,8 +91,7 @@ export default function DivisaEmployeeTable({
       const displayName = getDisplayName(emp);
       if (!displayName.toLowerCase().includes(s)) return false;
     }
-    const contract = getContractInfo(emp);
-    const gruppo = contract?.employee_group || emp.employee_group;
+    const gruppo = getGruppo(emp);
     if (filterGruppo !== "all" && gruppo !== filterGruppo) return false;
     if (filterTaglia === "missing") {
       const taglia = contract?.taglia_maglietta;

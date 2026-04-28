@@ -78,9 +78,9 @@ export default function DivisaConsegnaPerNegozio({ activeEmployees, contratti, c
       const primaryStoreId = userData.primaryStores.length > 0 ? userData.primaryStores[0] : null;
       if (!primaryStoreId) return;
 
-      // Get employee group from contract or user
+      // Get employee group: User entity is source of truth
       const contract = getContract(emp);
-      const group = emp.employee_group || contract?.employee_group || userData.employeeGroup || "FT";
+      const group = userData.employeeGroup || emp.employee_group || contract?.employee_group || "FT";
       const dotazione = config.dotazione_per_gruppo?.[group] || {};
 
       // Get taglia from User entity — XS doesn't exist, map to S
