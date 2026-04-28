@@ -93,13 +93,12 @@ export default function DivisaEmployeeTable({
     }
     const gruppo = getGruppo(emp);
     if (filterGruppo !== "all" && gruppo !== filterGruppo) return false;
+    const filterContract = getContractInfo(emp);
     if (filterTaglia === "missing") {
-      const taglia = contract?.taglia_maglietta;
-      if (taglia) return false;
+      if (filterContract?.taglia_maglietta) return false;
     }
     if (filterTaglia === "present") {
-      const taglia = contract?.taglia_maglietta;
-      if (!taglia) return false;
+      if (!filterContract?.taglia_maglietta) return false;
     }
     return true;
   });
