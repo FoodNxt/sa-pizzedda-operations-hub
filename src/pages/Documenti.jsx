@@ -923,6 +923,11 @@ function ContrattiSection() {
     queryFn: () => base44.entities.User.list()
   });
 
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores-contratti'],
+    queryFn: () => base44.entities.Store.list()
+  });
+
   const { data: driveConfig = [] } = useQuery({
     queryKey: ['drive-config-contratti'],
     queryFn: () => base44.entities.DriveConfig.filter({ config_type: 'contratti', is_active: true })
@@ -1031,7 +1036,13 @@ function ContrattiSection() {
       '{{data_oggi}}': oggi,
       '{{data_fine_contratto}}': dataFineContratto,
       '{{ruoli}}': (data.ruoli_dipendente || []).join(', '),
-      '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali',
+      '{{locali}}': (() => {
+        const names = (data.assigned_stores || []).map(id => {
+          const store = stores.find(s => s.id === id);
+          return store ? store.name : id;
+        });
+        return names.length > 0 ? names.join(', ') : 'Tutti i locali';
+      })(),
       '{{data_inizio_primo_contratto}}': dataInizioPrimoContratto,
       '{{ruoli_dipendente}}': (data.ruoli_dipendente || []).join(', ')
     };

@@ -368,6 +368,11 @@ export default function UsersManagement() {
           dataFineContratto = dataFine.toLocaleDateString('it-IT');
         }
 
+        const storeNames = (data.assigned_stores || []).map(id => {
+          const store = stores.find(s => s.id === id);
+          return store ? store.name : id;
+        });
+
         const variables = {
           '{{nome_cognome}}': data.nome_cognome || '',
           '{{phone}}': data.phone || '',
@@ -383,7 +388,7 @@ export default function UsersManagement() {
           '{{data_oggi}}': oggi.toLocaleDateString('it-IT'),
           '{{data_fine_contratto}}': dataFineContratto,
           '{{ruoli}}': (data.ruoli_dipendente || []).join(', ') || 'Nessun ruolo',
-          '{{locali}}': (data.assigned_stores || []).join(', ') || 'Tutti i locali'
+          '{{locali}}': storeNames.length > 0 ? storeNames.join(', ') : 'Tutti i locali'
         };
 
         Object.keys(variables).forEach((key) => {
