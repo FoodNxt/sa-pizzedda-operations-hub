@@ -67,6 +67,11 @@ export default function OverviewContratti() {
     queryFn: () => base44.entities.Contratto.list()
   });
 
+  const { data: stores = [] } = useQuery({
+    queryKey: ['stores-overview'],
+    queryFn: () => base44.entities.Store.list()
+  });
+
   const { data: payrollEmailLogs = [] } = useQuery({
     queryKey: ['payroll-email-logs'],
     queryFn: () => base44.entities.PayrollEmailLog.list('-data_invio', 100)
@@ -141,6 +146,15 @@ export default function OverviewContratti() {
       queryClient.invalidateQueries({ queryKey: ['payroll-email-logs'] });
     }
   });
+
+  // Helper: convert store IDs to store names
+  const storeIdsToNames = (storeIds) => {
+    if (!storeIds || storeIds.length === 0) return 'Tutti i locali';
+    return storeIds.map(id => {
+      const store = stores.find(s => s.id === id);
+      return store ? store.name : id;
+    }).join(', ');
+  };
 
   const savePeriodoProvaConfigMutation = useMutation({
     mutationFn: async (giorni_prova) => {
@@ -354,7 +368,7 @@ export default function OverviewContratti() {
       '{{function_name}}': renewingContract.function_name || '',
       '{{data_oggi}}': new Date().toLocaleDateString('it-IT'),
       '{{ruoli}}': (renewingContract.ruoli_dipendente || user.ruoli_dipendente || []).join(', '),
-      '{{locali}}': (user.assigned_stores || []).join(', ') || 'Tutti i locali',
+      '{{locali}}': storeIdsToNames(user.assigned_stores),
       '{{data_inizio_primo_contratto}}': dataInizioPrimoContratto
     };
 
@@ -1561,7 +1575,7 @@ export default function OverviewContratti() {
                       replace(/{{ore_settimanali}}/g, currentContract.ore_settimanali?.toString() || '-').
                       replace(/{{durata_contratto_mesi}}/g, currentContract.durata_contratto_mesi?.toString() || '-').
                       replace(/{{data_fine_contratto}}/g, dataFineContratto).
-                      replace(/{{locali}}/g, (user?.assigned_stores || []).join(', ') || 'Tutti i locali').
+                      replace(/{{locali}}/g, storeIdsToNames(user?.assigned_stores)).
                       replace(/{{ruoli_dipendente}}/g, (currentContract.ruoli_dipendente || user?.ruoli_dipendente || []).join(', ') || '-');
 
                       setEditableEmailOggetto(oggetto);
