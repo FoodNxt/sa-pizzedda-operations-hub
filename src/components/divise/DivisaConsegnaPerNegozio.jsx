@@ -15,28 +15,48 @@ export default function DivisaConsegnaPerNegozio({ activeEmployees, contratti, c
     queryFn: () => base44.entities.Store.list()
   });
 
+  const { data: uscite = [] } = useQuery({
+    queryKey: ["uscite-divise-consegna"],
+    queryFn: () => base44.entities.Uscita.list()
+  });
+
   const storeIdToName = useMemo(() => {
     const map = {};
     stores.forEach(s => { map[s.id] = s.name; });
     return map;
   }, [stores]);
 
-  // Build user map by name (lowercase) -> primary_stores, taglia_maglietta
-  const userMap = useMemo(() => {
+  // Build uscite set (user IDs that have left)
+  const usciteIds = useMemo(() => {
+    const oggi = new Date().toISOString().split('T')[0];
+    return new Set(uscite.filter(u => !u.data_uscita || u.data_uscita <= oggi).map(u => u.dipendente_id));
+  }, [uscite]);
+
+  // Build active dipendenti from User entity (source of truth) — not Employee
+  const activeDipendenti = useMemo(() => {
+    return users
+      .filter(u => u.user_type === "dipendente" && u.status === "active" && !usciteIds.has(u.id))
+      .map(u => ({
+        id: u.id,
+        full_name: u.nome_cognome || u.full_name || "",
+        primaryStores: u.primary_stores || [],
+        taglia: u.taglia_maglietta || null,
+        employeeGroup: u.employee_group || null,
+        divisa_non_necessaria: false // check from Employee entity
+      }));
+  }, [users, usciteIds]);
+
+  // Build Employee map for divisa_non_necessaria flag
+  const empNonNecessariaMap = useMemo(() => {
     const map = {};
-    users.forEach(u => {
-      const name = (u.nome_cognome || u.full_name || "").trim().toLowerCase();
-      if (name) {
-        map[name] = {
-          primaryStores: u.primary_stores || [],
-          taglia: u.taglia_maglietta || null,
-          id: u.id,
-          employeeGroup: u.employee_group || null
-        };
+    activeEmployees.forEach(e => {
+      if (e.divisa_non_necessaria) {
+        map[e.employee_id_external] = true;
+        map[e.id] = true;
       }
     });
     return map;
-  }, [users]);
+  }, [activeEmployees]);
 
   // Get delivered quantities per employee
   const getDeliveredQty = (empId) => {
@@ -51,14 +71,6 @@ export default function DivisaConsegnaPerNegozio({ activeEmployees, contratti, c
     return totals;
   };
 
-  // Get contract for employee
-  const getContract = (emp) => {
-    return contratti.find(c =>
-      (c.user_id === emp.id || c.user_id === emp.employee_id_external) &&
-      c.status === "firmato"
-    );
-  };
-
   // Calculate what each employee still needs
   const consegnaData = useMemo(() => {
     if (!config?.dotazione_per_gruppo || !config?.elementi_divisa) return [];
@@ -67,31 +79,28 @@ export default function DivisaConsegnaPerNegozio({ activeEmployees, contratti, c
     // store_id -> { elemento -> { taglia -> [{ dipendente, qty }] } }
     const storeMap = {};
 
-    activeEmployees.forEach(emp => {
-      if (emp.divisa_non_necessaria) return;
-
-      const empNameLower = (emp.full_name || "").trim().toLowerCase();
-      const userData = userMap[empNameLower];
-      if (!userData) return;
+    activeDipendenti.forEach(dip => {
+      // Check divisa_non_necessaria from Employee entity
+      if (empNonNecessariaMap[dip.id]) return;
 
       // Pick ONE primary store (first one)
-      const primaryStoreId = userData.primaryStores.length > 0 ? userData.primaryStores[0] : null;
+      const primaryStoreId = dip.primaryStores.length > 0 ? dip.primaryStores[0] : null;
       if (!primaryStoreId) return;
 
-      // Get employee group: User entity is source of truth
-      const contract = getContract(emp);
-      const group = userData.employeeGroup || emp.employee_group || contract?.employee_group || "FT";
+      // Get employee group from User entity (source of truth), fallback to contract
+      const contract = contratti.find(c => c.user_id === dip.id && c.status === "firmato");
+      const group = dip.employeeGroup || contract?.employee_group || "FT";
       const dotazione = config.dotazione_per_gruppo?.[group] || {};
 
       // Get taglia from User entity — XS doesn't exist, map to S
-      const rawTaglia = userData.taglia || "N/D";
+      const rawTaglia = dip.taglia || "N/D";
       const taglia = rawTaglia === "XS" ? "S" : rawTaglia;
 
       // Items that don't have sizes (one-size-fits-all)
       const noSizeItems = ["bandana", "grembiule"];
 
-      // Get what's already delivered
-      const delivered = getDeliveredQty(emp.id);
+      // Get what's already delivered — consegne use dipendente_id which could be User ID or Employee ID
+      const delivered = getDeliveredQty(dip.id);
 
       // Calculate mancanti
       elementiDivisa.forEach(elNome => {
@@ -109,7 +118,7 @@ export default function DivisaConsegnaPerNegozio({ activeEmployees, contratti, c
         if (!storeMap[primaryStoreId][elNome][displayTaglia]) storeMap[primaryStoreId][elNome][displayTaglia] = [];
 
         storeMap[primaryStoreId][elNome][displayTaglia].push({
-          nome: emp.full_name,
+          nome: dip.full_name,
           qty: missing
         });
       });
@@ -133,7 +142,7 @@ export default function DivisaConsegnaPerNegozio({ activeEmployees, contratti, c
     })).sort((a, b) => a.storeName.localeCompare(b.storeName));
 
     return result;
-  }, [activeEmployees, consegne, contratti, config, userMap, storeIdToName]);
+  }, [activeDipendenti, consegne, contratti, config, empNonNecessariaMap, storeIdToName]);
 
   if (consegnaData.length === 0) {
     return (
