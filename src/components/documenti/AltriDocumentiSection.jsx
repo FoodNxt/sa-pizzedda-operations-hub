@@ -8,7 +8,7 @@ import NeumorphicButton from "../neumorphic/NeumorphicButton";
 const AVAILABLE_VARIABLES = [
   'nome_cognome', 'phone', 'email', 'data_nascita', 'citta_nascita',
   'codice_fiscale', 'indirizzo_residenza', 'iban', 'employee_group',
-  'function_name', 'ore_settimanali', 'ruoli', 'locali', 'data_oggi'
+  'function_name', 'ore_settimanali', 'ruoli', 'locali', 'locale_principale', 'data_oggi'
 ];
 
 function replaceVariables(content, userData, stores) {
@@ -32,6 +32,15 @@ function replaceVariables(content, userData, stores) {
     '{{ore_settimanali}}': userData.ore_settimanali?.toString() || '',
     '{{ruoli}}': (userData.ruoli_dipendente || []).join(', ') || '',
     '{{locali}}': storeNames.length > 0 ? storeNames.join(', ') : 'Tutti i locali',
+    '{{locale_principale}}': (() => {
+      const primaryIds = userData.primary_stores || [];
+      if (primaryIds.length === 0) return storeNames.length > 0 ? storeNames[0] : '';
+      const primaryNames = primaryIds.map(id => {
+        const store = stores.find(s => s.id === id);
+        return store ? store.name : id;
+      });
+      return primaryNames.join(', ');
+    })(),
     '{{data_oggi}}': new Date().toLocaleDateString('it-IT')
   };
 
