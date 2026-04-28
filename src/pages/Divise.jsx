@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Shirt, Settings, Users, Loader2, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Shirt, Settings, Users, Loader2, ShoppingCart, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import DivisaEmployeeTable from "@/components/divise/DivisaEmployeeTable";
 import DivisaSummaryCards from "@/components/divise/DivisaSummaryCards";
 import ConsegnaDivisaModal from "@/components/divise/ConsegnaDivisaModal";
 import DivisaAcquistiTab from "@/components/divise/DivisaAcquistiTab";
+import DivisaConsegnaPerNegozio from "@/components/divise/DivisaConsegnaPerNegozio";
 
 export default function Divise() {
   const queryClient = useQueryClient();
@@ -104,6 +105,7 @@ export default function Divise() {
 
   const tabs = [
     { id: "dipendenti", label: "Dipendenti", icon: Users },
+    { id: "consegna", label: "Consegna", icon: Truck },
     { id: "acquisti", label: "Acquisti", icon: ShoppingCart },
     { id: "config", label: "Configurazione", icon: Settings },
   ];
@@ -179,6 +181,15 @@ export default function Divise() {
             </Button>
           </NeumorphicCard>
         )
+      )}
+
+      {activeTab === "consegna" && activeConfig && (
+        <DivisaConsegnaPerNegozio
+          activeEmployees={activeEmployees}
+          contratti={contratti}
+          consegne={consegne}
+          config={activeConfig}
+        />
       )}
 
       {activeTab === "acquisti" && activeConfig && (
