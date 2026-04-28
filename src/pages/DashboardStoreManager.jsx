@@ -28,6 +28,7 @@ import {
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import WeeklyMeetingDashboard from "@/components/storemanager/WeeklyMeetingDashboard";
 import StoreAOVCard from "@/components/storemanager/StoreAOVCard";
+import TargetAOVTab from "@/components/storemanager/TargetAOVTab";
 import { Calendar as CalendarIcon } from 'lucide-react';
 
 export default function DashboardStoreManager() {
@@ -641,12 +642,26 @@ export default function DashboardStoreManager() {
         >
           <CalendarIcon className="w-4 h-4" /> Meeting Settimanale
         </button>
+        <button
+          onClick={() => setActiveTab('targetAOV')}
+          className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${activeTab === 'targetAOV' ? 'bg-gradient-to-r from-green-500 to-green-600 text-white' : 'neumorphic-flat text-slate-700'}`}
+        >
+          <Target className="w-4 h-4" /> Target AOV
+        </button>
       </div>
 
       {activeTab === 'meeting' && (
         <WeeklyMeetingDashboard
           stores={myStores.filter(s => s.id === selectedStoreId)}
           users={users}
+        />
+      )}
+
+      {activeTab === 'targetAOV' && (
+        <TargetAOVTab
+          stores={stores}
+          readOnly={true}
+          filterStoreIds={myStores.map(s => s.id)}
         />
       )}
 

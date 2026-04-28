@@ -12,7 +12,7 @@ const PERIOD_OPTIONS = [
   { value: 90, label: "90gg" }
 ];
 
-export default function TargetAOVTab({ stores }) {
+export default function TargetAOVTab({ stores, readOnly = false, filterStoreIds = null }) {
   const queryClient = useQueryClient();
   const [editingStore, setEditingStore] = useState(null);
   const [editValue, setEditValue] = useState("");
@@ -128,7 +128,8 @@ export default function TargetAOVTab({ stores }) {
     );
   }
 
-  const activeStores = (stores || []).filter(s => s.status === "active");
+  const allActiveStores = (stores || []).filter(s => s.status === "active");
+  const activeStores = filterStoreIds ? allActiveStores.filter(s => filterStoreIds.includes(s.id)) : allActiveStores;
 
   return (
     <div className="space-y-4">
@@ -168,7 +169,7 @@ export default function TargetAOVTab({ stores }) {
                 {PERIOD_OPTIONS.map(p => (
                   <th key={`delta-${p.value}`} className="text-right p-2 text-slate-600 text-xs font-medium">Δ vs {p.label}</th>
                 ))}
-                <th className="text-center p-2 text-slate-600 text-xs font-medium w-16"></th>
+                {!readOnly && <th className="text-center p-2 text-slate-600 text-xs font-medium w-16"></th>}
               </tr>
             </thead>
             <tbody>
@@ -197,7 +198,7 @@ export default function TargetAOVTab({ stores }) {
                     ))}
 
                     <td className="p-2 text-right text-sm">
-                      {isEditing ? (
+                      {!readOnly && isEditing ? (
                         <input
                           type="number"
                           step="0.01"
@@ -209,9 +210,9 @@ export default function TargetAOVTab({ stores }) {
                         />
                       ) : (
                         <span
-                          className={`font-bold cursor-pointer hover:underline ${target ? "text-blue-600" : "text-slate-300"}`}
-                          onClick={() => { setEditingStore(store.id); setEditValue(target || ""); }}
-                          title="Clicca per modificare"
+                          className={`font-bold ${!readOnly ? "cursor-pointer hover:underline" : ""} ${target ? "text-blue-600" : "text-slate-300"}`}
+                          onClick={!readOnly ? () => { setEditingStore(store.id); setEditValue(target || ""); } : undefined}
+                          title={!readOnly ? "Clicca per modificare" : undefined}
                         >
                           {target ? `€${target.toFixed(2)}` : "—"}
                         </span>
@@ -235,6 +236,7 @@ export default function TargetAOVTab({ stores }) {
                       );
                     })}
 
+                    {!readOnly && (
                     <td className="p-2 text-center">
                       {isEditing ? (
                         <div className="flex gap-1 justify-center">
@@ -261,6 +263,7 @@ export default function TargetAOVTab({ stores }) {
                         </button>
                       )}
                     </td>
+                    )}
                   </tr>
                 );
               })}
@@ -313,7 +316,7 @@ export default function TargetAOVTab({ stores }) {
       </div>
 
       {/* Employee AOV List */}
-      <EmployeeAOVList revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} allTargets={targets} />
+      <EmployeeAOVList revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} allTargets={targets} filterStoreIds={filterStoreIds} />
     </div>
   );
 }

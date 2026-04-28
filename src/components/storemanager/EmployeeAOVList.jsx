@@ -11,7 +11,7 @@ function getWeekRange(weekOffset = 0) {
   return { start, end };
 }
 
-export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadingRevByHour }) {
+export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadingRevByHour, filterStoreIds = null }) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [filterStore, setFilterStore] = useState("all");
 
@@ -113,6 +113,7 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
       const empStoreMap = {}; // key: empId_storeId
       const filteredHours = revenueByHour.filter(r => {
         if (!inRange(r.order_date, rangeStart, rangeEnd)) return false;
+        if (filterStoreIds && !filterStoreIds.includes(r.store_id)) return false;
         if (filterStore !== "all" && r.store_id !== filterStore) return false;
         return true;
       });
@@ -233,7 +234,7 @@ export default function EmployeeAOVList({ revenueByHour = [], stores = [], loadi
     });
 
     return rows.sort((a, b) => b.aov - a.aov);
-  }, [revenueByHour, weekStart, weekEnd, prevWeek, filterStore, cassiereSet, cmSet, employeePrimaryStoresMap, storeIdToName, targetByStore]);
+  }, [revenueByHour, weekStart, weekEnd, prevWeek, filterStore, filterStoreIds, cassiereSet, cmSet, employeePrimaryStoresMap, storeIdToName, targetByStore]);
 
   if (loadingRevByHour) {
     return (
