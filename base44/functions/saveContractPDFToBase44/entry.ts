@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
 
     // Create File object
     const blob = new Blob([bytes], { type: 'application/pdf' });
-    const fileName = `contratto_${contratto.template_nome?.replace(/[^a-zA-Z0-9]/g, '_')}_${contratto.nome_cognome?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+    const fileName = `contratto_${contratto.nome_cognome?.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
     const file = new File([blob], fileName, { type: 'application/pdf' });
 
     // Upload to Base44
