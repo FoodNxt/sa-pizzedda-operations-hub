@@ -1,0 +1,32 @@
+{
+  "name": "DocumentoTemplate",
+  "type": "object",
+  "properties": {
+    "nome_template": {
+      "type": "string",
+      "description": "Nome del template"
+    },
+    "contenuto_template": {
+      "type": "string",
+      "description": "Contenuto del template con variabili {{...}}"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione del template"
+    },
+    "richiede_firma": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se il documento richiede firma"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il template \u00e8 attivo"
+    }
+  },
+  "required": [
+    "nome_template",
+    "contenuto_template"
+  ]
+}
