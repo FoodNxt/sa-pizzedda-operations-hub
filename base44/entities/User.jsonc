@@ -100,8 +100,8 @@
     },
     "taglia_scarpe": {
       "type": "number",
-      "minimum": 35,
-      "maximum": 45,
+      "minimum": 36,
+      "maximum": 47,
       "description": "Taglia scarpe del dipendente"
     },
     "ore_settimanali": {

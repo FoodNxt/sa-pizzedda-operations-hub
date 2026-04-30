@@ -482,7 +482,7 @@ export default function ProfiloDipendente() {
               className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
 
                 <option value="">-- Seleziona --</option>
-                {Array.from({ length: 11 }, (_, i) => 35 + i).map(n => (
+                {Array.from({ length: 12 }, (_, i) => 36 + i).map(n => (
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
