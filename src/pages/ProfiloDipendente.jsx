@@ -33,6 +33,7 @@ export default function ProfiloDipendente() {
     citta_residenza: '',
     iban: '',
     taglia_maglietta: '',
+    taglia_scarpe: '',
     cittadinanza_italiana: true
   });
 
@@ -66,6 +67,7 @@ export default function ProfiloDipendente() {
         citta_residenza: u.citta_residenza || '',
         iban: u.iban || '',
         taglia_maglietta: u.taglia_maglietta || '',
+        taglia_scarpe: u.taglia_scarpe || '',
         cittadinanza_italiana: u.cittadinanza_italiana !== false
       });
       return u;
@@ -132,6 +134,7 @@ export default function ProfiloDipendente() {
         citta_residenza: user.citta_residenza || '',
         iban: user.iban || '',
         taglia_maglietta: user.taglia_maglietta || '',
+        taglia_scarpe: user.taglia_scarpe || '',
         cittadinanza_italiana: user.cittadinanza_italiana !== false
       });
     }
@@ -469,6 +472,23 @@ export default function ProfiloDipendente() {
             </div>
 
             <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4" />
+                Taglia Scarpe
+              </label>
+              <select
+              value={formData.taglia_scarpe}
+              onChange={(e) => setFormData({ ...formData, taglia_scarpe: e.target.value ? parseInt(e.target.value) : '' })}
+              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm">
+
+                <option value="">-- Seleziona --</option>
+                {Array.from({ length: 11 }, (_, i) => 35 + i).map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block">
                 Hai la cittadinanza italiana?
               </label>
@@ -588,6 +608,11 @@ export default function ProfiloDipendente() {
             <div className="neumorphic-pressed p-3 rounded-xl">
               <p className="text-xs text-slate-500 mb-1">Taglia Maglietta</p>
               <p className="text-sm text-slate-700 font-medium">{user?.taglia_maglietta || '-'}</p>
+            </div>
+
+            <div className="neumorphic-pressed p-3 rounded-xl">
+              <p className="text-xs text-slate-500 mb-1">Taglia Scarpe</p>
+              <p className="text-sm text-slate-700 font-medium">{user?.taglia_scarpe || '-'}</p>
             </div>
           </div>
         }

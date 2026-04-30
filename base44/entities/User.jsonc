@@ -1,0 +1,191 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "nome_cognome": {
+      "type": "string",
+      "description": "Nome e cognome del dipendente"
+    },
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "manager",
+        "dipendente"
+      ],
+      "default": "dipendente",
+      "description": "Tipo di utente"
+    },
+    "livello": {
+      "type": "number",
+      "enum": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "description": "Livello del dipendente (1-7)"
+    },
+    "ruoli_dipendente": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Pizzaiolo",
+          "Cassiere",
+          "Store Manager"
+        ]
+      },
+      "description": "Ruoli del dipendente"
+    },
+    "assigned_stores": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista dei nomi dei negozi assegnati"
+    },
+    "primary_store": {
+      "type": "string",
+      "description": "Nome del negozio principale"
+    },
+    "employee_group": {
+      "type": "string",
+      "enum": [
+        "FT",
+        "PT",
+        "CM"
+      ],
+      "description": "Gruppo contrattuale"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Numero di telefono"
+    },
+    "data_nascita": {
+      "type": "string",
+      "format": "date",
+      "description": "Data di nascita"
+    },
+    "citta_nascita": {
+      "type": "string",
+      "description": "Citt\u00e0 di nascita"
+    },
+    "codice_fiscale": {
+      "type": "string",
+      "description": "Codice fiscale"
+    },
+    "indirizzo_residenza": {
+      "type": "string",
+      "description": "Indirizzo di residenza completo"
+    },
+    "iban": {
+      "type": "string",
+      "description": "IBAN per accredito stipendio"
+    },
+    "taglia_maglietta": {
+      "type": "string",
+      "enum": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "description": "Taglia maglietta aziendale"
+    },
+    "taglia_scarpe": {
+      "type": "number",
+      "minimum": 35,
+      "maximum": 45,
+      "description": "Taglia scarpe del dipendente"
+    },
+    "ore_settimanali": {
+      "type": "number",
+      "description": "Ore lavorative settimanali previste"
+    },
+    "data_inizio_contratto": {
+      "type": "string",
+      "format": "date",
+      "description": "Data inizio contratto"
+    },
+    "tipo_contratto": {
+      "type": "string",
+      "enum": [
+        "determinato",
+        "indeterminato"
+      ],
+      "default": "determinato",
+      "description": "Tipo di contratto: determinato o indeterminato"
+    },
+    "durata_contratto_mesi": {
+      "type": "number",
+      "description": "Durata del contratto in mesi (solo per contratti determinati)"
+    },
+    "data_fine_contratto": {
+      "type": "string",
+      "format": "date",
+      "description": "Data fine contratto esplicita (alternativa a durata_contratto_mesi)"
+    },
+    "planday": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se abilitato su Planday"
+    },
+    "abilitato_prove": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se il dipendente \u00e8 abilitato a fare turni di prova con candidati"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Stato del dipendente"
+    },
+    "profile_manually_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se il profilo \u00e8 stato completato manualmente"
+    },
+    "documento_identita_url": {
+      "type": "string",
+      "description": "URL del documento di identit\u00e0 caricato"
+    },
+    "codice_fiscale_documento_url": {
+      "type": "string",
+      "description": "URL del documento codice fiscale caricato"
+    },
+    "permesso_soggiorno_url": {
+      "type": "string",
+      "description": "URL del permesso di soggiorno (se applicabile)"
+    }
+  },
+  "required": [
+    "nome_cognome",
+    "ruoli_dipendente",
+    "assigned_stores",
+    "primary_store",
+    "employee_group",
+    "phone",
+    "data_nascita",
+    "citta_nascita",
+    "codice_fiscale",
+    "indirizzo_residenza",
+    "iban",
+    "taglia_maglietta",
+    "ore_settimanali",
+    "data_inizio_contratto",
+    "durata_contratto_mesi",
+    "documento_identita_url",
+    "codice_fiscale_documento_url",
+    "permesso_soggiorno_url"
+  ]
+}

@@ -147,6 +147,7 @@ export default function DivisaEmployeeTable({
               <th className="text-left py-2 px-2 text-slate-600 font-medium">Dipendente</th>
               <th className="text-center py-2 px-2 text-slate-600 font-medium">Gruppo</th>
               <th className="text-center py-2 px-2 text-slate-600 font-medium">Taglia</th>
+              <th className="text-center py-2 px-2 text-slate-600 font-medium">Scarpe</th>
               {elementi.map(el => (
                 <th key={el} className="text-center py-2 px-2 text-slate-600 font-medium">{el}</th>
               ))}
@@ -185,6 +186,20 @@ export default function DivisaEmployeeTable({
                         <AlertTriangle className="w-3 h-3" /> Mancante
                       </span>
                     )}
+                  </td>
+                  <td className="py-2.5 px-2 text-center">
+                    {(() => {
+                      const empNameLower = (emp.full_name || "").trim().toLowerCase();
+                      const userData = userByName[empNameLower];
+                      const tagliaScarpe = userData?.taglia_scarpe;
+                      return tagliaScarpe ? (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">{tagliaScarpe}</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-amber-600 text-xs font-medium">
+                          <AlertTriangle className="w-3 h-3" /> Mancante
+                        </span>
+                      );
+                    })()}
                   </td>
                   {elementi.map(el => {
                     const exp = (expected && expected[el]) || 0;
@@ -241,7 +256,7 @@ export default function DivisaEmployeeTable({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={elementi.length + 5} className="py-8 text-center text-slate-400">
+                <td colSpan={elementi.length + 6} className="py-8 text-center text-slate-400">
                   Nessun dipendente trovato
                 </td>
               </tr>
