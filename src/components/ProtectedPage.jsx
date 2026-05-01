@@ -84,6 +84,11 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
           }
         }
 
+        // Allow TurniDipendente access (read-only) before contract start, matching Layout logic
+        if (normalizedUserType === 'dipendente' && !allowedPages.includes('TurniDipendente')) {
+          allowedPages.push('TurniDipendente');
+        }
+
         // Common forms and core pages that should ALWAYS be accessible to dipendenti with roles
         const commonForms = ['FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'FormPreparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'ConteggioCassa', 'FormDeposito', 'FormPrelievi', 'FormTeglieButtate', 'FormSprechi', 'FormPagamentiContanti', 'FormSpostamenti', 'Ordini'];
         const corePages = ['TurniDipendente', 'ProfiloDipendente', 'Academy', 'ContrattiDipendente', 'FormsDipendente', 'Valutazione', 'Segnalazioni', 'AssistenteDipendente', 'OreLavorate', 'FeedbackP2P'];
