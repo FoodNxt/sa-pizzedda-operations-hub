@@ -51,6 +51,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Non puoi timbrare un turno di un altro dipendente' }, { status: 403 });
     }
 
+    // PHASE 3: Prevent clock-in/out before contract start date (non-admin only)
+    if (user.user_type !== 'admin' && user.data_inizio_contratto) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const contractStart = new Date(user.data_inizio_contratto);
+      contractStart.setHours(0, 0, 0, 0);
+      if (contractStart > today) {
+        return Response.json({ 
+          error: 'Non puoi timbrare prima della data di inizio contratto (' + user.data_inizio_contratto + ')' 
+        }, { status: 403 });
+      }
+    }
+
     // === DOCUMENT COMPLIANCE CHECK (Phase 1) - Only for clock-in, only for non-admin ===
     if (tipo === 'entrata' && user.user_type !== 'admin') {
       const employeeId = turno.dipendente_id;

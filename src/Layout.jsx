@@ -862,6 +862,8 @@ export default function Layout({ children, currentPageName }) {
           }
 
           const allowedPages = allowedPagesConfig.map(p => typeof p === 'string' ? p : p.page);
+          // Allow TurniDipendente access (read-only) before contract start
+          if (!allowedPages.includes('TurniDipendente')) allowedPages.push('TurniDipendente');
           const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
           if (!allowedFullPaths.includes(location.pathname)) {
             navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
@@ -1114,6 +1116,10 @@ export default function Layout({ children, currentPageName }) {
       allowedPagesConfig = normalizePageConfig(pageAccessConfig?.after_registration || []);
     }
 
+    // Ensure TurniDipendente is always available (read-only before contract start)
+    if (!allowedPagesConfig.some(p => (typeof p === 'string' ? p : p.page) === 'TurniDipendente')) {
+      allowedPagesConfig.push({ page: 'TurniDipendente', showInMenu: true, showInForms: false });
+    }
     // Filter only pages that should show in menu (NEVER show TeglieButtate in any form)
     const menuPages = allowedPagesConfig
       .filter(p => p.showInMenu === true)
