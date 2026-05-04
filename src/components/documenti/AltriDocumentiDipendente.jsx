@@ -130,7 +130,7 @@ export default function AltriDocumentiDipendente({ currentUser }) {
                 <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">{viewingDoc.contenuto}</pre>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl">
+            <div className="sticky bottom-0 bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl border-t border-slate-200" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               <div className="max-w-4xl mx-auto">
                 {viewingDoc.richiede_firma && viewingDoc.status !== "firmato" ? (
                   <div className="space-y-3">
