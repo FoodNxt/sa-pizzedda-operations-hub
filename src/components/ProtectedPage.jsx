@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
+import { getAllowedPagesForDipendente } from '@/lib/getAllowedPages';
 import NeumorphicCard from './neumorphic/NeumorphicCard';
 import { AlertTriangle } from 'lucide-react';
 
@@ -28,7 +29,6 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
         const activeConfig = configs.find(c => c.is_active);
 
         if (!activeConfig) {
-          // No config found, allow for manager, deny for dipendente
           if (normalizedUserType === 'manager') {
             setIsAuthorized(true);
             setIsLoading(false);
@@ -43,73 +43,21 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
         let allowedPages = [];
 
         if (normalizedUserType === 'manager') {
-          allowedPages = activeConfig.manager_pages || [];
-          // If no manager config, deny access (must be explicitly configured)
+          const managerPages = activeConfig.manager_pages || [];
+          allowedPages = managerPages.map(p => typeof p === 'string' ? p : p.page);
         } else if (normalizedUserType === 'dipendente') {
-          // Check contract status for dipendenti
-          const userRoles = user.ruoli_dipendente || [];
-
-          if (userRoles.length === 0) {
-            const pagesConfig = activeConfig.after_registration || [];
-            allowedPages = pagesConfig.map(p => typeof p === 'string' ? p : p.page);
-          } else {
-            const hasReceivedContract = await checkIfContractReceived(user.id);
-            const hasSignedContract = await checkIfContractSigned(user.id);
-            const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
-
-            let pagesConfig = [];
-
-            if (contractStarted && hasSignedContract) {
-              if (userRoles.includes('Pizzaiolo')) {
-                pagesConfig = [...pagesConfig, ...(activeConfig.pizzaiolo_pages || [])];
-              }
-              if (userRoles.includes('Cassiere')) {
-                pagesConfig = [...pagesConfig, ...(activeConfig.cassiere_pages || [])];
-              }
-              if (userRoles.includes('Store Manager')) {
-                pagesConfig = [...pagesConfig, ...(activeConfig.store_manager_pages || [])];
-              }
-            } else if (hasSignedContract) {
-              pagesConfig = activeConfig.after_contract_signed || [];
-            } else if (hasReceivedContract) {
-              pagesConfig = activeConfig.after_contract_received || [];
-            } else {
-              pagesConfig = activeConfig.after_registration || [];
-            }
-
-            // Extract page names
-            allowedPages = pagesConfig.map(p => typeof p === 'string' ? p : p.page);
-            // Remove duplicates
-            allowedPages = [...new Set(allowedPages)];
-          }
+          // Use the SAME shared utility as Layout
+          const result = await getAllowedPagesForDipendente(user, activeConfig);
+          allowedPages = result.allowedPages;
         }
 
-        // Allow TurniDipendente access (read-only) before contract start, matching Layout logic
-        if (normalizedUserType === 'dipendente' && !allowedPages.includes('TurniDipendente')) {
-          allowedPages.push('TurniDipendente');
-        }
-
-        // Common forms and core pages that should ALWAYS be accessible to dipendenti with roles
-        const commonForms = ['FormInventario', 'FormCantina', 'Impasto', 'Preparazioni', 'FormPreparazioni', 'Precotture', 'ControlloPuliziaCassiere', 'ControlloPuliziaPizzaiolo', 'ControlloPuliziaStoreManager', 'ConteggioCassa', 'FormDeposito', 'FormPrelievi', 'FormTeglieButtate', 'FormSprechi', 'FormPagamentiContanti', 'FormSpostamenti', 'Ordini'];
-        const corePages = ['TurniDipendente', 'ProfiloDipendente', 'Academy', 'ContrattiDipendente', 'FormsDipendente', 'Valutazione', 'Segnalazioni', 'AssistenteDipendente', 'OreLavorate', 'FeedbackP2P'];
-
-        // Per dipendenti CON ruoli assegnati e contratto iniziato, permettere sempre l'accesso a forms e core pages
-        const userRoles = user?.ruoli_dipendente || [];
-        const contractStarted = user?.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
-        const shouldAllowCommonAccess = normalizedUserType === 'dipendente' && userRoles.length > 0 && contractStarted;
-
-        const hasAccess = allowedPages.includes(pageName) || (shouldAllowCommonAccess && (commonForms.includes(pageName) || corePages.includes(pageName)));
+        const hasAccess = allowedPages.includes(pageName);
 
         if (!hasAccess) {
-          // Redirect to first allowed page
           let firstAllowedPage = 'ProfiloDipendente';
-          
-          if (normalizedUserType === 'manager' && allowedPages.length > 0) {
-            firstAllowedPage = typeof allowedPages[0] === 'string' ? allowedPages[0] : allowedPages[0].page;
-          } else if (normalizedUserType === 'dipendente' && allowedPages.length > 0) {
-            firstAllowedPage = typeof allowedPages[0] === 'string' ? allowedPages[0] : allowedPages[0].page;
+          if (allowedPages.length > 0) {
+            firstAllowedPage = allowedPages[0];
           }
-          
           navigate(createPageUrl(firstAllowedPage), { replace: true });
           setIsAuthorized(false);
         } else {
@@ -127,29 +75,6 @@ export default function ProtectedPage({ children, pageName, requiredUserTypes = 
 
     checkAccess();
   }, [pageName, navigate]);
-
-  const checkIfContractSigned = async (userId) => {
-    try {
-      const contratti = await base44.entities.Contratto.filter({
-        user_id: userId,
-        status: 'firmato'
-      });
-      return contratti.length > 0;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const checkIfContractReceived = async (userId) => {
-    try {
-      const contratti = await base44.entities.Contratto.filter({
-        user_id: userId
-      });
-      return contratti.length > 0;
-    } catch (error) {
-      return false;
-    }
-  };
 
   if (isLoading) {
     return (

@@ -50,6 +50,7 @@ import {
   DollarSign
 } from "lucide-react";
 import CompleteProfileModal from "./components/auth/CompleteProfileModal";
+import { getAllowedPagesForDipendente, getMenuPages } from "./lib/getAllowedPages";
 
 const navigationStructure = [
   {
@@ -809,61 +810,8 @@ export default function Layout({ children, currentPageName }) {
             }
           }
 
-          const userRoles = user.ruoli_dipendente || [];
-
-          if (userRoles.length === 0) {
-            const allowedPagesConfig = pageAccessConfig?.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }];
-            const allowedPages = allowedPagesConfig.map(p => typeof p === 'string' ? p : p.page);
-            const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
-            if (!allowedFullPaths.includes(location.pathname)) {
-              navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
-            }
-            setIsLoadingUser(false);
-            return;
-          }
-
-          const hasReceivedContract = await checkIfContractReceived(user.id);
-          const hasSignedContract = await checkIfContractSigned(user.id);
-          const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
-
-          let allowedPagesConfig = [];
-
-          if (contractStarted && hasSignedContract) {
-            allowedPagesConfig = [];
-            if (userRoles.includes('Pizzaiolo')) {
-              allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.pizzaiolo_pages || [])];
-            }
-            if (userRoles.includes('Cassiere')) {
-              allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.cassiere_pages || [])];
-            }
-            if (userRoles.includes('Store Manager')) {
-              allowedPagesConfig = [...allowedPagesConfig, ...(pageAccessConfig?.store_manager_pages || [])];
-            }
-            const seen = new Set();
-            allowedPagesConfig = allowedPagesConfig.filter(p => {
-              const pageName = typeof p === 'string' ? p : p.page;
-              if (seen.has(pageName)) return false;
-              seen.add(pageName);
-              return true;
-            });
-            if (allowedPagesConfig.length === 0) {
-              allowedPagesConfig = [
-                { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-                { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
-                { page: 'Academy', showInMenu: true, showInForms: false }
-              ];
-            }
-          } else if (hasSignedContract) {
-            allowedPagesConfig = pageAccessConfig?.after_contract_signed || [];
-          } else if (hasReceivedContract) {
-            allowedPagesConfig = pageAccessConfig?.after_contract_received || [];
-          } else {
-            allowedPagesConfig = pageAccessConfig?.after_registration || [];
-          }
-
-          const allowedPages = allowedPagesConfig.map(p => typeof p === 'string' ? p : p.page);
-          // Allow TurniDipendente access (read-only) before contract start
-          if (!allowedPages.includes('TurniDipendente')) allowedPages.push('TurniDipendente');
+          // Use shared utility for allowed pages computation
+          const { allowedPages } = await getAllowedPagesForDipendente(user, pageAccessConfig);
           const allowedFullPaths = allowedPages.map(p => createPageUrl(p));
           if (!allowedFullPaths.includes(location.pathname)) {
             navigate(allowedFullPaths[0] || createPageUrl("ProfiloDipendente"), { replace: true });
@@ -1043,109 +991,24 @@ export default function Layout({ children, currentPageName }) {
   const getFilteredNavigationForDipendente = async (user) => {
     try {
       const normalizedUserType = getNormalizedUserType(user.user_type);
-      
       if (normalizedUserType !== 'dipendente') return null;
 
-    const userRoles = user.ruoli_dipendente || [];
+      // Use shared utility - same logic as ProtectedPage
+      const { pagesConfig } = await getAllowedPagesForDipendente(user, pageAccessConfig);
+      const menuPages = getMenuPages(pagesConfig);
 
-    if (userRoles.length === 0) {
-      const allowedPagesConfig = normalizePageConfig(pageAccessConfig?.after_registration || [{ page: 'ProfiloDipendente', showInMenu: true, showInForms: false }]);
-      const menuPages = allowedPagesConfig
-        .filter(p => p.showInMenu === true)
-        .map(p => p.page);
-      
-      // Assicura sempre Profilo e Turni
-      if (!menuPages.includes('ProfiloDipendente')) menuPages.unshift('ProfiloDipendente');
-      if (!menuPages.includes('TurniDipendente')) menuPages.push('TurniDipendente');
-      
+      const menuItems = menuPages.map(pageName => ({
+        title: getPageTitle(pageName),
+        url: createPageUrl(pageName),
+        icon: getPageIcon(pageName)
+      }));
+
       return [{
         title: "Area Dipendente",
         icon: Users,
         type: "section",
-        items: menuPages.map(pageName => ({
-          title: getPageTitle(pageName),
-          url: createPageUrl(pageName),
-          icon: getPageIcon(pageName)
-        }))
+        items: menuItems
       }];
-    }
-
-    const hasReceivedContract = await checkIfContractReceived(user.id);
-    const hasSignedContract = await checkIfContractSigned(user.id);
-    const contractStarted = user.data_inizio_contratto && new Date(user.data_inizio_contratto) <= new Date();
-
-    let allowedPagesConfig = [];
-
-    if (contractStarted && hasSignedContract) {
-      // Use role-specific pages directly
-      allowedPagesConfig = [];
-
-      if (userRoles.includes('Pizzaiolo')) {
-        allowedPagesConfig = [...allowedPagesConfig, ...normalizePageConfig(pageAccessConfig?.pizzaiolo_pages || [])];
-      }
-      if (userRoles.includes('Cassiere')) {
-        allowedPagesConfig = [...allowedPagesConfig, ...normalizePageConfig(pageAccessConfig?.cassiere_pages || [])];
-      }
-      if (userRoles.includes('Store Manager')) {
-        allowedPagesConfig = [...allowedPagesConfig, ...normalizePageConfig(pageAccessConfig?.store_manager_pages || [])];
-      }
-
-      // Remove duplicates by page name
-      const seen = new Set();
-      allowedPagesConfig = allowedPagesConfig.filter(p => {
-        const pageName = p.page;
-        if (seen.has(pageName)) return false;
-        seen.add(pageName);
-        return true;
-      });
-
-      // Fallback if no role-specific pages
-      if (allowedPagesConfig.length === 0) {
-        allowedPagesConfig = [
-          { page: 'ProfiloDipendente', showInMenu: true, showInForms: false },
-          { page: 'TurniDipendente', showInMenu: true, showInForms: false },
-          { page: 'ContrattiDipendente', showInMenu: true, showInForms: false },
-          { page: 'Academy', showInMenu: true, showInForms: false }
-        ];
-      }
-    } else if (hasSignedContract) {
-      allowedPagesConfig = normalizePageConfig(pageAccessConfig?.after_contract_signed || []);
-    } else if (hasReceivedContract) {
-      allowedPagesConfig = normalizePageConfig(pageAccessConfig?.after_contract_received || []);
-    } else {
-      allowedPagesConfig = normalizePageConfig(pageAccessConfig?.after_registration || []);
-    }
-
-    // Ensure TurniDipendente is always available (read-only before contract start)
-    if (!allowedPagesConfig.some(p => (typeof p === 'string' ? p : p.page) === 'TurniDipendente')) {
-      allowedPagesConfig.push({ page: 'TurniDipendente', showInMenu: true, showInForms: false });
-    }
-    // Filter only pages that should show in menu (NEVER show TeglieButtate in any form)
-    const menuPages = allowedPagesConfig
-      .filter(p => p.showInMenu === true)
-      .map(p => p.page)
-      .filter(pageName => !pageName.toLowerCase().includes('teglie'));
-
-    // Pagine core che devono sempre essere presenti per dipendenti con ruoli
-    const corePages = ['ProfiloDipendente', 'TurniDipendente', 'ContrattiDipendente'];
-    corePages.forEach(corePage => {
-      if (!menuPages.includes(corePage)) {
-        menuPages.push(corePage);
-      }
-    });
-
-    const menuItems = menuPages.map(pageName => ({
-      title: getPageTitle(pageName),
-      url: createPageUrl(pageName),
-      icon: getPageIcon(pageName)
-    }));
-
-    return [{
-      title: "Area Dipendente",
-      icon: Users,
-      type: "section",
-      items: menuItems
-    }];
     } catch (error) {
       console.error('Error in getFilteredNavigationForDipendente:', error);
       return [{
