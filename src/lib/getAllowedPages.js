@@ -66,10 +66,13 @@ export async function getAllowedPagesForDipendente(user, pageAccessConfig) {
   // Extract ALL page names (both showInMenu and showInForms) - these are all "allowed" pages
   const allowedPages = [...new Set(pagesConfig.map(p => p.page))];
 
-  // Always ensure TurniDipendente is accessible
-  if (!allowedPages.includes('TurniDipendente')) {
-    allowedPages.push('TurniDipendente');
-  }
+  // Core pages always accessible for all dipendenti
+  const coreDipendentePages = ['TurniDipendente', 'ProfiloDipendente', 'ContrattiDipendente', 'Academy'];
+  coreDipendentePages.forEach(page => {
+    if (!allowedPages.includes(page)) {
+      allowedPages.push(page);
+    }
+  });
 
   return { allowedPages, pagesConfig, contractStarted, hasSignedContract, hasReceivedContract };
 }
@@ -85,7 +88,7 @@ export function getMenuPages(pagesConfig) {
     .filter(pageName => !pageName.toLowerCase().includes('teglie'));
 
   // Core pages always in menu for dipendenti with roles
-  const corePages = ['ProfiloDipendente', 'TurniDipendente', 'ContrattiDipendente'];
+  const corePages = ['ProfiloDipendente', 'TurniDipendente', 'ContrattiDipendente', 'Academy'];
   corePages.forEach(corePage => {
     if (!menuPages.includes(corePage)) {
       menuPages.push(corePage);
