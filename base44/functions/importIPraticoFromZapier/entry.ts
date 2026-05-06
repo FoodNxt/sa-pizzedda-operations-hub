@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.26';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
     try {
@@ -16,18 +16,37 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
         
-        // Validate webhook secret
-        const providedSecret = body.secret;
-        const expectedSecret = Deno.env.get('ZAPIER_IPRATICO_WEBHOOK_SECRET');
+        // Auth: accept either admin user session OR valid webhook secret
+        let isAuthorized = false;
         
-        if (!expectedSecret) {
-            return Response.json({ 
-                error: 'Server configuration error: ZAPIER_IPRATICO_WEBHOOK_SECRET not set',
-                hint: 'Set ZAPIER_IPRATICO_WEBHOOK_SECRET in Dashboard → Code → Secrets'
-            }, { status: 500 });
+        try {
+            const user = await base44.auth.me();
+            if (user && (user.role === 'admin' || user.user_type === 'admin')) {
+                isAuthorized = true;
+                console.log(`✅ Authorized via admin user: ${user.email}`);
+            }
+        } catch (e) {
+            // Not logged in, try webhook secret
         }
         
-        if (!providedSecret || providedSecret !== expectedSecret) {
+        if (!isAuthorized) {
+            const providedSecret = body.secret;
+            const expectedSecret = Deno.env.get('ZAPIER_IPRATICO_WEBHOOK_SECRET');
+            
+            if (!expectedSecret) {
+                return Response.json({ 
+                    error: 'Server configuration error: ZAPIER_IPRATICO_WEBHOOK_SECRET not set',
+                    hint: 'Set ZAPIER_IPRATICO_WEBHOOK_SECRET in Dashboard → Code → Secrets'
+                }, { status: 500 });
+            }
+            
+            if (providedSecret && providedSecret === expectedSecret) {
+                isAuthorized = true;
+                console.log('✅ Authorized via webhook secret');
+            }
+        }
+        
+        if (!isAuthorized) {
             return Response.json({ 
                 error: 'Unauthorized: Invalid or missing webhook secret',
                 hint: 'Make sure the "secret" field matches your ZAPIER_IPRATICO_WEBHOOK_SECRET'
@@ -49,15 +68,13 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // Find store by name
-        const stores = await base44.asServiceRole.entities.Store.filter({
-            name: body.store_name
-        });
+        // Find store by name (case-insensitive)
+        const allStores = await base44.asServiceRole.entities.Store.list();
+        const stores = allStores.filter(s => s.name.toLowerCase() === body.store_name.toLowerCase());
 
         if (!stores || stores.length === 0) {
-            const allStores = await base44.asServiceRole.entities.Store.list();
             return Response.json({ 
-                error: `Locale non trovato: "${body.store_name}". Verifica che il nome sia esatto (maiuscole/minuscole).`,
+                error: `Locale non trovato: "${body.store_name}". Verifica che il nome sia esatto.`,
                 available_stores: allStores.map(s => s.name),
                 received: body.store_name
             }, { status: 404 });
