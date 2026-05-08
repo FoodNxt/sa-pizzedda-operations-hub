@@ -1,0 +1,88 @@
+{
+  "name": "ComodatoDivisa",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID dell'utente dipendente"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email dell'utente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome e cognome dipendente"
+    },
+    "contenuto_contratto": {
+      "type": "string",
+      "description": "Testo completo del contratto con variabili sostituite"
+    },
+    "elementi_consegnati": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "quantita": {
+            "type": "number"
+          },
+          "valore_unitario": {
+            "type": "number"
+          },
+          "totale": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Lista dei capi consegnati con quantit\u00e0 e valori"
+    },
+    "valore_totale": {
+      "type": "number",
+      "description": "Valore totale della divisa consegnata"
+    },
+    "consegna_divisa_id": {
+      "type": "string",
+      "description": "ID della ConsegnaDivisa collegata (opzionale)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "bozza",
+        "inviato",
+        "firmato"
+      ],
+      "default": "bozza",
+      "description": "Stato del contratto di comodato"
+    },
+    "data_invio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di invio al dipendente"
+    },
+    "data_firma": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data della firma"
+    },
+    "firma_dipendente": {
+      "type": "string",
+      "description": "Firma digitale del dipendente"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "user_id",
+    "dipendente_nome",
+    "elementi_consegnati",
+    "valore_totale"
+  ]
+}
