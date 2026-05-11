@@ -74,6 +74,15 @@ export async function getAllowedPagesForDipendente(user, pageAccessConfig) {
     }
   });
 
+  // Restrict "PagamentoStraordinari" to only Erick Franceschi
+  const PAGAMENTO_STRAORDINARI_USER_ID = '6932fee64631fa88ba829bc2';
+  if (user.id !== PAGAMENTO_STRAORDINARI_USER_ID) {
+    const idx = allowedPages.indexOf('PagamentoStraordinari');
+    if (idx !== -1) allowedPages.splice(idx, 1);
+    const cfgIdx = pagesConfig.findIndex(p => p.page === 'PagamentoStraordinari');
+    if (cfgIdx !== -1) pagesConfig.splice(cfgIdx, 1);
+  }
+
   return { allowedPages, pagesConfig, contractStarted, hasSignedContract, hasReceivedContract };
 }
 
