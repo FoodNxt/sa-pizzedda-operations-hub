@@ -127,7 +127,7 @@ export default function ComodatoDivisaDipendente({ currentUser }) {
       )}
 
       {viewingDoc && (
-        <div className="fixed inset-0 flex flex-col bg-white" style={{ zIndex: 9999 }}>
+        <div className="fixed inset-0 flex flex-col bg-white" style={{ zIndex: 99999 }}>
           {/* Header */}
           <div className="flex-shrink-0 bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-800">Comodato d'Uso Divisa</h2>
@@ -135,6 +135,48 @@ export default function ComodatoDivisaDipendente({ currentUser }) {
               <X className="w-5 h-5 text-slate-700" />
             </button>
           </div>
+
+          {/* Signature bar right under header - always visible, never covered */}
+          {viewingDoc.status === 'inviato' && (
+            <div className="flex-shrink-0 bg-white border-b-2 border-green-200 p-4 shadow-md">
+              <div className="max-w-4xl mx-auto flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={signatureName}
+                  onChange={e => setSignatureName(e.target.value)}
+                  placeholder="Nome e Cognome"
+                  className="flex-1 px-4 py-3 rounded-xl outline-none text-sm"
+                  style={{ background: '#f8fafc', border: '1px solid #cbd5e1' }}
+                />
+                <button
+                  onClick={handleSign}
+                  disabled={signMutation.isPending}
+                  style={{
+                    background: 'linear-gradient(to right, #22c55e, #059669)',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    padding: '14px 20px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    fontSize: '14px',
+                    whiteSpace: 'nowrap',
+                    opacity: signMutation.isPending ? 0.5 : 1,
+                    boxShadow: '0 4px 12px rgba(34, 197, 94, 0.4)'
+                  }}
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  {signMutation.isPending ? 'Firmando...' : 'FIRMA'}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 text-center mt-2">
+                Firmando accetti i termini del contratto di comodato
+              </p>
+            </div>
+          )}
 
           {/* Scrollable contract text */}
           <div className="flex-1 overflow-y-auto p-4 bg-white">
@@ -155,47 +197,6 @@ export default function ComodatoDivisaDipendente({ currentUser }) {
               </div>
             )}
           </div>
-
-          {/* Fixed bottom signature bar - always visible on mobile */}
-          {viewingDoc.status === 'inviato' && (
-            <div className="flex-shrink-0 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
-              <div className="max-w-4xl mx-auto space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={signatureName}
-                    onChange={e => setSignatureName(e.target.value)}
-                    placeholder="Nome e Cognome"
-                    className="flex-1 border border-slate-300 px-4 py-3 rounded-xl outline-none text-sm bg-white"
-                    style={{ background: '#f8fafc', border: '1px solid #cbd5e1' }}
-                  />
-                </div>
-                <button
-                  onClick={handleSign}
-                  disabled={signMutation.isPending}
-                  style={{
-                    background: 'linear-gradient(to right, #22c55e, #059669)',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    padding: '16px 24px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    fontSize: '16px',
-                    opacity: signMutation.isPending ? 0.5 : 1,
-                    boxShadow: '0 4px 12px rgba(34, 197, 94, 0.4)'
-                  }}
-                >
-                  <CheckCircle className="w-6 h-6" />
-                  {signMutation.isPending ? 'Firma in corso...' : 'FIRMA CONTRATTO'}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </>
