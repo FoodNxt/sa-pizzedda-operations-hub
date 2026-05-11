@@ -2,6 +2,7 @@ import React from "react";
 import { Shirt } from "lucide-react";
 import ProtectedPage from "../components/ProtectedPage";
 import ComodatoDivisaAdmin from "../components/documenti/ComodatoDivisaAdmin";
+import DotazioneDivisaReadonly from "../components/divise/DotazioneDivisaReadonly";
 
 export default function DiviseStoreManager() {
   return (
@@ -14,6 +15,7 @@ export default function DiviseStoreManager() {
             <p className="text-sm text-slate-500">Gestione comodato d'uso divise dipendenti</p>
           </div>
         </div>
+        <DotazioneDivisaReadonly />
         <ComodatoDivisaAdmin />
       </div>
     </ProtectedPage>
