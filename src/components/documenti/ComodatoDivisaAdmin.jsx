@@ -255,6 +255,10 @@ function CreaComodatoModal({ users, employees, contratti, divisaConfig, onClose,
                 {employeeGroup && (
                   <p><strong>Contratto:</strong> {GRUPPI_LABELS[employeeGroup] || employeeGroup}</p>
                 )}
+                <div className="flex gap-4">
+                  <p><strong>Taglia maglietta:</strong> {selectedContratto?.taglia_maglietta || selectedUser?.taglia_maglietta || <span className="text-amber-600">Non inserita</span>}</p>
+                  <p><strong>Taglia scarpe:</strong> {selectedUser?.taglia_scarpe || <span className="text-amber-600">Non inserita</span>}</p>
+                </div>
                 {recommendedQty && (
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-xs text-blue-600">Dotazione consigliata disponibile</span>
