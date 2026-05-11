@@ -127,75 +127,75 @@ export default function ComodatoDivisaDipendente({ currentUser }) {
       )}
 
       {viewingDoc && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center" style={{ zIndex: 9999 }}>
-          <div className="w-full h-full flex flex-col bg-white">
-            <div className="flex-shrink-0 bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-800">Comodato d'Uso Divisa</h2>
-              <button onClick={() => setViewingDoc(null)} style={{ background: 'transparent', border: 'none', padding: '8px' }}>
-                <X className="w-5 h-5 text-slate-700" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-white pb-4">
-              <div className="max-w-4xl mx-auto neumorphic-pressed p-4 lg:p-6 rounded-xl mb-4">
-                <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">
-                  {viewingDoc.contenuto_contratto}
-                </pre>
-              </div>
-
-              {/* Signature section inline - scrolls with content so always reachable on mobile */}
-              <div className="max-w-4xl mx-auto pb-52">
-                {viewingDoc.status === 'inviato' ? (
-                  <div className="neumorphic-card p-4 rounded-xl space-y-3">
-                    <label className="text-sm font-medium text-slate-700 block">Firma Digitale (Nome Completo)</label>
-                    <input
-                      type="text"
-                      value={signatureName}
-                      onChange={e => setSignatureName(e.target.value)}
-                      placeholder="Nome e Cognome"
-                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
-                    />
-                    <button
-                      onClick={handleSign}
-                      disabled={signMutation.isPending}
-                      style={{
-                        background: 'linear-gradient(to right, #22c55e, #059669)',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        padding: '16px 24px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        fontSize: '16px',
-                        opacity: signMutation.isPending ? 0.5 : 1
-                      }}
-                    >
-                      <CheckCircle className="w-6 h-6" />
-                      {signMutation.isPending ? 'Firma in corso...' : 'Firma Contratto di Comodato'}
-                    </button>
-                    <div className="neumorphic-pressed p-3 rounded-xl bg-blue-50">
-                      <p className="text-xs text-blue-800 text-center">
-                        ℹ️ Firmando accetti i termini del contratto di comodato
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                      <div>
-                        <p className="font-medium text-green-800">Contratto Firmato</p>
-                        <p className="text-xs text-green-600">Firma: {viewingDoc.firma_dipendente}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+        <div className="fixed inset-0 flex flex-col bg-white" style={{ zIndex: 9999 }}>
+          {/* Header */}
+          <div className="flex-shrink-0 bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-800">Comodato d'Uso Divisa</h2>
+            <button onClick={() => setViewingDoc(null)} style={{ background: 'transparent', border: 'none', padding: '8px' }}>
+              <X className="w-5 h-5 text-slate-700" />
+            </button>
           </div>
+
+          {/* Scrollable contract text */}
+          <div className="flex-1 overflow-y-auto p-4 bg-white">
+            <div className="max-w-4xl mx-auto neumorphic-pressed p-4 lg:p-6 rounded-xl">
+              <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">
+                {viewingDoc.contenuto_contratto}
+              </pre>
+            </div>
+            {viewingDoc.status === 'firmato' && (
+              <div className="max-w-4xl mx-auto mt-4 neumorphic-pressed p-4 rounded-xl bg-green-50">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-800">Contratto Firmato</p>
+                    <p className="text-xs text-green-600">Firma: {viewingDoc.firma_dipendente}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Fixed bottom signature bar - always visible on mobile */}
+          {viewingDoc.status === 'inviato' && (
+            <div className="flex-shrink-0 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+              <div className="max-w-4xl mx-auto space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={signatureName}
+                    onChange={e => setSignatureName(e.target.value)}
+                    placeholder="Nome e Cognome"
+                    className="flex-1 border border-slate-300 px-4 py-3 rounded-xl outline-none text-sm bg-white"
+                    style={{ background: '#f8fafc', border: '1px solid #cbd5e1' }}
+                  />
+                </div>
+                <button
+                  onClick={handleSign}
+                  disabled={signMutation.isPending}
+                  style={{
+                    background: 'linear-gradient(to right, #22c55e, #059669)',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    padding: '16px 24px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontSize: '16px',
+                    opacity: signMutation.isPending ? 0.5 : 1,
+                    boxShadow: '0 4px 12px rgba(34, 197, 94, 0.4)'
+                  }}
+                >
+                  <CheckCircle className="w-6 h-6" />
+                  {signMutation.isPending ? 'Firma in corso...' : 'FIRMA CONTRATTO'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
