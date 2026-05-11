@@ -127,25 +127,26 @@ export default function ComodatoDivisaDipendente({ currentUser }) {
       )}
 
       {viewingDoc && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center" style={{ zIndex: 9999 }}>
           <div className="w-full h-full flex flex-col bg-white">
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
+            <div className="flex-shrink-0 bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
               <h2 className="text-lg font-bold text-slate-800">Comodato d'Uso Divisa</h2>
-              <button onClick={() => setViewingDoc(null)} className="nav-button p-2 rounded-lg">
-                <X className="w-5 h-5" />
+              <button onClick={() => setViewingDoc(null)} style={{ background: 'transparent', border: 'none', padding: '8px' }}>
+                <X className="w-5 h-5 text-slate-700" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 bg-white">
-              <div className="max-w-4xl mx-auto neumorphic-pressed p-6 rounded-xl">
+              <div className="max-w-4xl mx-auto neumorphic-pressed p-4 lg:p-6 rounded-xl">
                 <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">
                   {viewingDoc.contenuto_contratto}
                 </pre>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl">
+            <div className="flex-shrink-0 bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
               <div className="max-w-4xl mx-auto">
                 {viewingDoc.status === 'inviato' ? (
                   <div className="space-y-3">
+                    <label className="text-sm font-medium text-slate-700 block">Firma Digitale (Nome Completo)</label>
                     <input
                       type="text"
                       value={signatureName}
@@ -156,7 +157,21 @@ export default function ComodatoDivisaDipendente({ currentUser }) {
                     <button
                       onClick={handleSign}
                       disabled={signMutation.isPending}
-                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 rounded-xl text-white font-bold flex items-center justify-center gap-2"
+                      style={{
+                        background: 'linear-gradient(to right, #22c55e, #059669)',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        padding: '16px 24px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        fontSize: '16px',
+                        opacity: signMutation.isPending ? 0.5 : 1
+                      }}
                     >
                       <CheckCircle className="w-6 h-6" />
                       {signMutation.isPending ? 'Firma in corso...' : 'Firma Contratto di Comodato'}
