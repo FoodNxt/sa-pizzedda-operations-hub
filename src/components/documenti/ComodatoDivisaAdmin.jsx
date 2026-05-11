@@ -89,8 +89,8 @@ const VALORI_UNITARI = {
   'Scarpe': 30
 };
 
-function CreaComodatoModal({ users, onClose, onCreated }) {
-  const [selectedUserId, setSelectedUserId] = useState('');
+function CreaComodatoModal({ users, employees, onClose, onCreated }) {
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [capi, setCapi] = useState(
     Object.keys(VALORI_UNITARI).map(nome => ({
@@ -105,13 +105,15 @@ function CreaComodatoModal({ users, onClose, onCreated }) {
   const [saving, setSaving] = useState(false);
   const [previewText, setPreviewText] = useState('');
 
-  const selectedUser = users.find(u => u.id === selectedUserId);
-  const dipendenti = users.filter(u => {
-    const tipo = u.user_type === 'user' ? 'dipendente' : u.user_type;
-    return tipo === 'dipendente';
-  });
-  const filteredDipendenti = dipendenti.filter(u => {
-    const name = (u.nome_cognome || u.full_name || u.email || '').toLowerCase();
+  const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
+  // Try to find matching User record for extra details (CF, residenza)
+  const matchedUser = selectedEmployee ? users.find(u => 
+    (u.nome_cognome || u.full_name || '').toLowerCase() === (selectedEmployee.full_name || '').toLowerCase() ||
+    (u.email && selectedEmployee.email && u.email.toLowerCase() === selectedEmployee.email.toLowerCase())
+  ) : null;
+
+  const filteredEmployees = employees.filter(e => {
+    const name = (e.full_name || '').toLowerCase();
     return name.includes(searchTerm.toLowerCase());
   });
 
@@ -130,7 +132,7 @@ function CreaComodatoModal({ users, onClose, onCreated }) {
   const anySelected = capi.some(c => c.quantita > 0);
 
   const generateContratto = () => {
-    if (!selectedUser) return '';
+    if (!selectedEmployee) return '';
     const oggi = new Date().toLocaleDateString('it-IT');
 
     const elencoCapi = capi
@@ -139,11 +141,11 @@ function CreaComodatoModal({ users, onClose, onCreated }) {
       .join('\n\n');
 
     let text = TEMPLATE_CONTRATTO;
-    text = text.replace(/{NOME_COGNOME_DIPENDENTE}/g, selectedUser.nome_cognome || selectedUser.full_name || '');
-    text = text.replace(/{LUOGO_NASCITA}/g, selectedUser.citta_nascita || '___');
-    text = text.replace(/{DATA_NASCITA}/g, selectedUser.data_nascita ? new Date(selectedUser.data_nascita).toLocaleDateString('it-IT') : '___');
-    text = text.replace(/{CODICE_FISCALE}/g, selectedUser.codice_fiscale || '___');
-    text = text.replace(/{INDIRIZZO_RESIDENZA}/g, selectedUser.indirizzo_residenza || '___');
+    text = text.replace(/{NOME_COGNOME_DIPENDENTE}/g, selectedEmployee.full_name || '');
+    text = text.replace(/{LUOGO_NASCITA}/g, matchedUser?.citta_nascita || '___');
+    text = text.replace(/{DATA_NASCITA}/g, matchedUser?.data_nascita ? new Date(matchedUser.data_nascita).toLocaleDateString('it-IT') : '___');
+    text = text.replace(/{CODICE_FISCALE}/g, matchedUser?.codice_fiscale || '___');
+    text = text.replace(/{INDIRIZZO_RESIDENZA}/g, matchedUser?.indirizzo_residenza || '___');
     text = text.replace(/{ELENCO_CAPI}/g, elencoCapi);
     text = text.replace(/{VALORE_TOTALE_DIVISA}/g, valoreTotale.toFixed(2));
     text = text.replace(/{DATA_FIRMA}/g, oggi);
@@ -156,7 +158,7 @@ function CreaComodatoModal({ users, onClose, onCreated }) {
   };
 
   const handleSave = async () => {
-    if (!selectedUser || !anySelected) return;
+    if (!selectedEmployee || !anySelected) return;
     setSaving(true);
 
     const contenuto = generateContratto();
@@ -171,9 +173,9 @@ function CreaComodatoModal({ users, onClose, onCreated }) {
       }));
 
     await base44.entities.ComodatoDivisa.create({
-      user_id: selectedUser.id,
-      user_email: selectedUser.email,
-      dipendente_nome: selectedUser.nome_cognome || selectedUser.full_name || '',
+      user_id: matchedUser?.id || selectedEmployee.id,
+      user_email: selectedEmployee.email || matchedUser?.email || '',
+      dipendente_nome: selectedEmployee.full_name || '',
       contenuto_contratto: contenuto,
       elementi_consegnati: elementiConsegnati,
       valore_totale: valoreTotale,
@@ -208,23 +210,29 @@ function CreaComodatoModal({ users, onClose, onCreated }) {
                 />
               </div>
               <select
-                value={selectedUserId}
-                onChange={e => setSelectedUserId(e.target.value)}
+                value={selectedEmployeeId}
+                onChange={e => setSelectedEmployeeId(e.target.value)}
                 className="w-full neumorphic-pressed px-4 py-3 rounded-xl outline-none"
               >
                 <option value="">Seleziona...</option>
-                {filteredDipendenti.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.nome_cognome || u.full_name || u.email}
+                {filteredEmployees.map(e => (
+                  <option key={e.id} value={e.id}>
+                    {e.full_name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {selectedUser && (
+            {selectedEmployee && (
               <div className="neumorphic-pressed p-3 rounded-xl bg-blue-50 text-sm space-y-1">
-                <p><strong>CF:</strong> {selectedUser.codice_fiscale || 'Non inserito'}</p>
-                <p><strong>Residenza:</strong> {selectedUser.indirizzo_residenza || 'Non inserita'}</p>
+                <p><strong>Dipendente:</strong> {selectedEmployee.full_name}</p>
+                <p><strong>Email:</strong> {selectedEmployee.email || 'Non inserita'}</p>
+                {matchedUser && (
+                  <>
+                    <p><strong>CF:</strong> {matchedUser.codice_fiscale || 'Non inserito'}</p>
+                    <p><strong>Residenza:</strong> {matchedUser.indirizzo_residenza || 'Non inserita'}</p>
+                  </>
+                )}
               </div>
             )}
 
@@ -282,14 +290,14 @@ function CreaComodatoModal({ users, onClose, onCreated }) {
             <div className="flex gap-2">
               <NeumorphicButton
                 onClick={handlePreview}
-                disabled={!selectedUser || !anySelected}
+                disabled={!selectedEmployee || !anySelected}
                 className="flex-1 flex items-center justify-center gap-2"
               >
                 <Eye className="w-4 h-4" /> Anteprima
               </NeumorphicButton>
               <NeumorphicButton
                 onClick={handleSave}
-                disabled={!selectedUser || !anySelected || saving}
+                disabled={!selectedEmployee || !anySelected || saving}
                 variant="primary"
                 className="flex-1 flex items-center justify-center gap-2"
               >
@@ -331,6 +339,11 @@ export default function ComodatoDivisaAdmin() {
   const { data: users = [] } = useQuery({
     queryKey: ['users-comodato'],
     queryFn: () => base44.entities.User.list()
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['employees-comodato'],
+    queryFn: () => base44.entities.Employee.filter({ status: 'active' })
   });
 
   const deleteMutation = useMutation({
@@ -474,6 +487,7 @@ export default function ComodatoDivisaAdmin() {
       {showForm && (
         <CreaComodatoModal
           users={users}
+          employees={employees}
           onClose={() => setShowForm(false)}
           onCreated={() => {
             setShowForm(false);
