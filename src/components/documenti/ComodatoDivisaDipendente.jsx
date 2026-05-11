@@ -135,17 +135,17 @@ export default function ComodatoDivisaDipendente({ currentUser }) {
                 <X className="w-5 h-5 text-slate-700" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-white">
-              <div className="max-w-4xl mx-auto neumorphic-pressed p-4 lg:p-6 rounded-xl">
+            <div className="flex-1 overflow-y-auto p-4 bg-white pb-4">
+              <div className="max-w-4xl mx-auto neumorphic-pressed p-4 lg:p-6 rounded-xl mb-4">
                 <pre className="whitespace-pre-wrap text-sm text-slate-700 font-sans">
                   {viewingDoc.contenuto_contratto}
                 </pre>
               </div>
-            </div>
-            <div className="flex-shrink-0 bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
-              <div className="max-w-4xl mx-auto">
+
+              {/* Signature section inline - scrolls with content so always reachable on mobile */}
+              <div className="max-w-4xl mx-auto pb-52">
                 {viewingDoc.status === 'inviato' ? (
-                  <div className="space-y-3">
+                  <div className="neumorphic-card p-4 rounded-xl space-y-3">
                     <label className="text-sm font-medium text-slate-700 block">Firma Digitale (Nome Completo)</label>
                     <input
                       type="text"
@@ -176,6 +176,11 @@ export default function ComodatoDivisaDipendente({ currentUser }) {
                       <CheckCircle className="w-6 h-6" />
                       {signMutation.isPending ? 'Firma in corso...' : 'Firma Contratto di Comodato'}
                     </button>
+                    <div className="neumorphic-pressed p-3 rounded-xl bg-blue-50">
+                      <p className="text-xs text-blue-800 text-center">
+                        ℹ️ Firmando accetti i termini del contratto di comodato
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
