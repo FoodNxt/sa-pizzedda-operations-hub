@@ -382,7 +382,7 @@ export default function ComodatoDivisaAdmin() {
     queryFn: async () => { try { return await base44.entities.User.list(); } catch { return []; } }
   });
 
-  const { data: employees = [] } = useQuery({
+  const { data: employeesRaw = [] } = useQuery({
     queryKey: ['employees-comodato'],
     queryFn: () => base44.entities.Employee.filter({ status: 'active' })
   });
@@ -391,6 +391,19 @@ export default function ComodatoDivisaAdmin() {
     queryKey: ['contratti-comodato'],
     queryFn: () => base44.entities.Contratto.list()
   });
+
+  const { data: uscite = [] } = useQuery({
+    queryKey: ['uscite-comodato'],
+    queryFn: () => base44.entities.Uscita.list()
+  });
+
+  const employees = (() => {
+    const oggi = new Date().toISOString().split('T')[0];
+    const usciteIds = new Set(
+      uscite.filter(u => !u.data_uscita || u.data_uscita <= oggi).map(u => u.dipendente_id)
+    );
+    return employeesRaw.filter(e => !usciteIds.has(e.id) && !usciteIds.has(e.employee_id_external));
+  })();
 
   const { data: divisaConfigs = [] } = useQuery({
     queryKey: ['divisa-config-comodato'],
