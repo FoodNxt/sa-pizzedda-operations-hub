@@ -10,6 +10,7 @@ import { setupIframeMessaging } from './lib/iframe-messaging';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import DiviseStoreManager from './pages/DiviseStoreManager';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -54,6 +55,7 @@ const AuthenticatedApp = () => {
         ))}
         <Route path="/employees" element={<Navigate to="/Employees" replace />} />
         <Route path="/meteo" element={<Navigate to="/Meteo" replace />} />
+        <Route path="/DiviseStoreManager" element={<LayoutWrapper currentPageName="DiviseStoreManager"><DiviseStoreManager /></LayoutWrapper>} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </LayoutWrapper>

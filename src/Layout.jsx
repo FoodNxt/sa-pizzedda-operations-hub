@@ -1051,7 +1051,8 @@ export default function Layout({ children, currentPageName }) {
       'FormSprechi': 'Sprechi',
       'FormSpostamenti': 'Spostamenti',
       'PagamentoStraordinari': 'Pagamento Straordinari',
-      'Presenze': 'Presenze'
+      'Presenze': 'Presenze',
+      'DiviseStoreManager': 'Divise'
     };
     return titles[pageName] || pageName;
   };
@@ -1085,7 +1086,8 @@ export default function Layout({ children, currentPageName }) {
         'FormSprechi': AlertTriangle,
         'AssistenteDipendente': Users,
         'PagamentoStraordinari': Euro,
-        'Presenze': Users
+        'Presenze': Users,
+        'DiviseStoreManager': ChefHat
       };
       return icons[pageName] || User;
     } catch (error) {
