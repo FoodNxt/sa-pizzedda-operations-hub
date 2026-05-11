@@ -16,6 +16,7 @@ import {
 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import AltriDocumentiDipendente from "../components/documenti/AltriDocumentiDipendente";
+import ComodatoDivisaDipendente from "../components/documenti/ComodatoDivisaDipendente";
 import { isValid } from 'date-fns';
 
 export default function ContrattiDipendente() {
@@ -255,12 +256,19 @@ export default function ContrattiDipendente() {
   });
   const altriDaFirmare = altriDocs.filter(d => d.richiede_firma && d.status !== 'firmato');
 
+  const { data: comodati = [] } = useQuery({
+    queryKey: ['miei-comodati', currentUser?.id],
+    queryFn: () => base44.entities.ComodatoDivisa.filter({ user_id: currentUser.id }),
+    enabled: !!currentUser
+  });
+  const comodatiDaFirmare = comodati.filter(c => c.status === 'inviato');
+
   const tabs = [
   { id: 'contratti', label: 'Contratti', icon: FileText, count: toSignContracts.length },
   { id: 'lettere', label: 'Lettere', icon: AlertTriangle, count: lettereDaFirmare.length },
   { id: 'regolamento', label: 'Regolamento', icon: BookOpen, count: regolamentiDaFirmare.length },
   { id: 'buste_paga', label: 'Buste Paga', icon: FileText, count: 0 },
-  { id: 'altri', label: 'Altri', icon: FileText, count: altriDaFirmare.length }];
+  { id: 'altri', label: 'Altri', icon: FileText, count: altriDaFirmare.length + comodatiDaFirmare.length }];
 
 
   if (isLoading) {
@@ -1035,7 +1043,12 @@ export default function ContrattiDipendente() {
       }
 
       {/* Altri Documenti Tab */}
-      {activeTab === 'altri' && <AltriDocumentiDipendente currentUser={currentUser} />}
+      {activeTab === 'altri' && (
+        <div className="space-y-6">
+          <ComodatoDivisaDipendente currentUser={currentUser} />
+          <AltriDocumentiDipendente currentUser={currentUser} />
+        </div>
+      )}
 
       {/* Regolamento Viewing Modal */}
       {viewingRegolamento &&
