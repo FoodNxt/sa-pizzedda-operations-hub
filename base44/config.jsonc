@@ -1,0 +1,9 @@
+{
+  "name": "Sa Pizzedda Operations Hub",
+  "site": {
+    "installCommand": "npm install",
+    "buildCommand": "npm run build",
+    "serveCommand": "npm run dev",
+    "outputDirectory": "./dist"
+  }
+}
