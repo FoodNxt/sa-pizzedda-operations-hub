@@ -55,7 +55,7 @@ const AuthenticatedApp = () => {
         ))}
         <Route path="/employees" element={<Navigate to="/Employees" replace />} />
         <Route path="/meteo" element={<Navigate to="/Meteo" replace />} />
-        <Route path="/DiviseStoreManager" element={<LayoutWrapper currentPageName="DiviseStoreManager"><DiviseStoreManager /></LayoutWrapper>} />
+        <Route path="/DiviseStoreManager" element={<DiviseStoreManager />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </LayoutWrapper>
