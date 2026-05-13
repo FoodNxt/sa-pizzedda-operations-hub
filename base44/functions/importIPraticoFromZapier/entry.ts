@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
         
         // Auth: accept either admin user session OR valid webhook secret
         let isAuthorized = false;
+        let useServiceRole = false;
         
         try {
             const user = await base44.auth.me();
@@ -42,6 +43,7 @@ Deno.serve(async (req) => {
             
             if (providedSecret && providedSecret === expectedSecret) {
                 isAuthorized = true;
+                useServiceRole = true;
                 console.log('✅ Authorized via webhook secret');
             }
         }
@@ -68,8 +70,11 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
+        // Use the appropriate entity accessor based on auth method
+        const entities = useServiceRole ? base44.asServiceRole.entities : base44.entities;
+
         // Find store by name (case-insensitive)
-        const allStores = await base44.asServiceRole.entities.Store.list();
+        const allStores = await entities.Store.list();
         const stores = allStores.filter(s => s.name.toLowerCase() === body.store_name.toLowerCase());
 
         if (!stores || stores.length === 0) {
@@ -111,7 +116,7 @@ Deno.serve(async (req) => {
         };
 
         // Check if record already exists for this store and date
-        const existingRecords = await base44.asServiceRole.entities.iPratico.filter({
+        const existingRecords = await entities.iPratico.filter({
             store_id: store.id,
             order_date: parseDate(body.order_date)
         });
@@ -176,14 +181,14 @@ Deno.serve(async (req) => {
 
         if (existingRecords && existingRecords.length > 0) {
             // Update existing record
-            record = await base44.asServiceRole.entities.iPratico.update(
+            record = await entities.iPratico.update(
                 existingRecords[0].id,
                 iPraticoData
             );
             isUpdate = true;
         } else {
             // Create new record
-            record = await base44.asServiceRole.entities.iPratico.create(iPraticoData);
+            record = await entities.iPratico.create(iPraticoData);
         }
 
         return Response.json({
