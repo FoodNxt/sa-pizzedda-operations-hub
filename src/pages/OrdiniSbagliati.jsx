@@ -1,31 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Upload,
-  FileText,
-  CheckCircle,
-  AlertCircle,
-  Download,
-  TrendingUp,
-  DollarSign,
-  Package,
-  Link as LinkIcon,
-  X,
-  BarChart3,
-  Calendar,
-  Settings,
-  Eye,
-  Sparkles,
-  Users,
-  Send,
-  ChevronDown,
-  ChevronRight,
-  Trash2 } from
-'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, TrendingUp, DollarSign, Package, Link as LinkIcon, X, BarChart3, Settings, Eye, Sparkles, Users, Send, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, parseISO } from 'date-fns';
+import LetterModal from "../components/ordini-sbagliati/LetterModal";
+import AIAnalysisModal from "../components/ordini-sbagliati/AIAnalysisModal";
+import { splitCsvLines, parseCsvLine, parseNumericValue, parseDeliverooDate } from "../lib/csvParser";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
@@ -36,24 +18,17 @@ export default function OrdiniSbagliati() {
   const [showMappingModal, setShowMappingModal] = useState(false);
   const [unmappedStores, setUnmappedStores] = useState([]);
   const [storeMapping, setStoreMapping] = useState({});
-  const [activeTab, setActiveTab] = useState('analytics'); // 'list' or 'analytics'
+  const [activeTab, setActiveTab] = useState('analytics');
   const [selectedStore, setSelectedStore] = useState('all');
-  const [dateRange, setDateRange] = useState('month'); // 'week', 'month', 'all', 'custom'
+  const [dateRange, setDateRange] = useState('month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showCount, setShowCount] = useState(true);
   const [showRefunds, setShowRefunds] = useState(true);
-  const [trendView, setTrendView] = useState('daily'); // 'daily', 'weekly', 'monthly'
+  const [trendView, setTrendView] = useState('daily');
   const [showColumnMapping, setShowColumnMapping] = useState(false);
   const [csvHeaders, setCsvHeaders] = useState([]);
-  const [columnMapping, setColumnMapping] = useState({
-    order_id_column: '',
-    store_column: '',
-    order_date_column: '',
-    order_total_column: '',
-    refund_column: '',
-    refund_reason_column: ''
-  });
+  const [columnMapping, setColumnMapping] = useState({ order_id_column: '', store_column: '', order_date_column: '', order_total_column: '', refund_column: '', refund_reason_column: '' });
   const [pendingFile, setPendingFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState([]);
@@ -62,2226 +37,252 @@ export default function OrdiniSbagliati() {
   const [loadingAI, setLoadingAI] = useState(false);
   const [showLetterModal, setShowLetterModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [expandedEmployees, setExpandedEmployees] = useState({});
-  const [letterContent, setLetterContent] = useState('');
-  const [includeOrderDetails, setIncludeOrderDetails] = useState(true);
-
   const queryClient = useQueryClient();
 
-  const { data: stores = [] } = useQuery({
-    queryKey: ['stores'],
-    queryFn: () => base44.entities.Store.list()
-  });
+  const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: () => base44.entities.Store.list() });
+  const { data: wrongOrders = [] } = useQuery({ queryKey: ['wrong-orders'], queryFn: async () => { const all = await base44.entities.WrongOrder.list('-order_date', 1000); const unique = []; const seen = new Set(); for (const o of all) { if (!seen.has(o.order_id)) { seen.add(o.order_id); unique.push(o); } } return unique; } });
+  const { data: storeMappings = [] } = useQuery({ queryKey: ['store-mappings'], queryFn: () => base44.entities.StoreMapping.list() });
+  const { data: columnMappings = [] } = useQuery({ queryKey: ['column-mappings'], queryFn: () => base44.entities.CSVColumnMapping.list() });
+  const { data: wrongOrderMatches = [] } = useQuery({ queryKey: ['wrong-order-matches'], queryFn: () => base44.entities.WrongOrderMatch.list() });
+  const { data: letterTemplates = [] } = useQuery({ queryKey: ['letter-templates'], queryFn: () => base44.entities.LetteraRichiamoTemplate.list() });
+  const createMappingMutation = useMutation({ mutationFn: (d) => base44.entities.StoreMapping.create(d), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['store-mappings'] }) });
+  const createColumnMappingMutation = useMutation({ mutationFn: (d) => base44.entities.CSVColumnMapping.create(d), onSuccess: () => queryClient.invalidateQueries({ queryKey: ['column-mappings'] }) });
+  const deleteOrderMutation = useMutation({ mutationFn: (id) => base44.entities.WrongOrder.delete(id), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['wrong-orders'] }); alert('✅ Ordine eliminato'); } });
 
-  const { data: wrongOrders = [] } = useQuery({
-    queryKey: ['wrong-orders'],
-    queryFn: async () => {
-      const allOrders = await base44.entities.WrongOrder.list('-order_date', 1000);
-      // Remove duplicates by order_id
-      const uniqueOrders = [];
-      const seenOrderIds = new Set();
-
-      for (const order of allOrders) {
-        if (!seenOrderIds.has(order.order_id)) {
-          seenOrderIds.add(order.order_id);
-          uniqueOrders.push(order);
-        }
-      }
-
-      return uniqueOrders;
-    }
-  });
-
-  const { data: storeMappings = [] } = useQuery({
-    queryKey: ['store-mappings'],
-    queryFn: () => base44.entities.StoreMapping.list()
-  });
-
-  const { data: columnMappings = [] } = useQuery({
-    queryKey: ['column-mappings'],
-    queryFn: () => base44.entities.CSVColumnMapping.list()
-  });
-
-  const { data: wrongOrderMatches = [] } = useQuery({
-    queryKey: ['wrong-order-matches'],
-    queryFn: () => base44.entities.WrongOrderMatch.list()
-  });
-
-  const { data: employees = [] } = useQuery({
-    queryKey: ['employees'],
-    queryFn: () => base44.entities.Employee.list()
-  });
-
-  const { data: letterTemplates = [] } = useQuery({
-    queryKey: ['letter-templates'],
-    queryFn: () => base44.entities.LetteraRichiamoTemplate.list()
-  });
-
-  const createMappingMutation = useMutation({
-    mutationFn: (data) => base44.entities.StoreMapping.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['store-mappings'] });
-    }
-  });
-
-  const createColumnMappingMutation = useMutation({
-    mutationFn: (data) => base44.entities.CSVColumnMapping.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['column-mappings'] });
-    }
-  });
-
-  const deleteOrderMutation = useMutation({
-    mutationFn: (orderId) => base44.entities.WrongOrder.delete(orderId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wrong-orders'] });
-      alert('✅ Ordine eliminato con successo');
-    }
-  });
-
-  // NEW: Parse Deliveroo date format "2 Aug 2025 at 19:55"
-  const parseDeliverooDate = (dateString) => {
-    try {
-      // Format: "2 Aug 2025 at 19:55"
-      const parts = dateString.split(' at ');
-      if (parts.length === 2) {
-        const datePart = parts[0]; // "2 Aug 2025"
-        const timePart = parts[1]; // "19:55"
-
-        // Parse date
-        const dateComponents = datePart.split(' '); // ["2", "Aug", "2025"]
-        const day = dateComponents[0];
-        const month = dateComponents[1];
-        const year = dateComponents[2];
-
-        // Convert month name to number
-        const months = {
-          'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
-          'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
-          'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
-        };
-
-        const monthNum = months[month];
-        if (!monthNum) return null;
-
-        // Build ISO string: YYYY-MM-DDTHH:MM:SS
-        const isoString = `${year}-${monthNum}-${day.padStart(2, '0')}T${timePart}:00`;
-        const date = new Date(isoString);
-
-        if (isNaN(date.getTime())) return null;
-        return date.toISOString();
-      }
-
-      // Fallback to standard parsing
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return null;
-      return date.toISOString();
-    } catch (error) {
-      console.error('Error parsing date:', dateString, error);
-      return null;
-    }
-  };
-
-  const parseCsvLine = (line) => {
-    const values = [];
-    let currentValue = '';
-    let insideQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      const nextChar = line[i + 1];
-
-      if (char === '"') {
-        if (insideQuotes && nextChar === '"') {
-          currentValue += '"';
-          i++;
-        } else {
-          insideQuotes = !insideQuotes;
-        }
-      } else if (char === ',' && !insideQuotes) {
-        values.push(currentValue.trim());
-        currentValue = '';
-      } else {
-        currentValue += char;
-      }
-    }
-    values.push(currentValue.trim());
-    return values;
-  };
-
-  const parseNumericValue = (value) => {
-    if (!value || value.trim() === '') return 0;
-
-    // Remove currency symbols and spaces
-    let cleaned = value.replace(/[€$£\s]/g, '');
-
-    // Handle European format (1.234,56) vs US format (1,234.56)
-    const hasComma = cleaned.includes(',');
-    const hasDot = cleaned.includes('.');
-
-    if (hasComma && hasDot) {
-      // Both present - determine which is decimal separator
-      const lastComma = cleaned.lastIndexOf(',');
-      const lastDot = cleaned.lastIndexOf('.');
-      if (lastComma > lastDot) {
-        // European: 1.234,56
-        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-      } else {
-        // US: 1,234.56
-        cleaned = cleaned.replace(/,/g, '');
-      }
-    } else if (hasComma) {
-      // Only comma - check if it's thousands or decimal
-      const commaPos = cleaned.indexOf(',');
-      const afterComma = cleaned.substring(commaPos + 1);
-      if (afterComma.length === 2) {
-        // Likely decimal: 12,50
-        cleaned = cleaned.replace(',', '.');
-      } else {
-        // Likely thousands: 1,234
-        cleaned = cleaned.replace(',', '');
-      }
-    }
-
-    // Remove any remaining non-numeric characters except dot and minus
-    cleaned = cleaned.replace(/[^0-9.-]/g, '');
-
-    const parsed = parseFloat(cleaned);
-    return isNaN(parsed) ? 0 : parsed;
-  };
-
-  const findBestMatch = (platformStoreName, stores) => {
+  const findBestMatch = (platformStoreName, storesList) => {
     const normalize = (str) => str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-    const normalizedPlatform = normalize(platformStoreName);
-
-    let bestMatch = null;
-    let bestScore = 0;
-
-    stores.forEach((store) => {
-      const normalizedStore = normalize(store.name);
-
-      // Exact match
-      if (normalizedPlatform === normalizedStore) {
-        bestMatch = store;
-        bestScore = 100;
-        return;
-      }
-
-      // Contains match
-      if (normalizedPlatform.includes(normalizedStore) || normalizedStore.includes(normalizedPlatform)) {
-        const score = 80;
-        if (score > bestScore) {
-          bestMatch = store;
-          bestScore = score;
-        }
-      }
-
-      // Fuzzy match (simple Levenshtein-like)
-      const minLength = Math.min(normalizedPlatform.length, normalizedStore.length);
-      let matchingChars = 0;
-      for (let i = 0; i < minLength; i++) {
-        if (normalizedPlatform[i] === normalizedStore[i]) matchingChars++;
-      }
-      const score = matchingChars / Math.max(normalizedPlatform.length, normalizedStore.length) * 60;
-      if (score > bestScore && score > 30) {
-        bestMatch = store;
-        bestScore = score;
-      }
+    const np = normalize(platformStoreName);
+    let best = null, bestScore = 0;
+    storesList.forEach((store) => {
+      const ns = normalize(store.name);
+      if (np === ns) { best = store; bestScore = 100; return; }
+      if (np.includes(ns) || ns.includes(np)) { if (80 > bestScore) { best = store; bestScore = 80; } }
     });
-
-    return bestMatch ? { store: bestMatch, confidence: Math.round(bestScore) } : null;
+    return best ? { store: best, confidence: Math.round(bestScore) } : null;
   };
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
-    if (!file || !selectedPlatform) {
-      alert('Seleziona prima una piattaforma');
-      event.target.value = '';
-      return;
-    }
-
+    if (!file || !selectedPlatform) { alert('Seleziona prima una piattaforma'); event.target.value = ''; return; }
     setUploading(true);
     setImportResult(null);
-
     try {
       const text = await file.text();
-      const lines = text.trim().split(/\r?\n/).filter((line) => line.trim());
-
-      if (lines.length < 2) {
-        throw new Error('CSV deve contenere almeno una riga di intestazione e una di dati');
-      }
-
+      const lines = splitCsvLines(text);
+      if (lines.length < 2) throw new Error('CSV deve contenere almeno una riga di intestazione e una di dati');
       const headers = parseCsvLine(lines[0]);
-
-      // Check if column mapping exists for this platform
       const existingMapping = columnMappings.find((m) => m.platform === selectedPlatform && m.is_active);
-
-      if (!existingMapping) {
-        // Show column mapping modal
-        setCsvHeaders(headers);
-        setPendingFile({ text, headers, lines });
-        setShowColumnMapping(true);
-        setUploading(false);
-        event.target.value = '';
-        return;
-      }
-
-      // Show preview with existing mapping
-      setCsvHeaders(headers);
-      setPendingFile({ text, headers, lines });
-      setColumnMapping(existingMapping);
-      generatePreview(lines, headers, existingMapping);
-      setShowPreview(true);
-      setUploading(false);
-      event.target.value = '';
-
-    } catch (error) {
-      console.error('Error processing CSV:', error);
-      setImportResult({
-        success: false,
-        error: error.message
-      });
-      setUploading(false);
-    }
-
+      if (!existingMapping) { setCsvHeaders(headers); setPendingFile({ text, headers, lines }); setShowColumnMapping(true); setUploading(false); event.target.value = ''; return; }
+      setCsvHeaders(headers); setPendingFile({ text, headers, lines }); setColumnMapping(existingMapping); generatePreview(lines, headers, existingMapping); setShowPreview(true); setUploading(false);
+    } catch (error) { setImportResult({ success: false, error: error.message }); setUploading(false); }
     event.target.value = '';
   };
 
   const processCSVWithMapping = async (lines, headers, mapping) => {
     try {
-      const records = [];
-      const unmapped = [];
-      const skippedLines = [];
-
+      const records = [], unmapped = [], skippedLines = [];
       for (let i = 1; i < lines.length; i++) {
         const values = parseCsvLine(lines[i]);
+        const record = {}; headers.forEach((header, idx) => { record[header] = values[idx] || ''; });
+        const platformStoreName = record[mapping.store_column]?.trim() || '';
+        const orderId = record[mapping.order_id_column]?.trim() || '';
+        if (!platformStoreName || !orderId) { skippedLines.push(i + 1); continue; }
+        const orderTotal = parseNumericValue(record[mapping.order_total_column]);
+        const refundValue = parseNumericValue(record[mapping.refund_column]);
 
-        const record = {};
-        headers.forEach((header, idx) => {
-          record[header] = values[idx] || '';
-        });
-
-        // CRITICAL: Use ONLY the mapped columns
-        const storeNameField = mapping.store_column;
-        const orderIdField = mapping.order_id_column;
-        const orderDateField = mapping.order_date_column;
-        const orderTotalField = mapping.order_total_column;
-        const refundField = mapping.refund_column;
-
-        // Extract data ONLY from the specified mapped columns
-        const platformStoreName = record[storeNameField]?.trim() || '';
-        const orderId = record[orderIdField]?.trim() || '';
-
-        // Skip ONLY if critical data is missing
-        if (!platformStoreName || !orderId) {
-          skippedLines.push(i + 1);
-          continue;
-        }
-
-        // Parse numeric values (allow 0 values)
-        const orderTotal = parseNumericValue(record[orderTotalField]);
-        const refundValue = parseNumericValue(record[refundField]);
-
-        const finalStoreName = platformStoreName;
-        const finalOrderId = orderId;
-
-        let storeMatch = storeMappings.find(
-          (m) => m.platform === selectedPlatform && m.platform_store_name === finalStoreName
-        );
-
+        let storeMatch = storeMappings.find((m) => m.platform === selectedPlatform && m.platform_store_name === platformStoreName);
         if (!storeMatch) {
-          const autoMatch = findBestMatch(finalStoreName, stores);
-          if (autoMatch && autoMatch.confidence >= 70) {
-            const mappingData = {
-              platform: selectedPlatform,
-              platform_store_name: finalStoreName,
-              store_id: autoMatch.store.id,
-              store_name: autoMatch.store.name,
-              auto_matched: true,
-              confidence_score: autoMatch.confidence
-            };
-            await createMappingMutation.mutateAsync(mappingData);
-            storeMatch = mappingData;
-          } else {
-            if (!unmapped.find((u) => u.platformStoreName === finalStoreName)) {
-              unmapped.push({
-                platformStoreName: finalStoreName,
-                suggestedMatch: autoMatch
-              });
-            }
-          }
+          const autoMatch = findBestMatch(platformStoreName, stores);
+          if (autoMatch && autoMatch.confidence >= 70) { const md = { platform: selectedPlatform, platform_store_name: platformStoreName, store_id: autoMatch.store.id, store_name: autoMatch.store.name, auto_matched: true, confidence_score: autoMatch.confidence }; await createMappingMutation.mutateAsync(md); storeMatch = md; }
+          else { if (!unmapped.find((u) => u.platformStoreName === platformStoreName)) unmapped.push({ platformStoreName, suggestedMatch: autoMatch }); }
         }
 
         let parsedDate;
-        try {
-          if (selectedPlatform === 'deliveroo') {
-            parsedDate = parseDeliverooDate(record[orderDateField]);
-          } else {
-            parsedDate = record[orderDateField] ? new Date(record[orderDateField]).toISOString() : null;
-          }
+        try { parsedDate = selectedPlatform === 'deliveroo' ? parseDeliverooDate(record[mapping.order_date_column]) : (record[mapping.order_date_column] ? new Date(record[mapping.order_date_column]).toISOString() : null); if (!parsedDate || parsedDate === 'Invalid Date') parsedDate = new Date().toISOString(); } catch { parsedDate = new Date().toISOString(); }
 
-          if (!parsedDate || parsedDate === 'Invalid Date') {
-            parsedDate = new Date().toISOString();
-          }
-        } catch (error) {
-          parsedDate = new Date().toISOString();
-        }
-
-        const wrongOrder = {
-          platform: selectedPlatform,
-          order_id: finalOrderId,
-          order_date: parsedDate,
-          store_name: finalStoreName,
-          store_id: storeMatch ? storeMatch.store_id : null,
-          store_matched: !!storeMatch,
-          order_total: orderTotal,
-          refund_value: refundValue,
-          customer_refund_status: '',
-          complaint_reason: selectedPlatform === 'glovo' && mapping.refund_reason_column ? record[mapping.refund_reason_column] || '' : null,
-          cancellation_reason: null,
-          order_status: null,
-          raw_data: record,
-          import_date: new Date().toISOString(),
-          imported_by: (await base44.auth.me()).email
-        };
-
-        records.push(wrongOrder);
+        records.push({ platform: selectedPlatform, order_id: orderId, order_date: parsedDate, store_name: platformStoreName, store_id: storeMatch ? storeMatch.store_id : null, store_matched: !!storeMatch, order_total: orderTotal, refund_value: refundValue, customer_refund_status: '', complaint_reason: selectedPlatform === 'glovo' && mapping.refund_reason_column ? record[mapping.refund_reason_column] || '' : null, cancellation_reason: null, order_status: null, raw_data: record, import_date: new Date().toISOString(), imported_by: (await base44.auth.me()).email });
       }
-
-      let successCount = 0;
-      let errorCount = 0;
-      let duplicateCount = 0;
-
+      let successCount = 0, errorCount = 0, duplicateCount = 0;
       for (const record of records) {
-        try {
-          const existing = wrongOrders.find((o) =>
-          o.order_id === record.order_id &&
-          o.platform === record.platform &&
-          o.order_date?.split('T')[0] === record.order_date?.split('T')[0]
-          );
-          if (existing) {
-            duplicateCount++;
-            continue;
-          }
-
-          await base44.entities.WrongOrder.create(record);
-          successCount++;
-        } catch (error) {
-          console.error('Error creating order:', error);
-          errorCount++;
-        }
+        const existing = wrongOrders.find((o) => o.order_id === record.order_id && o.platform === record.platform && o.order_date?.split('T')[0] === record.order_date?.split('T')[0]);
+        if (existing) { duplicateCount++; continue; }
+        try { await base44.entities.WrongOrder.create(record); successCount++; } catch { errorCount++; }
       }
-
       queryClient.invalidateQueries({ queryKey: ['wrong-orders'] });
-
-      setImportResult({
-        success: true,
-        total: records.length,
-        successCount,
-        errorCount,
-        duplicateCount,
-        unmappedCount: unmapped.length,
-        skippedLinesCount: skippedLines.length,
-        totalCsvLines: lines.length - 1
-      });
-
-      if (unmapped.length > 0) {
-        setUnmappedStores(unmapped);
-        setShowMappingModal(true);
-      }
-
+      setImportResult({ success: true, total: records.length, successCount, errorCount, duplicateCount, unmappedCount: unmapped.length, skippedLinesCount: skippedLines.length, totalCsvLines: lines.length - 1 });
+      if (unmapped.length > 0) { setUnmappedStores(unmapped); setShowMappingModal(true); }
       setUploading(false);
-    } catch (error) {
-      console.error('Error processing CSV:', error);
-      setImportResult({
-        success: false,
-        error: error.message
-      });
-      setUploading(false);
-    }
+    } catch (error) { setImportResult({ success: false, error: error.message }); setUploading(false); }
   };
 
   const handleManualMapping = async () => {
     for (const [platformStoreName, storeId] of Object.entries(storeMapping)) {
       if (!storeId) continue;
-
       const store = stores.find((s) => s.id === storeId);
       if (!store) continue;
-
-      const mappingData = {
-        platform: selectedPlatform,
-        platform_store_name: platformStoreName,
-        store_id: storeId,
-        store_name: store.name,
-        auto_matched: false,
-        confidence_score: 100
-      };
-
-      await createMappingMutation.mutateAsync(mappingData);
+      await createMappingMutation.mutateAsync({ platform: selectedPlatform, platform_store_name: platformStoreName, store_id: storeId, store_name: store.name, auto_matched: false, confidence_score: 100 });
     }
-
-    setShowMappingModal(false);
-    setUnmappedStores([]);
-    setStoreMapping({});
+    setShowMappingModal(false); setUnmappedStores([]); setStoreMapping({});
     queryClient.invalidateQueries({ queryKey: ['store-mappings'] });
-
     alert('Mapping salvati! Riprova il caricamento del CSV.');
   };
 
   const generatePreview = (lines, headers, mapping) => {
     const preview = [];
-    const maxPreview = 5;
-
-    for (let i = 1; i < Math.min(lines.length, maxPreview + 1); i++) {
+    for (let i = 1; i < Math.min(lines.length, 6); i++) {
       const values = parseCsvLine(lines[i]);
-      const record = {};
-      headers.forEach((header, idx) => {
-        record[header] = values[idx] || '';
-      });
-
+      const record = {}; headers.forEach((h, idx) => { record[h] = values[idx] || ''; });
       const storeName = record[mapping.store_column] || '';
       const totalRaw = record[mapping.order_total_column] || '';
       const refundRaw = record[mapping.refund_column] || '';
-
-      // Mark as suspicious only if clearly wrong
-      const storeSuspicious = false; // Accept all store names
-
-      // Parse and validate numeric values
       const totalParsed = parseNumericValue(totalRaw);
       const refundParsed = parseNumericValue(refundRaw);
-      const totalSuspicious = !totalRaw || totalParsed === 0;
-      const refundSuspicious = !refundRaw || refundParsed === 0;
-
-      preview.push({
-        orderId: record[mapping.order_id_column] || '',
-        store: storeName,
-        storeSuspicious,
-        date: record[mapping.order_date_column] || '',
-        total: totalRaw,
-        totalParsed,
-        totalSuspicious,
-        refund: refundRaw,
-        refundParsed,
-        refundSuspicious,
-        reason: mapping.refund_reason_column ? record[mapping.refund_reason_column] || '' : ''
-      });
+      preview.push({ orderId: record[mapping.order_id_column] || '', store: storeName, storeSuspicious: false, date: record[mapping.order_date_column] || '', total: totalRaw, totalParsed, totalSuspicious: !totalRaw || totalParsed === 0, refund: refundRaw, refundParsed, refundSuspicious: !refundRaw || refundParsed === 0, reason: mapping.refund_reason_column ? record[mapping.refund_reason_column] || '' : '' });
     }
-
     setPreviewData(preview);
   };
 
   const handleSaveColumnMapping = async () => {
-    if (!columnMapping.order_id_column || !columnMapping.store_column ||
-    !columnMapping.order_date_column || !columnMapping.order_total_column ||
-    !columnMapping.refund_column) {
-      alert('Compila tutti i campi obbligatori');
-      return;
-    }
-
+    if (!columnMapping.order_id_column || !columnMapping.store_column || !columnMapping.order_date_column || !columnMapping.order_total_column || !columnMapping.refund_column) { alert('Compila tutti i campi obbligatori'); return; }
     try {
-      // Deactivate existing mappings for this platform
-      const existing = columnMappings.filter((m) => m.platform === selectedPlatform);
-      for (const m of existing) {
-        await base44.entities.CSVColumnMapping.update(m.id, { is_active: false });
-      }
-
-      // Create new mapping
-      await createColumnMappingMutation.mutateAsync({
-        platform: selectedPlatform,
-        ...columnMapping,
-        is_active: true
-      });
-
+      for (const m of columnMappings.filter((m) => m.platform === selectedPlatform)) { await base44.entities.CSVColumnMapping.update(m.id, { is_active: false }); }
+      await createColumnMappingMutation.mutateAsync({ platform: selectedPlatform, ...columnMapping, is_active: true });
       setShowColumnMapping(false);
-
-      // Show preview with new mapping
-      if (pendingFile) {
-        generatePreview(pendingFile.lines, pendingFile.headers, columnMapping);
-        setShowPreview(true);
-      }
-
-      alert('✅ Mapping colonne salvato! Controlla l\'anteprima prima di importare.');
-    } catch (error) {
-      alert('Errore nel salvare il mapping: ' + error.message);
-    }
+      if (pendingFile) { generatePreview(pendingFile.lines, pendingFile.headers, columnMapping); setShowPreview(true); }
+      alert('✅ Mapping colonne salvato!');
+    } catch (error) { alert('Errore: ' + error.message); }
   };
 
   const handleConfirmImport = async () => {
     if (!pendingFile) return;
-
-    setShowPreview(false);
-    setUploading(true);
-
-    try {
-      await processCSVWithMapping(pendingFile.lines, pendingFile.headers, columnMapping);
-      setPendingFile(null);
-      setPreviewData([]);
-    } catch (error) {
-      setUploading(false);
-    }
+    setShowPreview(false); setUploading(true);
+    try { await processCSVWithMapping(pendingFile.lines, pendingFile.headers, columnMapping); setPendingFile(null); setPreviewData([]); } catch { setUploading(false); }
   };
 
   const analyzeWithAI = async (chartType) => {
-    setLoadingAI(true);
-    setShowAIAnalysis(true);
-    setAiAnalysisContent('Analisi in corso...');
-
+    setLoadingAI(true); setShowAIAnalysis(true); setAiAnalysisContent('Analisi in corso...');
     try {
       let prompt = '';
-
-      if (chartType === 'byStore') {
-        const data = analyticsData.byStore.map((s) =>
-        `${s.name}: ${s.count} ordini (${s.glovo} Glovo, ${s.deliveroo} Deliveroo), €${s.refunds.toFixed(2)} rimborsi`
-        ).join('\n');
-
-        prompt = `Analizza questi dati sugli ordini sbagliati per negozio e fornisci insights utili:\n\n${data}\n\nFornisci:\n1. Negozi con più problemi\n2. Analisi delle piattaforme (Glovo vs Deliveroo)\n3. Raccomandazioni specifiche per migliorare\n4. Pattern o anomalie rilevate`;
-      } else if (chartType === 'byDate') {
-        const data = analyticsData.byDate.map((d) =>
-        `${d.date}: ${d.count} ordini, €${d.refunds.toFixed(2)} rimborsi`
-        ).join('\n');
-
-        prompt = `Analizza questo trend temporale degli ordini sbagliati e fornisci insights:\n\n${data}\n\nFornisci:\n1. Trend generale (in miglioramento/peggioramento)\n2. Giorni con picchi e possibili cause\n3. Pattern ricorrenti (es. giorni specifici della settimana)\n4. Previsioni e raccomandazioni`;
-      }
-
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt,
-        add_context_from_internet: false
-      });
-
+      if (chartType === 'byStore') { prompt = `Analizza questi dati sugli ordini sbagliati per negozio:\n\n${analyticsData.byStore.map((s) => `${s.name}: ${s.count} ordini, €${s.refunds.toFixed(2)} rimborsi`).join('\n')}\n\nFornisci insights, pattern e raccomandazioni.`; }
+      else { prompt = `Analizza questo trend temporale degli ordini sbagliati:\n\n${analyticsData.byDate.map((d) => `${d.date}: ${d.count} ordini, €${d.refunds.toFixed(2)} rimborsi`).join('\n')}\n\nFornisci trend, pattern e raccomandazioni.`; }
+      const response = await base44.integrations.Core.InvokeLLM({ prompt, add_context_from_internet: false });
       setAiAnalysisContent(response);
-    } catch (error) {
-      setAiAnalysisContent('Errore nell\'analisi: ' + error.message);
-    } finally {
-      setLoadingAI(false);
-    }
+    } catch (error) { setAiAnalysisContent('Errore: ' + error.message); } finally { setLoadingAI(false); }
   };
 
-  // Filter orders by date range
   const filteredOrders = useMemo(() => {
     let filtered = wrongOrders;
-
-    if (selectedStore !== 'all') {
-      filtered = filtered.filter((o) => o.store_id === selectedStore);
-    }
-
+    if (selectedStore !== 'all') filtered = filtered.filter((o) => o.store_id === selectedStore);
     const now = new Date();
-    if (dateRange === 'week') {
-      const weekStart = startOfWeek(now, { locale: it });
-      const weekEnd = endOfWeek(now, { locale: it });
-      filtered = filtered.filter((o) => {
-        const date = parseISO(o.order_date);
-        return date >= weekStart && date <= weekEnd;
-      });
-    } else if (dateRange === 'month') {
-      const monthStart = startOfMonth(now);
-      const monthEnd = endOfMonth(now);
-      filtered = filtered.filter((o) => {
-        const date = parseISO(o.order_date);
-        return date >= monthStart && date <= monthEnd;
-      });
-    } else if (dateRange === 'custom' && customStartDate && customEndDate) {
-      const start = new Date(customStartDate);
-      const end = new Date(customEndDate);
-      filtered = filtered.filter((o) => {
-        const date = parseISO(o.order_date);
-        return date >= start && date <= end;
-      });
-    }
-
+    if (dateRange === 'week') { const ws = startOfWeek(now, { locale: it }); const we = endOfWeek(now, { locale: it }); filtered = filtered.filter((o) => { const d = parseISO(o.order_date); return d >= ws && d <= we; }); }
+    else if (dateRange === 'month') { const ms = startOfMonth(now); const me = endOfMonth(now); filtered = filtered.filter((o) => { const d = parseISO(o.order_date); return d >= ms && d <= me; }); }
+    else if (dateRange === 'custom' && customStartDate && customEndDate) { const s = new Date(customStartDate); const e = new Date(customEndDate); filtered = filtered.filter((o) => { const d = parseISO(o.order_date); return d >= s && d <= e; }); }
     return filtered;
   }, [wrongOrders, selectedStore, dateRange, customStartDate, customEndDate]);
 
-  const stats = {
-    total: wrongOrders.length,
-    glovo: wrongOrders.filter((o) => o.platform === 'glovo').length,
-    deliveroo: wrongOrders.filter((o) => o.platform === 'deliveroo').length,
-    totalRefunds: wrongOrders.reduce((sum, o) => sum + (o.refund_value || 0), 0),
-    lastGlovoOrder: wrongOrders.filter((o) => o.platform === 'glovo').sort((a, b) =>
-    new Date(b.order_date) - new Date(a.order_date)
-    )[0],
-    lastDeliverooOrder: wrongOrders.filter((o) => o.platform === 'deliveroo').sort((a, b) =>
-    new Date(b.order_date) - new Date(a.order_date)
-    )[0],
-    lastGlovoImport: wrongOrders.filter((o) => o.platform === 'glovo' && o.import_date).sort((a, b) =>
-    new Date(b.import_date) - new Date(a.import_date)
-    )[0],
-    lastDeliverooImport: wrongOrders.filter((o) => o.platform === 'deliveroo' && o.import_date).sort((a, b) =>
-    new Date(b.import_date) - new Date(a.import_date)
-    )[0]
-  };
+  const stats = { total: wrongOrders.length, glovo: wrongOrders.filter((o) => o.platform === 'glovo').length, deliveroo: wrongOrders.filter((o) => o.platform === 'deliveroo').length, totalRefunds: wrongOrders.reduce((sum, o) => sum + (o.refund_value || 0), 0) };
 
-  // Employee analytics data
   const employeeAnalytics = useMemo(() => {
-    const byEmployee = {};
-
-    // Filter matches by date range and store
-    let filteredMatches = wrongOrderMatches;
-
+    const byEmp = {};
+    let fm = wrongOrderMatches;
     const now = new Date();
-    if (dateRange === 'week') {
-      const weekStart = startOfWeek(now, { locale: it });
-      const weekEnd = endOfWeek(now, { locale: it });
-      filteredMatches = filteredMatches.filter((m) => {
-        if (!m.order_date) return false;
-        const date = parseISO(m.order_date);
-        return date >= weekStart && date <= weekEnd;
-      });
-    } else if (dateRange === 'month') {
-      const monthStart = startOfMonth(now);
-      const monthEnd = endOfMonth(now);
-      filteredMatches = filteredMatches.filter((m) => {
-        if (!m.order_date) return false;
-        const date = parseISO(m.order_date);
-        return date >= monthStart && date <= monthEnd;
-      });
-    } else if (dateRange === 'custom' && customStartDate && customEndDate) {
-      const start = new Date(customStartDate);
-      const end = new Date(customEndDate);
-      filteredMatches = filteredMatches.filter((m) => {
-        if (!m.order_date) return false;
-        const date = parseISO(m.order_date);
-        return date >= start && date <= end;
-      });
-    }
-
-    // Filter by store if selected
-    if (selectedStore !== 'all') {
-      filteredMatches = filteredMatches.filter((m) => m.store_id === selectedStore);
-    }
-
-    // Group by employee
-    filteredMatches.forEach((match) => {
-      if (!match.matched_employee_name) return;
-
-      const order = wrongOrders.find((o) => o.id === match.wrong_order_id);
-      if (!order) return;
-
-      const employeeKey = match.matched_employee_name;
-
-      if (!byEmployee[employeeKey]) {
-        byEmployee[employeeKey] = {
-          dipendente_nome: match.matched_employee_name,
-          count: 0,
-          totalRefunds: 0,
-          orders: []
-        };
-      }
-
-      byEmployee[employeeKey].count++;
-      byEmployee[employeeKey].totalRefunds += order.refund_value || 0;
-      byEmployee[employeeKey].orders.push({
-        ...order,
-        match_confidence: match.match_confidence
-      });
-    });
-
-    return Object.values(byEmployee).sort((a, b) => b.count - a.count);
+    if (dateRange === 'week') { const ws = startOfWeek(now, { locale: it }); const we = endOfWeek(now, { locale: it }); fm = fm.filter((m) => m.order_date && parseISO(m.order_date) >= ws && parseISO(m.order_date) <= we); }
+    else if (dateRange === 'month') { const ms = startOfMonth(now); const me = endOfMonth(now); fm = fm.filter((m) => m.order_date && parseISO(m.order_date) >= ms && parseISO(m.order_date) <= me); }
+    else if (dateRange === 'custom' && customStartDate && customEndDate) { const s = new Date(customStartDate); const e = new Date(customEndDate); fm = fm.filter((m) => m.order_date && parseISO(m.order_date) >= s && parseISO(m.order_date) <= e); }
+    if (selectedStore !== 'all') fm = fm.filter((m) => m.store_id === selectedStore);
+    fm.forEach((match) => { if (!match.matched_employee_name) return; const order = wrongOrders.find((o) => o.id === match.wrong_order_id); if (!order) return; const k = match.matched_employee_name; if (!byEmp[k]) byEmp[k] = { dipendente_nome: k, count: 0, totalRefunds: 0, orders: [] }; byEmp[k].count++; byEmp[k].totalRefunds += order.refund_value || 0; byEmp[k].orders.push({ ...order, match_confidence: match.match_confidence }); });
+    return Object.values(byEmp).sort((a, b) => b.count - a.count);
   }, [wrongOrderMatches, wrongOrders, dateRange, customStartDate, customEndDate, selectedStore]);
 
-  // Analytics data
   const analyticsData = useMemo(() => {
-    // Group by store
     const byStore = {};
-    filteredOrders.forEach((order) => {
-      const storeName = stores.find((s) => s.id === order.store_id)?.name || order.store_name;
-      if (!byStore[storeName]) {
-        byStore[storeName] = {
-          count: 0,
-          refunds: 0,
-          glovo: 0,
-          deliveroo: 0
-        };
-      }
-      byStore[storeName].count++;
-      byStore[storeName].refunds += order.refund_value || 0;
-      if (order.platform === 'glovo') byStore[storeName].glovo++;
-      if (order.platform === 'deliveroo') byStore[storeName].deliveroo++;
-    });
-
-    // Group by date based on view mode
+    filteredOrders.forEach((o) => { const sn = stores.find((s) => s.id === o.store_id)?.name || o.store_name; if (!byStore[sn]) byStore[sn] = { count: 0, refunds: 0, glovo: 0, deliveroo: 0 }; byStore[sn].count++; byStore[sn].refunds += o.refund_value || 0; if (o.platform === 'glovo') byStore[sn].glovo++; if (o.platform === 'deliveroo') byStore[sn].deliveroo++; });
     const now = new Date();
     let startDate, endDate;
-
-    if (dateRange === 'week') {
-      startDate = startOfWeek(now, { locale: it });
-      endDate = endOfWeek(now, { locale: it });
-    } else if (dateRange === 'month') {
-      startDate = startOfMonth(now);
-      endDate = endOfMonth(now);
-    } else if (dateRange === 'custom' && customStartDate && customEndDate) {
-      startDate = new Date(customStartDate);
-      endDate = new Date(customEndDate);
-    } else {
-      // For 'all', use the earliest and latest order dates
-      if (filteredOrders.length > 0) {
-        const dates = filteredOrders.map((o) => parseISO(o.order_date)).filter((d) => !isNaN(d));
-        startDate = new Date(Math.min(...dates));
-        endDate = new Date(Math.max(...dates));
-      } else {
-        startDate = now;
-        endDate = now;
-      }
-    }
-
+    if (dateRange === 'week') { startDate = startOfWeek(now, { locale: it }); endDate = endOfWeek(now, { locale: it }); }
+    else if (dateRange === 'month') { startDate = startOfMonth(now); endDate = endOfMonth(now); }
+    else if (dateRange === 'custom' && customStartDate && customEndDate) { startDate = new Date(customStartDate); endDate = new Date(customEndDate); }
+    else { if (filteredOrders.length > 0) { const dates = filteredOrders.map((o) => parseISO(o.order_date)).filter((d) => !isNaN(d)); startDate = new Date(Math.min(...dates)); endDate = new Date(Math.max(...dates)); } else { startDate = now; endDate = now; } }
     const byDate = {};
+    if (trendView === 'daily') { const cd = new Date(startDate); while (cd <= endDate) { const dk = format(cd, 'dd/MM', { locale: it }); byDate[dk] = { date: dk, count: 0, refunds: 0 }; cd.setDate(cd.getDate() + 1); } filteredOrders.forEach((o) => { const d = format(parseISO(o.order_date), 'dd/MM', { locale: it }); if (byDate[d]) { byDate[d].count++; byDate[d].refunds += o.refund_value || 0; } }); }
+    else if (trendView === 'weekly') { filteredOrders.forEach((o) => { const ws = startOfWeek(parseISO(o.order_date), { locale: it }); const wk = format(ws, 'dd/MM/yy', { locale: it }); if (!byDate[wk]) byDate[wk] = { date: wk, count: 0, refunds: 0 }; byDate[wk].count++; byDate[wk].refunds += o.refund_value || 0; }); }
+    else { filteredOrders.forEach((o) => { const mk = format(parseISO(o.order_date), 'MM/yyyy', { locale: it }); if (!byDate[mk]) byDate[mk] = { date: mk, count: 0, refunds: 0 }; byDate[mk].count++; byDate[mk].refunds += o.refund_value || 0; }); }
+    return { byStore: Object.entries(byStore).map(([name, data]) => ({ name, ...data })), byDate: Object.values(byDate) };
+  }, [filteredOrders, stores, dateRange, trendView, customStartDate, customEndDate]);
 
-    if (trendView === 'daily') {
-      // Daily view - one entry per day
-      const currentDate = new Date(startDate);
-      while (currentDate <= endDate) {
-        const dateKey = format(currentDate, 'dd/MM', { locale: it });
-        byDate[dateKey] = {
-          date: dateKey,
-          count: 0,
-          refunds: 0
-        };
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      filteredOrders.forEach((order) => {
-        const date = format(parseISO(order.order_date), 'dd/MM', { locale: it });
-        if (byDate[date]) {
-          byDate[date].count++;
-          byDate[date].refunds += order.refund_value || 0;
-        }
-      });
-    } else if (trendView === 'weekly') {
-      // Weekly view - group by week
-      filteredOrders.forEach((order) => {
-        const orderDate = parseISO(order.order_date);
-        const weekStart = startOfWeek(orderDate, { locale: it });
-        const weekKey = `${format(weekStart, 'dd/MM/yy', { locale: it })}`;
-        
-        if (!byDate[weekKey]) {
-          byDate[weekKey] = {
-            date: weekKey,
-            count: 0,
-            refunds: 0
-          };
-        }
-        byDate[weekKey].count++;
-        byDate[weekKey].refunds += order.refund_value || 0;
-      });
-    } else if (trendView === 'monthly') {
-      // Monthly view - group by month
-      filteredOrders.forEach((order) => {
-        const orderDate = parseISO(order.order_date);
-        const monthKey = format(orderDate, 'MM/yyyy', { locale: it });
-        
-        if (!byDate[monthKey]) {
-          byDate[monthKey] = {
-            date: monthKey,
-            count: 0,
-            refunds: 0
-          };
-        }
-        byDate[monthKey].count++;
-        byDate[monthKey].refunds += order.refund_value || 0;
-      });
-    }
-
-    // Sort byDate based on view mode
-    let sortedByDate = Object.values(byDate);
-    
-    if (trendView === 'daily') {
-      sortedByDate.sort((a, b) => {
-        const [dayA, monthA] = a.date.split('/').map(Number);
-        const [dayB, monthB] = b.date.split('/').map(Number);
-        return monthA !== monthB ? monthA - monthB : dayA - dayB;
-      });
-    } else if (trendView === 'weekly') {
-      sortedByDate.sort((a, b) => {
-        const [dayA, monthA, yearA] = a.date.split('/').map(Number);
-        const [dayB, monthB, yearB] = b.date.split('/').map(Number);
-        if (yearA !== yearB) return yearA - yearB;
-        if (monthA !== monthB) return monthA - monthB;
-        return dayA - dayB;
-      });
-    } else if (trendView === 'monthly') {
-      sortedByDate.sort((a, b) => {
-        const [monthA, yearA] = a.date.split('/').map(Number);
-        const [monthB, yearB] = b.date.split('/').map(Number);
-        return yearA !== yearB ? yearA - yearB : monthA - monthB;
-      });
-    }
-
-    return {
-      byStore: Object.entries(byStore).map(([name, data]) => ({ name, ...data })),
-      byDate: sortedByDate
-    };
-  }, [filteredOrders, stores, dateRange, trendView]);
+  const FilterBar = () => (
+    <NeumorphicCard className="p-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Negozio</label><select value={selectedStore} onChange={(e) => setSelectedStore(e.target.value)} className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"><option value="all">Tutti</option>{stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+        <div><label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Periodo</label><select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"><option value="week">Settimana</option><option value="month">Mese</option><option value="custom">Custom</option><option value="all">Tutti</option></select></div>
+        {dateRange === 'custom' && <><div><label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Inizio</label><input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" /></div><div><label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Fine</label><input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" /></div></>}
+      </div>
+    </NeumorphicCard>
+  );
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>📦 Ordini Sbagliati</h1>
-        <p style={{ color: '#000000' }}>Importa e gestisci ordini con problemi da Glovo e Deliveroo</p>
-      </div>
+      <div className="mb-6"><h1 className="mb-2 text-3xl font-bold" style={{ color: '#000000' }}>📦 Ordini Sbagliati</h1><p style={{ color: '#000000' }}>Importa e gestisci ordini con problemi da Glovo e Deliveroo</p></div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <Package className="w-8 h-8 text-[#8b7355]" />
-          </div>
-          <h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{stats.total}</h3>
-          <p className="text-sm text-[#9b9b9b]">Ordini Totali</p>
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <TrendingUp className="w-8 h-8 text-orange-600" />
-          </div>
-          <h3 className="text-3xl font-bold text-orange-600 mb-1">{stats.glovo}</h3>
-          <p className="text-sm text-[#9b9b9b]">Glovo</p>
-          {stats.lastGlovoOrder &&
-          <div className="mt-2 space-y-1">
-              <p className="text-xs text-[#9b9b9b]">
-                <strong>Ultimo ordine:</strong> {new Date(stats.lastGlovoOrder.order_date).toLocaleDateString('it-IT')}
-              </p>
-              {stats.lastGlovoImport &&
-            <p className="text-xs text-[#9b9b9b]">
-                  <strong>Ultimo caricamento:</strong> {new Date(stats.lastGlovoImport.import_date).toLocaleDateString('it-IT')}
-                </p>
-            }
-            </div>
-          }
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <TrendingUp className="w-8 h-8 text-teal-600" />
-          </div>
-          <h3 className="text-3xl font-bold text-teal-600 mb-1">{stats.deliveroo}</h3>
-          <p className="text-sm text-[#9b9b9b]">Deliveroo</p>
-          {stats.lastDeliverooOrder &&
-          <div className="mt-2 space-y-1">
-              <p className="text-xs text-[#9b9b9b]">
-                <strong>Ultimo ordine:</strong> {new Date(stats.lastDeliverooOrder.order_date).toLocaleDateString('it-IT')}
-              </p>
-              {stats.lastDeliverooImport &&
-            <p className="text-xs text-[#9b9b9b]">
-                  <strong>Ultimo caricamento:</strong> {new Date(stats.lastDeliverooImport.import_date).toLocaleDateString('it-IT')}
-                </p>
-            }
-            </div>
-          }
-        </NeumorphicCard>
-
-        <NeumorphicCard className="p-6 text-center">
-          <div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center">
-            <DollarSign className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-3xl font-bold text-red-600 mb-1">€{stats.totalRefunds.toFixed(2)}</h3>
-          <p className="text-sm text-[#9b9b9b]">Rimborsi Totali</p>
-        </NeumorphicCard>
+        <NeumorphicCard className="p-6 text-center"><div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"><Package className="w-8 h-8 text-[#8b7355]" /></div><h3 className="text-3xl font-bold text-[#6b6b6b] mb-1">{stats.total}</h3><p className="text-sm text-[#9b9b9b]">Totali</p></NeumorphicCard>
+        <NeumorphicCard className="p-6 text-center"><div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"><TrendingUp className="w-8 h-8 text-orange-600" /></div><h3 className="text-3xl font-bold text-orange-600 mb-1">{stats.glovo}</h3><p className="text-sm text-[#9b9b9b]">Glovo</p></NeumorphicCard>
+        <NeumorphicCard className="p-6 text-center"><div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"><TrendingUp className="w-8 h-8 text-teal-600" /></div><h3 className="text-3xl font-bold text-teal-600 mb-1">{stats.deliveroo}</h3><p className="text-sm text-[#9b9b9b]">Deliveroo</p></NeumorphicCard>
+        <NeumorphicCard className="p-6 text-center"><div className="neumorphic-flat w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"><DollarSign className="w-8 h-8 text-red-600" /></div><h3 className="text-3xl font-bold text-red-600 mb-1">€{stats.totalRefunds.toFixed(2)}</h3><p className="text-sm text-[#9b9b9b]">Rimborsi</p></NeumorphicCard>
       </div>
 
-      {/* Upload Section */}
       <NeumorphicCard className="p-6">
-        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2">
-          <Upload className="w-5 h-5" />
-          Importa CSV
-        </h2>
-
+        <h2 className="text-xl font-bold text-[#6b6b6b] mb-4 flex items-center gap-2"><Upload className="w-5 h-5" />Importa CSV</h2>
         <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-              Piattaforma <span className="text-red-600">*</span>
-            </label>
-            <select
-              value={selectedPlatform}
-              onChange={(e) => setSelectedPlatform(e.target.value)}
-              className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-              <option value="">-- Seleziona piattaforma --</option>
-              <option value="glovo">Glovo</option>
-              <option value="deliveroo">Deliveroo</option>
-            </select>
-          </div>
-
-          {/* Show current mapping */}
-          {selectedPlatform && (() => {
-            const mapping = columnMappings.find((m) => m.platform === selectedPlatform && m.is_active);
-            return mapping ?
-            <div className="neumorphic-pressed p-4 rounded-xl bg-green-50">
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div>
-                    <p className="text-sm font-bold text-green-800 mb-2">✅ Mapping attivo per {selectedPlatform}</p>
-                    <div className="text-xs text-green-700 space-y-1">
-                      <p>• <strong>Order ID:</strong> {mapping.order_id_column}</p>
-                      <p>• <strong>Negozio:</strong> {mapping.store_column}</p>
-                      <p>• <strong>Data:</strong> {mapping.order_date_column}</p>
-                      <p>• <strong>Totale:</strong> {mapping.order_total_column}</p>
-                      <p>• <strong>Rimborso:</strong> {mapping.refund_column}</p>
-                      {mapping.refund_reason_column && <p>• <strong>Ragione:</strong> {mapping.refund_reason_column}</p>}
-                    </div>
-                  </div>
-                  <NeumorphicButton
-                  onClick={() => {
-                    setColumnMapping(mapping);
-                    setShowColumnMapping(true);
-                  }}
-                  className="text-xs">
-
-                    Modifica
-                  </NeumorphicButton>
-                </div>
-              </div> :
-
-            <div className="neumorphic-pressed p-3 rounded-xl bg-orange-50">
-                <p className="text-sm text-orange-700">⚠️ Nessun mapping configurato per {selectedPlatform}. Al primo caricamento ti chiederemo di mappare le colonne.</p>
-              </div>;
-
-          })()}
-
-          <div>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="hidden"
-              id="csv-upload"
-              disabled={!selectedPlatform || uploading} />
-
-            <label
-              htmlFor="csv-upload"
-              className={`block text-center neumorphic-flat px-6 py-4 rounded-xl cursor-pointer transition-all ${
-              !selectedPlatform || uploading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`
-              }>
-
-              <FileText className="w-8 h-8 text-[#8b7355] mx-auto mb-2" />
-              <p className="text-[#6b6b6b] font-medium">
-                {uploading ? 'Caricamento in corso...' : selectedPlatform ? 'Clicca per caricare CSV' : 'Seleziona prima una piattaforma'}
-              </p>
-            </label>
-          </div>
+          <div><label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Piattaforma *</label><select value={selectedPlatform} onChange={(e) => setSelectedPlatform(e.target.value)} className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"><option value="">-- Seleziona --</option><option value="glovo">Glovo</option><option value="deliveroo">Deliveroo</option></select></div>
+          {selectedPlatform && (() => { const m = columnMappings.find((m) => m.platform === selectedPlatform && m.is_active); return m ? <div className="neumorphic-pressed p-4 rounded-xl bg-green-50"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-bold text-green-800 mb-2">✅ Mapping attivo</p><div className="text-xs text-green-700 space-y-1"><p>• Order ID: {m.order_id_column}</p><p>• Negozio: {m.store_column}</p><p>• Data: {m.order_date_column}</p><p>• Totale: {m.order_total_column}</p><p>• Rimborso: {m.refund_column}</p>{m.refund_reason_column && <p>• Ragione: {m.refund_reason_column}</p>}</div></div><NeumorphicButton onClick={() => { setColumnMapping(m); setShowColumnMapping(true); }} className="text-xs">Modifica</NeumorphicButton></div></div> : <div className="neumorphic-pressed p-3 rounded-xl bg-orange-50"><p className="text-sm text-orange-700">⚠️ Nessun mapping per {selectedPlatform}</p></div>; })()}
+          <div><input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" id="csv-upload" disabled={!selectedPlatform || uploading} /><label htmlFor="csv-upload" className={`block text-center neumorphic-flat px-6 py-4 rounded-xl cursor-pointer transition-all ${!selectedPlatform || uploading ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}><FileText className="w-8 h-8 text-[#8b7355] mx-auto mb-2" /><p className="text-[#6b6b6b] font-medium">{uploading ? 'Caricamento...' : selectedPlatform ? 'Clicca per caricare CSV' : 'Seleziona piattaforma'}</p></label></div>
         </div>
       </NeumorphicCard>
 
-      {/* Import Result */}
-      {importResult &&
-      <NeumorphicCard className={`p-6 ${importResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
-          <div className="flex items-start gap-3">
-            {importResult.success ?
-          <CheckCircle className="w-6 h-6 text-green-600 mt-1" /> :
+      {importResult && <NeumorphicCard className={`p-6 ${importResult.success ? 'bg-green-50' : 'bg-red-50'}`}><div className="flex items-start gap-3">{importResult.success ? <CheckCircle className="w-6 h-6 text-green-600 mt-1" /> : <AlertCircle className="w-6 h-6 text-red-600 mt-1" />}<div className="flex-1"><h3 className={`text-xl font-bold mb-2 ${importResult.success ? 'text-green-700' : 'text-red-700'}`}>{importResult.success ? '✅ Importazione Completata!' : '❌ Errore'}</h3>{importResult.success ? <div className="space-y-1 text-sm"><p className="text-green-700">CSV: {importResult.totalCsvLines} righe</p><p className="text-green-700">✅ Importati: {importResult.successCount}</p>{importResult.duplicateCount > 0 && <p className="text-blue-600">🔁 Duplicati: {importResult.duplicateCount}</p>}{importResult.skippedLinesCount > 0 && <p className="text-orange-600">⚠️ Saltate: {importResult.skippedLinesCount}</p>}{importResult.unmappedCount > 0 && <p className="text-yellow-600">🏪 Non abbinati: {importResult.unmappedCount}</p>}</div> : <p className="text-red-700">{importResult.error}</p>}</div></div></NeumorphicCard>}
 
-          <AlertCircle className="w-6 h-6 text-red-600 mt-1" />
-          }
-            <div className="flex-1">
-              <h3 className={`text-xl font-bold mb-2 ${importResult.success ? 'text-green-700' : 'text-red-700'}`}>
-                {importResult.success ? '✅ Importazione Completata!' : '❌ Errore Importazione'}
-              </h3>
-              
-              {importResult.success ?
-            <div className="space-y-2">
-                  <p className="text-green-700">
-                    <strong>CSV processato: {importResult.totalCsvLines} righe totali</strong>
-                  </p>
-                  <p className="text-green-700">
-                    ✅ Importati <strong>{importResult.successCount}</strong> ordini
-                  </p>
-                  {importResult.duplicateCount > 0 &&
-              <p className="text-blue-600">
-                      🔁 {importResult.duplicateCount} ordini già esistenti (duplicati)
-                    </p>
-              }
-                  {importResult.skippedLinesCount > 0 &&
-              <p className="text-orange-600">
-                      ⚠️ {importResult.skippedLinesCount} righe saltate (dati mancanti)
-                    </p>
-              }
-                  {importResult.errorCount > 0 &&
-              <p className="text-red-600">
-                      ❌ {importResult.errorCount} ordini non importati per errori
-                    </p>
-              }
-                  {importResult.unmappedCount > 0 &&
-              <p className="text-yellow-600">
-                      🏪 {importResult.unmappedCount} negozi non abbinati - completa gli abbinamenti nel modal
-                    </p>
-              }
-                </div> :
+      {showPreview && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div className="max-w-5xl w-full max-h-[90vh] overflow-y-auto"><NeumorphicCard className="p-6"><div className="flex items-center justify-between mb-6"><h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2"><Eye className="w-6 h-6" />Anteprima - {selectedPlatform}</h2><button onClick={() => { setShowPreview(false); setPendingFile(null); setPreviewData([]); }} className="neumorphic-flat p-2 rounded-lg hover:bg-red-50"><X className="w-5 h-5 text-[#9b9b9b]" /></button></div>
+        <h3 className="font-bold text-[#6b6b6b] mb-3">Primi {previewData.length} ordini:</h3>
+        <div className="overflow-x-auto mb-6"><table className="w-full text-sm"><thead><tr className="border-b-2 border-[#8b7355]"><th className="text-left p-2">Order ID</th><th className="text-left p-2">Negozio</th><th className="text-left p-2">Data</th><th className="text-right p-2">Totale</th><th className="text-right p-2">Rimborso</th>{selectedPlatform === 'glovo' && <th className="text-left p-2">Ragione</th>}</tr></thead><tbody>{previewData.map((row, idx) => <tr key={idx} className={`border-b ${row.totalSuspicious || row.refundSuspicious ? 'bg-red-50' : 'border-[#d1d1d1]'}`}><td className="p-2 font-mono">{row.orderId}</td><td className="p-2 font-bold">{row.store || '(vuoto)'}</td><td className="p-2">{row.date}</td><td className="p-2 text-right">{row.total} {row.totalParsed > 0 && <span className="text-xs text-green-600 ml-1">→ €{row.totalParsed.toFixed(2)}</span>}</td><td className="p-2 text-right font-bold text-red-600">{row.refund} {row.refundParsed > 0 && <span className="text-xs text-green-600 ml-1">→ €{row.refundParsed.toFixed(2)}</span>}</td>{selectedPlatform === 'glovo' && <td className="p-2 text-xs">{row.reason}</td>}</tr>)}</tbody></table></div>
+        <div className="flex gap-3"><NeumorphicButton onClick={() => { setShowPreview(false); setShowColumnMapping(true); }} className="flex-1">← Modifica Mapping</NeumorphicButton><NeumorphicButton onClick={() => { setShowPreview(false); setPendingFile(null); setPreviewData([]); }} className="flex-1">Annulla</NeumorphicButton><NeumorphicButton onClick={handleConfirmImport} variant="primary" className="flex-1">✅ Importa</NeumorphicButton></div>
+      </NeumorphicCard></div></div>}
 
-            <p className="text-red-700">{importResult.error}</p>
-            }
-            </div>
-          </div>
-        </NeumorphicCard>
-      }
-
-      {/* Preview Modal */}
-      {showPreview &&
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-            <NeumorphicCard className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
-                  <Eye className="w-6 h-6 text-[#8b7355]" />
-                  Anteprima Import - {selectedPlatform}
-                </h2>
-                <button
-                onClick={() => {
-                  setShowPreview(false);
-                  setPendingFile(null);
-                  setPreviewData([]);
-                }}
-                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
-
-                  <X className="w-5 h-5 text-[#9b9b9b]" />
-                </button>
-              </div>
-
-              <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mb-6">
-                <p className="text-sm font-bold text-blue-800 mb-2">📋 Mapping Colonne Attivo:</p>
-                <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
-                  <p>• <strong>Order ID:</strong> {columnMapping.order_id_column}</p>
-                  <p>• <strong>Negozio:</strong> {columnMapping.store_column}</p>
-                  <p>• <strong>Data:</strong> {columnMapping.order_date_column}</p>
-                  <p>• <strong>Totale:</strong> {columnMapping.order_total_column}</p>
-                  <p>• <strong>Rimborso:</strong> {columnMapping.refund_column}</p>
-                  {columnMapping.refund_reason_column && <p>• <strong>Ragione:</strong> {columnMapping.refund_reason_column}</p>}
-                </div>
-              </div>
-
-              {(() => {
-              const hasSuspiciousStores = previewData.some((row) => row.storeSuspicious);
-              return (
-                <>
-                    {hasSuspiciousStores &&
-                  <div className="neumorphic-pressed p-4 rounded-xl bg-red-50 mb-4">
-                        <p className="text-sm font-bold text-red-800 mb-2">🚨 ATTENZIONE: Nomi Negozio Sospetti!</p>
-                        <p className="text-xs text-red-700">
-                          Alcuni nomi di negozio sembrano SBAGLIATI (contengono date, virgole, "delivered", ecc.). 
-                          <strong> Probabilmente hai mappato la colonna SBAGLIATA.</strong> Clicca "Modifica Mapping" sotto per correggere!
-                        </p>
-                      </div>
-                  }
-                    
-                    <h3 className="font-bold text-[#6b6b6b] mb-3">Primi {previewData.length} ordini del file:</h3>
-                    
-                    <div className="overflow-x-auto mb-6">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b-2 border-[#8b7355]">
-                            <th className="text-left p-2 text-[#9b9b9b] font-medium">Order ID</th>
-                            <th className="text-left p-2 text-[#9b9b9b] font-medium">Negozio</th>
-                            <th className="text-left p-2 text-[#9b9b9b] font-medium">Data</th>
-                            <th className="text-right p-2 text-[#9b9b9b] font-medium">Totale</th>
-                            <th className="text-right p-2 text-[#9b9b9b] font-medium">Rimborso</th>
-                            {selectedPlatform === 'glovo' && <th className="text-left p-2 text-[#9b9b9b] font-medium">Ragione</th>}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {previewData.map((row, idx) =>
-                        <tr key={idx} className={`border-b ${row.storeSuspicious || row.totalSuspicious || row.refundSuspicious ? 'bg-red-50' : 'border-[#d1d1d1]'}`}>
-                              <td className="p-2 text-[#6b6b6b] font-mono">{row.orderId}</td>
-                              <td className={`p-2 font-bold ${row.storeSuspicious ? 'text-red-600' : 'text-[#6b6b6b]'}`}>
-                                {row.storeSuspicious && '⚠️ '}
-                                {row.store || '(vuoto)'}
-                              </td>
-                              <td className="p-2 text-[#6b6b6b]">{row.date}</td>
-                              <td className={`p-2 text-right ${row.totalSuspicious ? 'text-red-600 font-bold' : 'text-[#6b6b6b]'}`}>
-                                {row.totalSuspicious && '⚠️ '}
-                                {row.total || '(vuoto)'} 
-                                {row.totalParsed > 0 && <span className="text-xs text-green-600 ml-1">→ €{row.totalParsed.toFixed(2)}</span>}
-                              </td>
-                              <td className={`p-2 text-right font-bold ${row.refundSuspicious ? 'text-orange-600' : 'text-red-600'}`}>
-                                {row.refundSuspicious && '⚠️ '}
-                                {row.refund || '(vuoto)'}
-                                {row.refundParsed > 0 && <span className="text-xs text-green-600 ml-1">→ €{row.refundParsed.toFixed(2)}</span>}
-                              </td>
-                              {selectedPlatform === 'glovo' && <td className="p-2 text-[#6b6b6b] text-xs">{row.reason}</td>}
-                            </tr>
-                        )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>);
-
-            })()}
-
-              <div className="neumorphic-pressed p-4 rounded-xl bg-blue-50 mb-6">
-                <p className="text-sm font-bold text-blue-800 mb-2">💡 Guida alla Verifica:</p>
-                <div className="text-xs text-blue-700 space-y-1">
-                  <p>✅ <strong>Colonna "Negozio" CORRETTA:</strong> dovrebbe contenere solo il nome del negozio (es. "Ticinese", "Lanino")</p>
-                  <p>❌ <strong>Colonna SBAGLIATA:</strong> se vedi date, indirizzi completi, "delivered", "missing", o valori con molte virgole → hai mappato la colonna sbagliata!</p>
-                  <p>🔧 <strong>Come correggere:</strong> clicca "Modifica Mapping" sotto e seleziona la colonna che contiene SOLO i nomi dei negozi</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <NeumorphicButton
-                onClick={() => {
-                  setShowPreview(false);
-                  setShowColumnMapping(true);
-                }}
-                className="flex-1">
-
-                  ← Modifica Mapping
-                </NeumorphicButton>
-                <NeumorphicButton
-                onClick={() => {
-                  setShowPreview(false);
-                  setPendingFile(null);
-                  setPreviewData([]);
-                }}
-                className="flex-1">
-
-                  Annulla
-                </NeumorphicButton>
-                <NeumorphicButton
-                onClick={handleConfirmImport}
-                variant="primary"
-                className="flex-1">
-
-                  ✅ Conferma e Importa
-                </NeumorphicButton>
-              </div>
-            </NeumorphicCard>
-          </div>
+      {showColumnMapping && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto"><NeumorphicCard className="p-6"><div className="flex items-center justify-between mb-6"><h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2"><Settings className="w-6 h-6" />Mappa Colonne - {selectedPlatform}</h2><button onClick={() => { setShowColumnMapping(false); setPendingFile(null); setUploading(false); }} className="neumorphic-flat p-2 rounded-lg hover:bg-red-50"><X className="w-5 h-5" /></button></div>
+        <div className="space-y-4 mb-6">
+          {[{ label: 'Numero Ordine *', key: 'order_id_column' }, { label: 'Negozio *', key: 'store_column' }, { label: 'Data Ordine *', key: 'order_date_column' }, { label: 'Valore Ordine *', key: 'order_total_column' }, { label: 'Valore Rimborso *', key: 'refund_column' }].map(({ label, key }) => <div key={key}><label className="text-sm font-medium text-[#6b6b6b] mb-2 block">{label}</label><select value={columnMapping[key]} onChange={(e) => setColumnMapping({ ...columnMapping, [key]: e.target.value })} className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"><option value="">-- Seleziona --</option>{csvHeaders.map((h) => <option key={h} value={h}>{h}</option>)}</select></div>)}
+          {selectedPlatform === 'glovo' && <div><label className="text-sm font-medium text-[#6b6b6b] mb-2 block">Ragione Rimborso (opzionale)</label><select value={columnMapping.refund_reason_column} onChange={(e) => setColumnMapping({ ...columnMapping, refund_reason_column: e.target.value })} className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"><option value="">-- Seleziona --</option>{csvHeaders.map((h) => <option key={h} value={h}>{h}</option>)}</select></div>}
         </div>
-      }
+        <div className="flex gap-3"><NeumorphicButton onClick={() => { setShowColumnMapping(false); setPendingFile(null); setUploading(false); }} className="flex-1">Annulla</NeumorphicButton><NeumorphicButton onClick={handleSaveColumnMapping} variant="primary" className="flex-1">Salva</NeumorphicButton></div>
+      </NeumorphicCard></div></div>}
 
-      {/* Column Mapping Modal */}
-      {showColumnMapping &&
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <NeumorphicCard className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
-                  <Settings className="w-6 h-6 text-[#8b7355]" />
-                  Mappa Colonne CSV - {selectedPlatform}
-                </h2>
-                <button
-                onClick={() => {
-                  setShowColumnMapping(false);
-                  setPendingFile(null);
-                  setUploading(false);
-                }}
-                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
+      {showMappingModal && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"><div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto"><NeumorphicCard className="p-6"><div className="flex items-center justify-between mb-6"><h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2"><LinkIcon className="w-6 h-6" />Abbina Negozi</h2><button onClick={() => setShowMappingModal(false)} className="neumorphic-flat p-2 rounded-lg hover:bg-red-50"><X className="w-5 h-5" /></button></div>
+        <div className="space-y-4 mb-6">{unmappedStores.map((u, idx) => <div key={idx} className="neumorphic-pressed p-4 rounded-xl"><p className="font-medium text-[#6b6b6b] mb-3">CSV: <span className="text-[#8b7355]">{u.platformStoreName}</span></p>{u.suggestedMatch && <p className="text-sm text-blue-600 mb-2">Suggerimento: {u.suggestedMatch.store.name} ({u.suggestedMatch.confidence}%)</p>}<select value={storeMapping[u.platformStoreName] || ''} onChange={(e) => setStoreMapping((p) => ({ ...p, [u.platformStoreName]: e.target.value }))} className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"><option value="">-- Seleziona --</option>{stores.map((s) => <option key={s.id} value={s.id}>{s.name} - {s.address}</option>)}</select></div>)}</div>
+        <div className="flex gap-3"><NeumorphicButton onClick={() => setShowMappingModal(false)} className="flex-1">Annulla</NeumorphicButton><NeumorphicButton onClick={handleManualMapping} variant="primary" className="flex-1" disabled={Object.keys(storeMapping).length === 0}>Salva</NeumorphicButton></div>
+      </NeumorphicCard></div></div>}
 
-                  <X className="w-5 h-5 text-[#9b9b9b]" />
-                </button>
-              </div>
-
-              <p className="text-[#9b9b9b] mb-6">
-                Prima importazione per {selectedPlatform}. Seleziona quali colonne del CSV corrispondono ai dati richiesti:
-              </p>
-
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Numero Ordine <span className="text-red-600">*</span>
-                  </label>
-                  <select
-                  value={columnMapping.order_id_column}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, order_id_column: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                    <option value="">-- Seleziona colonna --</option>
-                    {csvHeaders.map((h) =>
-                  <option key={h} value={h}>{h}</option>
-                  )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Negozio <span className="text-red-600">*</span>
-                  </label>
-                  <p className="text-xs text-blue-600 mb-2 bg-blue-50 p-2 rounded">
-                    ⚠️ Questa colonna sarà usata per il matching automatico con i tuoi negozi nel sistema
-                  </p>
-                  <select
-                  value={columnMapping.store_column}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, store_column: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                    <option value="">-- Seleziona colonna --</option>
-                    {csvHeaders.map((h) =>
-                  <option key={h} value={h}>{h}</option>
-                  )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Data Ordine <span className="text-red-600">*</span>
-                  </label>
-                  <select
-                  value={columnMapping.order_date_column}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, order_date_column: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                    <option value="">-- Seleziona colonna --</option>
-                    {csvHeaders.map((h) =>
-                  <option key={h} value={h}>{h}</option>
-                  )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Valore Ordine <span className="text-red-600">*</span>
-                  </label>
-                  <select
-                  value={columnMapping.order_total_column}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, order_total_column: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                    <option value="">-- Seleziona colonna --</option>
-                    {csvHeaders.map((h) =>
-                  <option key={h} value={h}>{h}</option>
-                  )}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                    Valore Rimborso <span className="text-red-600">*</span>
-                  </label>
-                  <select
-                  value={columnMapping.refund_column}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, refund_column: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                    <option value="">-- Seleziona colonna --</option>
-                    {csvHeaders.map((h) =>
-                  <option key={h} value={h}>{h}</option>
-                  )}
-                  </select>
-                </div>
-
-                {selectedPlatform === 'glovo' &&
-              <div>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Ragione Rimborso (opzionale, solo Glovo)
-                    </label>
-                    <select
-                  value={columnMapping.refund_reason_column}
-                  onChange={(e) => setColumnMapping({ ...columnMapping, refund_reason_column: e.target.value })}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                      <option value="">-- Seleziona colonna --</option>
-                      {csvHeaders.map((h) =>
-                  <option key={h} value={h}>{h}</option>
-                  )}
-                    </select>
-                  </div>
-              }
-              </div>
-
-              <div className="flex gap-3">
-                <NeumorphicButton
-                onClick={() => {
-                  setShowColumnMapping(false);
-                  setPendingFile(null);
-                  setUploading(false);
-                }}
-                className="flex-1">
-
-                  Annulla
-                </NeumorphicButton>
-                <NeumorphicButton
-                onClick={handleSaveColumnMapping}
-                variant="primary"
-                className="flex-1">
-
-                  Salva e Importa
-                </NeumorphicButton>
-              </div>
-            </NeumorphicCard>
-          </div>
-        </div>
-      }
-
-      {/* Mapping Modal */}
-      {showMappingModal &&
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <NeumorphicCard className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
-                  <LinkIcon className="w-6 h-6 text-[#8b7355]" />
-                  Abbina Negozi
-                </h2>
-                <button
-                onClick={() => setShowMappingModal(false)}
-                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
-
-                  <X className="w-5 h-5 text-[#9b9b9b]" />
-                </button>
-              </div>
-
-              <p className="text-[#9b9b9b] mb-6">
-                I seguenti negozi dal CSV non sono stati abbinati automaticamente. Seleziona il negozio corrispondente:
-              </p>
-
-              <div className="space-y-4 mb-6">
-                {unmappedStores.map((unmapped, idx) =>
-              <div key={idx} className="neumorphic-pressed p-4 rounded-xl">
-                    <p className="font-medium text-[#6b6b6b] mb-3">
-                      Nome dal CSV: <span className="text-[#8b7355]">{unmapped.platformStoreName}</span>
-                    </p>
-                    
-                    {unmapped.suggestedMatch &&
-                <p className="text-sm text-blue-600 mb-2">
-                        Suggerimento: {unmapped.suggestedMatch.store.name} ({unmapped.suggestedMatch.confidence}% match)
-                      </p>
-                }
-                    
-                    <select
-                  value={storeMapping[unmapped.platformStoreName] || ''}
-                  onChange={(e) => setStoreMapping((prev) => ({
-                    ...prev,
-                    [unmapped.platformStoreName]: e.target.value
-                  }))}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                      <option value="">-- Seleziona negozio --</option>
-                      {stores.map((store) =>
-                  <option key={store.id} value={store.id}>
-                          {store.name} - {store.address}
-                        </option>
-                  )}
-                    </select>
-                  </div>
-              )}
-              </div>
-
-              <div className="flex gap-3">
-                <NeumorphicButton
-                onClick={() => setShowMappingModal(false)}
-                className="flex-1">
-
-                  Annulla
-                </NeumorphicButton>
-                <NeumorphicButton
-                onClick={handleManualMapping}
-                variant="primary"
-                className="flex-1"
-                disabled={Object.keys(storeMapping).length === 0}>
-
-                  Salva Abbinamenti
-                </NeumorphicButton>
-              </div>
-            </NeumorphicCard>
-          </div>
-        </div>
-      }
-
-      {/* Tabs */}
       <div className="flex gap-2 mb-6">
-        <NeumorphicButton
-          onClick={() => setActiveTab('list')}
-          className={`flex items-center gap-2 ${activeTab === 'list' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : ''}`}>
-
-          <Package className="w-4 h-4" />
-          Lista Ordini
-        </NeumorphicButton>
-        <NeumorphicButton
-          onClick={() => setActiveTab('analytics')}
-          className={`flex items-center gap-2 ${activeTab === 'analytics' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : ''}`}>
-
-          <BarChart3 className="w-4 h-4" />
-          Analisi
-        </NeumorphicButton>
-        <NeumorphicButton
-          onClick={() => setActiveTab('employees')}
-          className={`flex items-center gap-2 ${activeTab === 'employees' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : ''}`}>
-
-          <Users className="w-4 h-4" />
-          Dipendenti
-        </NeumorphicButton>
+        <NeumorphicButton onClick={() => setActiveTab('list')} className={`flex items-center gap-2 ${activeTab === 'list' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : ''}`}><Package className="w-4 h-4" />Lista</NeumorphicButton>
+        <NeumorphicButton onClick={() => setActiveTab('analytics')} className={`flex items-center gap-2 ${activeTab === 'analytics' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : ''}`}><BarChart3 className="w-4 h-4" />Analisi</NeumorphicButton>
+        <NeumorphicButton onClick={() => setActiveTab('employees')} className={`flex items-center gap-2 ${activeTab === 'employees' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : ''}`}><Users className="w-4 h-4" />Dipendenti</NeumorphicButton>
       </div>
 
-      {/* Analytics Tab */}
-      {activeTab === 'analytics' &&
-      <>
-          {/* Filters */}
-          <NeumorphicCard className="p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Negozio
-                </label>
-                <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                  <option value="all">Tutti i negozi</option>
-                  {stores.map((store) =>
-                <option key={store.id} value={store.id}>{store.name}</option>
-                )}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Periodo
-                </label>
-                <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                  <option value="week">Questa settimana</option>
-                  <option value="month">Questo mese</option>
-                  <option value="custom">Personalizzato</option>
-                  <option value="all">Tutti i periodi</option>
-                </select>
-              </div>
-
-              {dateRange === 'custom' &&
-            <>
-                  <div>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Data Inizio
-                    </label>
-                    <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
-
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Data Fine
-                    </label>
-                    <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
-
-                  </div>
-                </>
-            }
-            </div>
-          </NeumorphicCard>
-
-          {/* Charts */}
-          <NeumorphicCard className="p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[#6b6b6b]">Ordini Sbagliati per Negozio</h3>
-              <NeumorphicButton
-              onClick={() => analyzeWithAI('byStore')}
-              disabled={analyticsData.byStore.length === 0 || loadingAI}
-              className="flex items-center gap-2 text-sm">
-
-                <Sparkles className="w-4 h-4" />
-                AI Analisi
-              </NeumorphicButton>
-            </div>
-            {analyticsData.byStore.length > 0 ?
-          <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={analyticsData.byStore}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="glovo" fill="#ea580c" name="Glovo" />
-                  <Bar dataKey="deliveroo" fill="#14b8a6" name="Deliveroo" />
-                </BarChart>
-              </ResponsiveContainer> :
-
-          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          }
-          </NeumorphicCard>
-
-          <NeumorphicCard className="p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[#6b6b6b]">Trend nel Tempo</h3>
-              <div className="flex gap-3">
-                <div className="flex gap-2 neumorphic-pressed rounded-lg p-1">
-                  <button
-                    onClick={() => setTrendView('daily')}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                      trendView === 'daily' ? 'bg-blue-500 text-white' : 'text-[#6b6b6b]'
-                    }`}>
-                    Giornaliera
-                  </button>
-                  <button
-                    onClick={() => setTrendView('weekly')}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                      trendView === 'weekly' ? 'bg-blue-500 text-white' : 'text-[#6b6b6b]'
-                    }`}>
-                    Settimanale
-                  </button>
-                  <button
-                    onClick={() => setTrendView('monthly')}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                      trendView === 'monthly' ? 'bg-blue-500 text-white' : 'text-[#6b6b6b]'
-                    }`}>
-                    Mensile
-                  </button>
-                </div>
-                <NeumorphicButton
-                onClick={() => analyzeWithAI('byDate')}
-                disabled={analyticsData.byDate.length === 0 || loadingAI}
-                className="flex items-center gap-2 text-sm">
-
-                  <Sparkles className="w-4 h-4" />
-                  AI Analisi
-                </NeumorphicButton>
-                <div className="flex gap-2">
-                <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showCount}
-                    onChange={(e) => setShowCount(e.target.checked)}
-                    className="w-4 h-4" />
-
-                  Numero Ordini
-                </label>
-                <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showRefunds}
-                    onChange={(e) => setShowRefunds(e.target.checked)}
-                    className="w-4 h-4" />
-
-                  € Rimborsi
-                </label>
-              </div>
-              </div>
-            </div>
-            {analyticsData.byDate.length > 0 ?
-          <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={analyticsData.byDate}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  {showCount && <Line type="monotone" dataKey="count" stroke="#8b7355" name="Ordini" strokeWidth={2} />}
-                  {showRefunds && <Line type="monotone" dataKey="refunds" stroke="#dc2626" name="Rimborsi (€)" strokeWidth={2} />}
-                </LineChart>
-              </ResponsiveContainer> :
-
-          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          }
-          </NeumorphicCard>
-
-          {/* Store Breakdown Table */}
-          <NeumorphicCard className="p-6">
-            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Dettaglio per Negozio</h3>
-            {analyticsData.byStore.length > 0 ?
-          <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b-2 border-[#8b7355]">
-                      <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
-                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale</th>
-                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Glovo</th>
-                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Deliveroo</th>
-                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Rimborsi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analyticsData.byStore.sort((a, b) => b.count - a.count).map((store, idx) =>
-                <tr key={idx} className="border-b border-[#d1d1d1]">
-                        <td className="p-3 text-[#6b6b6b] font-medium">{store.name}</td>
-                        <td className="p-3 text-right font-bold text-[#6b6b6b]">{store.count}</td>
-                        <td className="p-3 text-right text-orange-600">{store.glovo}</td>
-                        <td className="p-3 text-right text-teal-600">{store.deliveroo}</td>
-                        <td className="p-3 text-right font-bold text-red-600">€{store.refunds.toFixed(2)}</td>
-                      </tr>
-                )}
-                  </tbody>
-                </table>
-              </div> :
-
-          <p className="text-center text-[#9b9b9b] py-8">Nessun dato disponibile</p>
-          }
-          </NeumorphicCard>
-        </>
-      }
-
-      {/* Orders List Tab */}
-      {activeTab === 'list' &&
-      <NeumorphicCard className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-[#6b6b6b]">Ordini Importati ({wrongOrders.length})</h2>
-          </div>
-
-          {wrongOrders.length === 0 ?
-        <div className="text-center py-12">
-              <Package className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" />
-              <p className="text-[#6b6b6b] font-medium">Nessun ordine trovato</p>
-              <p className="text-sm text-[#9b9b9b] mt-1">Carica un CSV per iniziare</p>
-            </div> :
-
-        <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-[#8b7355]">
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Piattaforma</th>
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Order ID</th>
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Data</th>
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Negozio</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Totale</th>
-                    <th className="text-right p-3 text-[#9b9b9b] font-medium">Rimborso</th>
-                    <th className="text-left p-3 text-[#9b9b9b] font-medium">Stato</th>
-                    <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {wrongOrders.map((order) =>
-              <tr key={order.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                      <td className="p-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  order.platform === 'glovo' ?
-                  'bg-orange-100 text-orange-700' :
-                  'bg-teal-100 text-teal-700'}`
-                  }>
-                          {order.platform}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <span className="font-mono text-sm text-[#6b6b6b]">{order.order_id}</span>
-                      </td>
-                      <td className="p-3 text-sm text-[#6b6b6b]">
-                        {new Date(order.order_date).toLocaleDateString('it-IT')} {new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="p-3">
-                        <div>
-                          <p className="text-sm text-[#6b6b6b]">{order.store_name}</p>
-                          {order.store_matched &&
-                    <span className="text-xs text-green-600">✓ Abbinato</span>
-                    }
-                        </div>
-                      </td>
-                      <td className="p-3 text-right font-medium text-[#6b6b6b]">
-                        €{order.order_total?.toFixed(2) || '0.00'}
-                      </td>
-                      <td className="p-3 text-right font-bold text-red-600">
-                        €{order.refund_value?.toFixed(2) || '0.00'}
-                      </td>
-                      <td className="p-3 text-sm text-[#6b6b6b]">
-                        {order.customer_refund_status || order.order_status || '-'}
-                      </td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={() => {
-                            if (confirm('Sei sicuro di voler eliminare questo ordine?')) {
-                              deleteOrderMutation.mutate(order.id);
-                            }
-                          }}
-                          className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </button>
-                      </td>
-                    </tr>
-              )}
-                </tbody>
-              </table>
-            </div>
-        }
-        </NeumorphicCard>
-      }
-
-      {/* Employees Tab */}
-      {activeTab === 'employees' &&
-      <>
-          {/* Filters */}
-          <NeumorphicCard className="p-6 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Negozio
-                </label>
-                <select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                  <option value="all">Tutti i negozi</option>
-                  {stores.map((store) =>
-                <option key={store.id} value={store.id}>{store.name}</option>
-                )}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Periodo
-                </label>
-                <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                  <option value="week">Questa settimana</option>
-                  <option value="month">Questo mese</option>
-                  <option value="custom">Personalizzato</option>
-                  <option value="all">Tutti i periodi</option>
-                </select>
-              </div>
-
-              {dateRange === 'custom' &&
-            <>
-                  <div>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Data Inizio
-                    </label>
-                    <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
-
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Data Fine
-                    </label>
-                    <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none" />
-
-                  </div>
-                </>
-            }
-            </div>
-          </NeumorphicCard>
-
-          {/* Employee List */}
-          <NeumorphicCard className="p-6">
-            <h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Ordini Sbagliati per Dipendente</h3>
-            {employeeAnalytics.length > 0 ?
-          <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b-2 border-[#8b7355]">
-                      <th className="text-left p-3 text-[#9b9b9b] font-medium">Dipendente</th>
-                      <th className="text-right p-3 text-[#9b9b9b] font-medium">N° Ordini</th>
-                      <th className="text-right p-3 text-[#9b9b9b] font-medium">Rimborsi Totali</th>
-                      <th className="text-center p-3 text-[#9b9b9b] font-medium">Azioni</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {employeeAnalytics.map((emp, idx) =>
-                <>
-                        <tr key={idx} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3] transition-colors">
-                          <td className="p-3">
-                            <div className="flex items-center gap-2">
-                              <button
-                          onClick={() => setExpandedEmployees((prev) => ({ ...prev, [idx]: !prev[idx] }))}
-                          className="neumorphic-flat p-1 rounded-lg hover:bg-blue-50 transition-colors">
-
-                                {expandedEmployees[idx] ?
-                          <ChevronDown className="w-4 h-4 text-[#6b6b6b]" /> :
-
-                          <ChevronRight className="w-4 h-4 text-[#6b6b6b]" />
-                          }
-                              </button>
-                              <div>
-                                <p className="text-[#6b6b6b] font-medium">{emp.dipendente_nome}</p>
-                                <p className="text-xs text-[#9b9b9b]">{emp.orders.length} ordini abbinati</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="p-3 text-right font-bold text-[#6b6b6b]">{emp.count}</td>
-                          <td className="p-3 text-right font-bold text-red-600">€{emp.totalRefunds.toFixed(2)}</td>
-                          <td className="p-3 text-center">
-                            <NeumorphicButton
-                        onClick={() => {
-                          setSelectedEmployee(emp);
-                          setShowLetterModal(true);
-                        }}
-                        className="flex items-center gap-2 text-sm mx-auto">
-
-                              <Send className="w-4 h-4" />
-                              Invia Lettera
-                            </NeumorphicButton>
-                          </td>
-                        </tr>
-                        {expandedEmployees[idx] &&
-                  <tr key={`${idx}-details`}>
-                            <td colSpan="4" className="p-0">
-                              <div className="bg-slate-50 p-4">
-                                <h4 className="text-sm font-bold text-[#6b6b6b] mb-3">Dettaglio Ordini</h4>
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-sm">
-                                    <thead>
-                                      <tr className="border-b border-slate-300">
-                                        <th className="text-left p-2 text-[#9b9b9b] font-medium">Piattaforma</th>
-                                        <th className="text-left p-2 text-[#9b9b9b] font-medium">Order ID</th>
-                                        <th className="text-left p-2 text-[#9b9b9b] font-medium">Data</th>
-                                        <th className="text-left p-2 text-[#9b9b9b] font-medium">Negozio</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {emp.orders.map((order, orderIdx) =>
-                              <tr key={orderIdx} className="border-b border-slate-200">
-                                          <td className="p-2">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                                  order.platform === 'glovo' ?
-                                  'bg-orange-100 text-orange-700' :
-                                  'bg-teal-100 text-teal-700'}`
-                                  }>
-                                              {order.platform}
-                                            </span>
-                                          </td>
-                                          <td className="p-2 font-mono text-xs text-[#6b6b6b]">{order.order_id}</td>
-                                          <td className="p-2 text-xs text-[#6b6b6b]">
-                                            {new Date(order.order_date).toLocaleDateString('it-IT')} {new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
-                                          </td>
-                                          <td className="p-2 text-xs text-[#6b6b6b]">{order.store_name}</td>
-                                        </tr>
-                              )}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                  }
-                      </>
-                )}
-                  </tbody>
-                </table>
-              </div> :
-
-          <p className="text-center text-[#9b9b9b] py-8">
-                Nessun ordine sbagliato abbinato a dipendenti nel periodo selezionato
-              </p>
-          }
-          </NeumorphicCard>
-        </>
-      }
-
-      {/* Letter Modal */}
-      {showLetterModal && selectedEmployee &&
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <NeumorphicCard className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-[#6b6b6b]">
-                  Lettera di Richiamo - {selectedEmployee.dipendente_nome}
-                </h2>
-                <button
-                onClick={() => {
-                  setShowLetterModal(false);
-                  setSelectedEmployee(null);
-                  setSelectedTemplate('');
-                  setLetterContent('');
-                  setIncludeOrderDetails(true);
-                }}
-                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
-
-                  <X className="w-5 h-5 text-[#9b9b9b]" />
-                </button>
-              </div>
-
-              <div className="neumorphic-pressed p-4 rounded-xl bg-orange-50 mb-6">
-                <p className="text-sm font-bold text-orange-800 mb-2">📊 Riepilogo Ordini Sbagliati</p>
-                <div className="text-xs text-orange-700 space-y-1">
-                  <p>• Numero ordini: <strong>{selectedEmployee.count}</strong></p>
-                  <p>• Rimborsi totali: <strong>€{selectedEmployee.totalRefunds.toFixed(2)}</strong></p>
-                  <p>• Periodo: <strong>{dateRange === 'week' ? 'Questa settimana' : dateRange === 'month' ? 'Questo mese' : dateRange === 'custom' ? `${customStartDate} - ${customEndDate}` : 'Tutti i periodi'}</strong></p>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                  Seleziona Template Lettera <span className="text-red-600">*</span>
-                </label>
-                <select
-                value={selectedTemplate}
-                onChange={(e) => {
-                  setSelectedTemplate(e.target.value);
-                  const template = letterTemplates.find((t) => t.id === e.target.value);
-                  if (template) {
-                    setLetterContent(template.contenuto || '');
-                  }
-                }}
-                className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none">
-
-                  <option value="">-- Seleziona template --</option>
-                  {letterTemplates.map((template) =>
-                <option key={template.id} value={template.id}>
-                      {template.nome_template} - {template.tipo_lettera}
-                    </option>
-                )}
-                </select>
-              </div>
-
-              {selectedTemplate &&
-            <>
-                  <div className="mb-4">
-                    <label className="flex items-center gap-2 text-sm text-[#6b6b6b] cursor-pointer">
-                      <input
-                    type="checkbox"
-                    checked={includeOrderDetails}
-                    onChange={(e) => setIncludeOrderDetails(e.target.checked)}
-                    className="w-4 h-4" />
-
-                      Includi dettaglio ordini sbagliati nella lettera
-                    </label>
-                  </div>
-
-                  <div className="mb-6">
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Anteprima Completa Lettera
-                    </label>
-                    <div className="neumorphic-pressed px-4 py-3 rounded-xl bg-white overflow-y-auto max-h-[400px]">
-                      <pre className="text-xs text-[#6b6b6b] whitespace-pre-wrap font-sans">
-                        {letterContent}
-                        {includeOrderDetails &&
-                    <>
-                            {'\n\n--- DETTAGLIO ORDINI SBAGLIATI ---\n\n'}
-                            {selectedEmployee.orders.map((order, idx) =>
-                      `${idx + 1}. ${order.platform.toUpperCase()} - Order ID: ${order.order_id}\n` +
-                      `   Data: ${new Date(order.order_date).toLocaleDateString('it-IT')} ${new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}\n` +
-                      `   Negozio: ${order.store_name}\n`
-                      ).join('\n')}
-                          </>
-                    }
-                      </pre>
-                    </div>
-                  </div>
-
-                  <div className="mb-6">
-                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
-                      Modifica Contenuto Base
-                    </label>
-                    <textarea
-                  value={letterContent}
-                  onChange={(e) => setLetterContent(e.target.value)}
-                  className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none min-h-[200px] font-mono text-sm"
-                  placeholder="Modifica il contenuto della lettera..." />
-
-                  </div>
-                </>
-            }
-
-              <div className="flex gap-3">
-                <NeumorphicButton
-                onClick={() => {
-                  setShowLetterModal(false);
-                  setSelectedEmployee(null);
-                  setSelectedTemplate('');
-                  setLetterContent('');
-                  setIncludeOrderDetails(true);
-                }}
-                className="flex-1">
-
-                  Annulla
-                </NeumorphicButton>
-                <NeumorphicButton
-                onClick={async () => {
-                  if (!selectedTemplate) {
-                    alert('Seleziona un template');
-                    return;
-                  }
-
-                  try {
-                    const template = letterTemplates.find((t) => t.id === selectedTemplate);
-                    const currentUser = await base44.auth.me();
-
-                    // Find user by nome_cognome
-                    const users = await base44.entities.User.list();
-                    const user = users.find((u) => u.nome_cognome === selectedEmployee.dipendente_nome);
-
-                    if (!user) {
-                      alert('Dipendente non trovato nel sistema. Impossibile creare la lettera.');
-                      return;
-                    }
-
-                    // Replace variables in letter content
-                    let finalContent = letterContent
-                      .replace(/\{\{nome_dipendente\}\}/g, user.nome_cognome)
-                      .replace(/\{\{data_oggi\}\}/g, new Date().toLocaleDateString('it-IT'));
-
-                    // Add order details if requested
-                    if (includeOrderDetails) {
-                      const ordersTable = '\n\n--- DETTAGLIO ORDINI SBAGLIATI ---\n\n' +
-                      selectedEmployee.orders.map((order, idx) =>
-                      `${idx + 1}. ${order.platform.toUpperCase()} - Order ID: ${order.order_id}\n` +
-                      `   Data: ${new Date(order.order_date).toLocaleDateString('it-IT')} ${new Date(order.order_date).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}\n` +
-                      `   Negozio: ${order.store_name}\n`
-                      ).join('\n');
-
-                      finalContent += ordersTable;
-                    }
-
-                    // Create letter record
-                    const letteraRichiamo = await base44.entities.LetteraRichiamo.create({
-                      user_id: user.id,
-                      user_email: user.email,
-                      user_name: user.nome_cognome,
-                      tipo_lettera: template.tipo_lettera || 'lettera_richiamo',
-                      contenuto_lettera: finalContent,
-                      data_invio: new Date().toISOString(),
-                      status: 'inviata'
-                    });
-
-                    // Mark wrong orders as having letter sent
-                    for (const order of selectedEmployee.orders) {
-                      await base44.entities.WrongOrder.update(order.id, {
-                        lettera_richiamo_inviata: true,
-                        lettera_richiamo_data: new Date().toISOString(),
-                        lettera_richiamo_id: letteraRichiamo.id
-                      });
-                    }
-
-                    // Send email notification to employee
-                    try {
-                      const emailTemplates = await base44.entities.EmailNotificationTemplate.filter({
-                        tipo_notifica: 'lettera_richiamo',
-                        attivo: true
-                      });
-
-                      if (emailTemplates.length > 0 && user.email) {
-                        const emailTemplate = emailTemplates[0];
-
-                        // Replace variables in email
-                        let emailBody = emailTemplate.corpo.
-                        replace(/\{\{nome_dipendente\}\}/g, user.nome_cognome).
-                        replace(/\{\{data\}\}/g, new Date().toLocaleDateString('it-IT')).
-                        replace(/\{\{tipo_lettera\}\}/g, template.tipo_lettera).
-                        replace(/\{\{motivo\}\}/g, `Ordini sbagliati: ${selectedEmployee.count} ordini`).
-                        replace(/\{\{giorno_turno\}\}/g, 'N/A').
-                        replace(/\{\{orario_turno\}\}/g, 'N/A');
-
-                        let emailSubject = emailTemplate.oggetto.
-                        replace(/\{\{nome_dipendente\}\}/g, user.nome_cognome).
-                        replace(/\{\{data\}\}/g, new Date().toLocaleDateString('it-IT')).
-                        replace(/\{\{tipo_lettera\}\}/g, template.tipo_lettera).
-                        replace(/\{\{giorno_turno\}\}/g, 'N/A').
-                        replace(/\{\{orario_turno\}\}/g, 'N/A');
-
-                        // Send email using Core integration
-                        await base44.integrations.Core.SendEmail({
-                          to: user.email,
-                          subject: emailSubject,
-                          body: emailBody
-                        });
-
-                        // Log email
-                        await base44.entities.EmailLog.create({
-                          tipo_notifica: 'lettera_richiamo',
-                          destinatario_email: user.email,
-                          destinatario_nome: user.nome_cognome,
-                          oggetto: emailSubject,
-                          corpo: emailBody,
-                          data_invio: new Date().toISOString(),
-                          inviato_da: currentUser.email,
-                          status: 'inviata',
-                          riferimento_id: letteraRichiamo.id
-                        });
-                      }
-                    } catch (emailError) {
-                      console.error('Errore invio email:', emailError);
-                      // Log failed email
-                      await base44.entities.EmailLog.create({
-                        tipo_notifica: 'lettera_richiamo',
-                        destinatario_email: user?.email || 'N/A',
-                        destinatario_nome: user?.nome_cognome || selectedEmployee.dipendente_nome,
-                        oggetto: 'Notifica Lettera di Richiamo',
-                        corpo: 'Errore durante l\'invio',
-                        data_invio: new Date().toISOString(),
-                        inviato_da: currentUser.email,
-                        status: 'fallita',
-                        errore: emailError.message,
-                        riferimento_id: letteraRichiamo.id
-                      });
-                    }
-
-                    alert('✅ Lettera di richiamo creata con successo! Email di notifica inviata al dipendente.');
-                    queryClient.invalidateQueries({ queryKey: ['wrong-orders'] });
-                    setShowLetterModal(false);
-                    setSelectedEmployee(null);
-                    setSelectedTemplate('');
-                    setLetterContent('');
-                    setIncludeOrderDetails(true);
-                  } catch (error) {
-                    alert('Errore: ' + error.message);
-                  }
-                }}
-                variant="primary"
-                className="flex-1"
-                disabled={!selectedTemplate}>
-
-                  <Send className="w-4 h-4 mr-2" />
-                  Invia Lettera
-                </NeumorphicButton>
-              </div>
-            </NeumorphicCard>
-          </div>
-        </div>
-      }
-
-      {/* AI Analysis Modal */}
-      {showAIAnalysis &&
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <NeumorphicCard className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-[#6b6b6b] flex items-center gap-2">
-                  <Sparkles className="w-6 h-6 text-purple-600" />
-                  Analisi AI
-                </h2>
-                <button
-                onClick={() => setShowAIAnalysis(false)}
-                className="neumorphic-flat p-2 rounded-lg hover:bg-red-50 transition-colors">
-
-                  <X className="w-5 h-5 text-[#9b9b9b]" />
-                </button>
-              </div>
-
-              <div className="neumorphic-pressed p-6 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50">
-                {loadingAI ?
-              <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                  </div> :
-
-              <div className="prose prose-sm max-w-none text-[#6b6b6b] whitespace-pre-wrap">
-                    {aiAnalysisContent}
-                  </div>
-              }
-              </div>
-
-              <div className="mt-4">
-                <NeumorphicButton
-                onClick={() => setShowAIAnalysis(false)}
-                className="w-full">
-
-                  Chiudi
-                </NeumorphicButton>
-              </div>
-            </NeumorphicCard>
-          </div>
-        </div>
-      }
-
-      {/* Info Box */}
-      <NeumorphicCard className="p-6 bg-blue-50">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-800">
-            <p className="font-medium mb-2">💡 Come funziona</p>
-            <ul className="text-xs space-y-1 list-disc list-inside">
-              <li>Seleziona la piattaforma (Glovo o Deliveroo)</li>
-              <li>Carica il CSV con gli ordini problematici</li>
-              <li>Il sistema abbinerà automaticamente i negozi quando possibile</li>
-              <li>Se necessario, ti verrà chiesto di abbinare manualmente i negozi non riconosciuti</li>
-              <li>Gli abbinamenti vengono salvati per futuri import</li>
-              <li>Puoi visualizzare statistiche e dettagli di tutti gli ordini importati</li>
-            </ul>
-          </div>
-        </div>
-      </NeumorphicCard>
-    </div>);
-
+      {activeTab === 'analytics' && <><FilterBar />
+        <NeumorphicCard className="p-6 mb-6"><div className="flex items-center justify-between mb-4"><h3 className="text-lg font-bold text-[#6b6b6b]">Per Negozio</h3><NeumorphicButton onClick={() => analyzeWithAI('byStore')} disabled={!analyticsData.byStore.length || loadingAI} className="flex items-center gap-2 text-sm"><Sparkles className="w-4 h-4" />AI</NeumorphicButton></div>{analyticsData.byStore.length > 0 ? <ResponsiveContainer width="100%" height={300}><BarChart data={analyticsData.byStore}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" angle={-45} textAnchor="end" height={100} /><YAxis /><Tooltip /><Legend /><Bar dataKey="glovo" fill="#ea580c" name="Glovo" /><Bar dataKey="deliveroo" fill="#14b8a6" name="Deliveroo" /></BarChart></ResponsiveContainer> : <p className="text-center text-[#9b9b9b] py-8">Nessun dato</p>}</NeumorphicCard>
+        <NeumorphicCard className="p-6 mb-6"><div className="flex items-center justify-between mb-4"><h3 className="text-lg font-bold text-[#6b6b6b]">Trend</h3><div className="flex gap-2"><div className="flex gap-1 neumorphic-pressed rounded-lg p-1">{['daily','weekly','monthly'].map((v) => <button key={v} onClick={() => setTrendView(v)} className={`px-3 py-1 rounded-lg text-xs font-medium ${trendView === v ? 'bg-blue-500 text-white' : 'text-[#6b6b6b]'}`}>{v === 'daily' ? 'Giorno' : v === 'weekly' ? 'Settimana' : 'Mese'}</button>)}</div><NeumorphicButton onClick={() => analyzeWithAI('byDate')} disabled={!analyticsData.byDate.length || loadingAI} className="text-sm"><Sparkles className="w-4 h-4" /></NeumorphicButton></div></div>{analyticsData.byDate.length > 0 ? <ResponsiveContainer width="100%" height={300}><LineChart data={analyticsData.byDate}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" /><YAxis /><Tooltip /><Legend />{showCount && <Line type="monotone" dataKey="count" stroke="#8b7355" name="Ordini" strokeWidth={2} />}{showRefunds && <Line type="monotone" dataKey="refunds" stroke="#dc2626" name="€ Rimborsi" strokeWidth={2} />}</LineChart></ResponsiveContainer> : <p className="text-center text-[#9b9b9b] py-8">Nessun dato</p>}</NeumorphicCard>
+      </>}
+
+      {activeTab === 'list' && <NeumorphicCard className="p-6"><h2 className="text-xl font-bold text-[#6b6b6b] mb-6">Ordini ({wrongOrders.length})</h2>{wrongOrders.length === 0 ? <div className="text-center py-12"><Package className="w-16 h-16 text-[#9b9b9b] mx-auto mb-4 opacity-50" /><p>Nessun ordine</p></div> : <div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b-2 border-[#8b7355]"><th className="text-left p-3">Platform</th><th className="text-left p-3">ID</th><th className="text-left p-3">Data</th><th className="text-left p-3">Negozio</th><th className="text-right p-3">Totale</th><th className="text-right p-3">Rimborso</th><th className="text-center p-3">Azioni</th></tr></thead><tbody>{wrongOrders.map((o) => <tr key={o.id} className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3]"><td className="p-3"><span className={`px-3 py-1 rounded-full text-xs font-bold ${o.platform === 'glovo' ? 'bg-orange-100 text-orange-700' : 'bg-teal-100 text-teal-700'}`}>{o.platform}</span></td><td className="p-3 font-mono text-sm">{o.order_id}</td><td className="p-3 text-sm">{new Date(o.order_date).toLocaleDateString('it-IT')}</td><td className="p-3 text-sm">{o.store_name}{o.store_matched && <span className="text-xs text-green-600 ml-1">✓</span>}</td><td className="p-3 text-right">€{o.order_total?.toFixed(2) || '0.00'}</td><td className="p-3 text-right font-bold text-red-600">€{o.refund_value?.toFixed(2) || '0.00'}</td><td className="p-3 text-center"><button onClick={() => { if (confirm('Eliminare?')) deleteOrderMutation.mutate(o.id); }} className="neumorphic-flat p-2 rounded-lg hover:bg-red-50"><Trash2 className="w-4 h-4 text-red-600" /></button></td></tr>)}</tbody></table></div>}</NeumorphicCard>}
+
+      {activeTab === 'employees' && <><FilterBar />
+        <NeumorphicCard className="p-6"><h3 className="text-lg font-bold text-[#6b6b6b] mb-4">Per Dipendente</h3>{employeeAnalytics.length > 0 ? <div className="overflow-x-auto"><table className="w-full"><thead><tr className="border-b-2 border-[#8b7355]"><th className="text-left p-3">Dipendente</th><th className="text-right p-3">N°</th><th className="text-right p-3">Rimborsi</th><th className="text-center p-3">Azioni</th></tr></thead><tbody>{employeeAnalytics.map((emp, idx) => <React.Fragment key={idx}><tr className="border-b border-[#d1d1d1] hover:bg-[#e8ecf3]"><td className="p-3"><div className="flex items-center gap-2"><button onClick={() => setExpandedEmployees((p) => ({ ...p, [idx]: !p[idx] }))} className="neumorphic-flat p-1 rounded-lg">{expandedEmployees[idx] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}</button><span className="font-medium">{emp.dipendente_nome}</span></div></td><td className="p-3 text-right font-bold">{emp.count}</td><td className="p-3 text-right font-bold text-red-600">€{emp.totalRefunds.toFixed(2)}</td><td className="p-3 text-center"><NeumorphicButton onClick={() => { setSelectedEmployee(emp); setShowLetterModal(true); }} className="text-sm"><Send className="w-4 h-4" /></NeumorphicButton></td></tr>{expandedEmployees[idx] && <tr><td colSpan="4" className="p-0"><div className="bg-slate-50 p-4"><table className="w-full text-sm"><thead><tr className="border-b border-slate-300"><th className="text-left p-2">Platform</th><th className="text-left p-2">ID</th><th className="text-left p-2">Data</th><th className="text-left p-2">Negozio</th></tr></thead><tbody>{emp.orders.map((o, oi) => <tr key={oi} className="border-b border-slate-200"><td className="p-2"><span className={`px-2 py-1 rounded-full text-xs font-bold ${o.platform === 'glovo' ? 'bg-orange-100 text-orange-700' : 'bg-teal-100 text-teal-700'}`}>{o.platform}</span></td><td className="p-2 font-mono text-xs">{o.order_id}</td><td className="p-2 text-xs">{new Date(o.order_date).toLocaleDateString('it-IT')}</td><td className="p-2 text-xs">{o.store_name}</td></tr>)}</tbody></table></div></td></tr>}</React.Fragment>)}</tbody></table></div> : <p className="text-center text-[#9b9b9b] py-8">Nessun dato</p>}</NeumorphicCard>
+      </>}
+
+      {showLetterModal && selectedEmployee && <LetterModal selectedEmployee={selectedEmployee} letterTemplates={letterTemplates} dateRange={dateRange} customStartDate={customStartDate} customEndDate={customEndDate} onClose={() => { setShowLetterModal(false); setSelectedEmployee(null); }} />}
+      {showAIAnalysis && <AIAnalysisModal content={aiAnalysisContent} loading={loadingAI} onClose={() => setShowAIAnalysis(false)} />}
+
+      <NeumorphicCard className="p-6 bg-blue-50"><div className="flex items-start gap-3"><AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" /><div className="text-sm text-blue-800"><p className="font-medium mb-2">💡 Come funziona</p><ul className="text-xs space-y-1 list-disc list-inside"><li>Seleziona piattaforma e carica CSV</li><li>Il sistema abbinerà i negozi automaticamente</li><li>Abbinamenti salvati per futuri import</li></ul></div></div></NeumorphicCard>
+    </div>
+  );
 }
