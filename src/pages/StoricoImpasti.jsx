@@ -755,14 +755,12 @@ export default function StoricoImpasti() {
                           <td className="py-3 px-2 text-right bg-orange-50">
                             {(() => {
                               const calcDate = moment(log.data_calcolo).format('YYYY-MM-DD');
-                              const extras = impastoExtras.filter(e => e.store_id === log.store_id && e.data >= calcDate && e.data < moment(calcDate).add(3, 'days').format('YYYY-MM-DD'));
-                              const totalExtra = extras.reduce((sum, e) => sum + (e.palline_extra || 0), 0);
-                              if (totalExtra > 0) {
-                                const hasIgnora = extras.some(e => e.ignora_limite_max);
+                              const extraOggi = impastoExtras.find(e => e.store_id === log.store_id && e.data === calcDate);
+                              if (extraOggi && extraOggi.palline_extra > 0) {
                                 return (
                                   <span className="font-medium text-orange-700">
-                                    +{totalExtra}
-                                    {hasIgnora && <span className="text-xs ml-1" title="Limite max ignorato">⚡</span>}
+                                    +{extraOggi.palline_extra}
+                                    {extraOggi.ignora_limite_max && <span className="text-xs ml-1" title="Limite max ignorato">⚡</span>}
                                   </span>
                                 );
                               }

@@ -372,7 +372,7 @@ export default function ImpastoConfigTab() {
         <div className="mt-4 p-3 bg-blue-50 rounded-xl">
           <p className="text-xs text-blue-800 flex items-start gap-1.5">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>Le palline extra vengono sommate al fabbisogno del giorno specifico nel calcolo 3 giorni. Se "Ignora limite massimo" è attivo, il limite max da Impostazioni non viene applicato.</span>
+            <span>Le palline extra vengono aggiunte all'impasto suggerito solo quando il calcolo viene fatto nel giorno specifico indicato. Es. se imposti +25 per il 25 aprile, il 25 aprile l'impasto suggerito sarà il calcolo standard + 25 palline. Se "Ignora limite massimo" è attivo, il limite max da Impostazioni non viene applicato.</span>
           </p>
         </div>
       </NeumorphicCard>

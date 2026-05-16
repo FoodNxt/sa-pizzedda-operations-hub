@@ -173,15 +173,11 @@ export default function Impasto() {
 
     let totaleProssimi3Giorni = 0;
     let giorniConfigurati = 0;
-    let hasIgnoraLimiteMax = false;
-    let totaleExtra = 0;
     
     for (let i = 0; i < 3; i++) {
       const giornoIdx = (oggi + i) % 7;
       const giornoNome = giorni[giornoIdx];
       const data = storeImpasti.find(imp => imp.giorno_settimana === giornoNome);
-      
-      const dataStr = new Date(Date.now() + i * 86400000).toISOString().split('T')[0];
 
       let fabbisognoGiorno = 0;
       if (data) {
@@ -192,20 +188,12 @@ export default function Impasto() {
       // Aggiungi buffer giornaliero
       fabbisognoGiorno += bufferGiornaliero;
 
-      // Aggiungi extra per data specifica
-      const extraForDay = impastoExtras.find(e => e.store_id === selectedStore && e.data === dataStr);
-      if (extraForDay) {
-        fabbisognoGiorno += (extraForDay.palline_extra || 0);
-        totaleExtra += (extraForDay.palline_extra || 0);
-        if (extraForDay.ignora_limite_max) hasIgnoraLimiteMax = true;
-      }
-
       totaleProssimi3Giorni += fabbisognoGiorno;
     }
 
     // Se non ci sono giorni configurati, usa una media di sicurezza + buffer
     if (giorniConfigurati === 0) {
-      totaleProssimi3Giorni = 60 + (bufferGiornaliero * 3) + totaleExtra;
+      totaleProssimi3Giorni = 60 + (bufferGiornaliero * 3);
     }
 
     const pallinePresenti = parseInt(barelleInFrigo) * 6;
@@ -218,8 +206,23 @@ export default function Impasto() {
     // SEMPRE rispetta il minimo (anche se il calcolo dice meno)
     if (impastoNecessario < minImpasto) {
       impastoNecessario = minImpasto;
-    } else if (impastoNecessario > maxImpasto && !hasIgnoraLimiteMax) {
+    } else if (impastoNecessario > maxImpasto) {
       impastoNecessario = maxImpasto;
+    }
+
+    // Extra per data di OGGI: aggiunto all'impasto suggerito (dopo i limiti min/max)
+    const oggiStr = new Date().toISOString().split('T')[0];
+    const extraOggi = impastoExtras.find(e => e.store_id === selectedStore && e.data === oggiStr);
+    let totaleExtra = 0;
+    let hasIgnoraLimiteMax = false;
+    if (extraOggi) {
+      totaleExtra = extraOggi.palline_extra || 0;
+      hasIgnoraLimiteMax = !!extraOggi.ignora_limite_max;
+      impastoNecessario += totaleExtra;
+      // Se ignora limite max, non ri-applicare il cap; altrimenti ri-applica
+      if (!hasIgnoraLimiteMax && impastoNecessario > maxImpasto) {
+        impastoNecessario = maxImpasto;
+      }
     }
     
     // Calcola ingredienti necessari con arrotondamento
@@ -505,23 +508,11 @@ export default function Impasto() {
                   <div className="neumorphic-pressed p-4 rounded-xl">
                     <p className="text-sm text-slate-500 mb-1">Fabbisogno prossimi 3 giorni</p>
                     <p className="text-2xl font-bold text-slate-800">{risultato.totaleProssimi3Giorni} palline</p>
-                    {(risultato.bufferGiornaliero > 0 || risultato.totaleExtra > 0) && (
+                    {risultato.bufferGiornaliero > 0 && (
                       <div className="flex flex-wrap gap-2 mt-1">
-                        {risultato.bufferGiornaliero > 0 && (
-                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                            incl. buffer +{risultato.bufferGiornaliero * 3}
-                          </span>
-                        )}
-                        {risultato.totaleExtra > 0 && (
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                            incl. extra +{risultato.totaleExtra}
-                          </span>
-                        )}
-                        {risultato.hasIgnoraLimiteMax && (
-                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
-                            limite max disattivato
-                          </span>
-                        )}
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          incl. buffer +{risultato.bufferGiornaliero * 3}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -539,6 +530,18 @@ export default function Impasto() {
                     </div>
                     <p className="text-4xl font-bold text-yellow-800">{risultato.impastoNecessario}</p>
                     <p className="text-sm text-yellow-600 mt-1">palline di impasto</p>
+                    {risultato.totaleExtra > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                          incl. extra oggi +{risultato.totaleExtra}
+                        </span>
+                        {risultato.hasIgnoraLimiteMax && (
+                          <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                            limite max disattivato
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {risultato.impastoNecessario > 65 && (
