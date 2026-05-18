@@ -377,12 +377,16 @@ export default function OverviewContratti() {
       contenutoContratto = contenutoContratto.replace(regex, value);
     });
 
+    // Build title: "Contratto Part Time / Full Time + Nome Dipendente"
+    const tipoLabel = renewingContract.employee_group === 'FT' ? 'Full Time' : renewingContract.employee_group === 'PT' ? 'Part Time' : (renewingContract.employee_group || '');
+    const titolContratto = `Contratto ${tipoLabel} ${user.nome_cognome || user.full_name}`.trim();
+
     const newContract = {
       user_id: renewingContract.user_id,
       user_email: user.email,
       user_nome_cognome: user.nome_cognome || user.full_name,
       template_id: template.id,
-      template_nome: template.nome_template,
+      template_nome: titolContratto,
       contenuto_contratto: contenutoContratto,
       nome_cognome: user.nome_cognome || user.full_name,
       phone: user.phone,

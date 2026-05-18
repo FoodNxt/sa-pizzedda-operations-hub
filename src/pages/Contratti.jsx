@@ -335,10 +335,14 @@ export default function Contratti() {
 
     const contenutoContratto = replaceVariables(template.contenuto_template, formData);
 
+    // Build title: "Contratto Part Time / Full Time + Nome Dipendente"
+    const tipoLabel = formData.tipo_contratto === 'full_time' ? 'Full Time' : formData.tipo_contratto === 'part_time' ? 'Part Time' : (formData.employee_group || '');
+    const titolContratto = `Contratto ${tipoLabel} ${formData.nome_cognome}`.trim();
+
     const contrattoData = {
       ...formData,
       template_id: template.id,
-      template_nome: template.nome_template,
+      template_nome: titolContratto,
       contenuto_contratto: contenutoContratto
     };
 
