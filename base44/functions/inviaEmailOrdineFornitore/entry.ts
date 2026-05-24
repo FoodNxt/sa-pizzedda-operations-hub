@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 </html>`;
 
     // Get Gmail access token
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken("gmail");
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection("gmail");
     
     // Create RFC 2822 formatted email
     const emailLines = [
