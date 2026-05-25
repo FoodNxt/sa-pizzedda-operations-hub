@@ -30,6 +30,10 @@ Deno.serve(async (req) => {
       // Salta turni di prova
       if (turno.is_prova) continue;
 
+      // Salta turni di ferie, malattia o annullati
+      const tipoLower = (turno.tipo_turno || '').toLowerCase();
+      if (tipoLower.includes('ferie') || tipoLower.includes('malattia') || tipoLower.includes('permesso') || turno.stato === 'annullato') continue;
+
       // Calcola minuti dall'inizio turno
       const [hh, mm] = turno.ora_inizio.split(':').map(Number);
       const turnoStartMinutes = hh * 60 + mm;
