@@ -223,6 +223,11 @@
     "timbrato_da_nome": {
       "type": "string",
       "description": "Nome dell'admin che ha effettuato la timbratura manuale"
+    },
+    "notifica_email_mancata_timbratura": {
+      "type": "boolean",
+      "default": false,
+      "description": "True se \u00e8 stata inviata email di notifica per mancata timbratura"
     }
   },
   "required": [
