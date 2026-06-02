@@ -1563,9 +1563,9 @@ export default function Planday() {
             <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-orange-600">
               {Math.round(turni.reduce((sum, t) => {
-                  const [sh, sm] = t.ora_inizio.split(':').map(Number);
-                  const [eh, em] = t.ora_fine.split(':').map(Number);
-                  return sum + (eh - sh) + (em - sm) / 60;
+                  const s = t.ora_inizio.split(':').map(Number), e = t.ora_fine.split(':').map(Number);
+                  let m = (e[0]*60+e[1]) - (s[0]*60+s[1]); if (m <= 0) m += 1440;
+                  return sum + m / 60;
                 }, 0))}h
             </p>
             <p className="text-xs text-slate-500">Ore Totali</p>
@@ -2250,9 +2250,9 @@ export default function Planday() {
                   map((dipendente) => {
                     const turniSettimana = turni.filter((t) => t.dipendente_id === dipendente.id);
                     const orePianificate = turniSettimana.reduce((sum, t) => {
-                      const [sh, sm] = t.ora_inizio.split(':').map(Number);
-                      const [eh, em] = t.ora_fine.split(':').map(Number);
-                      return sum + (eh - sh) + (em - sm) / 60;
+                      const s = t.ora_inizio.split(':').map(Number), e = t.ora_fine.split(':').map(Number);
+                      let m = (e[0]*60+e[1]) - (s[0]*60+s[1]); if (m <= 0) m += 1440;
+                      return sum + m / 60;
                     }, 0);
                     const oreContratto = dipendente.ore_settimanali || 0;
                     const differenza = orePianificate - oreContratto;

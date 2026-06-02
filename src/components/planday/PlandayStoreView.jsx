@@ -161,7 +161,9 @@ export default function PlandayStoreView({
   const calcDurata = (oraInizio, oraFine) => {
     const [sH, sM] = oraInizio.split(':').map(Number);
     const [eH, eM] = oraFine.split(':').map(Number);
-    return (eH - sH) + (eM - sM) / 60;
+    let mins = (eH * 60 + eM) - (sH * 60 + sM);
+    if (mins <= 0) mins += 24 * 60;
+    return mins / 60;
   };
 
   const totaleOreNonAssegnati = turniNonAssegnati.reduce((acc, t) => acc + calcDurata(t.ora_inizio, t.ora_fine), 0);
@@ -182,9 +184,7 @@ export default function PlandayStoreView({
       const dayKey = day.format('YYYY-MM-DD');
       const dayTurni = turni.filter(t => t.data === dayKey);
       const oreGiorno = dayTurni.reduce((acc, t) => {
-        const [startH, startM] = t.ora_inizio.split(':').map(Number);
-        const [endH, endM] = t.ora_fine.split(':').map(Number);
-        return acc + (endH - startH) + (endM - startM) / 60;
+        return acc + calcDurata(t.ora_inizio, t.ora_fine);
       }, 0);
       totali[dayKey] = oreGiorno;
     });
@@ -445,9 +445,7 @@ export default function PlandayStoreView({
               const dipTurni = turniByDipendente[dipendente.id] || {};
               const totaleTurni = Object.values(dipTurni).flat().length;
               const totaleOre = Object.values(dipTurni).flat().reduce((acc, t) => {
-                const [startH, startM] = t.ora_inizio.split(':').map(Number);
-                const [endH, endM] = t.ora_fine.split(':').map(Number);
-                return acc + (endH - startH) + (endM - startM) / 60;
+                return acc + calcDurata(t.ora_inizio, t.ora_fine);
               }, 0);
 
               return (
