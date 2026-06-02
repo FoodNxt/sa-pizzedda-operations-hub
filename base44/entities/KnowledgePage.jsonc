@@ -1,0 +1,48 @@
+{
+  "name": "KnowledgePage",
+  "type": "object",
+  "properties": {
+    "titolo": {
+      "type": "string",
+      "description": "Titolo della pagina"
+    },
+    "contenuto": {
+      "type": "string",
+      "description": "Contenuto della pagina in markdown"
+    },
+    "parent_page_id": {
+      "type": "string",
+      "description": "ID della pagina parent (null se root)"
+    },
+    "ordine": {
+      "type": "number",
+      "default": 0,
+      "description": "Ordine di visualizzazione rispetto alle pagine sorelle"
+    },
+    "icona": {
+      "type": "string",
+      "description": "Emoji o codice icona"
+    },
+    "notion_url": {
+      "type": "string",
+      "description": "URL Notion collegato (opzionale)"
+    },
+    "store_specifico": {
+      "type": "string",
+      "description": "Store ID se la pagina \u00e8 specifica per un locale"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la pagina \u00e8 attiva"
+    },
+    "is_expanded": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se la pagina \u00e8 espansa di default"
+    }
+  },
+  "required": [
+    "titolo"
+  ]
+}

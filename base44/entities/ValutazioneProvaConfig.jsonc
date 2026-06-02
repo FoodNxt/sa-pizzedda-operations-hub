@@ -1,0 +1,33 @@
+{
+  "name": "ValutazioneProvaConfig",
+  "type": "object",
+  "properties": {
+    "domande": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "testo": {
+            "type": "string"
+          },
+          "opzioni": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "obbligatoria": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "Domande del form di valutazione"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il form \u00e8 attivo"
+    }
+  },
+  "required": []
+}

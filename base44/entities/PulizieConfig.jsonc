@@ -1,0 +1,53 @@
+{
+  "name": "PulizieConfig",
+  "type": "object",
+  "properties": {
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    },
+    "metodo_calcolo": {
+      "type": "string",
+      "enum": [
+        "media",
+        "somma",
+        "personalizzato"
+      ],
+      "default": "media",
+      "description": "Metodo di calcolo del punteggio totale: media delle risposte, somma, o personalizzato"
+    },
+    "punteggio_pulito": {
+      "type": "number",
+      "default": 100,
+      "description": "Punteggio per risposta 'pulito' nelle foto"
+    },
+    "punteggio_sporco": {
+      "type": "number",
+      "default": 0,
+      "description": "Punteggio per risposta 'sporco' nelle foto"
+    },
+    "punteggio_risposta_corretta": {
+      "type": "number",
+      "default": 100,
+      "description": "Punteggio per risposta corretta nelle domande a scelta multipla"
+    },
+    "punteggio_risposta_errata": {
+      "type": "number",
+      "default": 0,
+      "description": "Punteggio per risposta errata nelle domande a scelta multipla"
+    },
+    "pesi_domande": {
+      "type": "object",
+      "description": "Pesi personalizzati per domanda (domanda_id: peso). Usato se metodo_calcolo \u00e8 personalizzato"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sulla configurazione"
+    }
+  },
+  "required": [
+    "is_active",
+    "metodo_calcolo"
+  ]
+}

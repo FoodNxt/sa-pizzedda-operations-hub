@@ -1,0 +1,34 @@
+{
+  "name": "DriveConfig",
+  "type": "object",
+  "properties": {
+    "config_type": {
+      "type": "string",
+      "enum": [
+        "contratti"
+      ],
+      "description": "Tipo di configurazione Drive"
+    },
+    "folder_id": {
+      "type": "string",
+      "description": "ID della cartella su Google Drive"
+    },
+    "folder_name": {
+      "type": "string",
+      "description": "Nome della cartella (denormalizzato)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Email dell'utente che ha configurato"
+    }
+  },
+  "required": [
+    "config_type",
+    "folder_id"
+  ]
+}

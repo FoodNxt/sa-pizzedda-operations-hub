@@ -1,0 +1,33 @@
+{
+  "name": "MetricWeight",
+  "type": "object",
+  "properties": {
+    "metric_name": {
+      "type": "string",
+      "description": "Nome della metrica"
+    },
+    "weight": {
+      "type": "number",
+      "description": "Peso della metrica nel calcolo del punteggio"
+    },
+    "ruolo": {
+      "type": "string",
+      "enum": [
+        "Pizzaiolo",
+        "Cassiere",
+        "Store Manager"
+      ],
+      "description": "Ruolo a cui si applica il peso"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la metrica \u00e8 attiva"
+    }
+  },
+  "required": [
+    "metric_name",
+    "weight",
+    "ruolo"
+  ]
+}

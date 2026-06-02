@@ -1,0 +1,65 @@
+{
+  "name": "Pausa",
+  "type": "object",
+  "properties": {
+    "turno_id": {
+      "type": "string",
+      "description": "Reference al TurnoPlanday"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID dipendente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome dipendente (denormalizzato)"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome store (denormalizzato)"
+    },
+    "data_turno": {
+      "type": "string",
+      "format": "date",
+      "description": "Data del turno"
+    },
+    "inizio_pausa": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp inizio pausa"
+    },
+    "fine_pausa": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp fine pausa"
+    },
+    "durata_effettiva_minuti": {
+      "type": "number",
+      "description": "Durata effettiva della pausa in minuti"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "in_corso",
+        "completata"
+      ],
+      "default": "in_corso",
+      "description": "Stato della pausa"
+    },
+    "colleghi_presenti_al_momento": {
+      "type": "number",
+      "description": "Numero di colleghi presenti quando \u00e8 iniziata la pausa"
+    }
+  },
+  "required": [
+    "turno_id",
+    "dipendente_id",
+    "store_id",
+    "data_turno",
+    "inizio_pausa"
+  ]
+}

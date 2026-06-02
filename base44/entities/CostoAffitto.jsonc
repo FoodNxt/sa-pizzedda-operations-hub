@@ -1,0 +1,26 @@
+{
+  "name": "CostoAffitto",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store"
+    },
+    "affitto_mensile": {
+      "type": "number",
+      "description": "Affitto mensile in euro"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "store_id",
+    "affitto_mensile"
+  ]
+}

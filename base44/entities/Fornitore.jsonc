@@ -1,0 +1,109 @@
+{
+  "name": "Fornitore",
+  "type": "object",
+  "properties": {
+    "ragione_sociale": {
+      "type": "string",
+      "description": "Ragione sociale del fornitore"
+    },
+    "partita_iva": {
+      "type": "string",
+      "description": "Partita IVA del fornitore"
+    },
+    "sede_legale": {
+      "type": "string",
+      "description": "Indirizzo sede legale"
+    },
+    "tipo_fornitore": {
+      "type": "string",
+      "enum": [
+        "food",
+        "beverage",
+        "consumabili",
+        "freschi",
+        "latticini",
+        "dolci",
+        "pulizia",
+        "packaging",
+        "altro"
+      ],
+      "description": "Categoria merceologica principale del fornitore (legacy)"
+    },
+    "categorie_fornitore": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "food",
+          "beverage",
+          "consumabili",
+          "freschi",
+          "latticini",
+          "dolci",
+          "pulizia",
+          "packaging",
+          "altro"
+        ]
+      },
+      "description": "Categorie merceologiche del fornitore (multi-selezione)"
+    },
+    "giorni_consegna": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "lunedi",
+          "martedi",
+          "mercoledi",
+          "giovedi",
+          "venerdi",
+          "sabato",
+          "domenica"
+        ]
+      },
+      "description": "Giorni della settimana in cui il fornitore effettua consegne"
+    },
+    "tempo_consegna_giorni": {
+      "type": "number",
+      "description": "Numero di giorni tra ordine e consegna"
+    },
+    "metodologia_ricezione_ordine": {
+      "type": "string",
+      "enum": [
+        "Email",
+        "WhatsApp",
+        "Marketplace",
+        "Invio File dedicato"
+      ],
+      "description": "Come vengono ricevuti gli ordini dal fornitore"
+    },
+    "ordine_minimo": {
+      "type": "number",
+      "description": "Ordine minimo in euro"
+    },
+    "contatto_email": {
+      "type": "string",
+      "description": "Email di contatto principale"
+    },
+    "contatto_telefono": {
+      "type": "string",
+      "description": "Telefono di contatto principale"
+    },
+    "referente_nome": {
+      "type": "string",
+      "description": "Nome del referente commerciale"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive sul fornitore"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il fornitore \u00e8 attivo"
+    }
+  },
+  "required": [
+    "ragione_sociale"
+  ]
+}

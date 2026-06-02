@@ -1,0 +1,169 @@
+{
+  "name": "iPratico",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale (es. Ticinese, Lanino)"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data degli ordini (YYYY-MM-DD)"
+    },
+    "total_orders": {
+      "type": "number",
+      "description": "Numero totale ordini del giorno"
+    },
+    "total_revenue": {
+      "type": "number",
+      "description": "Revenue totale del giorno"
+    },
+    "sourceApp_glovo": {
+      "type": "number",
+      "description": "Revenue da Glovo"
+    },
+    "sourceApp_deliveroo": {
+      "type": "number",
+      "description": "Revenue da Deliveroo"
+    },
+    "sourceApp_justeat": {
+      "type": "number",
+      "description": "Revenue da JustEat"
+    },
+    "sourceApp_onlineordering": {
+      "type": "number",
+      "description": "Revenue da Online Ordering"
+    },
+    "sourceApp_ordertable": {
+      "type": "number",
+      "description": "Revenue da OrderTable"
+    },
+    "sourceApp_tabesto": {
+      "type": "number",
+      "description": "Revenue da Tabesto"
+    },
+    "sourceApp_store": {
+      "type": "number",
+      "description": "Revenue da Store"
+    },
+    "sourceApp_glovo_orders": {
+      "type": "number",
+      "description": "Numero ordini da Glovo"
+    },
+    "sourceApp_deliveroo_orders": {
+      "type": "number",
+      "description": "Numero ordini da Deliveroo"
+    },
+    "sourceApp_justeat_orders": {
+      "type": "number",
+      "description": "Numero ordini da JustEat"
+    },
+    "sourceApp_onlineordering_orders": {
+      "type": "number",
+      "description": "Numero ordini da Online Ordering"
+    },
+    "sourceApp_ordertable_orders": {
+      "type": "number",
+      "description": "Numero ordini da OrderTable"
+    },
+    "sourceApp_tabesto_orders": {
+      "type": "number",
+      "description": "Numero ordini da Tabesto"
+    },
+    "sourceApp_store_orders": {
+      "type": "number",
+      "description": "Numero ordini da Store"
+    },
+    "sourceType_delivery": {
+      "type": "number",
+      "description": "Revenue da Delivery"
+    },
+    "sourceType_takeaway": {
+      "type": "number",
+      "description": "Revenue da Takeaway"
+    },
+    "sourceType_takeawayOnSite": {
+      "type": "number",
+      "description": "Revenue da Takeaway On Site"
+    },
+    "sourceType_store": {
+      "type": "number",
+      "description": "Revenue da Store"
+    },
+    "sourceType_delivery_orders": {
+      "type": "number",
+      "description": "Numero ordini Delivery"
+    },
+    "sourceType_takeaway_orders": {
+      "type": "number",
+      "description": "Numero ordini Takeaway"
+    },
+    "sourceType_takeawayOnSite_orders": {
+      "type": "number",
+      "description": "Numero ordini Takeaway On Site"
+    },
+    "sourceType_store_orders": {
+      "type": "number",
+      "description": "Numero ordini Store"
+    },
+    "moneyType_bancomat": {
+      "type": "number",
+      "description": "Revenue pagato con Bancomat"
+    },
+    "moneyType_cash": {
+      "type": "number",
+      "description": "Revenue pagato in Contanti"
+    },
+    "moneyType_online": {
+      "type": "number",
+      "description": "Revenue pagato Online"
+    },
+    "moneyType_satispay": {
+      "type": "number",
+      "description": "Revenue pagato con Satispay"
+    },
+    "moneyType_credit_card": {
+      "type": "number",
+      "description": "Revenue pagato con Carta di Credito"
+    },
+    "moneyType_fidelity_card_points": {
+      "type": "number",
+      "description": "Revenue pagato con Punti Fidelity Card"
+    },
+    "moneyType_bancomat_orders": {
+      "type": "number",
+      "description": "Numero ordini pagati con Bancomat"
+    },
+    "moneyType_cash_orders": {
+      "type": "number",
+      "description": "Numero ordini pagati in Contanti"
+    },
+    "moneyType_online_orders": {
+      "type": "number",
+      "description": "Numero ordini pagati Online"
+    },
+    "moneyType_satispay_orders": {
+      "type": "number",
+      "description": "Numero ordini pagati con Satispay"
+    },
+    "moneyType_credit_card_orders": {
+      "type": "number",
+      "description": "Numero ordini pagati con Carta di Credito"
+    },
+    "moneyType_fidelity_card_points_orders": {
+      "type": "number",
+      "description": "Numero ordini pagati con Punti Fidelity Card"
+    }
+  },
+  "required": [
+    "store_name",
+    "order_date",
+    "total_orders",
+    "total_revenue"
+  ]
+}

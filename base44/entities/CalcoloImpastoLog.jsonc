@@ -1,0 +1,45 @@
+{
+  "name": "CalcoloImpastoLog",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID del negozio"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del negozio"
+    },
+    "data_calcolo": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora del calcolo"
+    },
+    "operatore": {
+      "type": "string",
+      "description": "Nome dell'operatore"
+    },
+    "barelle_in_frigo": {
+      "type": "number",
+      "description": "Numero barelle in frigo inserite"
+    },
+    "palline_presenti": {
+      "type": "number",
+      "description": "Palline presenti (barelle * 6)"
+    },
+    "fabbisogno_3_giorni": {
+      "type": "number",
+      "description": "Fabbisogno calcolato per i prossimi 3 giorni"
+    },
+    "impasto_suggerito": {
+      "type": "number",
+      "description": "Impasto da preparare suggerito"
+    }
+  },
+  "required": [
+    "store_id",
+    "data_calcolo",
+    "barelle_in_frigo",
+    "impasto_suggerito"
+  ]
+}

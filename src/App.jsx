@@ -11,6 +11,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import DiviseStoreManager from './pages/DiviseStoreManager';
+import GestioneStore from './pages/GestioneStore';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -56,6 +57,7 @@ const AuthenticatedApp = () => {
         <Route path="/employees" element={<Navigate to="/Employees" replace />} />
         <Route path="/meteo" element={<Navigate to="/Meteo" replace />} />
         <Route path="/DiviseStoreManager" element={<DiviseStoreManager />} />
+        <Route path="/GestioneStore" element={<LayoutWrapper currentPageName="GestioneStore"><GestioneStore /></LayoutWrapper>} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </LayoutWrapper>

@@ -1,0 +1,73 @@
+{
+  "name": "RichiestaFerie",
+  "type": "object",
+  "properties": {
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "dipendente_email": {
+      "type": "string",
+      "description": "Email del dipendente"
+    },
+    "data_inizio": {
+      "type": "string",
+      "format": "date",
+      "description": "Data inizio ferie"
+    },
+    "data_fine": {
+      "type": "string",
+      "format": "date",
+      "description": "Data fine ferie"
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Motivo della richiesta"
+    },
+    "turni_coinvolti": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID dei turni coinvolti nelle ferie"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "in_attesa",
+        "approvata",
+        "rifiutata"
+      ],
+      "default": "in_attesa",
+      "description": "Stato della richiesta"
+    },
+    "note_admin": {
+      "type": "string",
+      "description": "Note dell'admin sulla richiesta"
+    },
+    "turni_resi_liberi": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se i turni sono stati resi liberi per altri dipendenti"
+    },
+    "data_approvazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di approvazione/rifiuto"
+    },
+    "approvato_da": {
+      "type": "string",
+      "description": "Email di chi ha approvato"
+    }
+  },
+  "required": [
+    "dipendente_id",
+    "dipendente_nome",
+    "data_inizio",
+    "data_fine"
+  ]
+}

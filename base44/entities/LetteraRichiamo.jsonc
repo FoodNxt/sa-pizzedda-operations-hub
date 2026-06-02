@@ -1,0 +1,75 @@
+{
+  "name": "LetteraRichiamo",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID dell'utente destinatario"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del dipendente"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "tipo_lettera": {
+      "type": "string",
+      "enum": [
+        "lettera_richiamo",
+        "chiusura_procedura"
+      ],
+      "description": "Tipo di lettera"
+    },
+    "contenuto_lettera": {
+      "type": "string",
+      "description": "Contenuto della lettera generata"
+    },
+    "data_invio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di invio della lettera"
+    },
+    "data_visualizzazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora della prima visualizzazione da parte del dipendente"
+    },
+    "data_firma": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di firma della lettera"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "inviata",
+        "visualizzata",
+        "firmata"
+      ],
+      "default": "inviata",
+      "description": "Stato della lettera"
+    },
+    "firma_digitale": {
+      "type": "string",
+      "description": "Nome firmato dal dipendente"
+    },
+    "lettera_richiamo_id": {
+      "type": "string",
+      "description": "ID della lettera di richiamo originale (per chiusura procedura)"
+    },
+    "chiusura_procedura_schedulata": {
+      "type": "boolean",
+      "default": false,
+      "description": "True se la chiusura procedura \u00e8 stata schedulata"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_email",
+    "user_name",
+    "tipo_lettera",
+    "contenuto_lettera"
+  ]
+}

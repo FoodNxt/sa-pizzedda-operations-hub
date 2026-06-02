@@ -1,0 +1,21 @@
+{
+  "name": "LettereConfig",
+  "type": "object",
+  "properties": {
+    "invio_automatico_chiusura": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, invia automaticamente la chiusura procedura dopo la firma della lettera di richiamo"
+    },
+    "giorni_attesa_chiusura": {
+      "type": "number",
+      "default": 0,
+      "description": "Numero di giorni da attendere dopo la firma prima di inviare la chiusura procedura (0 = immediato)"
+    },
+    "template_chiusura_id": {
+      "type": "string",
+      "description": "ID del template da usare per la chiusura procedura automatica"
+    }
+  },
+  "required": []
+}

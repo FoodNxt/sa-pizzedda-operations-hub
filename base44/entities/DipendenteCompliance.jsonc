@@ -1,0 +1,55 @@
+{
+  "name": "DipendenteCompliance",
+  "type": "object",
+  "properties": {
+    "requisito_id": {
+      "type": "string",
+      "description": "ID del requisito"
+    },
+    "requisito_nome": {
+      "type": "string",
+      "description": "Nome del requisito (denormalizzato)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "user_nome": {
+      "type": "string",
+      "description": "Nome del dipendente (denormalizzato)"
+    },
+    "data_conseguimento": {
+      "type": "string",
+      "format": "date",
+      "description": "Data di conseguimento/ottenimento"
+    },
+    "data_scadenza": {
+      "type": "string",
+      "format": "date",
+      "description": "Data di scadenza (se applicabile)"
+    },
+    "documento_url": {
+      "type": "string",
+      "description": "URL del documento/certificato caricato"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "valido",
+        "in_scadenza",
+        "scaduto"
+      ],
+      "default": "valido",
+      "description": "Stato attuale del requisito"
+    }
+  },
+  "required": [
+    "requisito_id",
+    "user_id",
+    "data_conseguimento"
+  ]
+}

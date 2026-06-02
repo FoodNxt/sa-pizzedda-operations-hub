@@ -1,0 +1,40 @@
+{
+  "name": "BudgetMarketing",
+  "type": "object",
+  "properties": {
+    "piattaforma": {
+      "type": "string",
+      "description": "Nome della piattaforma (es. Google Ads, Meta)"
+    },
+    "budget_mensile": {
+      "type": "number",
+      "description": "Budget mensile in euro"
+    },
+    "assegnazione": {
+      "type": "string",
+      "enum": [
+        "tutti",
+        "singolo"
+      ],
+      "default": "tutti",
+      "description": "Se assegnato a tutti i locali o a un singolo locale"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID del locale (solo se assegnazione = singolo)"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale (denormalizzato)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "piattaforma",
+    "budget_mensile",
+    "assegnazione"
+  ]
+}

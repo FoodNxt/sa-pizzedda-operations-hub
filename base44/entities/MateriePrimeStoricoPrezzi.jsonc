@@ -1,0 +1,60 @@
+{
+  "name": "MateriePrimeStoricoPrezzi",
+  "type": "object",
+  "properties": {
+    "materia_prima_id": {
+      "type": "string",
+      "description": "Reference to MateriePrime entity"
+    },
+    "nome_prodotto": {
+      "type": "string",
+      "description": "Nome del prodotto (denormalizzato)"
+    },
+    "fornitore_id": {
+      "type": "string",
+      "description": "Reference to Fornitore entity"
+    },
+    "fornitore_nome": {
+      "type": "string",
+      "description": "Nome fornitore (denormalizzato)"
+    },
+    "data_acquisto": {
+      "type": "string",
+      "format": "date",
+      "description": "Data della fattura/acquisto"
+    },
+    "prezzo_unitario": {
+      "type": "number",
+      "description": "Prezzo unitario al momento dell'acquisto (no IVA)"
+    },
+    "quantita_acquistata": {
+      "type": "number",
+      "description": "Quantit\u00e0 acquistata in questa fattura"
+    },
+    "unita_misura": {
+      "type": "string",
+      "description": "Unit\u00e0 di misura (denormalizzata)"
+    },
+    "numero_fattura": {
+      "type": "string",
+      "description": "Numero della fattura di riferimento"
+    },
+    "codice_articolo_fornitore": {
+      "type": "string",
+      "description": "Codice articolo del fornitore (se presente)"
+    },
+    "aliquota_iva": {
+      "type": "number",
+      "description": "Aliquota IVA applicata"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sull'acquisto"
+    }
+  },
+  "required": [
+    "materia_prima_id",
+    "data_acquisto",
+    "prezzo_unitario"
+  ]
+}

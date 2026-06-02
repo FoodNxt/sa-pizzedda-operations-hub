@@ -1,0 +1,84 @@
+{
+  "name": "PianoPromoSettimanale",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome della promo"
+    },
+    "piattaforma": {
+      "type": "string",
+      "enum": [
+        "Glovo",
+        "Deliveroo"
+      ],
+      "description": "Piattaforma di delivery"
+    },
+    "stores_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista ID degli store di riferimento"
+    },
+    "stores_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista nomi degli store (denormalizzato)"
+    },
+    "prodotti_scontati": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista prodotti da scontare"
+    },
+    "percentuale_sconto": {
+      "type": "number",
+      "description": "Percentuale di sconto (0-100)"
+    },
+    "percentuale_cofinanziamento": {
+      "type": "number",
+      "description": "Percentuale di cofinanziamento (0-100)"
+    },
+    "target_sconto": {
+      "type": "string",
+      "description": "A chi \u00e8 rivolto lo sconto (es. Nuovi Clienti, Clienti Fedeli)"
+    },
+    "data_inizio": {
+      "type": "string",
+      "format": "date",
+      "description": "Data inizio della promo"
+    },
+    "data_fine": {
+      "type": "string",
+      "format": "date",
+      "description": "Data fine della promo"
+    },
+    "quarter": {
+      "type": "string",
+      "description": "Quarter di riferimento (es. Q1-26, Q2-26)"
+    },
+    "quarters": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista di quarters se la promo si estende su pi\u00f9 trimestri"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "piattaforma",
+    "stores_ids",
+    "prodotti_scontati",
+    "percentuale_sconto",
+    "data_inizio",
+    "data_fine"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "name": "RegolaOrdine",
+  "type": "object",
+  "properties": {
+    "prodotto_id": {
+      "type": "string",
+      "description": "ID del prodotto"
+    },
+    "nome_prodotto": {
+      "type": "string",
+      "description": "Nome del prodotto (denormalizzato)"
+    },
+    "giorni_settimana": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Giorni della settimana in cui il prodotto pu\u00f2 essere ordinato (0=Domenica, 1=Luned\u00ec, ..., 6=Sabato)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sulla regola"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la regola \u00e8 attiva"
+    }
+  },
+  "required": [
+    "prodotto_id",
+    "giorni_settimana"
+  ]
+}

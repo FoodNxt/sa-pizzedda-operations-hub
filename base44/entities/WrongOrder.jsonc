@@ -1,0 +1,114 @@
+{
+  "name": "WrongOrder",
+  "type": "object",
+  "properties": {
+    "platform": {
+      "type": "string",
+      "enum": [
+        "glovo",
+        "deliveroo"
+      ],
+      "description": "Piattaforma di delivery"
+    },
+    "order_id": {
+      "type": "string",
+      "description": "ID dell'ordine"
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora dell'ordine"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del negozio (dal CSV)"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello Store abbinato"
+    },
+    "store_matched": {
+      "type": "boolean",
+      "description": "True se lo store \u00e8 stato abbinato correttamente"
+    },
+    "order_total": {
+      "type": "number",
+      "description": "Totale dell'ordine"
+    },
+    "refund_value": {
+      "type": "number",
+      "description": "Valore del rimborso"
+    },
+    "customer_refund_status": {
+      "type": "string",
+      "description": "Stato del rimborso cliente"
+    },
+    "complaint_reason": {
+      "type": "string",
+      "description": "Motivo del reclamo (Glovo)"
+    },
+    "cancellation_reason": {
+      "type": "string",
+      "description": "Motivo della cancellazione (Glovo)"
+    },
+    "order_status": {
+      "type": "string",
+      "description": "Stato dell'ordine"
+    },
+    "raw_data": {
+      "type": "object",
+      "description": "Dati grezzi completi dal CSV"
+    },
+    "import_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di importazione"
+    },
+    "imported_by": {
+      "type": "string",
+      "description": "Email dell'utente che ha importato"
+    },
+    "lettera_richiamo_inviata": {
+      "type": "boolean",
+      "default": false,
+      "description": "True se \u00e8 stata inviata una lettera di richiamo per questo ordine"
+    },
+    "lettera_richiamo_data": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data invio lettera di richiamo"
+    },
+    "lettera_richiamo_id": {
+      "type": "string",
+      "description": "ID della lettera di richiamo associata"
+    },
+    "contestato": {
+      "type": "boolean",
+      "default": false,
+      "description": "True se l'ordine \u00e8 stato contestato (non assegnabile ai dipendenti)"
+    },
+    "contestato_foto_url": {
+      "type": "string",
+      "description": "URL della foto caricata come prova della contestazione"
+    },
+    "contestato_note": {
+      "type": "string",
+      "description": "Note sulla contestazione"
+    },
+    "contestato_da": {
+      "type": "string",
+      "description": "Email dell'utente che ha contestato"
+    },
+    "contestato_data": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data della contestazione"
+    }
+  },
+  "required": [
+    "platform",
+    "order_id",
+    "order_date",
+    "store_name"
+  ]
+}

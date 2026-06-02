@@ -1,0 +1,31 @@
+{
+  "name": "ProdottoVendutoMapping",
+  "type": "object",
+  "properties": {
+    "flavor_prodotto_venduto": {
+      "type": "string",
+      "description": "Nome del flavor esatto da ProdottiVenduti (es: Acqua Frizzante 50cl)"
+    },
+    "materia_prima_id": {
+      "type": "string",
+      "description": "ID della materia prima corrispondente"
+    },
+    "materia_prima_nome": {
+      "type": "string",
+      "description": "Nome della materia prima (denormalizzato)"
+    },
+    "nome_interno": {
+      "type": "string",
+      "description": "Nome interno della materia prima (denormalizzato)"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il mapping \u00e8 attivo"
+    }
+  },
+  "required": [
+    "flavor_prodotto_venduto",
+    "materia_prima_id"
+  ]
+}

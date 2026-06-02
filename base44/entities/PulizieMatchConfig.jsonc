@@ -1,0 +1,64 @@
+{
+  "name": "PulizieMatchConfig",
+  "type": "object",
+  "properties": {
+    "nome_regola": {
+      "type": "string",
+      "description": "Nome descrittivo della regola"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store (vuoto = tutti i locali)"
+    },
+    "ora_inizio_compilazione": {
+      "type": "string",
+      "description": "Ora inizio range (HH:MM)"
+    },
+    "ora_fine_compilazione": {
+      "type": "string",
+      "description": "Ora fine range (HH:MM)"
+    },
+    "ruolo_target": {
+      "type": "string",
+      "enum": [
+        "Pizzaiolo",
+        "Cassiere",
+        "Store Manager"
+      ],
+      "description": "Ruolo da cercare per l'assegnazione"
+    },
+    "tipo_match": {
+      "type": "string",
+      "enum": [
+        "turno_precedente_stesso_ruolo",
+        "ultimo_turno_giorno_prima_stesso_ruolo",
+        "turno_specifico_orario",
+        "tutti_turni_giorno_prima"
+      ],
+      "description": "Tipo di matching per trovare i dipendenti responsabili"
+    },
+    "orario_turno_target_inizio": {
+      "type": "string",
+      "description": "Orario inizio turno target (HH:MM) - solo per tipo_match = turno_specifico_orario"
+    },
+    "orario_turno_target_fine": {
+      "type": "string",
+      "description": "Orario fine turno target (HH:MM) - solo per tipo_match = turno_specifico_orario"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la regola \u00e8 attiva"
+    },
+    "ordine": {
+      "type": "number",
+      "default": 0,
+      "description": "Ordine di applicazione (priorit\u00e0)"
+    }
+  },
+  "required": [
+    "nome_regola",
+    "ruolo_target",
+    "tipo_match"
+  ]
+}

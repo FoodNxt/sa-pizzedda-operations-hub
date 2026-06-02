@@ -1,0 +1,36 @@
+{
+  "name": "InfluencerScartato",
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string",
+      "description": "Username dell'influencer scartato"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "instagram",
+        "tiktok",
+        "youtube"
+      ],
+      "description": "Piattaforma social"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Nome completo influencer"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Motivo dello scarto (opzionale)"
+    },
+    "scartato_il": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora dello scarto"
+    }
+  },
+  "required": [
+    "username",
+    "platform"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "MatchingConfig",
+  "type": "object",
+  "properties": {
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa \u00e8 la configurazione attiva"
+    },
+    "excluded_shift_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "Malattia (Certificato)",
+        "Assenza non retribuita",
+        "Ferie"
+      ],
+      "description": "Tipi di turno da escludere dal matching"
+    },
+    "excluded_employee_groups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "Volantinaggio",
+        "Preparazioni"
+      ],
+      "description": "Gruppi dipendenti da escludere dal matching"
+    }
+  },
+  "required": []
+}

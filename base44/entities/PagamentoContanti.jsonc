@@ -1,0 +1,38 @@
+{
+  "name": "PagamentoContanti",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale (denormalizzato)"
+    },
+    "data_pagamento": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora del pagamento"
+    },
+    "importo": {
+      "type": "number",
+      "description": "Importo del pagamento in euro"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione del pagamento effettuato"
+    },
+    "registrato_da": {
+      "type": "string",
+      "description": "Nome dell'operatore che ha registrato il pagamento"
+    }
+  },
+  "required": [
+    "store_id",
+    "store_name",
+    "data_pagamento",
+    "importo",
+    "descrizione"
+  ]
+}

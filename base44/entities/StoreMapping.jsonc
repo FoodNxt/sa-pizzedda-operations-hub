@@ -1,0 +1,39 @@
+{
+  "name": "StoreMapping",
+  "type": "object",
+  "properties": {
+    "platform": {
+      "type": "string",
+      "enum": [
+        "glovo",
+        "deliveroo"
+      ],
+      "description": "Piattaforma di delivery"
+    },
+    "platform_store_name": {
+      "type": "string",
+      "description": "Nome del negozio come appare nella piattaforma"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello Store nel sistema"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello Store nel sistema (denormalizzato)"
+    },
+    "auto_matched": {
+      "type": "boolean",
+      "description": "True se il match \u00e8 stato fatto automaticamente"
+    },
+    "confidence_score": {
+      "type": "number",
+      "description": "Score di confidenza del match automatico (0-100)"
+    }
+  },
+  "required": [
+    "platform",
+    "platform_store_name",
+    "store_id"
+  ]
+}

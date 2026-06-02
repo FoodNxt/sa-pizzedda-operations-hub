@@ -1,0 +1,109 @@
+{
+  "name": "StoreManagerTarget",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_manager_id": {
+      "type": "string",
+      "description": "ID dello Store Manager"
+    },
+    "mese": {
+      "type": "string",
+      "description": "Mese di riferimento (YYYY-MM)"
+    },
+    "metriche_attive": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "fatturato",
+          "recensioni_media",
+          "num_recensioni",
+          "ordini_sbagliati",
+          "ritardi",
+          "pulizie"
+        ]
+      },
+      "description": "Lista delle metriche attive per questo store"
+    },
+    "target_fatturato": {
+      "type": "number",
+      "description": "Obiettivo fatturato mensile"
+    },
+    "soglia_min_fatturato": {
+      "type": "number",
+      "description": "Soglia minima fatturato - sotto questa soglia si perdono tutti i bonus"
+    },
+    "target_recensioni_media": {
+      "type": "number",
+      "description": "Target media recensioni (es. 4.5)"
+    },
+    "soglia_min_recensioni": {
+      "type": "number",
+      "description": "Soglia minima media recensioni"
+    },
+    "target_num_recensioni": {
+      "type": "number",
+      "description": "Target numero recensioni mensili"
+    },
+    "soglia_min_num_recensioni": {
+      "type": "number",
+      "description": "Soglia minima numero recensioni"
+    },
+    "target_ordini_sbagliati_max": {
+      "type": "number",
+      "description": "Numero massimo ordini sbagliati accettabili"
+    },
+    "soglia_max_ordini_sbagliati": {
+      "type": "number",
+      "description": "Soglia massima ordini - sopra questa si perdono tutti i bonus"
+    },
+    "target_ritardi_max_minuti": {
+      "type": "number",
+      "description": "Minuti massimi di ritardo accettabili"
+    },
+    "soglia_max_ritardi": {
+      "type": "number",
+      "description": "Soglia massima ritardi - sopra questa si perdono tutti i bonus"
+    },
+    "target_pulizie_min_score": {
+      "type": "number",
+      "description": "Score minimo pulizie (0-100)"
+    },
+    "soglia_min_pulizie": {
+      "type": "number",
+      "description": "Soglia minima pulizie - sotto questa si perdono tutti i bonus"
+    },
+    "bonus_fatturato": {
+      "type": "number",
+      "description": "Bonus in euro per raggiungimento target fatturato"
+    },
+    "bonus_recensioni": {
+      "type": "number",
+      "description": "Bonus in euro per raggiungimento target media recensioni"
+    },
+    "bonus_num_recensioni": {
+      "type": "number",
+      "description": "Bonus in euro per raggiungimento target numero recensioni"
+    },
+    "bonus_ordini_sbagliati": {
+      "type": "number",
+      "description": "Bonus in euro per raggiungimento target ordini sbagliati"
+    },
+    "bonus_ritardi": {
+      "type": "number",
+      "description": "Bonus in euro per raggiungimento target ritardi"
+    },
+    "bonus_pulizie": {
+      "type": "number",
+      "description": "Bonus in euro per raggiungimento target pulizie"
+    }
+  },
+  "required": [
+    "store_id",
+    "mese"
+  ]
+}

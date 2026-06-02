@@ -1,0 +1,54 @@
+{
+  "name": "PayrollEmailLog",
+  "type": "object",
+  "properties": {
+    "data_invio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora dell'invio della mail"
+    },
+    "destinatario": {
+      "type": "string",
+      "description": "Email destinatario"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente (denormalizzato)"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Oggetto dell'email"
+    },
+    "body": {
+      "type": "string",
+      "description": "Corpo dell'email"
+    },
+    "contratti_allegati": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs dei contratti allegati"
+    },
+    "documenti_allegati": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Nomi dei documenti allegati"
+    },
+    "cob_completato": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se il COB \u00e8 stato completato"
+    }
+  },
+  "required": [
+    "data_invio",
+    "destinatario"
+  ]
+}

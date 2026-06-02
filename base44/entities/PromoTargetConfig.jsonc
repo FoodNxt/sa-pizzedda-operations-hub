@@ -1,0 +1,27 @@
+{
+  "name": "PromoTargetConfig",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome del target sconto (es. Nuovi Clienti, Clienti Fedeli)"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione del target"
+    },
+    "ordine": {
+      "type": "number",
+      "description": "Ordine di visualizzazione",
+      "default": 0
+    },
+    "attivo": {
+      "type": "boolean",
+      "description": "Se il target \u00e8 attivo",
+      "default": true
+    }
+  },
+  "required": [
+    "nome"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "AlertCassaConfig",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale (denormalizzato)"
+    },
+    "soglia_alert": {
+      "type": "number",
+      "description": "Soglia in euro oltre la quale viene mostrato un alert"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se l'alert \u00e8 attivo"
+    }
+  },
+  "required": [
+    "store_id",
+    "store_name",
+    "soglia_alert"
+  ]
+}

@@ -1,0 +1,207 @@
+{
+  "name": "Contratto",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID dell'utente a cui \u00e8 associato il contratto"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email dell'utente (denormalizzato)"
+    },
+    "user_nome_cognome": {
+      "type": "string",
+      "description": "Nome cognome dell'utente (denormalizzato)"
+    },
+    "template_id": {
+      "type": "string",
+      "description": "ID del template utilizzato"
+    },
+    "template_nome": {
+      "type": "string",
+      "description": "Nome del template utilizzato (denormalizzato)"
+    },
+    "contenuto_contratto": {
+      "type": "string",
+      "description": "Contenuto del contratto con variabili sostituite"
+    },
+    "nome_cognome": {
+      "type": "string",
+      "description": "Nome e cognome"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Numero di cellulare"
+    },
+    "data_nascita": {
+      "type": "string",
+      "format": "date",
+      "description": "Data di nascita"
+    },
+    "citta_nascita": {
+      "type": "string",
+      "description": "Citt\u00e0 di nascita"
+    },
+    "codice_fiscale": {
+      "type": "string",
+      "description": "Codice fiscale"
+    },
+    "indirizzo_residenza": {
+      "type": "string",
+      "description": "Indirizzo di residenza"
+    },
+    "iban": {
+      "type": "string",
+      "description": "IBAN per pagamenti"
+    },
+    "taglia_maglietta": {
+      "type": "string",
+      "enum": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "description": "Taglia maglietta"
+    },
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "dipendente",
+        "manager"
+      ],
+      "description": "Tipo di utente"
+    },
+    "ruoli_dipendente": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Pizzaiolo",
+          "Cassiere",
+          "Store Manager"
+        ]
+      },
+      "description": "Ruoli specifici per utenti dipendente"
+    },
+    "assigned_stores": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista di store names assegnati"
+    },
+    "sede_lavoro": {
+      "type": "string",
+      "description": "Sede di lavoro principale del dipendente"
+    },
+    "tipo_contratto": {
+      "type": "string",
+      "enum": [
+        "full_time",
+        "part_time"
+      ],
+      "description": "Tipo di contratto (Full Time o Part Time)"
+    },
+    "employee_group": {
+      "type": "string",
+      "enum": [
+        "FT",
+        "PT",
+        "CM"
+      ],
+      "description": "Gruppo contrattuale (FT=Full Time, PT=Part Time, CM=Contratto Misto)"
+    },
+    "function_name": {
+      "type": "string",
+      "description": "Ruolo/Funzione del dipendente"
+    },
+    "ore_settimanali": {
+      "type": "number",
+      "description": "Ore settimanali contrattuali"
+    },
+    "data_inizio_contratto": {
+      "type": "string",
+      "format": "date",
+      "description": "Data di inizio del contratto"
+    },
+    "data_fine_contratto": {
+      "type": "string",
+      "format": "date",
+      "description": "Data di fine del contratto (calcolata automaticamente)"
+    },
+    "durata_contratto_mesi": {
+      "type": "number",
+      "description": "Durata del contratto in mesi"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "bozza",
+        "inviato",
+        "firmato",
+        "archiviato"
+      ],
+      "default": "bozza",
+      "description": "Stato del contratto"
+    },
+    "data_invio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora di invio del contratto"
+    },
+    "data_firma": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora di firma del contratto"
+    },
+    "firma_dipendente": {
+      "type": "string",
+      "description": "Firma digitale del dipendente (nome completo)"
+    },
+    "contratto_pdf_url": {
+      "type": "string",
+      "description": "URL del contratto PDF generato"
+    },
+    "pdf_file_url": {
+      "type": "string",
+      "description": "URL del file PDF scaricabile"
+    },
+    "google_drive_file_id": {
+      "type": "string",
+      "description": "ID del file su Google Drive"
+    },
+    "google_drive_file_name": {
+      "type": "string",
+      "description": "Nome del file salvato su Google Drive"
+    },
+    "drive_url": {
+      "type": "string",
+      "description": "URL di visualizzazione Google Drive"
+    },
+    "email_personalizzata": {
+      "type": "string",
+      "description": "Testo personalizzato dell'email di invio contratto"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sul contratto"
+    }
+  },
+  "required": [
+    "nome_cognome",
+    "phone",
+    "data_nascita",
+    "codice_fiscale",
+    "indirizzo_residenza",
+    "iban",
+    "employee_group",
+    "ore_settimanali",
+    "data_inizio_contratto",
+    "durata_contratto_mesi"
+  ]
+}

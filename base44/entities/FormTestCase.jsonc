@@ -1,0 +1,41 @@
+{
+  "name": "FormTestCase",
+  "type": "object",
+  "properties": {
+    "form_name": {
+      "type": "string",
+      "description": "Nome del form da testare (es: FormInventario, ConteggioCassa)"
+    },
+    "entity_name": {
+      "type": "string",
+      "description": "Nome dell'entit\u00e0 associata al form"
+    },
+    "test_data": {
+      "type": "object",
+      "description": "Dati di test da inviare (JSON)"
+    },
+    "required_role": {
+      "type": "string",
+      "enum": [
+        "Pizzaiolo",
+        "Cassiere",
+        "Store Manager"
+      ],
+      "description": "Ruolo richiesto per il test"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il test \u00e8 attivo"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sul test"
+    }
+  },
+  "required": [
+    "form_name",
+    "entity_name",
+    "test_data"
+  ]
+}

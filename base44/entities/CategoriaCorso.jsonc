@@ -1,0 +1,30 @@
+{
+  "name": "CategoriaCorso",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome della categoria"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione della categoria"
+    },
+    "colore": {
+      "type": "string",
+      "description": "Colore della categoria (es. blue, green, purple)"
+    },
+    "ordine": {
+      "type": "number",
+      "description": "Ordine di visualizzazione"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la categoria \u00e8 attiva"
+    }
+  },
+  "required": [
+    "nome"
+  ]
+}

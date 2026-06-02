@@ -1,0 +1,37 @@
+{
+  "name": "Prelievo",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "data_prelievo": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora del prelievo"
+    },
+    "rilevato_da": {
+      "type": "string",
+      "description": "Nome dell'operatore che ha effettuato il prelievo"
+    },
+    "importo": {
+      "type": "number",
+      "description": "Importo prelevato in euro"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sul prelievo"
+    }
+  },
+  "required": [
+    "store_name",
+    "data_prelievo",
+    "rilevato_da",
+    "importo"
+  ]
+}

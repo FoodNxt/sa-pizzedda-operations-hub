@@ -1,0 +1,35 @@
+{
+  "name": "ReviewAssignmentConfig",
+  "type": "object",
+  "properties": {
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    },
+    "tipi_turno_inclusi": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "Normale"
+      ],
+      "description": "Tipi di turno da considerare per l'assegnazione automatica delle recensioni"
+    },
+    "ruoli_esclusi": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "Preparazioni",
+        "Volantinaggio"
+      ],
+      "description": "Ruoli da escludere dall'assegnazione automatica"
+    }
+  },
+  "required": [
+    "is_active"
+  ]
+}

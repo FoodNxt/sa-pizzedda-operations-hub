@@ -1,0 +1,74 @@
+{
+  "name": "ConsegnaDivisa",
+  "type": "object",
+  "properties": {
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente (denormalizzato)"
+    },
+    "data_consegna": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora della consegna"
+    },
+    "tipo_consegna": {
+      "type": "string",
+      "enum": [
+        "divisa_completa",
+        "elemento_singolo"
+      ],
+      "description": "Tipo di consegna"
+    },
+    "elementi_consegnati": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "elemento_id": {
+            "type": "string"
+          },
+          "elemento_nome": {
+            "type": "string"
+          },
+          "taglia": {
+            "type": "string"
+          },
+          "quantita": {
+            "type": "number",
+            "default": 1
+          }
+        }
+      },
+      "description": "Lista elementi consegnati"
+    },
+    "consegnato_da": {
+      "type": "string",
+      "description": "Email di chi ha consegnato la divisa"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sulla consegna"
+    },
+    "riconsegnato": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se la divisa \u00e8 stata riconsegnata"
+    },
+    "data_riconsegna": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data riconsegna divisa"
+    }
+  },
+  "required": [
+    "dipendente_id",
+    "dipendente_nome",
+    "data_consegna",
+    "tipo_consegna",
+    "elementi_consegnati"
+  ]
+}

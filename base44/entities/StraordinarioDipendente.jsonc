@@ -1,0 +1,27 @@
+{
+  "name": "StraordinarioDipendente",
+  "type": "object",
+  "properties": {
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente (denormalizzato)"
+    },
+    "costo_orario_straordinario": {
+      "type": "number",
+      "description": "Costo orario per lo straordinario in euro"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "dipendente_id",
+    "dipendente_nome",
+    "costo_orario_straordinario"
+  ]
+}

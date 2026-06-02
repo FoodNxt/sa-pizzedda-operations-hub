@@ -1,0 +1,37 @@
+{
+  "name": "Deposito",
+  "type": "object",
+  "properties": {
+    "data_deposito": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora del deposito"
+    },
+    "rilevato_da": {
+      "type": "string",
+      "description": "Nome dell'operatore che ha effettuato il deposito"
+    },
+    "importo": {
+      "type": "number",
+      "description": "Importo depositato in euro"
+    },
+    "banca": {
+      "type": "string",
+      "enum": [
+        "BPM",
+        "Sella"
+      ],
+      "description": "Banca di deposito"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sul deposito"
+    }
+  },
+  "required": [
+    "data_deposito",
+    "rilevato_da",
+    "importo",
+    "banca"
+  ]
+}

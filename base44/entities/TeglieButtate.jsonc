@@ -1,0 +1,37 @@
+{
+  "name": "TeglieButtate",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "data_rilevazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora della rilevazione (automatica)"
+    },
+    "rilevato_da": {
+      "type": "string",
+      "description": "Nome dell'operatore"
+    },
+    "teglie_rosse_buttate": {
+      "type": "number",
+      "description": "Numero di teglie rosse buttate"
+    },
+    "teglie_bianche_buttate": {
+      "type": "number",
+      "description": "Numero di teglie bianche buttate"
+    }
+  },
+  "required": [
+    "store_name",
+    "data_rilevazione",
+    "teglie_rosse_buttate",
+    "teglie_bianche_buttate"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "name": "SettimanaModello",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome del modello settimana"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione del modello"
+    },
+    "turni_modello": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "giorno_settimana": {
+            "type": "number",
+            "description": "Giorno della settimana (1=Luned\u00ec, 7=Domenica)"
+          },
+          "store_id": {
+            "type": "string",
+            "description": "ID del locale"
+          },
+          "ora_inizio": {
+            "type": "string",
+            "description": "Orario inizio (HH:MM)"
+          },
+          "ora_fine": {
+            "type": "string",
+            "description": "Orario fine (HH:MM)"
+          },
+          "ruolo": {
+            "type": "string",
+            "description": "Ruolo richiesto"
+          },
+          "dipendente_id": {
+            "type": "string",
+            "description": "ID del dipendente (opzionale)"
+          },
+          "tipo_turno": {
+            "type": "string",
+            "description": "Tipo di turno"
+          },
+          "note": {
+            "type": "string",
+            "description": "Note"
+          }
+        }
+      },
+      "description": "Lista dei turni del modello settimana"
+    }
+  },
+  "required": [
+    "nome",
+    "turni_modello"
+  ]
+}

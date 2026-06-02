@@ -1,0 +1,74 @@
+{
+  "name": "AssistenteChecklist",
+  "type": "object",
+  "properties": {
+    "titolo": {
+      "type": "string",
+      "description": "Titolo della checklist"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione della checklist"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "Apertura Locale",
+        "Chiusura Locale",
+        "Pulizie",
+        "Preparazione Impasto",
+        "Gestione Cassa",
+        "Sicurezza",
+        "Altro"
+      ],
+      "description": "Categoria della checklist"
+    },
+    "ruoli_assegnati": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Pizzaiolo",
+          "Cassiere",
+          "Store Manager"
+        ]
+      },
+      "description": "Ruoli a cui \u00e8 assegnata la checklist"
+    },
+    "store_specifico": {
+      "type": "string",
+      "description": "Se la checklist \u00e8 specifica per un locale (ID store)"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "testo": {
+            "type": "string"
+          },
+          "ordine": {
+            "type": "number"
+          },
+          "obbligatorio": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "Elementi della checklist"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la checklist \u00e8 attiva"
+    }
+  },
+  "required": [
+    "titolo",
+    "categoria",
+    "items"
+  ]
+}

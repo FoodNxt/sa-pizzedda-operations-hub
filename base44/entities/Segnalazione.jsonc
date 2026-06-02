@@ -1,0 +1,82 @@
+{
+  "name": "Segnalazione",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente che ha fatto la segnalazione"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "foto_url": {
+      "type": "string",
+      "description": "URL della foto principale (legacy)"
+    },
+    "foto_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array di URL delle foto"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione del problema segnalato"
+    },
+    "data_segnalazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora della segnalazione"
+    },
+    "responsabile_id": {
+      "type": "string",
+      "description": "ID del dipendente responsabile"
+    },
+    "responsabile_nome": {
+      "type": "string",
+      "description": "Nome del dipendente responsabile"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "aperta",
+        "in_gestione",
+        "on_hold",
+        "risolta"
+      ],
+      "default": "aperta",
+      "description": "Stato della segnalazione"
+    },
+    "note_store_manager": {
+      "type": "string",
+      "description": "Note aggiunte dallo Store Manager"
+    },
+    "data_risoluzione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di risoluzione"
+    },
+    "commenti": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Array di commenti admin con {autore, testo, data}"
+    }
+  },
+  "required": [
+    "store_id",
+    "dipendente_id",
+    "descrizione"
+  ]
+}

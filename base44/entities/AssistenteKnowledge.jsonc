@@ -1,0 +1,60 @@
+{
+  "name": "AssistenteKnowledge",
+  "type": "object",
+  "properties": {
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "Procedure Operative",
+        "Ricette e Preparazioni",
+        "Pulizia e Igiene",
+        "Gestione Cassa",
+        "Gestione Magazzino",
+        "Sicurezza sul Lavoro",
+        "Orari e Turni",
+        "Contatti e Emergenze",
+        "Regolamenti Interni",
+        "FAQ Generali"
+      ],
+      "description": "Categoria dell'informazione"
+    },
+    "titolo": {
+      "type": "string",
+      "description": "Titolo breve dell'informazione"
+    },
+    "contenuto": {
+      "type": "string",
+      "description": "Contenuto dettagliato dell'informazione"
+    },
+    "notion_url": {
+      "type": "string",
+      "description": "URL della pagina Notion collegata per aggiornamenti automatici"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tag per facilitare la ricerca"
+    },
+    "store_specifico": {
+      "type": "string",
+      "description": "Se l'informazione \u00e8 specifica per un locale (ID store), altrimenti vuoto per tutti"
+    },
+    "priorita": {
+      "type": "number",
+      "default": 0,
+      "description": "Priorit\u00e0 dell'informazione (pi\u00f9 alto = pi\u00f9 importante)"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se l'informazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "categoria",
+    "titolo",
+    "contenuto"
+  ]
+}

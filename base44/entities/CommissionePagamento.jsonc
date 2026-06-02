@@ -1,0 +1,26 @@
+{
+  "name": "CommissionePagamento",
+  "type": "object",
+  "properties": {
+    "app_delivery": {
+      "type": "string",
+      "description": "App delivery (es: Deliveroo, Glovo, ecc.)"
+    },
+    "metodo_pagamento": {
+      "type": "string",
+      "description": "Nome del metodo di pagamento (deprecato)"
+    },
+    "percentuale": {
+      "type": "number",
+      "description": "Percentuale di commissione (es: 2.5 per 2.5%)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "app_delivery",
+    "percentuale"
+  ]
+}

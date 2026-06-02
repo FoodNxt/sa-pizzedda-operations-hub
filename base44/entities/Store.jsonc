@@ -1,0 +1,57 @@
+{
+  "name": "Store",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Store name"
+    },
+    "address": {
+      "type": "string",
+      "description": "Physical address"
+    },
+    "city": {
+      "type": "string",
+      "description": "City where the store is located"
+    },
+    "latitude": {
+      "type": "number",
+      "description": "Geographic latitude"
+    },
+    "longitude": {
+      "type": "number",
+      "description": "Geographic longitude"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "maintenance"
+      ],
+      "default": "active",
+      "description": "Store operational status"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "manager_name": {
+      "type": "string",
+      "description": "Store manager name"
+    },
+    "store_manager_id": {
+      "type": "string",
+      "description": "ID dello Store Manager assegnato al locale"
+    },
+    "opening_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Store opening date"
+    }
+  },
+  "required": [
+    "name",
+    "address"
+  ]
+}

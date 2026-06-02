@@ -1,0 +1,64 @@
+{
+  "name": "GoogleAdsCampaign",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "description": "ID della campagna Google Ads"
+    },
+    "campaign_name": {
+      "type": "string",
+      "description": "Nome della campagna"
+    },
+    "status": {
+      "type": "string",
+      "description": "Stato della campagna (ENABLED, PAUSED, REMOVED)"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data delle metriche"
+    },
+    "impressions": {
+      "type": "number",
+      "description": "Numero di impressioni"
+    },
+    "clicks": {
+      "type": "number",
+      "description": "Numero di click"
+    },
+    "ctr": {
+      "type": "number",
+      "description": "Click-through rate (%)"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Costo in euro (micros convertiti)"
+    },
+    "conversions": {
+      "type": "number",
+      "description": "Numero di conversioni"
+    },
+    "conversion_value": {
+      "type": "number",
+      "description": "Valore delle conversioni in euro"
+    },
+    "cpc": {
+      "type": "number",
+      "description": "Costo per click medio"
+    },
+    "cpa": {
+      "type": "number",
+      "description": "Costo per acquisizione"
+    },
+    "roas": {
+      "type": "number",
+      "description": "Return on ad spend"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "campaign_name",
+    "date"
+  ]
+}

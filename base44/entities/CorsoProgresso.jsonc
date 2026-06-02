@@ -1,0 +1,88 @@
+{
+  "name": "CorsoProgresso",
+  "type": "object",
+  "properties": {
+    "corso_id": {
+      "type": "string",
+      "description": "Reference to Corso entity"
+    },
+    "corso_nome": {
+      "type": "string",
+      "description": "Nome del corso (denormalizzato)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID dell'utente (dipendente)"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email dell'utente (denormalizzato)"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome dell'utente (denormalizzato)"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "non_iniziato",
+        "in_corso",
+        "completato",
+        "fallito"
+      ],
+      "default": "non_iniziato",
+      "description": "Stato del corso"
+    },
+    "data_inizio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora di inizio del corso"
+    },
+    "data_completamento": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora di completamento del corso"
+    },
+    "tempo_video_guardato": {
+      "type": "number",
+      "description": "Minuti di video guardati"
+    },
+    "video_completato": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se il video \u00e8 stato guardato per intero"
+    },
+    "risposte_date": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "domanda_index": {
+            "type": "number"
+          },
+          "risposta_index": {
+            "type": "number"
+          },
+          "corretta": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "Array delle risposte date dall'utente"
+    },
+    "tentativi": {
+      "type": "number",
+      "default": 0,
+      "description": "Numero di tentativi fatti"
+    },
+    "punteggio": {
+      "type": "number",
+      "description": "Percentuale di risposte corrette (0-100)"
+    }
+  },
+  "required": [
+    "corso_id",
+    "user_id",
+    "user_email"
+  ]
+}

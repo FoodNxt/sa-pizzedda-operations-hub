@@ -1,0 +1,63 @@
+{
+  "name": "Review",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Rating from 1 to 5"
+    },
+    "comment": {
+      "type": "string",
+      "description": "Review text"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Name of reviewer"
+    },
+    "review_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date and time of review"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "google",
+        "facebook",
+        "tripadvisor",
+        "website",
+        "other"
+      ],
+      "default": "google",
+      "description": "Review source"
+    },
+    "employee_mentioned": {
+      "type": "string",
+      "description": "Employee ID if mentioned in review"
+    },
+    "employee_assigned_name": {
+      "type": "string",
+      "description": "Nome dipendente assegnato automaticamente in base al turno"
+    },
+    "assignment_confidence": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "description": "Livello di confidenza dell'assegnazione automatica"
+    }
+  },
+  "required": [
+    "store_id",
+    "rating",
+    "review_date"
+  ]
+}

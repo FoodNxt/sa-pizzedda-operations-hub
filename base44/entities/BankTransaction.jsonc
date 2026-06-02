@@ -1,0 +1,123 @@
+{
+  "name": "BankTransaction",
+  "type": "object",
+  "properties": {
+    "transactionId": {
+      "type": "string",
+      "description": "ID della transazione"
+    },
+    "status": {
+      "type": "string",
+      "description": "Stato della transazione"
+    },
+    "madeOn": {
+      "type": "string",
+      "format": "date",
+      "description": "Data transazione"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Importo"
+    },
+    "currencyCode": {
+      "type": "string",
+      "description": "Codice valuta"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descrizione"
+    },
+    "additional": {
+      "type": "string",
+      "description": "Informazioni aggiuntive"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categoria"
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "Sottocategoria"
+    },
+    "duplicated": {
+      "type": "boolean",
+      "description": "Se duplicato"
+    },
+    "account_name": {
+      "type": "string",
+      "description": "Nome conto"
+    },
+    "account_nature": {
+      "type": "string",
+      "description": "Natura del conto"
+    },
+    "account_provider_name": {
+      "type": "string",
+      "description": "Nome provider"
+    },
+    "account_uuid": {
+      "type": "string",
+      "description": "UUID conto"
+    },
+    "account_balance_snapshot": {
+      "type": "number",
+      "description": "Snapshot bilancio"
+    },
+    "end_to_end_id": {
+      "type": "string",
+      "description": "End to end ID"
+    },
+    "exchange_rate": {
+      "type": "number",
+      "description": "Tasso di cambio"
+    },
+    "information": {
+      "type": "string",
+      "description": "Informazioni"
+    },
+    "original_amount": {
+      "type": "number",
+      "description": "Importo originale"
+    },
+    "original_currency_code": {
+      "type": "string",
+      "description": "Valuta originale"
+    },
+    "payee": {
+      "type": "string",
+      "description": "Beneficiario"
+    },
+    "payee_information": {
+      "type": "string",
+      "description": "Info beneficiario"
+    },
+    "payer": {
+      "type": "string",
+      "description": "Pagatore"
+    },
+    "payer_information": {
+      "type": "string",
+      "description": "Info pagatore"
+    },
+    "posting_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data registrazione"
+    },
+    "posting_time": {
+      "type": "string",
+      "description": "Ora registrazione"
+    },
+    "time": {
+      "type": "string",
+      "description": "Orario"
+    },
+    "type": {
+      "type": "string",
+      "description": "Tipo transazione"
+    }
+  },
+  "required": [
+    "transactionId"
+  ]
+}

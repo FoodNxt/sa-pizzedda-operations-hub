@@ -1,0 +1,76 @@
+{
+  "name": "Target",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome del target"
+    },
+    "target_revenue": {
+      "type": "number",
+      "description": "Valore del target revenue in euro"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID del locale (all per tutti)"
+    },
+    "channel": {
+      "type": "string",
+      "description": "Canale opzionale"
+    },
+    "app": {
+      "type": "string",
+      "description": "App opzionale"
+    },
+    "date_mode": {
+      "type": "string",
+      "enum": [
+        "range",
+        "rolling"
+      ],
+      "description": "Modalit\u00e0 periodo"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data inizio (range mode)"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data fine (range mode)"
+    },
+    "historical_days": {
+      "type": "number",
+      "description": "Giorni storici per stagionalit\u00e0 (30, 60 o 90)"
+    },
+    "use_ema": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, usa Media Mobile Esponenziale (\u03b1=0.2) invece della media semplice per la stagionalit\u00e0"
+    },
+    "growth_rate_period_days": {
+      "type": "number",
+      "enum": [
+        30,
+        60,
+        90,
+        180,
+        365
+      ],
+      "description": "Periodo storico per calcolare il tasso di crescita/decrescita con regressione lineare (30, 60, 90, 180 o 365 giorni)"
+    },
+    "daily_predictions": {
+      "type": "object",
+      "description": "Mappa dei valori previsti per ogni giorno passato {date: predicted_value} - si congelano quando il giorno passa"
+    },
+    "daily_required": {
+      "type": "object",
+      "description": "Mappa dei valori richiesti per ogni giorno passato {date: required_value} - si congelano quando il giorno passa"
+    }
+  },
+  "required": [
+    "name",
+    "target_revenue"
+  ]
+}

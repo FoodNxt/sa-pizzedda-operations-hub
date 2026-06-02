@@ -1,0 +1,24 @@
+{
+  "name": "DisponibilitaConfig",
+  "type": "object",
+  "properties": {
+    "retribuzione_oraria_straordinari": {
+      "type": "number",
+      "default": 10,
+      "description": "Retribuzione oraria per gli straordinari in euro"
+    },
+    "attivita_pagamento_abilitata": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se l'attivit\u00e0 Pagamento straordinari \u00e8 abilitata"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "retribuzione_oraria_straordinari"
+  ]
+}

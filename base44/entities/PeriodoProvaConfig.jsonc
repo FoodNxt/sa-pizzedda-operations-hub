@@ -1,0 +1,18 @@
+{
+  "name": "PeriodoProvaConfig",
+  "type": "object",
+  "properties": {
+    "giorni_prova_per_mese": {
+      "type": "number",
+      "description": "Numero di turni di prova previsti per ogni mese di contratto"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "giorni_prova_per_mese"
+  ]
+}

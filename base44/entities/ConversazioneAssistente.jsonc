@@ -1,0 +1,54 @@
+{
+  "name": "ConversazioneAssistente",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "ID della conversazione nell'agent system"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID dell'utente"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome dell'utente"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email dell'utente"
+    },
+    "last_message_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data ultimo messaggio"
+    },
+    "message_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Numero di messaggi"
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Storico messaggi della conversazione"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "user_id"
+  ]
+}

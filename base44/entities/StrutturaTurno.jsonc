@@ -1,0 +1,120 @@
+{
+  "name": "StrutturaTurno",
+  "type": "object",
+  "properties": {
+    "nome_schema": {
+      "type": "string",
+      "description": "Nome identificativo dello schema"
+    },
+    "giorno_settimana": {
+      "type": "number",
+      "description": "Giorno della settimana (0=Domenica, 1=Luned\u00ec, ...)"
+    },
+    "ruolo": {
+      "type": "string",
+      "enum": [
+        "Pizzaiolo",
+        "Cassiere",
+        "Store Manager"
+      ],
+      "description": "Ruolo a cui si applica questa struttura"
+    },
+    "assigned_stores": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista di store_id a cui si applica (vuoto = tutti i locali)"
+    },
+    "tipi_turno": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tipi di turno a cui si applica (es. Normale, Straordinario). Vuoto = tutti"
+    },
+    "slots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ora_inizio": {
+            "type": "string",
+            "description": "Orario inizio slot (HH:MM)"
+          },
+          "ora_fine": {
+            "type": "string",
+            "description": "Orario fine slot (HH:MM)"
+          },
+          "minuti_inizio": {
+            "type": "number",
+            "description": "Minuti dall'inizio turno (per turni prova/affiancamento)"
+          },
+          "minuti_fine": {
+            "type": "number",
+            "description": "Minuti dall'inizio turno (per turni prova/affiancamento)"
+          },
+          "attivita": {
+            "type": "string",
+            "description": "Descrizione attivit\u00e0"
+          },
+          "colore": {
+            "type": "string",
+            "description": "Colore dello slot"
+          },
+          "richiede_form": {
+            "type": "boolean",
+            "description": "Se lo slot richiede compilazione di un form"
+          },
+          "form_page": {
+            "type": "string",
+            "description": "Nome della pagina del form da compilare"
+          },
+          "corsi_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lista di ID dei corsi assegnati a questo slot"
+          },
+          "attrezzature_pulizia": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lista di attrezzature da pulire durante questo slot"
+          },
+          "necessario_in_ogni_turno": {
+            "type": "boolean",
+            "default": false,
+            "description": "Se true, questo slot viene mostrato in ogni turno indipendentemente dall'orario"
+          },
+          "posizione_turno": {
+            "type": "string",
+            "enum": [
+              "inizio",
+              "fine"
+            ],
+            "description": "Se necessario_in_ogni_turno \u00e8 true, indica se va all'inizio o alla fine del turno"
+          }
+        }
+      },
+      "description": "Lista degli slot temporali"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se lo schema \u00e8 attivo"
+    },
+    "usa_minuti_relativi": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se usare minuti relativi invece di orari assoluti"
+    }
+  },
+  "required": [
+    "nome_schema",
+    "giorno_settimana",
+    "ruolo"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "AssistenteFAQ",
+  "type": "object",
+  "properties": {
+    "domanda": {
+      "type": "string",
+      "description": "La domanda frequente"
+    },
+    "risposta": {
+      "type": "string",
+      "description": "La risposta alla domanda"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "Generale",
+        "Turni e Orari",
+        "Permessi e Ferie",
+        "Pagamenti",
+        "Procedure",
+        "Attrezzature",
+        "Sicurezza",
+        "Altro"
+      ],
+      "description": "Categoria della FAQ"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID del locale specifico (vuoto = tutti i locali)"
+    },
+    "ordine": {
+      "type": "number",
+      "default": 0,
+      "description": "Ordine di visualizzazione"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la FAQ \u00e8 attiva"
+    },
+    "corso_suggerito_id": {
+      "type": "string",
+      "description": "ID del corso da Academy da suggerire (opzionale)"
+    },
+    "corso_suggerito_nome": {
+      "type": "string",
+      "description": "Nome del corso suggerito (denormalizzato)"
+    }
+  },
+  "required": [
+    "domanda",
+    "risposta",
+    "categoria"
+  ]
+}

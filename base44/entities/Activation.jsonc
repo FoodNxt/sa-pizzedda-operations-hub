@@ -1,0 +1,77 @@
+{
+  "name": "Activation",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome dell'activation"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione dell'activation"
+    },
+    "data_inizio": {
+      "type": "string",
+      "format": "date",
+      "description": "Data di inizio"
+    },
+    "data_completamento_target": {
+      "type": "string",
+      "format": "date",
+      "description": "Data target di completamento"
+    },
+    "stores_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista ID degli store assegnati (vuoto = tutti)"
+    },
+    "stores_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista nomi degli store"
+    },
+    "categorie_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista ID delle categorie assegnate"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "in_sospeso",
+        "in_corso",
+        "completata",
+        "annullata"
+      ],
+      "default": "in_corso",
+      "description": "Stato dell'activation"
+    },
+    "data_completamento_effettiva": {
+      "type": "string",
+      "format": "date",
+      "description": "Data di completamento effettiva"
+    },
+    "creato_da": {
+      "type": "string",
+      "description": "Nome di chi ha creato l'activation"
+    },
+    "assegnato_a_id": {
+      "type": "string",
+      "description": "ID del manager/admin a cui \u00e8 assegnata l'activation"
+    },
+    "assegnato_a_nome": {
+      "type": "string",
+      "description": "Nome del manager/admin assegnato"
+    }
+  },
+  "required": [
+    "nome",
+    "data_completamento_target"
+  ]
+}

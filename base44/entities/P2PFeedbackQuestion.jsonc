@@ -1,0 +1,27 @@
+{
+  "name": "P2PFeedbackQuestion",
+  "type": "object",
+  "properties": {
+    "metric_name": {
+      "type": "string",
+      "description": "Nome della metrica (es. Puntualit\u00e0, Lavoro di squadra)"
+    },
+    "metric_description": {
+      "type": "string",
+      "description": "Descrizione della metrica"
+    },
+    "question_order": {
+      "type": "number",
+      "description": "Ordine della metrica nel form"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la metrica \u00e8 attiva"
+    }
+  },
+  "required": [
+    "metric_name",
+    "question_order"
+  ]
+}

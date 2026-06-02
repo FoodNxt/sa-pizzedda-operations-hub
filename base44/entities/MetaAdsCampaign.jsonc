@@ -1,0 +1,68 @@
+{
+  "name": "MetaAdsCampaign",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "description": "ID della campagna Meta Ads"
+    },
+    "campaign_name": {
+      "type": "string",
+      "description": "Nome della campagna"
+    },
+    "status": {
+      "type": "string",
+      "description": "Stato della campagna (ACTIVE, PAUSED, DELETED)"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data delle metriche"
+    },
+    "impressions": {
+      "type": "number",
+      "description": "Numero di impressioni"
+    },
+    "clicks": {
+      "type": "number",
+      "description": "Numero di click"
+    },
+    "ctr": {
+      "type": "number",
+      "description": "Click-through rate (%)"
+    },
+    "spend": {
+      "type": "number",
+      "description": "Spesa pubblicitaria in euro"
+    },
+    "reach": {
+      "type": "number",
+      "description": "Numero di persone raggiunte"
+    },
+    "conversions": {
+      "type": "number",
+      "description": "Numero di conversioni"
+    },
+    "conversion_value": {
+      "type": "number",
+      "description": "Valore delle conversioni in euro"
+    },
+    "cpc": {
+      "type": "number",
+      "description": "Costo per click medio"
+    },
+    "cpm": {
+      "type": "number",
+      "description": "Costo per mille impressioni"
+    },
+    "roas": {
+      "type": "number",
+      "description": "Return on ad spend"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "campaign_name",
+    "date"
+  ]
+}

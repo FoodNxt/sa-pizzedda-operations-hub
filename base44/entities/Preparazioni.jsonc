@@ -1,0 +1,65 @@
+{
+  "name": "Preparazioni",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "data_rilevazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora della rilevazione (automatica)"
+    },
+    "rilevato_da": {
+      "type": "string",
+      "description": "Nome dell'operatore"
+    },
+    "tipo_preparazione": {
+      "type": "string",
+      "enum": [
+        "Salsiccia",
+        "Crema di Gorgonzola",
+        "Crema di pecorino",
+        "Patate",
+        "Precotture"
+      ],
+      "description": "Tipo di preparazione"
+    },
+    "peso_grammi": {
+      "type": "number",
+      "description": "Peso in grammi"
+    },
+    "rosse_presenti": {
+      "type": "number",
+      "description": "Numero di rosse presenti (per precotture)"
+    },
+    "rosse_richieste": {
+      "type": "number",
+      "description": "Numero di rosse richieste (per precotture)"
+    },
+    "rosse_preparate": {
+      "type": "number",
+      "description": "Numero di rosse da preparare (per precotture)"
+    },
+    "turno": {
+      "type": "string",
+      "enum": [
+        "pranzo",
+        "pomeriggio",
+        "cena"
+      ],
+      "description": "Turno di riferimento (per precotture)"
+    }
+  },
+  "required": [
+    "store_name",
+    "data_rilevazione",
+    "tipo_preparazione",
+    "peso_grammi"
+  ]
+}

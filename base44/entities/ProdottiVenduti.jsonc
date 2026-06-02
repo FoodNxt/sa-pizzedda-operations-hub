@@ -1,0 +1,38 @@
+{
+  "name": "ProdottiVenduti",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "data_vendita": {
+      "type": "string",
+      "format": "date",
+      "description": "Data della vendita"
+    },
+    "category": {
+      "type": "string",
+      "description": "Categoria del prodotto (es. pizza, bibita)"
+    },
+    "flavor": {
+      "type": "string",
+      "description": "Nome del prodotto venduto"
+    },
+    "total_pizzas_sold": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantit\u00e0 venduta"
+    }
+  },
+  "required": [
+    "store_name",
+    "data_vendita",
+    "category",
+    "flavor"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "RegolamentoDipendenti",
+  "type": "object",
+  "properties": {
+    "versione": {
+      "type": "number",
+      "description": "Numero di versione del regolamento"
+    },
+    "contenuto": {
+      "type": "string",
+      "description": "Testo del regolamento"
+    },
+    "data_creazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di creazione della versione"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se questa \u00e8 la versione attiva"
+    },
+    "creato_da": {
+      "type": "string",
+      "description": "Email dell'admin che ha creato la versione"
+    }
+  },
+  "required": [
+    "versione",
+    "contenuto"
+  ]
+}

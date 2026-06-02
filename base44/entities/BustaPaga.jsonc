@@ -1,0 +1,55 @@
+{
+  "name": "BustaPaga",
+  "type": "object",
+  "properties": {
+    "mese": {
+      "type": "string",
+      "description": "Mese di riferimento (YYYY-MM)"
+    },
+    "pdf_completo_url": {
+      "type": "string",
+      "description": "URL del PDF completo caricato dall'admin"
+    },
+    "pdf_splits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "codice_fiscale": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "user_name": {
+            "type": "string"
+          },
+          "pdf_url": {
+            "type": "string"
+          },
+          "page_number": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Array di buste paga splittate per dipendente"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "processing",
+        "completed",
+        "failed"
+      ],
+      "default": "processing",
+      "description": "Stato elaborazione"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Messaggio errore se status=failed"
+    }
+  },
+  "required": [
+    "mese"
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "name": "WrongOrderMatch",
+  "type": "object",
+  "properties": {
+    "wrong_order_id": {
+      "type": "string",
+      "description": "ID del WrongOrder"
+    },
+    "order_id": {
+      "type": "string",
+      "description": "Order ID (denormalizzato)"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "glovo",
+        "deliveroo"
+      ],
+      "description": "Piattaforma (denormalizzato)"
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data ordine (denormalizzato)"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome store (denormalizzato)"
+    },
+    "matched_employee_name": {
+      "type": "string",
+      "description": "Nome dipendente abbinato"
+    },
+    "matched_shift_id": {
+      "type": "string",
+      "description": "ID del turno abbinato"
+    },
+    "match_confidence": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "manual"
+      ],
+      "description": "Confidenza del match (manual se editato)"
+    },
+    "match_method": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "manual"
+      ],
+      "description": "Metodo di matching"
+    },
+    "matched_by": {
+      "type": "string",
+      "description": "Email utente che ha fatto il match"
+    },
+    "match_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data del matching"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Note sul match"
+    }
+  },
+  "required": [
+    "wrong_order_id",
+    "order_id",
+    "platform",
+    "store_id",
+    "matched_employee_name"
+  ]
+}

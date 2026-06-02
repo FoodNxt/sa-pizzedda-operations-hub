@@ -1,0 +1,50 @@
+{
+  "name": "PauseConfig",
+  "type": "object",
+  "properties": {
+    "durata_minima_turno_minuti": {
+      "type": "number",
+      "description": "Durata minima del turno in minuti per avere diritto alla pausa"
+    },
+    "durata_pausa_minuti": {
+      "type": "number",
+      "description": "Durata della pausa in minuti"
+    },
+    "numero_pause_per_turno": {
+      "type": "number",
+      "default": 1,
+      "description": "Numero massimo di pause consentite per turno"
+    },
+    "slot_orari": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "orario_inizio": {
+            "type": "string",
+            "description": "Orario inizio (HH:mm)"
+          },
+          "orario_fine": {
+            "type": "string",
+            "description": "Orario fine (HH:mm)"
+          }
+        }
+      },
+      "description": "Slot orari in cui le pause sono consentite"
+    },
+    "numero_minimo_colleghi": {
+      "type": "number",
+      "description": "Numero minimo di colleghi presenti nello store per richiedere pausa"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la configurazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "durata_minima_turno_minuti",
+    "durata_pausa_minuti",
+    "numero_minimo_colleghi"
+  ]
+}

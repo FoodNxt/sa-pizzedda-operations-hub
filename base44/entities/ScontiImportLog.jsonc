@@ -1,0 +1,35 @@
+{
+  "name": "ScontiImportLog",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora dell'import"
+    },
+    "imported_count": {
+      "type": "number",
+      "description": "Numero di record importati"
+    },
+    "skipped_count": {
+      "type": "number",
+      "description": "Numero di record saltati (duplicati)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "error"
+      ],
+      "description": "Stato dell'operazione"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Messaggio di errore se presente"
+    }
+  },
+  "required": [
+    "timestamp",
+    "status"
+  ]
+}

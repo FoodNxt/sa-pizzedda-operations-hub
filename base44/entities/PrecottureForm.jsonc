@@ -1,0 +1,58 @@
+{
+  "name": "PrecottureForm",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente che ha compilato"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "data_compilazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora compilazione"
+    },
+    "turno": {
+      "type": "string",
+      "enum": [
+        "pranzo",
+        "pomeriggio",
+        "cena"
+      ],
+      "description": "Turno di riferimento"
+    },
+    "rosse_presenti": {
+      "type": "number",
+      "description": "Numero di rosse presenti inserito dal dipendente"
+    },
+    "rosse_richieste": {
+      "type": "number",
+      "description": "Numero di rosse richieste dal sistema"
+    },
+    "rosse_da_fare": {
+      "type": "number",
+      "description": "Numero di rosse da fare calcolato"
+    }
+  },
+  "required": [
+    "store_id",
+    "store_name",
+    "dipendente_nome",
+    "data_compilazione",
+    "turno",
+    "rosse_presenti",
+    "rosse_richieste",
+    "rosse_da_fare"
+  ]
+}

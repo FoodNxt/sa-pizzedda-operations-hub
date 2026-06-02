@@ -1,0 +1,61 @@
+{
+  "name": "Disponibilita",
+  "type": "object",
+  "properties": {
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente (denormalizzato)"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "disponibile",
+        "non_disponibile"
+      ],
+      "description": "Tipo di disponibilit\u00e0"
+    },
+    "data_specifica": {
+      "type": "string",
+      "format": "date",
+      "description": "Data specifica (per disponibilit\u00e0 non ricorrenti)"
+    },
+    "ora_inizio": {
+      "type": "string",
+      "description": "Ora inizio slot (HH:MM)"
+    },
+    "ora_fine": {
+      "type": "string",
+      "description": "Ora fine slot (HH:MM)"
+    },
+    "ricorrente": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, la disponibilit\u00e0 si ripete settimanalmente"
+    },
+    "giorno_settimana": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 6,
+      "description": "Giorno della settimana per ricorrenze (0=Domenica, 6=Sabato)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sulla disponibilit\u00e0"
+    },
+    "creato_da_admin": {
+      "type": "boolean",
+      "default": false,
+      "description": "True se creato da un admin, false se dal dipendente stesso"
+    }
+  },
+  "required": [
+    "dipendente_id",
+    "tipo",
+    "ora_inizio",
+    "ora_fine"
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "name": "RichiestaTurnoLibero",
+  "type": "object",
+  "properties": {
+    "turno_id": {
+      "type": "string",
+      "description": "ID del turno libero richiesto"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente richiedente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "dipendente_email": {
+      "type": "string",
+      "description": "Email del dipendente"
+    },
+    "data_turno": {
+      "type": "string",
+      "format": "date",
+      "description": "Data del turno"
+    },
+    "ora_inizio": {
+      "type": "string",
+      "description": "Ora inizio turno"
+    },
+    "ora_fine": {
+      "type": "string",
+      "description": "Ora fine turno"
+    },
+    "ruolo": {
+      "type": "string",
+      "description": "Ruolo del turno"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "in_attesa",
+        "approvata",
+        "rifiutata"
+      ],
+      "default": "in_attesa",
+      "description": "Stato della richiesta"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    },
+    "data_approvazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data approvazione/rifiuto"
+    },
+    "approvato_da": {
+      "type": "string",
+      "description": "Email di chi ha approvato"
+    }
+  },
+  "required": [
+    "turno_id",
+    "dipendente_id",
+    "dipendente_nome",
+    "data_turno",
+    "ruolo"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "FinanceConfig",
+  "type": "object",
+  "properties": {
+    "channel_mapping": {
+      "type": "object",
+      "description": "Mapping delle categorie canali vendita (es. delivery -> Consegna)"
+    },
+    "app_mapping": {
+      "type": "object",
+      "description": "Mapping delle app delivery (es. glovo -> Glovo)"
+    },
+    "default_food_cost_percentage": {
+      "type": "number",
+      "description": "Percentuale di food cost predefinita (0-100)",
+      "default": 30
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa \u00e8 la configurazione attiva"
+    }
+  },
+  "required": []
+}

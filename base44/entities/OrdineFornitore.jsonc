@@ -1,0 +1,100 @@
+{
+  "name": "OrdineFornitore",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID del negozio"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del negozio (denormalizzato)"
+    },
+    "fornitore": {
+      "type": "string",
+      "description": "Nome del fornitore"
+    },
+    "fornitore_email": {
+      "type": "string",
+      "description": "Email del fornitore"
+    },
+    "prodotti": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "prodotto_id": {
+            "type": "string"
+          },
+          "nome_prodotto": {
+            "type": "string"
+          },
+          "quantita_ordinata": {
+            "type": "number"
+          },
+          "quantita_ricevuta": {
+            "type": "number",
+            "default": 0
+          },
+          "unita_misura": {
+            "type": "string"
+          },
+          "prezzo_unitario": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Lista dei prodotti nell'ordine"
+    },
+    "totale_ordine": {
+      "type": "number",
+      "description": "Totale in euro dell'ordine"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "inviato",
+        "completato"
+      ],
+      "default": "inviato",
+      "description": "Stato dell'ordine"
+    },
+    "data_invio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora di invio ordine"
+    },
+    "data_completamento": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora di completamento ordine"
+    },
+    "completato_da": {
+      "type": "string",
+      "description": "Email dell'utente che ha completato l'ordine"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sull'ordine"
+    },
+    "foto_ddt": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URL delle foto del DDT caricate alla ricezione"
+    },
+    "differenza_verificata": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, le differenze quantit\u00e0 sono state verificate con il fornitore"
+    }
+  },
+  "required": [
+    "store_id",
+    "store_name",
+    "fornitore",
+    "prodotti",
+    "totale_ordine"
+  ]
+}

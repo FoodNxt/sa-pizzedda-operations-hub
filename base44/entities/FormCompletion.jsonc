@@ -1,0 +1,52 @@
+{
+  "name": "FormCompletion",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID dell'utente che ha completato il form"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome utente (denormalizzato)"
+    },
+    "form_name": {
+      "type": "string",
+      "description": "Nome del form compilato"
+    },
+    "form_page": {
+      "type": "string",
+      "description": "Pagina del form"
+    },
+    "completion_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora di completamento"
+    },
+    "shift_id": {
+      "type": "string",
+      "description": "ID del turno (se form basato su turni)"
+    },
+    "timing": {
+      "type": "string",
+      "enum": [
+        "start",
+        "end"
+      ],
+      "description": "Momento di compilazione: inizio o fine turno"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store (denormalizzato)"
+    }
+  },
+  "required": [
+    "user_id",
+    "form_name",
+    "completion_date"
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "name": "RichiestaMalattia",
+  "type": "object",
+  "properties": {
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "dipendente_email": {
+      "type": "string",
+      "description": "Email del dipendente"
+    },
+    "data_inizio": {
+      "type": "string",
+      "format": "date",
+      "description": "Data inizio malattia"
+    },
+    "data_fine": {
+      "type": "string",
+      "format": "date",
+      "description": "Data fine malattia (stimata o effettiva)"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione/motivo della malattia"
+    },
+    "turni_coinvolti": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ID dei turni coinvolti"
+    },
+    "certificato_url": {
+      "type": "string",
+      "description": "URL del certificato medico caricato"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "non_certificata",
+        "in_attesa_verifica",
+        "certificata",
+        "rifiutata"
+      ],
+      "default": "non_certificata",
+      "description": "Stato della malattia"
+    },
+    "note_admin": {
+      "type": "string",
+      "description": "Note dell'admin"
+    },
+    "data_verifica": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di verifica certificato"
+    },
+    "verificato_da": {
+      "type": "string",
+      "description": "Email di chi ha verificato"
+    }
+  },
+  "required": [
+    "dipendente_id",
+    "dipendente_nome",
+    "data_inizio"
+  ]
+}

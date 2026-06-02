@@ -1,0 +1,56 @@
+{
+  "name": "ConfigurazioneTeglieCalcolo",
+  "type": "object",
+  "properties": {
+    "categorie": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Categorie di prodotti da considerare per il calcolo teglie"
+    },
+    "unita_per_teglia": {
+      "type": "number",
+      "description": "Numero di unit\u00e0 che compongono una teglia"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa \u00e8 la configurazione attiva"
+    },
+    "aggiornamento_automatico": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se l'aggiornamento dei totali alla media \u00e8 automatico"
+    },
+    "percentuale_soglia_bassa": {
+      "type": "number",
+      "default": 70,
+      "description": "Soglia bassa: se rosse presenti < questa % delle rosse richieste, aumenta produzione"
+    },
+    "percentuale_aumento": {
+      "type": "number",
+      "default": 20,
+      "description": "Percentuale di aumento da applicare quando sotto soglia bassa"
+    },
+    "percentuale_soglia_alta": {
+      "type": "number",
+      "default": 130,
+      "description": "Soglia alta: se rosse presenti tra soglia bassa e questa, mantieni configurazione normale"
+    },
+    "percentuale_soglia_molto_alta": {
+      "type": "number",
+      "default": 150,
+      "description": "Soglia molto alta: se rosse presenti > questa % delle rosse richieste, riduci produzione"
+    },
+    "percentuale_riduzione": {
+      "type": "number",
+      "default": 20,
+      "description": "Percentuale di riduzione da applicare quando sopra soglia molto alta"
+    }
+  },
+  "required": [
+    "categorie",
+    "unita_per_teglia"
+  ]
+}

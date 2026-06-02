@@ -1,0 +1,14 @@
+{
+  "name": "ControlloSMConfig",
+  "type": "object",
+  "properties": {
+    "percentuale_superamento": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 70,
+      "description": "Percentuale minima per superare il controllo pulizia"
+    }
+  },
+  "required": []
+}

@@ -1,0 +1,90 @@
+{
+  "name": "FormTrackerConfig",
+  "type": "object",
+  "properties": {
+    "form_name": {
+      "type": "string",
+      "description": "Nome del form"
+    },
+    "form_page": {
+      "type": "string",
+      "description": "Nome della pagina del form"
+    },
+    "frequency_type": {
+      "type": "string",
+      "enum": [
+        "temporal",
+        "shift_based"
+      ],
+      "description": "Tipo di frequenza: temporale o basata su turni"
+    },
+    "shift_timing": {
+      "type": "string",
+      "enum": [
+        "start",
+        "end"
+      ],
+      "description": "Momento di compilazione: inizio o fine turno"
+    },
+    "shift_based_timing": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "start",
+          "end"
+        ]
+      },
+      "description": "Quando compilare: inizio turno, fine turno, o entrambi"
+    },
+    "shift_sequence": {
+      "type": "string",
+      "enum": [
+        "first",
+        "second"
+      ],
+      "description": "Turno mattina (primo turno) o sera (secondo turno) - retrocompatibilit\u00e0"
+    },
+    "shift_sequences": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "first",
+          "second"
+        ]
+      },
+      "description": "Turni assegnati: primo (mattina), secondo (sera) o entrambi"
+    },
+    "days_of_week": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Giorni della settimana (0-6, 0=Domenica). Vuoto = tutti i giorni"
+    },
+    "assigned_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ruoli assegnati per la compilazione"
+    },
+    "assigned_stores": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista di store_id a cui il form \u00e8 assegnato. Se vuoto = tutti i locali"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la configurazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "form_name",
+    "form_page"
+  ]
+}

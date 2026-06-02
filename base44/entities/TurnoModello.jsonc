@@ -1,0 +1,37 @@
+{
+  "name": "TurnoModello",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome del modello turno"
+    },
+    "ruolo": {
+      "type": "string",
+      "enum": [
+        "Pizzaiolo",
+        "Cassiere",
+        "Store Manager"
+      ],
+      "description": "Ruolo del turno"
+    },
+    "ora_inizio": {
+      "type": "string",
+      "description": "Orario inizio (HH:MM)"
+    },
+    "ora_fine": {
+      "type": "string",
+      "description": "Orario fine (HH:MM)"
+    },
+    "tipo_turno": {
+      "type": "string",
+      "description": "Tipo di turno"
+    }
+  },
+  "required": [
+    "nome",
+    "ruolo",
+    "ora_inizio",
+    "ora_fine"
+  ]
+}

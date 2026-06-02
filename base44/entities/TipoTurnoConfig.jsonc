@@ -1,0 +1,28 @@
+{
+  "name": "TipoTurnoConfig",
+  "type": "object",
+  "properties": {
+    "tipo_turno": {
+      "type": "string",
+      "description": "Nome del tipo turno (es. Normale, Straordinario)"
+    },
+    "mostra_attivita": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se mostrare la lista attivit\u00e0 nella view dipendente"
+    },
+    "richiede_timbratura": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questo tipo turno richiede timbratura"
+    },
+    "richiede_form": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se sono da compilare i form assegnati"
+    }
+  },
+  "required": [
+    "tipo_turno"
+  ]
+}

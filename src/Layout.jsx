@@ -574,6 +574,12 @@ const navigationStructure = [
         requiredUserType: ["admin"]
       },
       {
+        title: "Gestione Store",
+        url: createPageUrl("GestioneStore"),
+        icon: MapPin,
+        requiredUserType: ["admin"]
+      },
+      {
         title: "Notifiche Mail",
         url: createPageUrl("NotificheMail"),
         icon: Bell,

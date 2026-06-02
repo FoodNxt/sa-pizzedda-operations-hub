@@ -1,0 +1,26 @@
+{
+  "name": "ActivationCategoria",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome della categoria"
+    },
+    "colore": {
+      "type": "string",
+      "description": "Colore esadecimale (es. #3B82F6)"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione della categoria"
+    },
+    "ordine": {
+      "type": "number",
+      "description": "Ordine di visualizzazione"
+    }
+  },
+  "required": [
+    "nome",
+    "colore"
+  ]
+}

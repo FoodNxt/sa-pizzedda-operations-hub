@@ -1,0 +1,74 @@
+{
+  "name": "PagamentoStraordinario",
+  "type": "object",
+  "properties": {
+    "turno_id": {
+      "type": "string",
+      "description": "ID del turno straordinario"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente (denormalizzato)"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store (denormalizzato)"
+    },
+    "data_turno": {
+      "type": "string",
+      "format": "date",
+      "description": "Data del turno straordinario"
+    },
+    "ore_straordinarie": {
+      "type": "number",
+      "description": "Numero di ore straordinarie"
+    },
+    "costo_orario": {
+      "type": "number",
+      "description": "Costo orario dello straordinario"
+    },
+    "importo_totale": {
+      "type": "number",
+      "description": "Importo totale da pagare (ore \u00d7 costo_orario)"
+    },
+    "pagato": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se il pagamento \u00e8 stato effettuato"
+    },
+    "data_pagamento": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora del pagamento"
+    },
+    "pagato_da": {
+      "type": "string",
+      "description": "Nome dello store manager che ha effettuato il pagamento"
+    },
+    "pagato_da_id": {
+      "type": "string",
+      "description": "ID dello store manager che ha effettuato il pagamento"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sul pagamento"
+    }
+  },
+  "required": [
+    "turno_id",
+    "dipendente_id",
+    "dipendente_nome",
+    "store_id",
+    "ore_straordinarie",
+    "costo_orario",
+    "importo_totale"
+  ]
+}

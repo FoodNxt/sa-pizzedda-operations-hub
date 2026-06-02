@@ -1,0 +1,23 @@
+{
+  "name": "MarketingConfig",
+  "type": "object",
+  "properties": {
+    "config_name": {
+      "type": "string",
+      "description": "Nome configurazione (es: google_ads, meta_ads)"
+    },
+    "credentials": {
+      "type": "object",
+      "description": "Credenziali API (oggetto JSON con tutti i parametri)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la configurazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "config_name",
+    "credentials"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "MenuStructureConfig",
+  "type": "object",
+  "properties": {
+    "config_name": {
+      "type": "string",
+      "description": "Nome configurazione (es: default_menu)"
+    },
+    "menu_structure": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Struttura del menu con ordine personalizzato"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "config_name",
+    "menu_structure"
+  ]
+}

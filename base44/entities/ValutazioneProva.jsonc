@@ -1,0 +1,63 @@
+{
+  "name": "ValutazioneProva",
+  "type": "object",
+  "properties": {
+    "candidato_id": {
+      "type": "string",
+      "description": "ID del candidato valutato"
+    },
+    "candidato_nome": {
+      "type": "string",
+      "description": "Nome completo del candidato"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente che ha compilato la valutazione"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente valutatore"
+    },
+    "prova_data": {
+      "type": "string",
+      "format": "date",
+      "description": "Data della prova"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "risposte": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "domanda": {
+            "type": "string"
+          },
+          "risposta": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Risposte alle domande del form"
+    },
+    "note_aggiuntive": {
+      "type": "string",
+      "description": "Note aggiuntive sulla valutazione"
+    },
+    "consiglio_assunzione": {
+      "type": "string",
+      "enum": [
+        "si",
+        "no",
+        "forse"
+      ],
+      "description": "Consiglio per l'assunzione"
+    }
+  },
+  "required": [
+    "candidato_id",
+    "dipendente_id"
+  ]
+}

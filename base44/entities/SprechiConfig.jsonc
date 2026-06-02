@@ -1,0 +1,50 @@
+{
+  "name": "SprechiConfig",
+  "type": "object",
+  "properties": {
+    "config_name": {
+      "type": "string",
+      "description": "Nome configurazione (es: default_config)"
+    },
+    "prodotti_abilitati": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "prodotto_id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "materia_prima",
+              "ricetta",
+              "semilavorato"
+            ]
+          }
+        }
+      },
+      "description": "Prodotti che possono essere registrati come sprechi"
+    },
+    "motivi_disponibili": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista dei motivi selezionabili per gli sprechi"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "config_name",
+    "prodotti_abilitati",
+    "motivi_disponibili"
+  ]
+}

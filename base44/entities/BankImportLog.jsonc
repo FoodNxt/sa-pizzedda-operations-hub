@@ -1,0 +1,48 @@
+{
+  "name": "BankImportLog",
+  "type": "object",
+  "properties": {
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "import",
+        "matching"
+      ],
+      "description": "Tipo di azione: import da Google Sheets o matching automatico"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora dell'azione"
+    },
+    "imported_count": {
+      "type": "number",
+      "description": "Numero di transazioni importate"
+    },
+    "skipped_count": {
+      "type": "number",
+      "description": "Numero di transazioni saltate (duplicate)"
+    },
+    "matched_count": {
+      "type": "number",
+      "description": "Numero di transazioni matchate/aggiornate"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "error"
+      ],
+      "description": "Stato dell'operazione"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Messaggio di errore se presente"
+    }
+  },
+  "required": [
+    "action_type",
+    "timestamp",
+    "status"
+  ]
+}

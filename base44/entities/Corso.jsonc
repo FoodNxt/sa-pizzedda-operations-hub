@@ -1,0 +1,78 @@
+{
+  "name": "Corso",
+  "type": "object",
+  "properties": {
+    "nome_corso": {
+      "type": "string",
+      "description": "Nome del corso"
+    },
+    "categoria": {
+      "type": "string",
+      "description": "Categoria del corso"
+    },
+    "ruoli": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Pizzaiolo",
+          "Cassiere",
+          "Store Manager"
+        ]
+      },
+      "description": "Ruoli a cui \u00e8 destinato il corso"
+    },
+    "link_video": {
+      "type": "string",
+      "description": "Link al video YouTube della lezione o URL del video caricato"
+    },
+    "durata_lezione": {
+      "type": "number",
+      "description": "Durata della lezione in secondi"
+    },
+    "domande": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "testo_domanda": {
+            "type": "string",
+            "description": "Testo della domanda"
+          },
+          "risposte": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "testo_risposta": {
+                  "type": "string",
+                  "description": "Testo della risposta"
+                },
+                "corretta": {
+                  "type": "boolean",
+                  "description": "Se questa \u00e8 la risposta corretta"
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Array di domande con risposte multiple"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il corso \u00e8 attivo e visibile"
+    },
+    "ordine": {
+      "type": "number",
+      "description": "Ordine di visualizzazione del corso"
+    }
+  },
+  "required": [
+    "nome_corso",
+    "ruoli",
+    "link_video",
+    "durata_lezione"
+  ]
+}

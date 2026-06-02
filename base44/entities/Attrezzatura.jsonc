@@ -1,0 +1,41 @@
+{
+  "name": "Attrezzatura",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome dell'attrezzatura"
+    },
+    "icona_url": {
+      "type": "string",
+      "description": "URL dell'icona/immagine dell'attrezzatura"
+    },
+    "stores_assegnati": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Store IDs dove si trova questa attrezzatura (vuoto = tutti i locali)"
+    },
+    "ruoli_responsabili": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Pizzaiolo",
+          "Cassiere",
+          "Store Manager"
+        ]
+      },
+      "description": "Ruoli responsabili della pulizia di questa attrezzatura"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se l'attrezzatura \u00e8 attiva"
+    }
+  },
+  "required": [
+    "nome"
+  ]
+}

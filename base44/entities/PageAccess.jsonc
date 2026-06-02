@@ -1,0 +1,67 @@
+{
+  "name": "PageAccess",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID dell'utente (dipendente)"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email dell'utente (denormalizzato per query veloci)"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome dell'utente (denormalizzato)"
+    },
+    "page_valutazione": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accesso a La Tua Valutazione"
+    },
+    "page_profilo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accesso a Il Mio Profilo"
+    },
+    "page_pulizia_cassiere": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accesso a Controllo Pulizia Cassiere"
+    },
+    "page_pulizia_pizzaiolo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accesso a Controllo Pulizia Pizzaiolo"
+    },
+    "page_pulizia_store_manager": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accesso a Controllo Pulizia Store Manager"
+    },
+    "page_form_inventario": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accesso a Form Inventario"
+    },
+    "page_conteggio_cassa": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accesso a Conteggio Cassa"
+    },
+    "page_teglie_buttate": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accesso a Teglie Buttate"
+    },
+    "page_preparazioni": {
+      "type": "boolean",
+      "default": true,
+      "description": "Accesso a Preparazioni"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_email"
+  ]
+}

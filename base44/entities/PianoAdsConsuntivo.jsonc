@@ -1,0 +1,38 @@
+{
+  "name": "PianoAdsConsuntivo",
+  "type": "object",
+  "properties": {
+    "piano_ads_id": {
+      "type": "string",
+      "description": "ID del piano ads di riferimento"
+    },
+    "piano_ads_nome": {
+      "type": "string",
+      "description": "Nome del piano ads (denormalizzato)"
+    },
+    "data_inizio": {
+      "type": "string",
+      "format": "date",
+      "description": "Data inizio periodo aggiustamento"
+    },
+    "data_fine": {
+      "type": "string",
+      "format": "date",
+      "description": "Data fine periodo aggiustamento"
+    },
+    "spesa_effettiva": {
+      "type": "number",
+      "description": "Spesa effettiva nel periodo (dopo cofinanziamento)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sull'aggiustamento"
+    }
+  },
+  "required": [
+    "piano_ads_id",
+    "data_inizio",
+    "data_fine",
+    "spesa_effettiva"
+  ]
+}

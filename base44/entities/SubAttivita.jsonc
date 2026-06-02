@@ -1,0 +1,49 @@
+{
+  "name": "SubAttivita",
+  "type": "object",
+  "properties": {
+    "activation_id": {
+      "type": "string",
+      "description": "ID dell'activation principale"
+    },
+    "titolo": {
+      "type": "string",
+      "description": "Titolo della sottoattivit\u00e0"
+    },
+    "completata": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se la sottoattivit\u00e0 \u00e8 completata"
+    },
+    "completata_da": {
+      "type": "string",
+      "description": "Nome di chi ha completato"
+    },
+    "completata_il": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora di completamento"
+    },
+    "data_target": {
+      "type": "string",
+      "format": "date",
+      "description": "Data target di completamento della sottoattivit\u00e0"
+    },
+    "assegnato_a_id": {
+      "type": "string",
+      "description": "ID della persona assegnata"
+    },
+    "assegnato_a_nome": {
+      "type": "string",
+      "description": "Nome della persona assegnata"
+    },
+    "ordine": {
+      "type": "number",
+      "description": "Ordine di visualizzazione"
+    }
+  },
+  "required": [
+    "activation_id",
+    "titolo"
+  ]
+}

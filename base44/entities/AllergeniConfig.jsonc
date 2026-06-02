@@ -1,0 +1,16 @@
+{
+  "name": "AllergeniConfig",
+  "type": "object",
+  "properties": {
+    "logo_url": {
+      "type": "string",
+      "description": "URL del logo aziendale da mostrare nel PDF allergeni"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    }
+  },
+  "required": []
+}

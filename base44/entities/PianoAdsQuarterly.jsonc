@@ -1,0 +1,74 @@
+{
+  "name": "PianoAdsQuarterly",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome del piano ads"
+    },
+    "piattaforma": {
+      "type": "string",
+      "enum": [
+        "Glovo",
+        "Deliveroo"
+      ],
+      "description": "Piattaforma di delivery"
+    },
+    "stores_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista ID degli store di riferimento"
+    },
+    "stores_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista nomi degli store (denormalizzato)"
+    },
+    "budget": {
+      "type": "number",
+      "description": "Budget totale in euro"
+    },
+    "percentuale_cofinanziamento": {
+      "type": "number",
+      "description": "Percentuale di cofinanziamento dal partner (0-100)"
+    },
+    "data_inizio": {
+      "type": "string",
+      "format": "date",
+      "description": "Data inizio del piano"
+    },
+    "data_fine": {
+      "type": "string",
+      "format": "date",
+      "description": "Data fine del piano"
+    },
+    "quarter": {
+      "type": "string",
+      "description": "Quarter di riferimento (es. Q1-26, Q2-26)"
+    },
+    "quarters": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista di quarters se il piano si estende su pi\u00f9 trimestri"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "nome",
+    "piattaforma",
+    "stores_ids",
+    "budget",
+    "percentuale_cofinanziamento",
+    "data_inizio",
+    "data_fine"
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "name": "Candidato",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome del candidato"
+    },
+    "cognome": {
+      "type": "string",
+      "description": "Cognome del candidato"
+    },
+    "telefono": {
+      "type": "string",
+      "description": "Numero di telefono"
+    },
+    "posizione": {
+      "type": "string",
+      "enum": [
+        "Pizzaiolo",
+        "Cassiere",
+        "Store Manager"
+      ],
+      "description": "Posizione per cui si candida"
+    },
+    "store_preferito": {
+      "type": "string",
+      "description": "ID dello store preferito (opzionale)"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "nuovo",
+        "in_valutazione",
+        "prova_programmata",
+        "assunto",
+        "scartato"
+      ],
+      "default": "nuovo",
+      "description": "Stato del candidato"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sul candidato"
+    },
+    "prova_data": {
+      "type": "string",
+      "format": "date",
+      "description": "Data della prova programmata"
+    },
+    "prova_ora_inizio": {
+      "type": "string",
+      "description": "Ora inizio prova (HH:MM)"
+    },
+    "prova_ora_fine": {
+      "type": "string",
+      "description": "Ora fine prova (HH:MM)"
+    },
+    "prova_store_id": {
+      "type": "string",
+      "description": "ID dello store dove si svolge la prova"
+    },
+    "prova_dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente che gestisce la prova"
+    },
+    "prova_dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente che gestisce la prova"
+    },
+    "link_registrazione": {
+      "type": "string",
+      "description": "Link per la registrazione del candidato assunto"
+    }
+  },
+  "required": [
+    "nome",
+    "cognome",
+    "telefono"
+  ]
+}

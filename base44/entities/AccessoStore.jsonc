@@ -1,0 +1,36 @@
+{
+  "name": "AccessoStore",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID del negozio"
+    },
+    "nome_accesso": {
+      "type": "string",
+      "description": "A cosa d\u00e0 accesso (es: WiFi, Allarme, Cassa, ecc.)"
+    },
+    "username": {
+      "type": "string",
+      "description": "Nome utente (opzionale)"
+    },
+    "password": {
+      "type": "string",
+      "description": "Password o codice di accesso"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se l'accesso \u00e8 attivo"
+    }
+  },
+  "required": [
+    "store_id",
+    "nome_accesso",
+    "password"
+  ]
+}

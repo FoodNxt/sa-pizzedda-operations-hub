@@ -1,0 +1,208 @@
+{
+  "name": "Ricetta",
+  "type": "object",
+  "properties": {
+    "nome_prodotto": {
+      "type": "string",
+      "description": "Nome del prodotto/ricetta"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "pizza",
+        "dolce",
+        "bevanda",
+        "altro"
+      ],
+      "default": "pizza",
+      "description": "Categoria del prodotto"
+    },
+    "tipo_teglia": {
+      "type": "string",
+      "enum": [
+        "rossa",
+        "bianca",
+        "nessuna"
+      ],
+      "default": "nessuna",
+      "description": "Tipo di teglia (per calcolare impatto economico sprechi)"
+    },
+    "allergeni": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Glutine",
+          "Crostacei",
+          "Uova",
+          "Pesce",
+          "Arachidi",
+          "Soia",
+          "Latte",
+          "Frutta a guscio",
+          "Sedano",
+          "Senape",
+          "Semi di sesamo",
+          "Anidride solforosa e solfiti",
+          "Lupini",
+          "Molluschi"
+        ]
+      },
+      "description": "Lista degli allergeni presenti nel prodotto"
+    },
+    "is_semilavorato": {
+      "type": "boolean",
+      "default": false,
+      "description": "True se il prodotto \u00e8 un semilavorato che pu\u00f2 essere usato come ingrediente in altre ricette"
+    },
+    "quantita_prodotta": {
+      "type": "number",
+      "description": "Quantit\u00e0 di semilavorato prodotto con la ricetta"
+    },
+    "unita_misura_prodotta": {
+      "type": "string",
+      "enum": [
+        "grammi",
+        "kg",
+        "litri",
+        "ml",
+        "pezzi",
+        "unit\u00e0"
+      ],
+      "default": "grammi",
+      "description": "Unit\u00e0 di misura della quantit\u00e0 prodotta del semilavorato"
+    },
+    "mostra_in_form_inventario": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, il semilavorato viene mostrato nel form inventario"
+    },
+    "stores_form_inventario": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Store IDs dove il semilavorato \u00e8 visibile nel form inventario"
+    },
+    "unita_misura_form_inventario": {
+      "type": "string",
+      "enum": [
+        "grammi",
+        "kg",
+        "litri",
+        "ml",
+        "pezzi",
+        "unit\u00e0"
+      ],
+      "default": "grammi",
+      "description": "Unit\u00e0 di misura con cui il semilavorato deve essere misurato nel form inventario"
+    },
+    "somma_a_materia_prima_id": {
+      "type": "string",
+      "description": "ID della materia prima a cui sommare la quantit\u00e0 del semilavorato nel calcolo ordini"
+    },
+    "somma_a_materia_prima_nome": {
+      "type": "string",
+      "description": "Nome della materia prima (denormalizzato)"
+    },
+    "somma_ingrediente_id": {
+      "type": "string",
+      "description": "ID dell'ingrediente della ricetta da usare per calcolare la proporzione di somma"
+    },
+    "somma_ingrediente_nome": {
+      "type": "string",
+      "description": "Nome dell'ingrediente per la proporzione (denormalizzato)"
+    },
+    "ingredienti": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "materia_prima_id": {
+            "type": "string",
+            "description": "ID della materia prima o ricetta (se \u00e8 un semilavorato)"
+          },
+          "nome_prodotto": {
+            "type": "string",
+            "description": "Nome della materia prima o semilavorato"
+          },
+          "quantita": {
+            "type": "number",
+            "description": "Quantit\u00e0 necessaria"
+          },
+          "unita_misura": {
+            "type": "string",
+            "description": "Unit\u00e0 di misura utilizzata nella ricetta"
+          },
+          "prezzo_unitario": {
+            "type": "number",
+            "description": "Prezzo unitario della materia prima al momento della creazione"
+          },
+          "is_semilavorato": {
+            "type": "boolean",
+            "description": "True se questo ingrediente \u00e8 un semilavorato"
+          }
+        }
+      },
+      "description": "Lista degli ingredienti con quantit\u00e0"
+    },
+    "prezzo_vendita_online": {
+      "type": "number",
+      "description": "Prezzo di vendita online (\u20ac)"
+    },
+    "prezzo_vendita_offline": {
+      "type": "number",
+      "description": "Prezzo di vendita offline/negozio (\u20ac)"
+    },
+    "costo_unitario": {
+      "type": "number",
+      "description": "Costo totale degli ingredienti per produrre un'unit\u00e0"
+    },
+    "food_cost_online": {
+      "type": "number",
+      "description": "Food cost percentuale per vendita online (costo/prezzo_online * 100)"
+    },
+    "food_cost_offline": {
+      "type": "number",
+      "description": "Food cost percentuale per vendita offline (costo/prezzo_offline * 100)"
+    },
+    "margine_online": {
+      "type": "number",
+      "description": "Margine lordo online (prezzo_online - costo)"
+    },
+    "margine_offline": {
+      "type": "number",
+      "description": "Margine lordo offline (prezzo_offline - costo)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sulla ricetta"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il prodotto \u00e8 attivo nel menu"
+    },
+    "trasportabile": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se il prodotto/semilavorato pu\u00f2 essere trasportato tra negozi"
+    },
+    "venduto_online": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il prodotto \u00e8 venduto online"
+    },
+    "venduto_offline": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il prodotto \u00e8 venduto offline/in negozio"
+    }
+  },
+  "required": [
+    "nome_prodotto",
+    "ingredienti",
+    "prezzo_vendita_online",
+    "prezzo_vendita_offline"
+  ]
+}

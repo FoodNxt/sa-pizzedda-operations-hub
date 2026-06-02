@@ -1,0 +1,23 @@
+{
+  "name": "AssistenteCategoria",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome della categoria"
+    },
+    "ordine": {
+      "type": "number",
+      "default": 0,
+      "description": "Ordine di visualizzazione"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la categoria \u00e8 attiva"
+    }
+  },
+  "required": [
+    "nome"
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "name": "RequisitoCompliance",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome del requisito (es. Corso HACCP)"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione dettagliata del requisito"
+    },
+    "tipo_copertura": {
+      "type": "string",
+      "enum": [
+        "tutti",
+        "uno_per_locale",
+        "numero_specifico"
+      ],
+      "description": "Quanti dipendenti devono avere questo requisito"
+    },
+    "numero_richiesto": {
+      "type": "number",
+      "description": "Numero specifico di dipendenti richiesti (solo se tipo_copertura = numero_specifico)"
+    },
+    "ha_scadenza": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se il requisito ha una data di scadenza"
+    },
+    "giorni_preavviso_scadenza": {
+      "type": "number",
+      "default": 30,
+      "description": "Giorni di preavviso prima della scadenza"
+    },
+    "ruoli_applicabili": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Pizzaiolo",
+          "Cassiere",
+          "Store Manager"
+        ]
+      },
+      "description": "Ruoli a cui si applica questo requisito (vuoto = tutti)"
+    },
+    "stores_applicabili": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Store a cui si applica (vuoto = tutti)"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il requisito \u00e8 attivo"
+    }
+  },
+  "required": [
+    "nome",
+    "tipo_copertura"
+  ]
+}

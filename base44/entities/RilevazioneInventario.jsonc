@@ -1,0 +1,57 @@
+{
+  "name": "RilevazioneInventario",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "data_rilevazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora della rilevazione"
+    },
+    "rilevato_da": {
+      "type": "string",
+      "description": "Nome dell'operatore che ha fatto la rilevazione"
+    },
+    "prodotto_id": {
+      "type": "string",
+      "description": "Reference to MateriePrime entity"
+    },
+    "nome_prodotto": {
+      "type": "string",
+      "description": "Nome del prodotto (denormalizzato per query veloci)"
+    },
+    "quantita_rilevata": {
+      "type": "number",
+      "description": "Quantit\u00e0 effettivamente rilevata"
+    },
+    "unita_misura": {
+      "type": "string",
+      "description": "Unit\u00e0 di misura (denormalizzata)"
+    },
+    "quantita_minima": {
+      "type": "number",
+      "description": "Quantit\u00e0 minima al momento della rilevazione (denormalizzata)"
+    },
+    "sotto_minimo": {
+      "type": "boolean",
+      "description": "True se la quantit\u00e0 \u00e8 sotto il minimo"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sulla rilevazione"
+    }
+  },
+  "required": [
+    "store_name",
+    "data_rilevazione",
+    "prodotto_id",
+    "quantita_rilevata"
+  ]
+}

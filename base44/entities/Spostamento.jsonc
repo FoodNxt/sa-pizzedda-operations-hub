@@ -1,0 +1,67 @@
+{
+  "name": "Spostamento",
+  "type": "object",
+  "properties": {
+    "materia_prima_id": {
+      "type": "string",
+      "description": "ID della materia prima o ricetta spostata"
+    },
+    "materia_prima_nome": {
+      "type": "string",
+      "description": "Nome della materia prima o ricetta (denormalizzato)"
+    },
+    "tipo_prodotto": {
+      "type": "string",
+      "enum": [
+        "materia_prima",
+        "ricetta"
+      ],
+      "default": "materia_prima",
+      "description": "Tipo di prodotto spostato"
+    },
+    "peso_kg": {
+      "type": "number",
+      "description": "Peso in kg del prodotto spostato"
+    },
+    "store_origine_id": {
+      "type": "string",
+      "description": "ID dello store di origine"
+    },
+    "store_origine_nome": {
+      "type": "string",
+      "description": "Nome dello store di origine"
+    },
+    "store_destinazione_id": {
+      "type": "string",
+      "description": "ID dello store di destinazione"
+    },
+    "store_destinazione_nome": {
+      "type": "string",
+      "description": "Nome dello store di destinazione"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente che ha registrato lo spostamento"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "data_spostamento": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora dello spostamento"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "materia_prima_id",
+    "peso_kg",
+    "store_origine_id",
+    "store_destinazione_id",
+    "dipendente_id"
+  ]
+}

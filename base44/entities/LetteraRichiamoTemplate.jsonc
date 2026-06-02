@@ -1,0 +1,32 @@
+{
+  "name": "LetteraRichiamoTemplate",
+  "type": "object",
+  "properties": {
+    "nome_template": {
+      "type": "string",
+      "description": "Nome del template"
+    },
+    "tipo_lettera": {
+      "type": "string",
+      "enum": [
+        "lettera_richiamo",
+        "chiusura_procedura"
+      ],
+      "description": "Tipo di lettera: richiamo o chiusura procedura"
+    },
+    "contenuto": {
+      "type": "string",
+      "description": "Contenuto del template con variabili {{nome_dipendente}}, {{data_oggi}}, etc"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il template \u00e8 attivo"
+    }
+  },
+  "required": [
+    "nome_template",
+    "tipo_lettera",
+    "contenuto"
+  ]
+}

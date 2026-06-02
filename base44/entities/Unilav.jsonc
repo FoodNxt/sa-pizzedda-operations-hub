@@ -1,0 +1,35 @@
+{
+  "name": "Unilav",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del dipendente"
+    },
+    "pdf_url": {
+      "type": "string",
+      "description": "URL del PDF Unilav"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione o titolo del documento"
+    },
+    "data_documento": {
+      "type": "string",
+      "format": "date",
+      "description": "Data del documento"
+    }
+  },
+  "required": [
+    "user_id",
+    "pdf_url"
+  ]
+}

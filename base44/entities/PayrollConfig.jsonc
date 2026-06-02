@@ -1,0 +1,37 @@
+{
+  "name": "PayrollConfig",
+  "type": "object",
+  "properties": {
+    "email_payroll": {
+      "type": "string",
+      "description": "Email del payroll a cui inviare contratti e documenti"
+    },
+    "templates_email": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "description": "Nome del template"
+          },
+          "oggetto": {
+            "type": "string",
+            "description": "Oggetto dell'email"
+          },
+          "corpo": {
+            "type": "string",
+            "description": "Corpo del messaggio (supporta {{nome_dipendente}}, {{data_invio}})"
+          }
+        }
+      },
+      "description": "Template email predefiniti per invio a payroll"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa \u00e8 la configurazione attiva"
+    }
+  },
+  "required": []
+}

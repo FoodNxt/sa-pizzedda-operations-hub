@@ -1,0 +1,123 @@
+{
+  "name": "ContattoMarketing",
+  "type": "object",
+  "properties": {
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "Food influencers",
+        "PR",
+        "Adv",
+        "Partners"
+      ],
+      "description": "Categoria del contatto"
+    },
+    "nome": {
+      "type": "string",
+      "description": "Nome del contatto"
+    },
+    "cognome": {
+      "type": "string",
+      "description": "Cognome del contatto"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email del contatto"
+    },
+    "telefono": {
+      "type": "string",
+      "description": "Numero di telefono"
+    },
+    "link": {
+      "type": "string",
+      "description": "Link social o sito web"
+    },
+    "societa": {
+      "type": "string",
+      "description": "Societ\u00e0 per cui lavora"
+    },
+    "followers": {
+      "type": "number",
+      "description": "Numero di followers (solo per Food influencers)"
+    },
+    "visite_negozio": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "date",
+            "description": "Data della visita"
+          },
+          "negozio": {
+            "type": "string",
+            "description": "Nome del negozio visitato"
+          }
+        }
+      },
+      "description": "Storico visite in negozio (solo per Food influencers)"
+    },
+    "data_visita_negozio": {
+      "type": "string",
+      "format": "date",
+      "description": "DEPRECATO - Data della visita in negozio (mantenuto per compatibilit\u00e0)"
+    },
+    "negozio_visitato": {
+      "type": "string",
+      "description": "DEPRECATO - Nome del negozio visitato (mantenuto per compatibilit\u00e0)"
+    },
+    "mai_visitato": {
+      "type": "boolean",
+      "description": "Se non \u00e8 mai venuto in negozio (solo per Food influencers)"
+    },
+    "proposte_commerciali": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "descrizione": {
+            "type": "string",
+            "description": "Descrizione della proposta"
+          },
+          "prezzo": {
+            "type": "number",
+            "description": "Prezzo in euro"
+          }
+        }
+      },
+      "description": "Lista delle proposte commerciali"
+    },
+    "collaborazioni_completate": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "date",
+            "description": "Data della collaborazione"
+          },
+          "link": {
+            "type": "string",
+            "description": "Link a post o articolo"
+          },
+          "descrizione": {
+            "type": "string",
+            "description": "Descrizione della collaborazione"
+          }
+        }
+      },
+      "description": "Lista delle collaborazioni completate (PR e Adv)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "categoria",
+    "nome",
+    "cognome"
+  ]
+}

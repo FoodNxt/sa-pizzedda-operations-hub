@@ -1,0 +1,59 @@
+{
+  "name": "EmailLog",
+  "type": "object",
+  "properties": {
+    "tipo_notifica": {
+      "type": "string",
+      "description": "Tipo di notifica email inviata"
+    },
+    "destinatario_email": {
+      "type": "string",
+      "description": "Email del destinatario"
+    },
+    "destinatario_nome": {
+      "type": "string",
+      "description": "Nome del destinatario"
+    },
+    "oggetto": {
+      "type": "string",
+      "description": "Oggetto della email inviata"
+    },
+    "corpo": {
+      "type": "string",
+      "description": "Corpo del messaggio inviato"
+    },
+    "data_invio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora di invio"
+    },
+    "inviato_da": {
+      "type": "string",
+      "description": "Email di chi ha inviato la notifica"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "inviata",
+        "fallita"
+      ],
+      "default": "inviata",
+      "description": "Status dell'invio"
+    },
+    "errore": {
+      "type": "string",
+      "description": "Messaggio di errore se l'invio \u00e8 fallito"
+    },
+    "riferimento_id": {
+      "type": "string",
+      "description": "ID dell'entit\u00e0 correlata (es. ID lettera richiamo)"
+    }
+  },
+  "required": [
+    "tipo_notifica",
+    "destinatario_email",
+    "oggetto",
+    "corpo",
+    "data_invio"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "name": "EventoMarketing",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome dell'evento"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione dell'evento"
+    },
+    "data_evento": {
+      "type": "string",
+      "format": "date",
+      "description": "Data dell'evento"
+    },
+    "orario_evento": {
+      "type": "string",
+      "description": "Orario dell'evento (HH:MM)"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID del locale (opzionale)"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale (denormalizzato)"
+    },
+    "contatto_id": {
+      "type": "string",
+      "description": "ID del contatto marketing associato (opzionale)"
+    },
+    "contatto_nome": {
+      "type": "string",
+      "description": "Nome completo del contatto (denormalizzato)"
+    },
+    "contatto_categoria": {
+      "type": "string",
+      "description": "Categoria del contatto (denormalizzato)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sull'evento"
+    }
+  },
+  "required": [
+    "nome",
+    "data_evento"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "name": "PromptAIPulizia",
+  "type": "object",
+  "properties": {
+    "categoria": {
+      "type": "string",
+      "description": "Categoria del prompt (es. Pulizia, Divisa, Frigo, Etichette)"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Prompt per l'AI"
+    },
+    "risposte_possibili": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista delle risposte possibili che l'AI pu\u00f2 dare (es. ['pulito', 'medio', 'sporco', 'non_valutabile'])"
+    },
+    "risposta_corretta": {
+      "type": "string",
+      "description": "Risposta che assegna punteggio completo (100%)"
+    },
+    "punteggi_risposte": {
+      "type": "object",
+      "description": "Mappa delle risposte con i rispettivi punteggi (es. {\"pulito\": 100, \"medio\": 50, \"sporco\": 0})"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il prompt \u00e8 attivo"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sul prompt"
+    }
+  },
+  "required": [
+    "categoria",
+    "prompt"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "EmailNotificationTemplate",
+  "type": "object",
+  "properties": {
+    "tipo_notifica": {
+      "type": "string",
+      "enum": [
+        "lettera_richiamo",
+        "contratto",
+        "turno",
+        "altro"
+      ],
+      "description": "Tipo di notifica email"
+    },
+    "nome_template": {
+      "type": "string",
+      "description": "Nome descrittivo del template"
+    },
+    "oggetto": {
+      "type": "string",
+      "description": "Oggetto della email"
+    },
+    "corpo": {
+      "type": "string",
+      "description": "Corpo del messaggio email (pu\u00f2 contenere variabili come {{nome_dipendente}}, {{data}}, etc.)"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il template \u00e8 attivo"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sul template"
+    }
+  },
+  "required": [
+    "tipo_notifica",
+    "nome_template",
+    "oggetto",
+    "corpo"
+  ]
+}

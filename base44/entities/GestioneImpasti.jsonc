@@ -1,0 +1,81 @@
+{
+  "name": "GestioneImpasti",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "giorno_settimana": {
+      "type": "string",
+      "enum": [
+        "Luned\u00ec",
+        "Marted\u00ec",
+        "Mercoled\u00ec",
+        "Gioved\u00ec",
+        "Venerd\u00ec",
+        "Sabato",
+        "Domenica"
+      ],
+      "description": "Giorno della settimana"
+    },
+    "totale_giornata": {
+      "type": "number",
+      "default": 0,
+      "description": "Totale precotture per la giornata"
+    },
+    "percentuale_pranzo": {
+      "type": "number",
+      "default": 30,
+      "description": "Percentuale precotture per pranzo"
+    },
+    "percentuale_pomeriggio": {
+      "type": "number",
+      "default": 30,
+      "description": "Percentuale precotture per pomeriggio"
+    },
+    "percentuale_cena": {
+      "type": "number",
+      "default": 40,
+      "description": "Percentuale precotture per cena"
+    },
+    "pranzo_bianche": {
+      "type": "number",
+      "default": 0,
+      "description": "Numero precotture bianche per pranzo"
+    },
+    "pranzo_rosse": {
+      "type": "number",
+      "default": 0,
+      "description": "Numero precotture rosse per pranzo"
+    },
+    "pomeriggio_bianche": {
+      "type": "number",
+      "default": 0,
+      "description": "Numero precotture bianche per pomeriggio"
+    },
+    "pomeriggio_rosse": {
+      "type": "number",
+      "default": 0,
+      "description": "Numero precotture rosse per pomeriggio"
+    },
+    "cena_bianche": {
+      "type": "number",
+      "default": 0,
+      "description": "Numero precotture bianche per cena"
+    },
+    "cena_rosse": {
+      "type": "number",
+      "default": 0,
+      "description": "Numero precotture rosse per cena"
+    }
+  },
+  "required": [
+    "store_name",
+    "giorno_settimana"
+  ]
+}

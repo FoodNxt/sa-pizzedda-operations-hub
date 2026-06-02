@@ -1,0 +1,60 @@
+{
+  "name": "ElementoDivisa",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome dell'elemento (es. Maglietta, Grembiule, Pantaloni)"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "Maglietta",
+        "Grembiule",
+        "Pantaloni",
+        "Scarpe",
+        "Cappello",
+        "Altro"
+      ],
+      "description": "Tipo di elemento"
+    },
+    "parte_divisa_completa": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se fa parte della divisa completa"
+    },
+    "ruoli_assegnati": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Pizzaiolo",
+          "Cassiere",
+          "Store Manager",
+          "Altro"
+        ]
+      },
+      "description": "Ruoli a cui \u00e8 assegnato questo elemento"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione dell'elemento"
+    },
+    "taglia_disponibili": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Taglie disponibili (es. XS, S, M, L, XL)"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se l'elemento \u00e8 attivo"
+    }
+  },
+  "required": [
+    "nome",
+    "tipo"
+  ]
+}

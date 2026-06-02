@@ -1,0 +1,104 @@
+{
+  "name": "CorsoTemplate",
+  "type": "object",
+  "properties": {
+    "titolo": {
+      "type": "string",
+      "description": "Titolo del corso da creare"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione del corso"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "onboarding",
+        "sicurezza",
+        "prodotto",
+        "servizio",
+        "gestione",
+        "altro"
+      ],
+      "description": "Categoria del corso"
+    },
+    "ruoli_target": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Pizzaiolo",
+          "Cassiere",
+          "Store Manager"
+        ]
+      },
+      "description": "Ruoli a cui \u00e8 destinato il corso"
+    },
+    "stores_target": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Store specifici (vuoto = tutti)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "da_creare",
+        "in_lavorazione",
+        "completato"
+      ],
+      "default": "da_creare",
+      "description": "Stato del corso"
+    },
+    "sessioni": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "titolo": {
+            "type": "string"
+          },
+          "video_url": {
+            "type": "string"
+          },
+          "durata_minuti": {
+            "type": "number"
+          },
+          "ordine": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Sessioni video del corso"
+    },
+    "quiz": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "domanda": {
+            "type": "string"
+          },
+          "opzioni": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "risposta_corretta": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Quiz finale del corso"
+    },
+    "corso_id": {
+      "type": "string",
+      "description": "ID del corso creato (quando completato)"
+    }
+  },
+  "required": [
+    "titolo"
+  ]
+}

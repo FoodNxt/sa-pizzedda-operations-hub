@@ -1,0 +1,41 @@
+{
+  "name": "RegolamentoFirmato",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID dell'utente"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email del dipendente"
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "regolamento_id": {
+      "type": "string",
+      "description": "ID del regolamento firmato"
+    },
+    "versione": {
+      "type": "number",
+      "description": "Versione del regolamento firmata"
+    },
+    "data_firma": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data di firma"
+    },
+    "firma_digitale": {
+      "type": "string",
+      "description": "Nome firmato dal dipendente"
+    }
+  },
+  "required": [
+    "user_id",
+    "user_email",
+    "regolamento_id",
+    "versione"
+  ]
+}

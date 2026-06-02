@@ -1,0 +1,103 @@
+{
+  "name": "TimbraturaConfig",
+  "type": "object",
+  "properties": {
+    "distanza_massima_metri": {
+      "type": "number",
+      "description": "Distanza massima in metri dal locale per timbrare",
+      "default": 100
+    },
+    "tolleranza_ritardo_minuti": {
+      "type": "number",
+      "description": "Minuti di tolleranza prima di considerare un ritardo",
+      "default": 0
+    },
+    "abilita_timbratura_gps": {
+      "type": "boolean",
+      "description": "Se true, la timbratura richiede verifica GPS",
+      "default": true
+    },
+    "ruoli_gps_abilitati": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Pizzaiolo",
+          "Cassiere",
+          "Store Manager"
+        ]
+      },
+      "description": "Ruoli per cui \u00e8 richiesta la verifica GPS (se vuoto = tutti)",
+      "default": []
+    },
+    "arrotonda_ritardo": {
+      "type": "boolean",
+      "description": "Se true, arrotonda i ritardi secondo le regole impostate",
+      "default": false
+    },
+    "arrotondamento_tipo": {
+      "type": "string",
+      "enum": [
+        "eccesso",
+        "difetto"
+      ],
+      "description": "Tipo di arrotondamento: eccesso o difetto",
+      "default": "eccesso"
+    },
+    "arrotondamento_minuti": {
+      "type": "number",
+      "description": "Minuti a cui arrotondare (es: 15 \u2192 arrotonda a multipli di 15)",
+      "default": 15
+    },
+    "penalita_timbratura_mancata": {
+      "type": "number",
+      "description": "Minuti scalati per timbratura entrata mancata",
+      "default": 0
+    },
+    "ore_mancata_uscita": {
+      "type": "number",
+      "description": "Ore dopo fine turno per considerare uscita come mancata e applicare penalit\u00e0",
+      "default": 2
+    },
+    "alert_enabled": {
+      "type": "boolean",
+      "description": "Se true, invia alert WhatsApp per mancate timbrature",
+      "default": false
+    },
+    "alert_minuti_ritardo": {
+      "type": "number",
+      "description": "Dopo quanti minuti di ritardo inviare l'alert",
+      "default": 15
+    },
+    "alert_whatsapp_number": {
+      "type": "string",
+      "description": "Numero WhatsApp per ricevere gli alert (con prefisso internazionale)"
+    },
+    "alert_notify_managers": {
+      "type": "boolean",
+      "description": "Se true, notifica anche gli Store Manager del locale",
+      "default": true
+    },
+    "stores_gps": {
+      "type": "object",
+      "description": "Coordinate GPS per ogni store {store_id: {latitude: number, longitude: number}}",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    }
+  },
+  "required": []
+}

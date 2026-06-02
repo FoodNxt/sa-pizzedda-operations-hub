@@ -1,0 +1,36 @@
+{
+  "name": "RevenueByTimeSlot",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data del giorno"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID del negozio"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del negozio (denormalizzato)"
+    },
+    "slots": {
+      "type": "object",
+      "description": "Revenue per ogni slot di 30 minuti (chiave: time slot, valore: revenue)",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "total_revenue": {
+      "type": "number",
+      "description": "Revenue totale del giorno"
+    }
+  },
+  "required": [
+    "date",
+    "store_name",
+    "slots",
+    "total_revenue"
+  ]
+}

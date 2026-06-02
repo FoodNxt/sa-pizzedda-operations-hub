@@ -1,0 +1,70 @@
+{
+  "name": "BankTransactionRule",
+  "type": "object",
+  "properties": {
+    "pattern": {
+      "type": "string",
+      "description": "Pattern di testo da cercare nella descrizione (case-insensitive)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Payout",
+        "Materie Prime",
+        "Affitto",
+        "Subscriptions",
+        "Fees",
+        "Marketing",
+        "Salari",
+        "Utenze",
+        "Altro",
+        "Giroconto"
+      ],
+      "description": "Categoria principale"
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "Sottocategoria specifica (dipende dalla categoria)"
+    },
+    "match_type": {
+      "type": "string",
+      "enum": [
+        "contains",
+        "starts_with",
+        "ends_with",
+        "exact"
+      ],
+      "default": "contains",
+      "description": "Tipo di matching"
+    },
+    "search_in": {
+      "type": "string",
+      "enum": [
+        "description",
+        "additional",
+        "both"
+      ],
+      "default": "description",
+      "description": "Dove cercare il pattern: description, additional, o entrambi"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la regola \u00e8 attiva"
+    },
+    "priority": {
+      "type": "number",
+      "default": 0,
+      "description": "Priorit\u00e0 della regola (pi\u00f9 alto = pi\u00f9 priorit\u00e0)"
+    },
+    "is_giroconto": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, le transazioni con questa categoria sono escluse dal trend entrate/uscite"
+    }
+  },
+  "required": [
+    "pattern",
+    "category"
+  ]
+}

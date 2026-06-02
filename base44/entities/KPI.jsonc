@@ -1,0 +1,73 @@
+{
+  "name": "KPI",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome del KPI"
+    },
+    "metrica": {
+      "type": "string",
+      "enum": [
+        "food_cost_percentuale",
+        "numero_recensioni",
+        "punteggio_medio_recensioni",
+        "produttivita_oraria",
+        "revenue_giornaliero",
+        "ordini_giornalieri",
+        "scontrino_medio",
+        "percentuale_delivery",
+        "percentuale_takeaway",
+        "percentuale_online",
+        "food_cost_medio",
+        "sconto_percentuale",
+        "sprechi_valore",
+        "review_tendenza",
+        "percentuale_store_revenue",
+        "ordini_sbagliati_numero",
+        "percentuale_ordini_corretti",
+        "score_pulizie_medio",
+        "revenue_totale",
+        "numero_sprechi_rilevazioni"
+      ],
+      "description": "Tipo di metrica da monitorare"
+    },
+    "categoria": {
+      "type": "string",
+      "description": "Categoria del KPI"
+    },
+    "obiettivo": {
+      "type": "number",
+      "description": "Valore obiettivo da raggiungere"
+    },
+    "giorni_timeframe": {
+      "type": "integer",
+      "description": "Time frame dell'obiettivo in numero di giorni (es. 30 giorni)",
+      "minimum": 1
+    },
+    "direzione": {
+      "type": "string",
+      "enum": [
+        "maggiore",
+        "minore"
+      ],
+      "default": "maggiore",
+      "description": "Se l'obiettivo \u00e8 raggiunto quando il valore \u00e8 maggiore o minore"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store (opzionale, se vuoto vale per tutti)"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il KPI \u00e8 attivo"
+    }
+  },
+  "required": [
+    "nome",
+    "metrica",
+    "obiettivo",
+    "direzione"
+  ]
+}

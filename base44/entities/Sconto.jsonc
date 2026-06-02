@@ -1,0 +1,121 @@
+{
+  "name": "Sconto",
+  "type": "object",
+  "properties": {
+    "order_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data dell'ordine"
+    },
+    "total_discount_price": {
+      "type": "number",
+      "description": "Valore totale dello sconto in euro (calcolato automaticamente come somma)"
+    },
+    "channel": {
+      "type": "string",
+      "description": "Nome dello store (usato per il matching)"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store (compilato automaticamente dal sistema)"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store normalizzato (compilato automaticamente)"
+    },
+    "sourceApp_glovo": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per Glovo"
+    },
+    "sourceApp_deliveroo": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per Deliveroo"
+    },
+    "sourceApp_justeat": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per JustEat"
+    },
+    "sourceApp_onlineordering": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per Online Ordering"
+    },
+    "sourceApp_ordertable": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per OrderTable"
+    },
+    "sourceApp_tabesto": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per Tabesto"
+    },
+    "sourceApp_deliverect": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per Deliverect"
+    },
+    "sourceApp_store": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per Store fisico"
+    },
+    "sourceType_delivery": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per tipo delivery"
+    },
+    "sourceType_takeaway": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per tipo takeaway"
+    },
+    "sourceType_takeawayOnSite": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per tipo takeaway on site"
+    },
+    "sourceType_store": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per tipo store"
+    },
+    "moneyType_bancomat": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per pagamento con bancomat"
+    },
+    "moneyType_cash": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per pagamento in contanti"
+    },
+    "moneyType_online": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per pagamento online"
+    },
+    "moneyType_satispay": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per pagamento con Satispay"
+    },
+    "moneyType_credit_card": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per pagamento con carta di credito"
+    },
+    "moneyType_fidelity_card_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Sconto in euro per pagamento con punti fidelity card"
+    }
+  },
+  "required": [
+    "order_date",
+    "channel"
+  ]
+}

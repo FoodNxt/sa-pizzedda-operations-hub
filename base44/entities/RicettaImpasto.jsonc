@@ -1,0 +1,51 @@
+{
+  "name": "RicettaImpasto",
+  "type": "object",
+  "properties": {
+    "nome_ingrediente": {
+      "type": "string",
+      "description": "Nome dell'ingrediente"
+    },
+    "quantita_per_pallina": {
+      "type": "number",
+      "description": "Quantit\u00e0 per una pallina di impasto"
+    },
+    "unita_misura": {
+      "type": "string",
+      "enum": [
+        "g",
+        "kg",
+        "ml",
+        "litri",
+        "unit\u00e0"
+      ],
+      "description": "Unit\u00e0 di misura"
+    },
+    "ordine": {
+      "type": "number",
+      "default": 0,
+      "description": "Ordine di visualizzazione"
+    },
+    "arrotondamento": {
+      "type": "string",
+      "enum": [
+        "nessuno",
+        "intero",
+        "decine",
+        "centinaia"
+      ],
+      "default": "nessuno",
+      "description": "Tipo di arrotondamento per eccesso nel calcolo"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se l'ingrediente \u00e8 attivo"
+    }
+  },
+  "required": [
+    "nome_ingrediente",
+    "quantita_per_pallina",
+    "unita_misura"
+  ]
+}

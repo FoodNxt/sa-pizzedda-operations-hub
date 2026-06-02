@@ -1,0 +1,34 @@
+{
+  "name": "ContrattoTemplate",
+  "type": "object",
+  "properties": {
+    "nome_template": {
+      "type": "string",
+      "description": "Nome identificativo del template"
+    },
+    "contenuto_template": {
+      "type": "string",
+      "description": "Contenuto del contratto con variabili (es: {{nome_cognome}}, {{codice_fiscale}}, {{iban}}, etc.)"
+    },
+    "descrizione": {
+      "type": "string",
+      "description": "Descrizione del template"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il template \u00e8 attivo e disponibile per l'uso"
+    },
+    "variabili_disponibili": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista delle variabili disponibili nel template"
+    }
+  },
+  "required": [
+    "nome_template",
+    "contenuto_template"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "name": "FormTestResult",
+  "type": "object",
+  "properties": {
+    "test_case_id": {
+      "type": "string",
+      "description": "ID del test case eseguito"
+    },
+    "form_name": {
+      "type": "string",
+      "description": "Nome del form testato"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente per cui \u00e8 stato eseguito il test"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "success": {
+      "type": "boolean",
+      "description": "Se il test \u00e8 andato a buon fine"
+    },
+    "status_code": {
+      "type": "number",
+      "description": "Status code HTTP della risposta"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Messaggio di errore se fallito"
+    },
+    "request_data": {
+      "type": "object",
+      "description": "Dati inviati nella richiesta"
+    },
+    "response_data": {
+      "type": "object",
+      "description": "Dati ricevuti nella risposta"
+    },
+    "execution_time_ms": {
+      "type": "number",
+      "description": "Tempo di esecuzione in millisecondi"
+    },
+    "test_run_id": {
+      "type": "string",
+      "description": "ID dell'esecuzione del test batch"
+    }
+  },
+  "required": [
+    "test_case_id",
+    "form_name",
+    "dipendente_id",
+    "success"
+  ]
+}

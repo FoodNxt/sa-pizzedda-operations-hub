@@ -1,0 +1,42 @@
+{
+  "name": "SaldoManualeCassa",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store (denormalizzato)"
+    },
+    "data": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da cui partire con il nuovo saldo"
+    },
+    "saldo_iniziale": {
+      "type": "number",
+      "description": "Saldo iniziale manualmente impostato"
+    },
+    "impostato_da": {
+      "type": "string",
+      "description": "Email dell'admin che ha impostato il saldo"
+    },
+    "impostato_il": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora in cui \u00e8 stato impostato il saldo"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sul saldo manuale impostato"
+    }
+  },
+  "required": [
+    "store_id",
+    "store_name",
+    "data",
+    "saldo_iniziale"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "name": "PageAccessConfig",
+  "type": "object",
+  "properties": {
+    "config_name": {
+      "type": "string",
+      "description": "Nome della configurazione (es: default_config)"
+    },
+    "admin_pages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Pagine visibili agli amministratori"
+    },
+    "manager_pages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Pagine visibili ai manager"
+    },
+    "after_registration": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Pagine visibili dopo registrazione (senza ruoli)"
+    },
+    "after_contract_received": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Pagine visibili dopo ricezione contratto"
+    },
+    "after_contract_signed": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Pagine visibili dopo firma contratto"
+    },
+    "pizzaiolo_pages": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Pagine visibili per ruolo Pizzaiolo (dopo inizio contratto)"
+    },
+    "cassiere_pages": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Pagine visibili per ruolo Cassiere (dopo inizio contratto)"
+    },
+    "store_manager_pages": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Pagine visibili per ruolo Store Manager (dopo inizio contratto)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "config_name"
+  ]
+}

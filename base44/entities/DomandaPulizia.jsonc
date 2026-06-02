@@ -1,0 +1,93 @@
+{
+  "name": "DomandaPulizia",
+  "type": "object",
+  "properties": {
+    "domanda_testo": {
+      "type": "string",
+      "description": "Testo della domanda"
+    },
+    "tipo_controllo": {
+      "type": "string",
+      "enum": [
+        "foto",
+        "scelta_multipla"
+      ],
+      "description": "Tipo di controllo (foto con AI o scelta multipla)"
+    },
+    "richiede_foto": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, per domande a scelta multipla viene richiesta anche una foto"
+    },
+    "richiedi_foto_multipla": {
+      "type": "string",
+      "enum": [
+        "no",
+        "sempre",
+        "condizionale"
+      ],
+      "default": "no",
+      "description": "Per domande a scelta multipla: no, sempre (obbligatoria), condizionale (solo per certe risposte)"
+    },
+    "risposta_richiede_foto": {
+      "type": "string",
+      "description": "Per richiedi_foto_multipla=condizionale, quale risposta richiede la foto"
+    },
+    "attrezzatura": {
+      "type": "string",
+      "description": "Nome dell'attrezzatura associata (per foto)"
+    },
+    "prompt_ai": {
+      "type": "string",
+      "description": "Istruzioni personalizzate per l'AI su cosa controllare nella foto"
+    },
+    "opzioni_risposta": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Opzioni di risposta per scelta multipla"
+    },
+    "risposta_corretta": {
+      "type": "string",
+      "description": "Risposta corretta per domanda a scelta multipla"
+    },
+    "ruoli_assegnati": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Pizzaiolo",
+          "Cassiere",
+          "Store Manager"
+        ]
+      },
+      "description": "Ruoli a cui \u00e8 assegnata questa domanda"
+    },
+    "stores_assegnati": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Store IDs a cui \u00e8 assegnata questa domanda (vuoto = tutti)"
+    },
+    "ordine": {
+      "type": "number",
+      "description": "Ordine di visualizzazione della domanda"
+    },
+    "richiesto": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se la domanda \u00e8 obbligatoria"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la domanda \u00e8 attiva"
+    }
+  },
+  "required": [
+    "domanda_testo",
+    "tipo_controllo"
+  ]
+}

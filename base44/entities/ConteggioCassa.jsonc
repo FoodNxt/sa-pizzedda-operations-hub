@@ -1,0 +1,33 @@
+{
+  "name": "ConteggioCassa",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "data_conteggio": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora del conteggio (automatica)"
+    },
+    "rilevato_da": {
+      "type": "string",
+      "description": "Nome dell'operatore che ha fatto il conteggio"
+    },
+    "valore_conteggio": {
+      "type": "number",
+      "description": "Valore del conteggio cassa in euro"
+    }
+  },
+  "required": [
+    "store_name",
+    "data_conteggio",
+    "rilevato_da",
+    "valore_conteggio"
+  ]
+}

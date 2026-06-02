@@ -1,0 +1,81 @@
+{
+  "name": "AttivitaCompletata",
+  "type": "object",
+  "properties": {
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente"
+    },
+    "turno_id": {
+      "type": "string",
+      "description": "ID del turno"
+    },
+    "turno_data": {
+      "type": "string",
+      "format": "date",
+      "description": "Data del turno"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "attivita_nome": {
+      "type": "string",
+      "description": "Nome dell'attivit\u00e0 completata"
+    },
+    "form_page": {
+      "type": "string",
+      "description": "Nome della pagina del form (es. FormInventario, ConteggioCassa)"
+    },
+    "posizione_turno": {
+      "type": "string",
+      "enum": [
+        "inizio",
+        "fine"
+      ],
+      "description": "Se l'attivit\u00e0 \u00e8 a inizio o fine turno (per attivit\u00e0 ripetute)"
+    },
+    "ora_attivita": {
+      "type": "string",
+      "description": "Ora di inizio dell'attivit\u00e0 nello slot (HH:MM)"
+    },
+    "completato_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp del completamento"
+    },
+    "importo_pagato": {
+      "type": "number",
+      "description": "Importo pagato per straordinari (se attivit\u00e0 \u00e8 Pagamento straordinari)"
+    },
+    "turno_straordinario_id": {
+      "type": "string",
+      "description": "ID del turno straordinario pagato"
+    },
+    "dipendente_pagato_nome": {
+      "type": "string",
+      "description": "Nome del dipendente che \u00e8 stato pagato (per attivit\u00e0 Pagamento straordinari)"
+    },
+    "dipendente_pagato_id": {
+      "type": "string",
+      "description": "ID del dipendente che \u00e8 stato pagato (per attivit\u00e0 Pagamento straordinari)"
+    },
+    "rosse_da_fare": {
+      "type": "number",
+      "description": "Numero di teglie rosse da fare (per form Precotture)"
+    },
+    "turno_precotture": {
+      "type": "string",
+      "description": "Turno precotture: pranzo, pomeriggio, cena"
+    }
+  },
+  "required": [
+    "dipendente_id",
+    "turno_id",
+    "attivita_nome"
+  ]
+}

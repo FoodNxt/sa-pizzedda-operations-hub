@@ -1,0 +1,36 @@
+{
+  "name": "ProduttivitaConfig",
+  "type": "object",
+  "properties": {
+    "config_name": {
+      "type": "string",
+      "description": "Nome configurazione (es: default_config)",
+      "default": "default_config"
+    },
+    "orario_apertura": {
+      "type": "string",
+      "description": "Orario di apertura standard (HH:MM)",
+      "default": "11:00"
+    },
+    "orario_chiusura": {
+      "type": "string",
+      "description": "Orario di chiusura standard (HH:MM)",
+      "default": "23:00"
+    },
+    "tipi_turno_inclusi": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista dei tipi di turno inclusi nell'analisi"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questa configurazione \u00e8 attiva"
+    }
+  },
+  "required": [
+    "config_name"
+  ]
+}

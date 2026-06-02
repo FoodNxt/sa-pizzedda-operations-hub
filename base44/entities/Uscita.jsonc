@@ -1,0 +1,55 @@
+{
+  "name": "Uscita",
+  "type": "object",
+  "properties": {
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente che esce"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente (denormalizzato)"
+    },
+    "tipo_uscita": {
+      "type": "string",
+      "enum": [
+        "licenziamento",
+        "dimissioni"
+      ],
+      "description": "Tipo di uscita dal lavoro"
+    },
+    "data_uscita": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da cui il dipendente non lavora pi\u00f9"
+    },
+    "turni_futuri_liberi": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, tutti i turni futuri del dipendente sono stati resi liberi"
+    },
+    "turni_liberati_count": {
+      "type": "number",
+      "description": "Numero di turni futuri liberati"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note sulla motivazione dell'uscita"
+    },
+    "registrato_da": {
+      "type": "string",
+      "description": "Email dell'admin che ha registrato l'uscita"
+    },
+    "registrato_il": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora della registrazione"
+    }
+  },
+  "required": [
+    "dipendente_id",
+    "dipendente_nome",
+    "tipo_uscita",
+    "data_uscita"
+  ]
+}

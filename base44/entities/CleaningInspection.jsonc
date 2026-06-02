@@ -1,0 +1,782 @@
+{
+  "name": "CleaningInspection",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale ispezionato"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "inspection_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora dell'ispezione"
+    },
+    "inspector_name": {
+      "type": "string",
+      "description": "Nome dell'ispettore che ha caricato le foto"
+    },
+    "inspector_role": {
+      "type": "string",
+      "enum": [
+        "Pizzaiolo",
+        "Cassiere",
+        "Store Manager"
+      ],
+      "description": "Ruolo dell'ispettore che ha compilato il form"
+    },
+    "inspection_type": {
+      "type": "string",
+      "description": "Tipo di ispezione (cassiere, pizzaiolo, store_manager)"
+    },
+    "completion_time_seconds": {
+      "type": "number",
+      "description": "Tempo impiegato per completare il form (in secondi)"
+    },
+    "analysis_status": {
+      "type": "string",
+      "enum": [
+        "processing",
+        "completed",
+        "failed"
+      ],
+      "default": "processing",
+      "description": "Stato dell'analisi AI"
+    },
+    "domande_risposte": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Array con tutte le domande e risposte del form"
+    },
+    "forno_foto_url": {
+      "type": "string"
+    },
+    "forno_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "forno_note_ai": {
+      "type": "string"
+    },
+    "forno_corrected": {
+      "type": "boolean"
+    },
+    "forno_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "forno_correction_note": {
+      "type": "string"
+    },
+    "impastatrice_foto_url": {
+      "type": "string"
+    },
+    "impastatrice_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "impastatrice_note_ai": {
+      "type": "string"
+    },
+    "impastatrice_corrected": {
+      "type": "boolean"
+    },
+    "impastatrice_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "impastatrice_correction_note": {
+      "type": "string"
+    },
+    "tavolo_lavoro_foto_url": {
+      "type": "string"
+    },
+    "tavolo_lavoro_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "tavolo_lavoro_note_ai": {
+      "type": "string"
+    },
+    "tavolo_lavoro_corrected": {
+      "type": "boolean"
+    },
+    "tavolo_lavoro_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "tavolo_lavoro_correction_note": {
+      "type": "string"
+    },
+    "frigo_foto_url": {
+      "type": "string"
+    },
+    "frigo_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "frigo_note_ai": {
+      "type": "string"
+    },
+    "frigo_corrected": {
+      "type": "boolean"
+    },
+    "frigo_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "frigo_correction_note": {
+      "type": "string"
+    },
+    "cassa_foto_url": {
+      "type": "string"
+    },
+    "cassa_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "cassa_note_ai": {
+      "type": "string"
+    },
+    "cassa_corrected": {
+      "type": "boolean"
+    },
+    "cassa_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "cassa_correction_note": {
+      "type": "string"
+    },
+    "lavandino_foto_url": {
+      "type": "string"
+    },
+    "lavandino_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "lavandino_note_ai": {
+      "type": "string"
+    },
+    "lavandino_corrected": {
+      "type": "boolean"
+    },
+    "lavandino_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "lavandino_correction_note": {
+      "type": "string"
+    },
+    "tavolette_takeaway_foto_url": {
+      "type": "string"
+    },
+    "tavolette_takeaway_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "tavolette_takeaway_note_ai": {
+      "type": "string"
+    },
+    "tavolette_takeaway_corrected": {
+      "type": "boolean"
+    },
+    "tavolette_takeaway_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "tavolette_takeaway_correction_note": {
+      "type": "string"
+    },
+    "colonna_frigo_1_foto_url": {
+      "type": "string"
+    },
+    "colonna_frigo_1_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "colonna_frigo_1_note_ai": {
+      "type": "string"
+    },
+    "colonna_frigo_1_corrected": {
+      "type": "boolean"
+    },
+    "colonna_frigo_1_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "colonna_frigo_1_correction_note": {
+      "type": "string"
+    },
+    "colonna_frigo_2_foto_url": {
+      "type": "string"
+    },
+    "colonna_frigo_2_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "colonna_frigo_2_note_ai": {
+      "type": "string"
+    },
+    "colonna_frigo_2_corrected": {
+      "type": "boolean"
+    },
+    "colonna_frigo_2_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "colonna_frigo_2_correction_note": {
+      "type": "string"
+    },
+    "banco_da_lavoro_inox_grande_foto_url": {
+      "type": "string"
+    },
+    "banco_da_lavoro_inox_grande_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "banco_da_lavoro_inox_grande_note_ai": {
+      "type": "string"
+    },
+    "banco_da_lavoro_inox_grande_corrected": {
+      "type": "boolean"
+    },
+    "banco_da_lavoro_inox_grande_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "banco_da_lavoro_inox_grande_correction_note": {
+      "type": "string"
+    },
+    "banco_da_lavoro_inox_piccolo_foto_url": {
+      "type": "string"
+    },
+    "banco_da_lavoro_inox_piccolo_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "banco_da_lavoro_inox_piccolo_note_ai": {
+      "type": "string"
+    },
+    "banco_da_lavoro_inox_piccolo_corrected": {
+      "type": "boolean"
+    },
+    "banco_da_lavoro_inox_piccolo_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "banco_da_lavoro_inox_piccolo_correction_note": {
+      "type": "string"
+    },
+    "pavimenti_ed_angoli_foto_url": {
+      "type": "string"
+    },
+    "pavimenti_ed_angoli_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "pavimenti_ed_angoli_note_ai": {
+      "type": "string"
+    },
+    "pavimenti_ed_angoli_corrected": {
+      "type": "boolean"
+    },
+    "pavimenti_ed_angoli_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "pavimenti_ed_angoli_correction_note": {
+      "type": "string"
+    },
+    "tavoli_sala_clienti_foto_url": {
+      "type": "string"
+    },
+    "tavoli_sala_clienti_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "tavoli_sala_clienti_note_ai": {
+      "type": "string"
+    },
+    "tavoli_sala_clienti_corrected": {
+      "type": "boolean"
+    },
+    "tavoli_sala_clienti_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "tavoli_sala_clienti_correction_note": {
+      "type": "string"
+    },
+    "vetrata_ingresso_foto_url": {
+      "type": "string"
+    },
+    "vetrata_ingresso_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "vetrata_ingresso_note_ai": {
+      "type": "string"
+    },
+    "vetrata_ingresso_corrected": {
+      "type": "boolean"
+    },
+    "vetrata_ingresso_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "vetrata_ingresso_correction_note": {
+      "type": "string"
+    },
+    "stendipizza_foto_url": {
+      "type": "string"
+    },
+    "stendipizza_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "stendipizza_note_ai": {
+      "type": "string"
+    },
+    "stendipizza_corrected": {
+      "type": "boolean"
+    },
+    "stendipizza_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "stendipizza_correction_note": {
+      "type": "string"
+    },
+    "barelle_palline_piccole_foto_url": {
+      "type": "string"
+    },
+    "barelle_palline_piccole_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "barelle_palline_piccole_note_ai": {
+      "type": "string"
+    },
+    "barelle_palline_piccole_corrected": {
+      "type": "boolean"
+    },
+    "barelle_palline_piccole_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "barelle_palline_piccole_correction_note": {
+      "type": "string"
+    },
+    "barelle_impasto_grande_foto_url": {
+      "type": "string"
+    },
+    "barelle_impasto_grande_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "barelle_impasto_grande_note_ai": {
+      "type": "string"
+    },
+    "barelle_impasto_grande_corrected": {
+      "type": "boolean"
+    },
+    "barelle_impasto_grande_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "barelle_impasto_grande_correction_note": {
+      "type": "string"
+    },
+    "teglie_foto_url": {
+      "type": "string"
+    },
+    "teglie_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "teglie_note_ai": {
+      "type": "string"
+    },
+    "teglie_corrected": {
+      "type": "boolean"
+    },
+    "teglie_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "teglie_correction_note": {
+      "type": "string"
+    },
+    "sottovuotatrice_foto_url": {
+      "type": "string"
+    },
+    "sottovuotatrice_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "sottovuotatrice_note_ai": {
+      "type": "string"
+    },
+    "sottovuotatrice_corrected": {
+      "type": "boolean"
+    },
+    "sottovuotatrice_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "sottovuotatrice_correction_note": {
+      "type": "string"
+    },
+    "abbattitore_foto_url": {
+      "type": "string"
+    },
+    "abbattitore_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "abbattitore_note_ai": {
+      "type": "string"
+    },
+    "abbattitore_corrected": {
+      "type": "boolean"
+    },
+    "abbattitore_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "abbattitore_correction_note": {
+      "type": "string"
+    },
+    "frigo_doppio_foto_url": {
+      "type": "string"
+    },
+    "frigo_doppio_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "frigo_doppio_note_ai": {
+      "type": "string"
+    },
+    "frigo_doppio_corrected": {
+      "type": "boolean"
+    },
+    "frigo_doppio_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "frigo_doppio_correction_note": {
+      "type": "string"
+    },
+    "frigo_bibite_foto_url": {
+      "type": "string"
+    },
+    "frigo_bibite_pulizia_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "frigo_bibite_note_ai": {
+      "type": "string"
+    },
+    "frigo_bibite_corrected": {
+      "type": "boolean"
+    },
+    "frigo_bibite_corrected_status": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "medio",
+        "sporco",
+        "non_valutabile"
+      ]
+    },
+    "frigo_bibite_correction_note": {
+      "type": "string"
+    },
+    "pulizia_pavimenti_angoli": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "sporco",
+        "da_migliorare"
+      ]
+    },
+    "pulizia_tavoli_sala": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "sporco",
+        "da_migliorare"
+      ]
+    },
+    "pulizia_vetrata_ingresso": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "sporco",
+        "da_migliorare"
+      ]
+    },
+    "pulizia_tavolette_takeaway": {
+      "type": "string",
+      "enum": [
+        "pulito",
+        "sporco",
+        "da_migliorare"
+      ]
+    },
+    "etichette_prodotti_aperti": {
+      "type": "string",
+      "enum": [
+        "tutti_con_etichette",
+        "nessuno_con_etichette",
+        "alcuni_senza_etichette"
+      ]
+    },
+    "cartoni_pizza_pronti": {
+      "type": "string",
+      "enum": [
+        "piu_di_40",
+        "meno_di_40",
+        "nessun_cartone"
+      ]
+    },
+    "overall_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "critical_issues": {
+      "type": "string"
+    },
+    "has_corrections": {
+      "type": "boolean"
+    },
+    "accuracy_feedback": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "store_name"
+  ]
+}

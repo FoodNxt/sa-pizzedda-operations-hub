@@ -1,0 +1,65 @@
+{
+  "name": "RitardoDipendente",
+  "type": "object",
+  "properties": {
+    "turno_id": {
+      "type": "string",
+      "description": "ID del turno"
+    },
+    "dipendente_id": {
+      "type": "string",
+      "description": "ID del dipendente"
+    },
+    "dipendente_nome": {
+      "type": "string",
+      "description": "Nome del dipendente (denormalizzato)"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "store_nome": {
+      "type": "string",
+      "description": "Nome dello store (denormalizzato)"
+    },
+    "data": {
+      "type": "string",
+      "format": "date",
+      "description": "Data del turno"
+    },
+    "ora_inizio_prevista": {
+      "type": "string",
+      "description": "Orario previsto di inizio turno (HH:MM)"
+    },
+    "ora_timbratura_entrata": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp timbratura entrata"
+    },
+    "minuti_ritardo_reale": {
+      "type": "number",
+      "description": "Ritardo reale in minuti"
+    },
+    "minuti_ritardo_conteggiato": {
+      "type": "number",
+      "description": "Ritardo conteggiato con policy aziendale"
+    },
+    "ruolo": {
+      "type": "string",
+      "enum": [
+        "Pizzaiolo",
+        "Cassiere",
+        "Store Manager"
+      ],
+      "description": "Ruolo del dipendente nel turno"
+    }
+  },
+  "required": [
+    "turno_id",
+    "dipendente_id",
+    "store_id",
+    "data",
+    "minuti_ritardo_reale",
+    "minuti_ritardo_conteggiato"
+  ]
+}

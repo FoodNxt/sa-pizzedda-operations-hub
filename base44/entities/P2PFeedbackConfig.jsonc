@@ -1,0 +1,31 @@
+{
+  "name": "P2PFeedbackConfig",
+  "type": "object",
+  "properties": {
+    "frequency_type": {
+      "type": "string",
+      "enum": [
+        "weekly",
+        "monthly",
+        "custom_days"
+      ],
+      "default": "weekly",
+      "description": "Frequenza con cui viene richiesto il feedback"
+    },
+    "custom_days_interval": {
+      "type": "number",
+      "description": "Intervallo personalizzato in giorni (se frequency_type = custom_days)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se la configurazione \u00e8 attiva"
+    },
+    "last_sent_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Ultima data in cui \u00e8 stato inviato il promemoria"
+    }
+  },
+  "required": []
+}

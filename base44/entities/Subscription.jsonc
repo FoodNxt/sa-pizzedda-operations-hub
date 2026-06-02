@@ -1,0 +1,64 @@
+{
+  "name": "Subscription",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome della subscription"
+    },
+    "costo": {
+      "type": "number",
+      "description": "Costo della subscription"
+    },
+    "periodo": {
+      "type": "string",
+      "enum": [
+        "mensile",
+        "annuale"
+      ],
+      "description": "Periodo di pagamento"
+    },
+    "assegnazione": {
+      "type": "string",
+      "enum": [
+        "tutti",
+        "singolo",
+        "multipli"
+      ],
+      "default": "tutti",
+      "description": "Se assegnata a tutti i locali, un singolo locale, o pi\u00f9 locali specifici"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID del locale (solo se assegnazione = singolo)"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale (denormalizzato)"
+    },
+    "stores_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista ID dei locali (solo se assegnazione = multipli)"
+    },
+    "stores_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista nomi dei locali (denormalizzato)"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "nome",
+    "costo",
+    "periodo",
+    "assegnazione"
+  ]
+}

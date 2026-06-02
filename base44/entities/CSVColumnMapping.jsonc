@@ -1,0 +1,51 @@
+{
+  "name": "CSVColumnMapping",
+  "type": "object",
+  "properties": {
+    "platform": {
+      "type": "string",
+      "enum": [
+        "glovo",
+        "deliveroo"
+      ],
+      "description": "Piattaforma (Glovo o Deliveroo)"
+    },
+    "order_id_column": {
+      "type": "string",
+      "description": "Nome colonna CSV per numero ordine"
+    },
+    "store_column": {
+      "type": "string",
+      "description": "Nome colonna CSV per negozio"
+    },
+    "order_date_column": {
+      "type": "string",
+      "description": "Nome colonna CSV per data ordine"
+    },
+    "order_total_column": {
+      "type": "string",
+      "description": "Nome colonna CSV per valore ordine"
+    },
+    "refund_column": {
+      "type": "string",
+      "description": "Nome colonna CSV per valore rimborso"
+    },
+    "refund_reason_column": {
+      "type": "string",
+      "description": "Nome colonna CSV per ragione rimborso (solo Glovo)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se questo mapping \u00e8 attivo"
+    }
+  },
+  "required": [
+    "platform",
+    "order_id_column",
+    "store_column",
+    "order_date_column",
+    "order_total_column",
+    "refund_column"
+  ]
+}

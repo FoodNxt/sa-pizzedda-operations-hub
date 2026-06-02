@@ -1,0 +1,39 @@
+{
+  "name": "FatturaXMLMatch",
+  "type": "object",
+  "properties": {
+    "prodotto_fattura_descrizione": {
+      "type": "string",
+      "description": "Descrizione prodotto come appare nella fattura XML"
+    },
+    "prodotto_fattura_codice": {
+      "type": "string",
+      "description": "Codice articolo dalla fattura XML"
+    },
+    "materia_prima_id": {
+      "type": "string",
+      "description": "ID del prodotto in MateriePrime a cui \u00e8 abbinato"
+    },
+    "materia_prima_nome": {
+      "type": "string",
+      "description": "Nome del prodotto in MateriePrime (denormalizzato)"
+    },
+    "fornitore": {
+      "type": "string",
+      "description": "Nome fornitore"
+    },
+    "match_confermato": {
+      "type": "boolean",
+      "default": false,
+      "description": "True se il match \u00e8 stato confermato dall'utente"
+    },
+    "created_by_user": {
+      "type": "string",
+      "description": "Email utente che ha creato il match"
+    }
+  },
+  "required": [
+    "prodotto_fattura_descrizione",
+    "materia_prima_id"
+  ]
+}

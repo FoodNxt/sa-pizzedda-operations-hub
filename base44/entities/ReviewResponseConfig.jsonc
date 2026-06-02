@@ -1,0 +1,26 @@
+{
+  "name": "ReviewResponseConfig",
+  "type": "object",
+  "properties": {
+    "response_mood": {
+      "type": "string",
+      "enum": [
+        "professionale",
+        "amichevole",
+        "formale",
+        "entusiasta",
+        "empatico"
+      ],
+      "default": "professionale",
+      "description": "Mood delle risposte AI alle recensioni"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Configurazione attiva"
+    }
+  },
+  "required": [
+    "response_mood"
+  ]
+}

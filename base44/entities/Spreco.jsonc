@@ -1,0 +1,62 @@
+{
+  "name": "Spreco",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "Reference to Store entity"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome del locale (denormalizzato)"
+    },
+    "data_rilevazione": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e ora della rilevazione spreco"
+    },
+    "prodotto_id": {
+      "type": "string",
+      "description": "ID del prodotto buttato (MateriaPrima o Ricetta)"
+    },
+    "prodotto_nome": {
+      "type": "string",
+      "description": "Nome del prodotto (denormalizzato)"
+    },
+    "tipo_prodotto": {
+      "type": "string",
+      "enum": [
+        "materia_prima",
+        "ricetta",
+        "semilavorato"
+      ],
+      "description": "Tipo di prodotto"
+    },
+    "quantita_grammi": {
+      "type": "number",
+      "description": "Quantit\u00e0 buttata in grammi"
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Motivo dello spreco"
+    },
+    "rilevato_da": {
+      "type": "string",
+      "description": "Email del dipendente che ha rilevato lo spreco"
+    },
+    "costo_unitario": {
+      "type": "number",
+      "description": "Costo unitario del prodotto al momento dello spreco (per calcolo impatto economico)"
+    }
+  },
+  "required": [
+    "store_id",
+    "store_name",
+    "data_rilevazione",
+    "prodotto_id",
+    "prodotto_nome",
+    "tipo_prodotto",
+    "quantita_grammi",
+    "motivo"
+  ]
+}

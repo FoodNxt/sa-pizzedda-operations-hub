@@ -1,0 +1,174 @@
+{
+  "name": "MateriePrime",
+  "type": "object",
+  "properties": {
+    "nome_prodotto": {
+      "type": "string",
+      "description": "Nome del prodotto"
+    },
+    "nome_interno": {
+      "type": "string",
+      "description": "Nome interno per confrontare prodotti equivalenti da fornitori diversi"
+    },
+    "marca": {
+      "type": "string",
+      "description": "Marca del prodotto"
+    },
+    "codice_fornitore": {
+      "type": "string",
+      "description": "Codice prodotto presso il fornitore"
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "Angolo di Sardegna",
+        "Bevande",
+        "Consumabili",
+        "Dolci",
+        "Ingredienti base",
+        "Ingredienti pronti",
+        "Ortofrutta",
+        "Packaging",
+        "Pulizia"
+      ],
+      "description": "Categoria del prodotto"
+    },
+    "unita_misura": {
+      "type": "string",
+      "enum": [
+        "unit\u00e0",
+        "kg",
+        "litri",
+        "grammi",
+        "ml",
+        "pezzi",
+        "sacchi",
+        "confezioni",
+        "barattoli",
+        "bottiglie",
+        "rotoli",
+        "casse"
+      ],
+      "description": "Unit\u00e0 di misura del prodotto"
+    },
+    "quantita_critica": {
+      "type": "number",
+      "description": "Quantit\u00e0 critica - sotto questa soglia \u00e8 necessario ordinare"
+    },
+    "quantita_ordine": {
+      "type": "number",
+      "description": "Quantit\u00e0 da ordinare quando si raggiunge la soglia critica"
+    },
+    "store_specific_quantita_critica": {
+      "type": "object",
+      "description": "Quantit\u00e0 critiche specifiche per locale {store_id: quantita}"
+    },
+    "store_specific_quantita_ordine": {
+      "type": "object",
+      "description": "Quantit\u00e0 ordine specifiche per locale {store_id: quantita}"
+    },
+    "peso_dimensione_unita": {
+      "type": "number",
+      "description": "Peso o dimensione numerica dell'unit\u00e0 (es. 25 per 25kg, 500 per 500g, 1 per 1L)"
+    },
+    "unita_misura_peso": {
+      "type": "string",
+      "enum": [
+        "kg",
+        "g",
+        "litri",
+        "ml"
+      ],
+      "description": "Unit\u00e0 di misura del peso/dimensione (kg, g, litri, ml)"
+    },
+    "unita_per_confezione": {
+      "type": "number",
+      "description": "Numero di unit\u00e0 per cassa/confezione"
+    },
+    "peso_unita_interna": {
+      "type": "number",
+      "description": "Peso di ogni unit\u00e0 interna nella cassa/confezione"
+    },
+    "unita_misura_interna": {
+      "type": "string",
+      "enum": [
+        "kg",
+        "g",
+        "litri",
+        "ml"
+      ],
+      "description": "Unit\u00e0 di misura per ogni unit\u00e0 interna"
+    },
+    "prezzo_unitario": {
+      "type": "number",
+      "description": "Prezzo unitario del prodotto (netto IVA) - ultimo prezzo di acquisto"
+    },
+    "iva_percentuale": {
+      "type": "number",
+      "description": "Percentuale IVA applicata al prodotto (es: 4, 10, 22)"
+    },
+    "fornitore": {
+      "type": "string",
+      "description": "Nome del fornitore principale"
+    },
+    "foto_url": {
+      "type": "string",
+      "description": "URL della foto del prodotto"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive sul prodotto"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se false, il prodotto non viene mostrato nei form"
+    },
+    "posizione": {
+      "type": "string",
+      "enum": [
+        "negozio",
+        "cantina"
+      ],
+      "default": "negozio",
+      "description": "Dove si trova il prodotto: negozio o cantina (default)"
+    },
+    "store_specific_positions": {
+      "type": "object",
+      "description": "Posizioni specifiche per locale {store_id: 'negozio' o 'cantina'}"
+    },
+    "assigned_stores": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista di store_id a cui il prodotto \u00e8 assegnato. Se vuoto = tutti i locali"
+    },
+    "in_uso": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, il prodotto \u00e8 attualmente in uso"
+    },
+    "in_uso_per_store": {
+      "type": "object",
+      "description": "Prodotto in uso per locale specifico {store_id: true/false}"
+    },
+    "trasportabile": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se il prodotto pu\u00f2 essere trasportato tra negozi"
+    },
+    "storage_area_per_store": {
+      "type": "object",
+      "description": "Area di stoccaggio per locale {store_id: area_id}"
+    }
+  },
+  "required": [
+    "nome_prodotto",
+    "nome_interno",
+    "categoria",
+    "unita_misura",
+    "quantita_critica",
+    "quantita_ordine"
+  ]
+}

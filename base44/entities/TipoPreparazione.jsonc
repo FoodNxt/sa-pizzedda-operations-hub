@@ -1,0 +1,47 @@
+{
+  "name": "TipoPreparazione",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome del tipo di preparazione"
+    },
+    "semilavorato_id": {
+      "type": "string",
+      "description": "ID del semilavorato associato (opzionale)"
+    },
+    "semilavorato_nome": {
+      "type": "string",
+      "description": "Nome del semilavorato associato (denormalizzato)"
+    },
+    "mostra_trasporto_store_manager": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se mostrare questa preparazione nella sezione 'Trasporto tra locali' dello store manager"
+    },
+    "store_preparazione_id": {
+      "type": "string",
+      "description": "ID dello store DOVE VIENE PREPARATA questa preparazione (source store)"
+    },
+    "store_preparazione_nome": {
+      "type": "string",
+      "description": "Nome dello store dove viene preparata (denormalizzato)"
+    },
+    "quantita_minima_per_store": {
+      "type": "object",
+      "description": "Quantit\u00e0 minima del semilavorato da mantenere in ogni negozio {store_id: quantita_minima}"
+    },
+    "ordine": {
+      "type": "number",
+      "description": "Ordine di visualizzazione"
+    },
+    "attivo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se il tipo \u00e8 attivo e visibile nel form"
+    }
+  },
+  "required": [
+    "nome"
+  ]
+}

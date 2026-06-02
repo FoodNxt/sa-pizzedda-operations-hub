@@ -1,0 +1,53 @@
+{
+  "name": "CostoUtenze",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store (singolo)"
+    },
+    "store_name": {
+      "type": "string",
+      "description": "Nome dello store (singolo)"
+    },
+    "stores_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista ID dei locali (multipli)"
+    },
+    "stores_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista nomi dei locali (multipli)"
+    },
+    "assegnazione": {
+      "type": "string",
+      "enum": [
+        "singolo",
+        "multipli"
+      ],
+      "default": "singolo",
+      "description": "Se assegnata a un singolo locale o pi\u00f9 locali"
+    },
+    "nome_utenza": {
+      "type": "string",
+      "description": "Nome dell'utenza (es: Luce, Gas, Acqua)"
+    },
+    "costo_mensile_stimato": {
+      "type": "number",
+      "description": "Costo mensile stimato delle utenze in euro"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note aggiuntive"
+    }
+  },
+  "required": [
+    "costo_mensile_stimato",
+    "assegnazione"
+  ]
+}
