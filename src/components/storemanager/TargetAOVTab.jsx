@@ -6,6 +6,7 @@ import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import EmployeeAOVList from "./EmployeeAOVList";
 import EmployeeMonthlyAOV from "./EmployeeMonthlyAOV";
 import EmployeeWeeklyTargetMatrix from "./EmployeeWeeklyTargetMatrix";
+import EmployeeDailyAOV from "./EmployeeDailyAOV";
 import moment from "moment";
 
 const PERIOD_OPTIONS = [
@@ -322,6 +323,9 @@ export default function TargetAOVTab({ stores, readOnly = false, filterStoreIds 
 
       {/* Weekly Target Matrix */}
       <EmployeeWeeklyTargetMatrix revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} selectedMonth={selectedMonth} filterStoreIds={filterStoreIds} />
+
+      {/* Employee Daily AOV */}
+      <EmployeeDailyAOV revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} selectedMonth={selectedMonth} filterStoreIds={filterStoreIds} />
 
       {/* Employee Weekly AOV List */}
       <EmployeeAOVList revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} allTargets={targets} filterStoreIds={filterStoreIds} />
