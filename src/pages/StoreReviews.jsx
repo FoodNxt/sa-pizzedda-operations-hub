@@ -6,6 +6,7 @@ import { Star, Filter, MapPin, TrendingUp, TrendingDown, X, List, Calendar, Spar
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
+import ReviewCountTrend from "../components/reviews/ReviewCountTrend";
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { format, parseISO, isValid, subDays, subMonths, startOfMonth, isAfter, isBefore } from 'date-fns';
@@ -658,6 +659,13 @@ Genera SOLO la risposta, senza introduzioni o spiegazioni.`;
             </div>
           }
         </div>
+
+        {/* Review Count Trend */}
+        <ReviewCountTrend
+          reviews={filteredReviewsByDate}
+          stores={stores}
+          normalizeDateString={normalizeDateString}
+        />
 
         {/* Overall Metrics (when no store selected) */}
         {!selectedStore && overallMetrics.reviewCount > 0 &&
