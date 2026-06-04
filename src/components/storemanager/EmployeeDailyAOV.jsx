@@ -158,8 +158,42 @@ export default function EmployeeDailyAOV({
       };
     }).sort((a, b) => (b.weekAov || 0) - (a.weekAov || 0));
 
-    return { rows: result, empNames: result.map(r => r.name) };
+    return { rows: result, empNames: result.map(r => r.name), target };
   }, [revenueByHour, days, monthStart, monthEnd, filterStoreIds, selectedStore, cassiereSet, cmSet, targetByStore]);
+
+  // Store-level aggregated daily AOV (all orders, not just matched employees)
+  const storeAggRow = useMemo(() => {
+    const storeFilter = selectedStore === "all" ? null : selectedStore;
+    const dayTotals = {}; // date -> { revenue, orders }
+
+    revenueByHour.forEach(r => {
+      if (!r.order_date) return;
+      const d = moment(r.order_date);
+      if (!d.isValid() || !d.isBetween(monthStart, monthEnd, "day", "[]")) return;
+      if (filterStoreIds && !filterStoreIds.includes(r.store_id)) return;
+      if (storeFilter && r.store_id !== storeFilter) return;
+
+      const dateKey = d.format("YYYY-MM-DD");
+      if (!days.includes(dateKey)) return;
+
+      if (!dayTotals[dateKey]) dayTotals[dateKey] = { revenue: 0, orders: 0 };
+      dayTotals[dateKey].revenue += (r.total_revenue || 0);
+      dayTotals[dateKey].orders += (r.total_orders || 0);
+    });
+
+    const dayValues = days.map(date => {
+      const t = dayTotals[date];
+      if (!t || t.orders === 0) return { aov: null, orders: 0 };
+      return { aov: t.revenue / t.orders, orders: Math.round(t.orders) };
+    });
+
+    let totalRev = 0, totalOrd = 0;
+    Object.values(dayTotals).forEach(t => { totalRev += t.revenue; totalOrd += t.orders; });
+    const weekAov = totalOrd > 0 ? totalRev / totalOrd : null;
+    const target = storeFilter ? (targetByStore[storeFilter] || null) : null;
+
+    return { dayValues, weekAov, weekOrders: Math.round(totalOrd), target };
+  }, [revenueByHour, days, monthStart, monthEnd, filterStoreIds, selectedStore, targetByStore]);
 
   if (loadingRevByHour) {
     return (
@@ -229,6 +263,45 @@ export default function EmployeeDailyAOV({
               </tr>
             </thead>
             <tbody>
+              {/* Store aggregated row */}
+              <tr className="border-b-2 border-indigo-200 bg-indigo-50/50">
+                <td className="p-2 text-sm font-bold text-indigo-700 sticky left-0 bg-indigo-50/80 z-10 whitespace-nowrap">
+                  📊 {selectedStore !== "all" ? (storeIdToName[selectedStore] || "Store") : "Tutti i locali"}
+                </td>
+                {storeAggRow.dayValues.map((dv, i) => {
+                  const aboveTarget = storeAggRow.target && dv.aov != null && dv.aov >= storeAggRow.target;
+                  const belowTarget = storeAggRow.target && dv.aov != null && dv.aov < storeAggRow.target;
+                  return (
+                    <td key={i} className="p-2 text-center">
+                      {dv.aov != null ? (
+                        <div>
+                          <span className={`text-sm font-bold ${aboveTarget ? "text-green-700" : belowTarget ? "text-red-600" : "text-indigo-700"}`}>
+                            €{dv.aov.toFixed(2)}
+                          </span>
+                          <span className="block text-[9px] text-slate-400">{dv.orders} ord</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-300 text-xs">—</span>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="p-2 text-center bg-indigo-100/60">
+                  {storeAggRow.weekAov != null ? (
+                    <div>
+                      <span className={`text-sm font-bold ${
+                        storeAggRow.target && storeAggRow.weekAov >= storeAggRow.target ? "text-green-700" :
+                        storeAggRow.target && storeAggRow.weekAov < storeAggRow.target ? "text-red-600" : "text-indigo-700"
+                      }`}>
+                        €{storeAggRow.weekAov.toFixed(2)}
+                      </span>
+                      <span className="block text-[9px] text-slate-400">{storeAggRow.weekOrders} ord</span>
+                    </div>
+                  ) : (
+                    <span className="text-slate-300 text-xs">—</span>
+                  )}
+                </td>
+              </tr>
               {rows.map(row => (
                 <tr key={row.empKey} className="border-b border-slate-100 hover:bg-slate-50">
                   <td className="p-2 text-sm font-medium text-slate-700 sticky left-0 bg-white z-10 whitespace-nowrap">
