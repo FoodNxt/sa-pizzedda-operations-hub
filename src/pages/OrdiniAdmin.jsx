@@ -284,9 +284,8 @@ export default function OrdiniAdmin() {
 
     // PHASE 1: Check all products from inventory readings and apply aggregation
     Object.values(latestByProduct).forEach((reading) => {
-      let product = products.find((p) => p.id === reading.prodotto_id && p.attivo !== false);
-      if (!product) { const orig = products.find((p) => p.id === reading.prodotto_id); if (orig?.nome_interno) product = products.find((p) => p.nome_interno === orig.nome_interno && p.attivo !== false); }
-      if (!product) return;
+      const product = products.find((p) => p.id === reading.prodotto_id);
+      if (!product || product.attivo === false) return;
       const store = stores.find((s) => s.id === reading.store_id);
       if (!store) return;
 
