@@ -35,33 +35,50 @@ export default function ControlloConsumi() {
   });
 
   const { data: prodottiVenduti = [] } = useQuery({
-    queryKey: ['prodotti-venduti'],
-    queryFn: () => base44.entities.ProdottiVenduti.list()
+    queryKey: ['prodotti-venduti', startDate, endDate, selectedStore],
+    queryFn: async () => {
+      const filter = { data_vendita: { $gte: startDate, $lte: endDate } };
+      if (selectedStore !== 'all') filter.store_id = selectedStore;
+      return base44.entities.ProdottiVenduti.filter(filter, '-data_vendita', 5000);
+    }
   });
 
   const { data: ricette = [] } = useQuery({
     queryKey: ['ricette'],
-    queryFn: () => base44.entities.Ricetta.list()
+    queryFn: () => base44.entities.Ricetta.list('-created_date', 500)
   });
 
   const { data: inventari = [] } = useQuery({
-    queryKey: ['inventari'],
-    queryFn: () => base44.entities.RilevazioneInventario.list()
+    queryKey: ['inventari', startDate, endDate, selectedStore],
+    queryFn: async () => {
+      const dayBefore = format(subDays(parseISO(startDate), 1), 'yyyy-MM-dd');
+      const filter = { data_rilevazione: { $gte: dayBefore, $lte: endDate + 'T23:59:59' } };
+      if (selectedStore !== 'all') filter.store_id = selectedStore;
+      return base44.entities.RilevazioneInventario.filter(filter, '-data_rilevazione', 5000);
+    }
   });
 
   const { data: ordini = [] } = useQuery({
-    queryKey: ['ordini'],
-    queryFn: () => base44.entities.OrdineFornitore.list()
+    queryKey: ['ordini', startDate, endDate, selectedStore],
+    queryFn: async () => {
+      const filter = { status: 'completato', data_completamento: { $gte: startDate, $lte: endDate + 'T23:59:59' } };
+      if (selectedStore !== 'all') filter.store_id = selectedStore;
+      return base44.entities.OrdineFornitore.filter(filter, '-data_completamento', 2000);
+    }
   });
 
   const { data: materiePrime = [] } = useQuery({
     queryKey: ['materie-prime'],
-    queryFn: () => base44.entities.MateriePrime.list()
+    queryFn: () => base44.entities.MateriePrime.list('-created_date', 500)
   });
 
   const { data: sprechi = [] } = useQuery({
-    queryKey: ['sprechi'],
-    queryFn: () => base44.entities.Spreco.list()
+    queryKey: ['sprechi', startDate, endDate, selectedStore],
+    queryFn: async () => {
+      const filter = { data_rilevazione: { $gte: startDate, $lte: endDate + 'T23:59:59' } };
+      if (selectedStore !== 'all') filter.store_id = selectedStore;
+      return base44.entities.Spreco.filter(filter, '-data_rilevazione', 2000);
+    }
   });
 
   const { data: users = [] } = useQuery({
@@ -124,43 +141,19 @@ export default function ControlloConsumi() {
     }
   };
 
-  // Filtra per store e date
-  const filteredVendite = prodottiVenduti.filter((v) => {
-    const matchStore = selectedStore === "all" || v.store_id === selectedStore;
-    const matchDate = v.data_vendita >= startDate && v.data_vendita <= endDate;
-    return matchStore && matchDate;
-  });
-
-  const filteredSprechi = sprechi.filter((s) => {
-    const matchStore = selectedStore === "all" || s.store_id === selectedStore;
-    const dataSpreco = s.data_rilevazione.split('T')[0];
-    const matchDate = dataSpreco >= startDate && dataSpreco <= endDate;
-    return matchStore && matchDate;
-  });
+  // Data is already filtered by queries - just use directly
+  const filteredVendite = prodottiVenduti;
+  const filteredSprechi = sprechi;
 
   const filteredInventari = inventari.filter((i) => {
-    const matchStore = selectedStore === "all" || i.store_id === selectedStore;
     const dataRil = i.data_rilevazione.split('T')[0];
-    const matchDate = dataRil >= startDate && dataRil <= endDate;
-    return matchStore && matchDate;
+    return dataRil >= startDate && dataRil <= endDate;
   });
 
-  // Includi anche inventari del giorno precedente al periodo (per quantità iniziale)
-  const allInventari = inventari.filter((i) => {
-    const matchStore = selectedStore === "all" || i.store_id === selectedStore;
-    const dataRil = i.data_rilevazione.split('T')[0];
-    const dayBeforeStart = format(subDays(parseISO(startDate), 1), 'yyyy-MM-dd');
-    const matchDate = dataRil >= dayBeforeStart && dataRil <= endDate;
-    return matchStore && matchDate;
-  });
+  // allInventari includes the day before startDate (already fetched in query)
+  const allInventari = inventari;
 
-  const filteredOrdini = ordini.filter((o) => {
-    const matchStore = selectedStore === "all" || o.store_id === selectedStore;
-    if (!o.data_completamento) return false;
-    const dataCompl = o.data_completamento.split('T')[0];
-    const matchDate = dataCompl >= startDate && dataCompl <= endDate;
-    return matchStore && matchDate;
-  });
+  const filteredOrdini = ordini;
 
   // Organizza inventari per prodotto e data
   const inventariPerProdotto = {};
