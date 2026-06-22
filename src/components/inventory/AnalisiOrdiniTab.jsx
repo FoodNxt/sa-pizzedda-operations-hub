@@ -10,15 +10,39 @@ export default function AnalisiOrdiniTab({ ordiniInviati, ordiniCompletati, sele
   const [selectedProduct, setSelectedProduct] = useState('all');
 
   const now = new Date();
+  const allOrders = [...ordiniInviati, ...ordiniCompletati];
+
+  // Generate available months from order data
+  const availableMonths = React.useMemo(() => {
+    const months = new Set();
+    allOrders.forEach(o => {
+      const date = o.data_invio || o.created_date;
+      if (date) months.add(format(parseISO(date), 'yyyy-MM'));
+    });
+    return Array.from(months).sort().reverse();
+  }, [allOrders]);
+
   let startDate = new Date(0);
+  let endDate = null;
   if (timeRange === 'week') startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   else if (timeRange === 'month') startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   else if (timeRange === '3months') startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
   else if (timeRange === '6months') startDate = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
   else if (timeRange === 'year') startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+  else if (timeRange.startsWith('m_')) {
+    const ym = timeRange.replace('m_', '');
+    startDate = parseISO(ym + '-01');
+    const y = parseInt(ym.split('-')[0]);
+    const m = parseInt(ym.split('-')[1]);
+    endDate = new Date(y, m, 0, 23, 59, 59);
+  }
 
-  const allOrders = [...ordiniInviati, ...ordiniCompletati];
-  let filteredOrders = allOrders.filter(o => new Date(o.data_invio || o.created_date) >= startDate);
+  let filteredOrders = allOrders.filter(o => {
+    const d = new Date(o.data_invio || o.created_date);
+    if (d < startDate) return false;
+    if (endDate && d > endDate) return false;
+    return true;
+  });
   if (selectedStore !== 'all') filteredOrders = filteredOrders.filter(o => o.store_id === selectedStore);
 
   const productNames = new Set();
@@ -78,6 +102,10 @@ export default function AnalisiOrdiniTab({ ordiniInviati, ordiniCompletati, sele
               <option value="6months">Ultimi 6 Mesi</option>
               <option value="year">Ultimo Anno</option>
               <option value="all">Tutto il Periodo</option>
+              {availableMonths.length > 0 && <option disabled>── Mese Specifico ──</option>}
+              {availableMonths.map(m => (
+                <option key={m} value={`m_${m}`}>{format(parseISO(m + '-01'), 'MMMM yyyy', { locale: it })}</option>
+              ))}
             </select>
           </div>
           <div>
