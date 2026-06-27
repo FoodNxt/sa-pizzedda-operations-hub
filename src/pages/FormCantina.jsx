@@ -56,13 +56,29 @@ export default function FormCantina() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: products = [], isLoading: productsLoading } = useQuery({
+  const { data: allCantinaProducts = [], isLoading: productsLoading } = useQuery({
     queryKey: ['materie-prime-cantina'],
     queryFn: async () => {
       const allProducts = await base44.entities.MateriePrime.filter({ attivo: true });
       return allProducts.filter(p => p.posizione === 'cantina');
     },
   });
+
+  // Filter cantina products by in_uso_per_store for selected store
+  const products = React.useMemo(() => {
+    if (!selectedStore) return allCantinaProducts;
+    return allCantinaProducts.filter(p => {
+      if (p.in_uso_per_store && Object.keys(p.in_uso_per_store).length > 0) {
+        if (p.in_uso_per_store[selectedStore] !== true) return false;
+      } else {
+        if (p.in_uso === false) return false;
+      }
+      if (p.assigned_stores && p.assigned_stores.length > 0) {
+        return p.assigned_stores.includes(selectedStore);
+      }
+      return true;
+    });
+  }, [allCantinaProducts, selectedStore]);
 
   const handleQuantityChange = (productId, value) => {
     setQuantities(prev => ({

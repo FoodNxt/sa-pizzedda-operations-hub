@@ -84,8 +84,12 @@ export default function FormInventario() {
     // First filter by store and in_uso status
     const filteredByStore = allProducts.filter(p => {
       // Check if product is "in uso" for this specific store
-      if (p.in_uso_per_store && p.in_uso_per_store[selectedStore] === false) {
-        return false;
+      if (p.in_uso_per_store && Object.keys(p.in_uso_per_store).length > 0) {
+        // If in_uso_per_store is defined, only show if explicitly true for this store
+        if (p.in_uso_per_store[selectedStore] !== true) return false;
+      } else {
+        // Fallback to global in_uso flag
+        if (p.in_uso === false) return false;
       }
       
       // If assigned_stores is defined and not empty, check if store is included

@@ -34,6 +34,13 @@ export default function InventarioStoreManager() {
 
   const prodottiStore = materiePrime.filter(p => {
     if (!selectedStore) return false;
+    if (p.attivo === false) return false;
+    // Check in_uso_per_store
+    if (p.in_uso_per_store && Object.keys(p.in_uso_per_store).length > 0) {
+      if (p.in_uso_per_store[selectedStore] !== true) return false;
+    } else {
+      if (p.in_uso === false) return false;
+    }
     if (p.assigned_stores && p.assigned_stores.length > 0) {
       return p.assigned_stores.includes(selectedStore);
     }
