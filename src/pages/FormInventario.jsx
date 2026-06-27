@@ -29,6 +29,7 @@ export default function FormInventario() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [playingAudio, setPlayingAudio] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -391,15 +392,31 @@ export default function FormInventario() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          const utterance = new SpeechSynthesisUtterance(product.nome_prodotto);
-                          utterance.lang = 'it-IT';
-                          speechSynthesis.cancel();
-                          speechSynthesis.speak(utterance);
+                        disabled={playingAudio === product.id}
+                        onClick={async () => {
+                          setPlayingAudio(product.id);
+                          try {
+                            const { url } = await base44.integrations.Core.GenerateSpeech({
+                              text: product.nome_prodotto,
+                              voice: 'sunny',
+                              language_code: 'it'
+                            });
+                            const audio = new Audio(url);
+                            audio.onended = () => setPlayingAudio(null);
+                            audio.onerror = () => setPlayingAudio(null);
+                            await audio.play();
+                          } catch (e) {
+                            console.error('Audio error:', e);
+                            setPlayingAudio(null);
+                          }
                         }}
                         className="p-2 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors flex-shrink-0"
                       >
-                        <Volume2 className="w-5 h-5" />
+                        {playingAudio === product.id ? (
+                          <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Volume2 className="w-5 h-5" />
+                        )}
                       </button>
                       </div>
 
