@@ -8,7 +8,8 @@ import {
   Save,
   AlertTriangle,
   Store,
-  User
+  User,
+  Volume2
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
@@ -380,14 +381,26 @@ export default function FormInventario() {
                   >
                     <div className="flex flex-col gap-3">
                       <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-slate-800 text-base">{product.nome_prodotto}</h3>
-                          <p className="text-sm text-slate-500">
-                            {product.unita_misura === 'confezioni' || product.unita_misura === 'pacchi' 
-                              ? `${product.unita_misura} chiuse` 
-                              : product.unita_misura}
-                          </p>
-                        </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-slate-800 text-base">{product.nome_prodotto}</h3>
+                        <p className="text-sm text-slate-500">
+                          {product.unita_misura === 'confezioni' || product.unita_misura === 'pacchi' 
+                            ? `${product.unita_misura} chiuse` 
+                            : product.unita_misura}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const utterance = new SpeechSynthesisUtterance(product.nome_prodotto);
+                          utterance.lang = 'it-IT';
+                          speechSynthesis.cancel();
+                          speechSynthesis.speak(utterance);
+                        }}
+                        className="p-2 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors flex-shrink-0"
+                      >
+                        <Volume2 className="w-5 h-5" />
+                      </button>
                       </div>
 
                       <div>
