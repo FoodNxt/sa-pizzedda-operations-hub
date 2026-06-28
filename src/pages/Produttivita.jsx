@@ -31,7 +31,8 @@ export default function Produttivita() {
     produttivitaMensile: true
   });
 
-  // Helper: distribute shift minutes into canonical 30-min slots (aligned to :00 and :30)
+  // Helper: distribute shift minutes into canonical 30-min slots (aligned to :00 and :30).
+  // All output keys are canonical: "HH:00-HH:30" or "HH:30-HH+1:00" for 30min view.
   const distributeShiftToSlots = (oraInizio, oraFine, slotView) => {
     const [startH, startM] = oraInizio.split(':').map(Number);
     const [endH, endM] = oraFine.split(':').map(Number);
