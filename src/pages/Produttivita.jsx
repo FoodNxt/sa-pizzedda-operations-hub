@@ -370,12 +370,19 @@ export default function Produttivita() {
       });
     });
 
+    // Also include slots that have hours worked but no revenue
+    Object.keys(avgHoursPerSlot).forEach((slot) => {
+      if (!aggregation[slot] && avgHoursPerSlot[slot] > 0) {
+        aggregation[slot] = { slot, revenue: 0, count: 1, dates: new Set() };
+      }
+    });
+
     return Object.values(aggregation).
     map((item) => ({
       slot: item.slot,
-      avgRevenue: item.revenue / item.count,
+      avgRevenue: item.count > 0 ? item.revenue / item.count : 0,
       avgHours: avgHoursPerSlot[item.slot] || 0,
-      revenuePerHour: (avgHoursPerSlot[item.slot] || 0) > 0 ? (item.revenue / item.count) / (avgHoursPerSlot[item.slot]) : 0
+      revenuePerHour: (avgHoursPerSlot[item.slot] || 0) > 0 ? (item.count > 0 ? item.revenue / item.count : 0) / (avgHoursPerSlot[item.slot]) : 0
     })).
     sort((a, b) => a.slot.localeCompare(b.slot));
   }, [filteredData, timeSlotView, filteredShifts, selectedStore, selectedDayOfWeek, dateRange, startDate, endDate]);
@@ -558,16 +565,46 @@ export default function Produttivita() {
       });
     });
 
+    // Collect all unique slots from BOTH revenue and hours data
+    const allUniqueSlots = new Set();
+    Object.keys(daySlotMap).forEach((k) => allUniqueSlots.add(k.split('|')[1]));
+    daysOfWeek.forEach((day) => {
+      Object.keys(avgHoursByDayOfWeek[day] || {}).forEach((slot) => {
+        // For 1hour view, revenue keys are already "HH:00", hours keys too
+        // For 30min view, both are "HH:MM-HH:MM"
+        allUniqueSlots.add(slot);
+      });
+    });
+
+    // Also: for 1hour view, ensure we include hours-only slots mapped to their hour key
+    // (hours are already keyed by timeSlotView format from the loop above)
+
+    // Count how many days each day-of-week has data (revenue OR hours) to compute proper averages
+    const dayOfWeekDateCounts = {};
+    filteredData.forEach((record) => {
+      const date = parseISO(record.date);
+      const dayIndex = date.getDay();
+      const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+      const dayName = daysOfWeek[adjustedIndex];
+      if (!dayOfWeekDateCounts[dayName]) dayOfWeekDateCounts[dayName] = new Set();
+      dayOfWeekDateCounts[dayName].add(record.date);
+    });
+
     // Convert to structured format with metadata
     const result = daysOfWeek.map((day) => {
       const dayData = { day, metadata: {} };
-      Object.keys(daySlotMap).
-      filter((k) => k.startsWith(day + '|')).
-      forEach((k) => {
-        const slot = k.split('|')[1];
-        const data = daySlotMap[k];
-        const avgRevenue = data.revenue / data.count;
+      
+      // Process all unique slots
+      allUniqueSlots.forEach((slot) => {
+        const mapKey = `${day}|${slot}`;
+        const revenueData = daySlotMap[mapKey];
         const avgHours = avgHoursByDayOfWeek[day]?.[slot] || 0;
+        
+        // Skip slot if NEITHER revenue NOR hours exist for this day
+        if (!revenueData && avgHours === 0) return;
+        
+        const avgRevenue = revenueData ? revenueData.revenue / revenueData.count : 0;
+        const count = revenueData ? revenueData.count : (dayOfWeekDateCounts[day]?.size || 1);
         const productivity = avgHours > 0 ? avgRevenue / avgHours : 0;
 
         dayData[slot] = productivity;
@@ -575,9 +612,10 @@ export default function Produttivita() {
           avgRevenue,
           avgHours,
           productivity,
-          count: data.count
+          count
         };
       });
+      
       return dayData;
     });
 
@@ -1096,7 +1134,7 @@ export default function Produttivita() {
 
                               {value > 0 ? 
                                 heatmapMode === 'hours' ? `${value.toFixed(1)}h` : `€${value.toFixed(0)}` 
-                                : '-'}
+                                : (metadata ? '€0' : '-')}
                             </td>);
 
                       })}
