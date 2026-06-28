@@ -31,6 +31,44 @@ export default function Produttivita() {
     produttivitaMensile: true
   });
 
+  // Helper: distribute shift minutes into canonical 30-min slots (aligned to :00 and :30)
+  const distributeShiftToSlots = (oraInizio, oraFine, slotView) => {
+    const [startH, startM] = oraInizio.split(':').map(Number);
+    const [endH, endM] = oraFine.split(':').map(Number);
+    const startTotal = startH * 60 + startM;
+    const endTotal = endH * 60 + endM;
+    if (endTotal <= startTotal) return {};
+
+    const slots = {};
+    // Walk through canonical 30-min boundaries that overlap with the shift
+    const firstSlotStart = Math.floor(startTotal / 30) * 30;
+    
+    for (let slotStart = firstSlotStart; slotStart < endTotal; slotStart += 30) {
+      const slotEnd = slotStart + 30;
+      const overlapStart = Math.max(startTotal, slotStart);
+      const overlapEnd = Math.min(endTotal, slotEnd);
+      if (overlapEnd <= overlapStart) continue;
+
+      const minutesInSlot = overlapEnd - overlapStart;
+      const hoursInSlot = minutesInSlot / 60;
+
+      const h = Math.floor(slotStart / 60);
+      const m = slotStart % 60;
+
+      let key;
+      if (slotView === '1hour') {
+        key = `${String(h).padStart(2, '0')}:00`;
+      } else {
+        const endSlotH = Math.floor(slotEnd / 60);
+        const endSlotM = slotEnd % 60;
+        key = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(endSlotH).padStart(2, '0')}:${String(endSlotM).padStart(2, '0')}`;
+      }
+
+      slots[key] = (slots[key] || 0) + hoursInSlot;
+    }
+    return slots;
+  };
+
   const { data: stores = [] } = useQuery({
     queryKey: ['stores'],
     queryFn: () => base44.entities.Store.list(),
@@ -202,27 +240,13 @@ export default function Produttivita() {
         slotDataByDay[shiftDate] = {};
       }
 
-      const startTime = shift.ora_inizio;
-      const endTime = shift.ora_fine;
-
-      const [startHour, startMin] = startTime.split(':').map(Number);
-      const [endHour, endMin] = endTime.split(':').map(Number);
-
-      let currentMin = startHour * 60 + startMin;
-      const endMinTotal = endHour * 60 + endMin;
-
-      while (currentMin < endMinTotal) {
-        const h = Math.floor(currentMin / 60);
-        const m = currentMin % 60;
-        const slot = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
-
+      const shiftSlots = distributeShiftToSlots(shift.ora_inizio, shift.ora_fine, '30min');
+      Object.entries(shiftSlots).forEach(([slot, hours]) => {
         if (!slotDataByDay[shiftDate][slot]) {
           slotDataByDay[shiftDate][slot] = 0;
         }
-        slotDataByDay[shiftDate][slot] += 0.5; // 30 minutes = 0.5 hours
-
-        currentMin += 30;
-      }
+        slotDataByDay[shiftDate][slot] += hours;
+      });
     });
 
     // Calculate average hours per day for each slot
@@ -304,30 +328,13 @@ export default function Produttivita() {
         slotDataByDay[shiftDate] = {};
       }
 
-      const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
-      const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
-
-      let currentMin = startHour * 60 + startMin;
-      const endMinTotal = endHour * 60 + endMin;
-
-      while (currentMin < endMinTotal) {
-        const h = Math.floor(currentMin / 60);
-        const m = currentMin % 60;
-        
-        let key;
-        if (timeSlotView === '1hour') {
-          key = `${String(h).padStart(2, '0')}:00`;
-        } else {
-          key = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
-        }
-
+      const shiftSlots = distributeShiftToSlots(shift.ora_inizio, shift.ora_fine, timeSlotView);
+      Object.entries(shiftSlots).forEach(([key, hours]) => {
         if (!slotDataByDay[shiftDate][key]) {
           slotDataByDay[shiftDate][key] = 0;
         }
-        slotDataByDay[shiftDate][key] += 0.5;
-
-        currentMin += 30;
-      }
+        slotDataByDay[shiftDate][key] += hours;
+      });
     });
 
     // Calculate average hours per slot
@@ -400,24 +407,13 @@ export default function Produttivita() {
       if (!shift.ora_inizio || !shift.ora_fine) return;
       if (selectedStore !== 'all' && shift.store_id !== selectedStore) return;
 
-      const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
-      const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
-
-      let currentMin = startHour * 60 + startMin;
-      const endMinTotal = endHour * 60 + endMin;
-
-      while (currentMin < endMinTotal) {
-        const h = Math.floor(currentMin / 60);
-        const m = currentMin % 60;
-        const slot = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
-
+      const shiftSlots = distributeShiftToSlots(shift.ora_inizio, shift.ora_fine, '30min');
+      Object.entries(shiftSlots).forEach(([slot, hours]) => {
         if (!dayHoursSlot[slot]) {
           dayHoursSlot[slot] = 0;
         }
-        dayHoursSlot[slot] += 0.5;
-
-        currentMin += 30;
-      }
+        dayHoursSlot[slot] += hours;
+      });
     });
 
     const data = Object.entries(dayData.slots).
@@ -492,28 +488,9 @@ export default function Produttivita() {
         hoursDataByDayOfWeek[dayName] = {};
       }
 
-      const [startHour, startMin] = shift.ora_inizio.split(':').map(Number);
-      const [endHour, endMin] = shift.ora_fine.split(':').map(Number);
-
-      let currentMin = startHour * 60 + startMin;
-      const endMinTotal = endHour * 60 + endMin;
-
-      // Traccia quali slot sono coperti per questo shift in questo giorno
       const shiftDate = shift.data;
-      const dayKey = `${dayName}_${shiftDate}`;
-
-      while (currentMin < endMinTotal) {
-        const h = Math.floor(currentMin / 60);
-        
-        let key;
-        if (timeSlotView === '1hour') {
-          key = `${String(h).padStart(2, '0')}:00`;
-        } else {
-          const m = currentMin % 60;
-          key = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}-${String(Math.floor((currentMin + 30) / 60)).padStart(2, '0')}:${String((currentMin + 30) % 60).padStart(2, '0')}`;
-        }
-
-        const slotDayKey = `${dayName}_${key}_${shiftDate}`;
+      const shiftSlots = distributeShiftToSlots(shift.ora_inizio, shift.ora_fine, timeSlotView);
+      Object.entries(shiftSlots).forEach(([key, hours]) => {
         if (!hoursDataByDayOfWeek[dayName][key]) {
           hoursDataByDayOfWeek[dayName][key] = { hoursByDay: {}, totalDays: new Set() };
         }
@@ -521,11 +498,9 @@ export default function Produttivita() {
         if (!hoursDataByDayOfWeek[dayName][key].hoursByDay[shiftDate]) {
           hoursDataByDayOfWeek[dayName][key].hoursByDay[shiftDate] = 0;
         }
-        hoursDataByDayOfWeek[dayName][key].hoursByDay[shiftDate] += 0.5;
+        hoursDataByDayOfWeek[dayName][key].hoursByDay[shiftDate] += hours;
         hoursDataByDayOfWeek[dayName][key].totalDays.add(shiftDate);
-
-        currentMin += 30;
-      }
+      });
     });
 
     // Calculate average hours per slot per day of week
