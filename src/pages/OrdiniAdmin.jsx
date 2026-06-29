@@ -81,18 +81,16 @@ export default function OrdiniAdmin() {
   });
 
   const { data: inventory = [] } = useQuery({
-    queryKey: ['rilevazione-inventario', 'ordini-full'],
-    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 5000)
+    queryKey: ['rilevazione-inventario-ordini'],
+    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 5000), staleTime: 0
   });
-
   const { data: inventoryCantina = [] } = useQuery({
-    queryKey: ['rilevazione-inventario-cantina', 'ordini-full'],
-    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 5000)
+    queryKey: ['rilevazione-inventario-cantina-ordini'],
+    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 5000), staleTime: 0
   });
-
   const { data: products = [] } = useQuery({
-    queryKey: ['materie-prime'],
-    queryFn: () => base44.entities.MateriePrime.list()
+    queryKey: ['materie-prime-ordini'],
+    queryFn: () => base44.entities.MateriePrime.list('-created_date', 500), staleTime: 0
   });
 
   const { data: fornitori = [] } = useQuery({
