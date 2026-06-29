@@ -82,12 +82,12 @@ export default function OrdiniAdmin() {
 
   const { data: inventory = [] } = useQuery({
     queryKey: ['rilevazione-inventario'],
-    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 500)
+    queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 5000)
   });
 
   const { data: inventoryCantina = [] } = useQuery({
     queryKey: ['rilevazione-inventario-cantina'],
-    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 500)
+    queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 5000)
   });
 
   const { data: products = [] } = useQuery({
