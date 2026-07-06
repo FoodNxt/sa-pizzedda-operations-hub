@@ -369,11 +369,26 @@ export default function ImpastoConfigTab() {
           <p className="text-slate-500 text-center py-8">Nessuna quantità extra configurata</p>
         )}
 
-        <div className="mt-4 p-3 bg-blue-50 rounded-xl">
-          <p className="text-xs text-blue-800 flex items-start gap-1.5">
-            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span>Le palline extra vengono aggiunte all'impasto suggerito solo quando il calcolo viene fatto nel giorno specifico indicato. Es. se imposti +25 per il 25 aprile, il 25 aprile l'impasto suggerito sarà il calcolo standard + 25 palline. Se "Ignora limite massimo" è attivo, il limite max da Impostazioni non viene applicato.</span>
-          </p>
+        <div className="mt-4 p-4 bg-blue-50 rounded-xl space-y-3">
+          <div className="flex items-start gap-2">
+            <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-blue-800">
+              <p className="font-medium mb-2">Come funziona</p>
+              <p className="mb-2">
+                Le palline extra vengono aggiunte all'impasto suggerito <strong>solo quando il calcolo viene fatto nel giorno indicato</strong>.
+                Es. se imposti +25 per il 10 luglio, il 10 luglio l'impasto suggerito sarà il calcolo standard + 25 palline.
+              </p>
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg mb-2">
+                <p className="font-bold text-yellow-800 mb-1">⚠️ Data = giorno in cui fai l'impasto, NON il giorno dell'evento!</p>
+                <p className="text-yellow-700">
+                  L'impasto viene fatto <strong>2 giorni prima</strong> dell'evento. Se hai un evento il <strong>12 luglio</strong>, devi impostare la data al <strong>10 luglio</strong> (il giorno in cui il pizzaiolo farà l'impasto extra).
+                </p>
+              </div>
+              <p>
+                Se <strong>"Ignora limite massimo"</strong> è attivo, il limite max da Impostazioni non viene applicato per quella data.
+              </p>
+            </div>
+          </div>
         </div>
       </NeumorphicCard>
     </div>
