@@ -133,11 +133,19 @@ Deno.serve(async (req) => {
 </body>
 </html>`;
 
-    // Send to all admin users
-    const users = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
-    const adminEmails = users.map(u => u.email).filter(Boolean);
+    // Destinatari: admin + store manager degli store mancanti
+    const users = await base44.asServiceRole.entities.User.list();
+    const smEmails = storesMancanti
+      .filter(s => s.store_manager_id)
+      .map(s => {
+        const sm = users.find(u => u.id === s.store_manager_id);
+        return sm?.email;
+      })
+      .filter(Boolean);
 
-    for (const email of adminEmails) {
+    const allRecipients = [...new Set(['admin@sapizzedda.it', ...smEmails])];
+
+    for (const email of allRecipients) {
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: email,
@@ -153,7 +161,7 @@ Deno.serve(async (req) => {
       message: `Notifica inviata. ${storesMancanti.length} locali senza inventario ieri (${ieriStr}).`,
       missing: storesMancanti.map(s => s.name),
       completed: storesFatti.map(s => s.name),
-      notifiedAdmins: adminEmails
+      notifiedTo: allRecipients
     });
   } catch (error) {
     console.error('Errore check inventario:', error);

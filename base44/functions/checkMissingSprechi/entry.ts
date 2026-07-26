@@ -60,8 +60,18 @@ Deno.serve(async (req) => {
       </div>
     `;
 
-    const to = 'admin@sapizzedda.it';
-    const uniqueRecipients = [to];
+    // Destinatari: admin + store manager degli store mancanti
+    const users = await base44.asServiceRole.entities.User.list();
+    const smEmails = storeMancanti
+      .filter(s => s.store_manager_id)
+      .map(s => {
+        const sm = users.find(u => u.id === s.store_manager_id);
+        return sm?.email;
+      })
+      .filter(Boolean);
+
+    const uniqueRecipients = [...new Set(['admin@sapizzedda.it', ...smEmails])];
+    const to = uniqueRecipients.join(', ');
 
     const mimeMessage = [
       `To: ${to}`,
