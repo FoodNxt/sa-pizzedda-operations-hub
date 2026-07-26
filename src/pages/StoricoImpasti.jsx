@@ -17,6 +17,7 @@ export default function StoricoImpasti() {
   const [dateRange, setDateRange] = useState('week');
   const [showIngredientForm, setShowIngredientForm] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState(null);
+  const [ricettaTab, setRicettaTab] = useState('farina_semola');
   const [ingredientForm, setIngredientForm] = useState({
     nome_ingrediente: '',
     quantita_per_pallina: '',
@@ -66,7 +67,12 @@ export default function StoricoImpasti() {
     }
   });
 
-  const sortedIngredienti = [...ricettaIngredienti].filter((i) => i.attivo !== false).sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+  const globalConfig = impastiConfig.find(c => c.is_active && !c.store_id);
+  const ricettaDefault = globalConfig?.ricetta_default || 'farina_semola';
+
+  const sortedIngredienti = [...ricettaIngredienti]
+    .filter((i) => i.attivo !== false && (i.tipo_ricetta || 'farina_semola') === ricettaTab)
+    .sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
 
   const createIngredientMutation = useMutation({
     mutationFn: (data) => base44.entities.RicettaImpasto.create(data),
@@ -112,13 +118,26 @@ export default function StoricoImpasti() {
     setShowIngredientForm(false);
   };
 
+  const updateDefaultRicettaMutation = useMutation({
+    mutationFn: async (tipo) => {
+      const gConfig = impastiConfig.find(c => c.is_active && !c.store_id);
+      if (gConfig) {
+        await base44.entities.ImpastiConfig.update(gConfig.id, { ricetta_default: tipo });
+      } else {
+        await base44.entities.ImpastiConfig.create({ is_active: true, ricetta_default: tipo });
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['impasti-config'] }),
+  });
+
   const handleSaveIngredient = () => {
     const data = {
       ...ingredientForm,
       quantita_per_pallina: parseFloat(ingredientForm.quantita_per_pallina),
       ordine: parseInt(ingredientForm.ordine) || 0,
       arrotondamento: ingredientForm.arrotondamento || 'nessuno',
-      attivo: true
+      attivo: true,
+      tipo_ricetta: ricettaTab
     };
     if (editingIngredient) {
       updateIngredientMutation.mutate({ id: editingIngredient.id, data });
@@ -291,25 +310,67 @@ export default function StoricoImpasti() {
 
         {/* Tab Ricetta */}
         {activeTab === 'ricetta' &&
-        <NeumorphicCard className="p-6">
+        <>
+          {/* Default selector */}
+          <NeumorphicCard className="p-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <p className="text-sm font-medium text-slate-700">Ricetta di default per il calcolo:</p>
+              <div className="flex gap-2">
+                {[{ key: 'farina_semola', label: 'Farina + Semola' }, { key: 'solo_farina', label: 'Solo Farina' }].map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => updateDefaultRicettaMutation.mutate(opt.key)}
+                    disabled={updateDefaultRicettaMutation.isPending}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      ricettaDefault === opt.key
+                        ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg'
+                        : 'neumorphic-flat text-slate-600'
+                    }`}
+                  >
+                    {ricettaDefault === opt.key ? '✓ ' : ''}{opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </NeumorphicCard>
+
+          {/* Ricetta sub-tabs */}
+          <div className="flex gap-2 flex-wrap">
+            {[{ key: 'farina_semola', label: 'Farina + Semola' }, { key: 'solo_farina', label: 'Solo Farina' }].map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => { setRicettaTab(opt.key); resetIngredientForm(); }}
+                className={`px-5 py-2.5 rounded-xl font-medium transition-all text-sm ${
+                  ricettaTab === opt.key
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                    : 'neumorphic-flat text-slate-700'
+                }`}
+              >
+                {opt.label}
+                {ricettaDefault === opt.key && <span className="ml-1 text-xs opacity-75">(default)</span>}
+              </button>
+            ))}
+          </div>
+
+          <NeumorphicCard className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Ricetta per 1 Pallina</h2>
+                <h2 className="text-xl font-bold text-slate-800">
+                  Ricetta: {ricettaTab === 'farina_semola' ? 'Farina + Semola' : 'Solo Farina'}
+                </h2>
                 <p className="text-sm text-slate-500 mt-1">Definisci gli ingredienti e le quantità per ogni pallina di impasto</p>
               </div>
               <div className="flex gap-2">
                 <NeumorphicButton
-                onClick={() => setShowSettingsModal(true)}
-                className="flex items-center gap-2">
-
+                  onClick={() => setShowSettingsModal(true)}
+                  className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
                   Impostazioni
                 </NeumorphicButton>
                 <NeumorphicButton
-                onClick={() => setShowIngredientForm(true)}
-                variant="primary"
-                className="flex items-center gap-2">
-
+                  onClick={() => setShowIngredientForm(true)}
+                  variant="primary"
+                  className="flex items-center gap-2">
                   <Plus className="w-4 h-4" />
                   Aggiungi Ingrediente
                 </NeumorphicButton>
@@ -317,7 +378,7 @@ export default function StoricoImpasti() {
             </div>
 
             {showIngredientForm &&
-          <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+              <div className="neumorphic-pressed p-4 rounded-xl mb-4">
                 <h3 className="font-bold text-slate-700 mb-3">
                   {editingIngredient ? 'Modifica Ingrediente' : 'Nuovo Ingrediente'}
                 </h3>
@@ -325,31 +386,28 @@ export default function StoricoImpasti() {
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Nome Ingrediente</label>
                     <input
-                  type="text"
-                  value={ingredientForm.nome_ingrediente}
-                  onChange={(e) => setIngredientForm({ ...ingredientForm, nome_ingrediente: e.target.value })}
-                  className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
-                  placeholder="es. Farina 00" />
-
+                      type="text"
+                      value={ingredientForm.nome_ingrediente}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, nome_ingrediente: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="es. Farina 00" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Quantità per Pallina</label>
                     <input
-                  type="number"
-                  step="0.01"
-                  value={ingredientForm.quantita_per_pallina}
-                  onChange={(e) => setIngredientForm({ ...ingredientForm, quantita_per_pallina: e.target.value })}
-                  className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
-                  placeholder="es. 150" />
-
+                      type="number"
+                      step="0.01"
+                      value={ingredientForm.quantita_per_pallina}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, quantita_per_pallina: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="es. 150" />
                   </div>
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Unità di Misura</label>
                     <select
-                  value={ingredientForm.unita_misura}
-                  onChange={(e) => setIngredientForm({ ...ingredientForm, unita_misura: e.target.value })}
-                  className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none">
-
+                      value={ingredientForm.unita_misura}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, unita_misura: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none">
                       <option value="g">grammi (g)</option>
                       <option value="kg">kg</option>
                       <option value="ml">ml</option>
@@ -360,10 +418,9 @@ export default function StoricoImpasti() {
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Arrotondamento</label>
                     <select
-                  value={ingredientForm.arrotondamento}
-                  onChange={(e) => setIngredientForm({ ...ingredientForm, arrotondamento: e.target.value })}
-                  className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none">
-
+                      value={ingredientForm.arrotondamento}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, arrotondamento: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none">
                       <option value="nessuno">Nessuno</option>
                       <option value="intero">Intero (↑)</option>
                       <option value="decine">Decine (↑)</option>
@@ -373,35 +430,33 @@ export default function StoricoImpasti() {
                   <div>
                     <label className="text-sm font-medium text-slate-700 mb-1 block">Ordine</label>
                     <input
-                  type="number"
-                  value={ingredientForm.ordine}
-                  onChange={(e) => setIngredientForm({ ...ingredientForm, ordine: e.target.value })}
-                  className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
-                  placeholder="0" />
-
+                      type="number"
+                      value={ingredientForm.ordine}
+                      onChange={(e) => setIngredientForm({ ...ingredientForm, ordine: e.target.value })}
+                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      placeholder="0" />
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">
                   <NeumorphicButton onClick={resetIngredientForm}>Annulla</NeumorphicButton>
                   <NeumorphicButton
-                onClick={handleSaveIngredient}
-                variant="primary"
-                disabled={!ingredientForm.nome_ingrediente || !ingredientForm.quantita_per_pallina}>
-
+                    onClick={handleSaveIngredient}
+                    variant="primary"
+                    disabled={!ingredientForm.nome_ingrediente || !ingredientForm.quantita_per_pallina}>
                     <Save className="w-4 h-4 inline mr-1" /> Salva
                   </NeumorphicButton>
                 </div>
               </div>
-          }
+            }
 
             {sortedIngredienti.length === 0 ?
-          <div className="text-center py-12">
+              <div className="text-center py-12">
                 <ChefHat className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500">Nessun ingrediente configurato</p>
+                <p className="text-slate-500">Nessun ingrediente configurato per questa ricetta</p>
                 <p className="text-sm text-slate-400 mt-1">Clicca "Aggiungi Ingrediente" per iniziare</p>
               </div> :
 
-          <div className="space-y-2">
+              <div className="space-y-2">
                 <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-slate-500 border-b border-slate-200">
                   <div className="col-span-1">#</div>
                   <div className="col-span-4">Ingrediente</div>
@@ -410,7 +465,7 @@ export default function StoricoImpasti() {
                   <div className="col-span-2 text-right">Azioni</div>
                 </div>
                 {sortedIngredienti.map((ing, idx) =>
-            <div key={ing.id} className="neumorphic-pressed p-3 rounded-xl grid grid-cols-12 gap-2 items-center">
+                  <div key={ing.id} className="neumorphic-pressed p-3 rounded-xl grid grid-cols-12 gap-2 items-center">
                     <div className="col-span-1 text-slate-400 text-sm">{idx + 1}</div>
                     <div className="col-span-4">
                       <p className="font-medium text-slate-800">{ing.nome_ingrediente}</p>
@@ -421,37 +476,34 @@ export default function StoricoImpasti() {
                     </div>
                     <div className="col-span-3 text-center">
                       <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                ing.arrotondamento === 'nessuno' || !ing.arrotondamento ?
-                'bg-slate-100 text-slate-600' :
-                'bg-blue-100 text-blue-700'}`
-                }>
+                        ing.arrotondamento === 'nessuno' || !ing.arrotondamento ?
+                        'bg-slate-100 text-slate-600' :
+                        'bg-blue-100 text-blue-700'}`}>
                         {ing.arrotondamento === 'intero' ? '↑ Intero' :
-                  ing.arrotondamento === 'decine' ? '↑ Decine' :
-                  ing.arrotondamento === 'centinaia' ? '↑ Centinaia' : 'Nessuno'}
+                          ing.arrotondamento === 'decine' ? '↑ Decine' :
+                          ing.arrotondamento === 'centinaia' ? '↑ Centinaia' : 'Nessuno'}
                       </span>
                     </div>
                     <div className="col-span-2 flex gap-1 justify-end">
                       <button
-                  onClick={() => handleEditIngredient(ing)}
-                  className="nav-button p-2 rounded-lg hover:bg-blue-50">
-
+                        onClick={() => handleEditIngredient(ing)}
+                        className="nav-button p-2 rounded-lg hover:bg-blue-50">
                         <Edit className="w-4 h-4 text-blue-600" />
                       </button>
                       <button
-                  onClick={() => {
-                    if (confirm('Eliminare questo ingrediente?')) {
-                      deleteIngredientMutation.mutate(ing.id);
-                    }
-                  }}
-                  className="nav-button p-2 rounded-lg hover:bg-red-50">
-
+                        onClick={() => {
+                          if (confirm('Eliminare questo ingrediente?')) {
+                            deleteIngredientMutation.mutate(ing.id);
+                          }
+                        }}
+                        className="nav-button p-2 rounded-lg hover:bg-red-50">
                         <Trash2 className="w-4 h-4 text-red-600" />
                       </button>
                     </div>
                   </div>
-            )}
+                )}
               </div>
-          }
+            }
 
             <div className="mt-6 p-4 bg-blue-50 rounded-xl">
               <p className="text-sm text-blue-800">
@@ -461,6 +513,7 @@ export default function StoricoImpasti() {
               </p>
             </div>
           </NeumorphicCard>
+        </>
         }
 
         {/* Modal Impostazioni */}
