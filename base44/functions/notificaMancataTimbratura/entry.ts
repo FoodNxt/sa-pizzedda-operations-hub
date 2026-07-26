@@ -68,15 +68,16 @@ Deno.serve(async (req) => {
         </div>
       `;
 
-      // Trova email dello store manager di questo locale specifico
-      const store = stores.find(s => s.id === turno.store_id);
-      const storeManagerEmails = [];
-      if (store && store.store_manager_id) {
-        const sm = users.find(u => u.id === store.store_manager_id);
-        if (sm && sm.email) storeManagerEmails.push(sm.email);
-      }
+      // Trova email di TUTTI gli store manager (a prescindere dal locale)
+      const storeManagerEmails = stores
+        .filter(s => s.store_manager_id)
+        .map(s => {
+          const sm = users.find(u => u.id === s.store_manager_id);
+          return sm?.email;
+        })
+        .filter(Boolean);
 
-      // Invia solo a admin, info e store manager del locale
+      // Invia a admin, info e tutti gli store manager
       const recipients = ['admin@sapizzedda.it', 'info@sapizzedda.it', ...storeManagerEmails];
       const uniqueRecipients = [...new Set(recipients)];
       const to = uniqueRecipients.join(', ');
