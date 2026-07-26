@@ -41,6 +41,15 @@
       "type": "boolean",
       "default": true,
       "description": "Se l'ingrediente \u00e8 attivo"
+    },
+    "tipo_ricetta": {
+      "type": "string",
+      "enum": [
+        "farina_semola",
+        "solo_farina"
+      ],
+      "default": "farina_semola",
+      "description": "Tipo di ricetta: Farina + Semola oppure Solo Farina"
     }
   },
   "required": [

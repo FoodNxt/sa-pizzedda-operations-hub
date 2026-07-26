@@ -25,6 +25,15 @@
       "type": "boolean",
       "default": true,
       "description": "Se questa configurazione \u00e8 attiva"
+    },
+    "ricetta_default": {
+      "type": "string",
+      "enum": [
+        "farina_semola",
+        "solo_farina"
+      ],
+      "default": "farina_semola",
+      "description": "Tipo di ricetta usata di default nel calcolo impasto"
     }
   },
   "required": []

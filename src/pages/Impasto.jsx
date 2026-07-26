@@ -71,7 +71,13 @@ export default function Impasto() {
     }
   }, [preselectedStoreId, selectedStore]);
 
-  const sortedIngredienti = [...ricettaIngredienti].filter(i => i.attivo !== false).sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+  // Filtra ingredienti per tipo ricetta
+  const globalConfig = impastiConfig.find(c => c.is_active && !c.store_id);
+  const ricettaDefault = globalConfig?.ricetta_default || 'farina_semola';
+
+  const sortedIngredienti = [...ricettaIngredienti]
+    .filter(i => i.attivo !== false && (i.tipo_ricetta || 'farina_semola') === ricettaDefault)
+    .sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
 
   const createIngredientMutation = useMutation({
     mutationFn: (data) => base44.entities.RicettaImpasto.create(data),
