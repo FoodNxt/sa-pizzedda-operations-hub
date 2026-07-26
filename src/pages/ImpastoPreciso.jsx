@@ -14,14 +14,24 @@ export default function ImpastoPreciso() {
   const redirectTo = urlParams.get("redirect");
 
   const [numeroPalline, setNumeroPalline] = useState("");
+  const [tipoRicetta, setTipoRicetta] = useState(null);
 
   const { data: ricettaIngredienti = [] } = useQuery({
     queryKey: ["ricetta-impasto"],
     queryFn: () => base44.entities.RicettaImpasto.list(),
   });
 
+  const { data: impastiConfig = [] } = useQuery({
+    queryKey: ["impasti-config"],
+    queryFn: () => base44.entities.ImpastiConfig.list(),
+  });
+
+  const globalConfig = impastiConfig.find(c => c.is_active && !c.store_id);
+  const ricettaDefault = globalConfig?.ricetta_default || 'farina_semola';
+  const selectedRicetta = tipoRicetta || ricettaDefault;
+
   const sortedIngredienti = [...ricettaIngredienti]
-    .filter((i) => i.attivo !== false)
+    .filter((i) => i.attivo !== false && (i.tipo_ricetta || 'farina_semola') === selectedRicetta)
     .sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
 
   const ingredientiCalcolati = useMemo(() => {
@@ -78,6 +88,27 @@ export default function ImpastoPreciso() {
       </div>
 
       <NeumorphicCard className="p-6 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Tipo di ricetta
+          </label>
+          <div className="flex gap-2">
+            {[{ key: 'farina_semola', label: 'Farina + Semola' }, { key: 'solo_farina', label: 'Solo Farina' }].map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setTipoRicetta(opt.key)}
+                className={`px-4 py-2.5 rounded-xl font-medium transition-all text-sm ${
+                  selectedRicetta === opt.key
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                    : 'neumorphic-flat text-slate-700'
+                }`}
+              >
+                {opt.label}
+                {ricettaDefault === opt.key && <span className="ml-1 text-xs opacity-75">(default)</span>}
+              </button>
+            ))}
+          </div>
+        </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             Quante palline vuoi fare?

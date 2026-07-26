@@ -25,6 +25,7 @@ export default function Impasto() {
   const [calcoloConfermato, setCalcoloConfermato] = useState(false);
   const [showIngredientForm, setShowIngredientForm] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState(null);
+  const [ricettaTab, setRicettaTab] = useState('farina_semola');
   const [ingredientForm, setIngredientForm] = useState({
     nome_ingrediente: '',
     quantita_per_pallina: '',
@@ -108,12 +109,25 @@ export default function Impasto() {
     setShowIngredientForm(false);
   };
 
+  const updateDefaultRicettaMutation = useMutation({
+    mutationFn: async (tipo) => {
+      const gConfig = impastiConfig.find(c => c.is_active && !c.store_id);
+      if (gConfig) {
+        await base44.entities.ImpastiConfig.update(gConfig.id, { ricetta_default: tipo });
+      } else {
+        await base44.entities.ImpastiConfig.create({ is_active: true, ricetta_default: tipo });
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['impasti-config'] }),
+  });
+
   const handleSaveIngredient = () => {
     const data = {
       ...ingredientForm,
       quantita_per_pallina: parseFloat(ingredientForm.quantita_per_pallina),
       ordine: parseInt(ingredientForm.ordine) || 0,
-      attivo: true
+      attivo: true,
+      tipo_ricetta: ricettaTab
     };
     if (editingIngredient) {
       updateIngredientMutation.mutate({ id: editingIngredient.id, data });
@@ -339,112 +353,162 @@ export default function Impasto() {
 
         {/* Tab Ricetta */}
         {activeTab === 'ricetta' && (
-          <NeumorphicCard className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-800">Ricetta per 1 Pallina</h2>
-              <NeumorphicButton
-                onClick={() => setShowIngredientForm(true)}
-                variant="primary"
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Aggiungi
-              </NeumorphicButton>
+          <>
+            {/* Default selector (admin only) */}
+            <NeumorphicCard className="p-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <p className="text-sm font-medium text-slate-700">Ricetta di default per il calcolo:</p>
+                <div className="flex gap-2">
+                  {[{ key: 'farina_semola', label: 'Farina + Semola' }, { key: 'solo_farina', label: 'Solo Farina' }].map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => updateDefaultRicettaMutation.mutate(opt.key)}
+                      disabled={updateDefaultRicettaMutation.isPending}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        ricettaDefault === opt.key
+                          ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg'
+                          : 'neumorphic-flat text-slate-600'
+                      }`}
+                    >
+                      {ricettaDefault === opt.key ? '✓ ' : ''}{opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </NeumorphicCard>
+
+            {/* Ricetta sub-tabs */}
+            <div className="flex gap-2">
+              {[{ key: 'farina_semola', label: 'Farina + Semola' }, { key: 'solo_farina', label: 'Solo Farina' }].map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => { setRicettaTab(opt.key); resetIngredientForm(); }}
+                  className={`px-5 py-2.5 rounded-xl font-medium transition-all text-sm ${
+                    ricettaTab === opt.key
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                      : 'neumorphic-flat text-slate-700'
+                  }`}
+                >
+                  {opt.label}
+                  {ricettaDefault === opt.key && <span className="ml-1 text-xs opacity-75">(default)</span>}
+                </button>
+              ))}
             </div>
 
-            {showIngredientForm && (
-              <div className="neumorphic-pressed p-4 rounded-xl mb-4">
-                <h3 className="font-bold text-slate-700 mb-3">
-                  {editingIngredient ? 'Modifica Ingrediente' : 'Nuovo Ingrediente'}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1 block">Nome</label>
-                    <input
-                      type="text"
-                      value={ingredientForm.nome_ingrediente}
-                      onChange={(e) => setIngredientForm({ ...ingredientForm, nome_ingrediente: e.target.value })}
-                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
-                      placeholder="es. Farina"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1 block">Quantità</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={ingredientForm.quantita_per_pallina}
-                      onChange={(e) => setIngredientForm({ ...ingredientForm, quantita_per_pallina: e.target.value })}
-                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
-                      placeholder="es. 150"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1 block">Unità</label>
-                    <select
-                      value={ingredientForm.unita_misura}
-                      onChange={(e) => setIngredientForm({ ...ingredientForm, unita_misura: e.target.value })}
-                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
-                    >
-                      <option value="g">grammi (g)</option>
-                      <option value="kg">kg</option>
-                      <option value="ml">ml</option>
-                      <option value="litri">litri</option>
-                      <option value="unità">unità</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-700 mb-1 block">Ordine</label>
-                    <input
-                      type="number"
-                      value={ingredientForm.ordine}
-                      onChange={(e) => setIngredientForm({ ...ingredientForm, ordine: e.target.value })}
-                      className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <NeumorphicButton onClick={resetIngredientForm}>Annulla</NeumorphicButton>
-                  <NeumorphicButton onClick={handleSaveIngredient} variant="primary">
-                    <Save className="w-4 h-4 inline mr-1" /> Salva
-                  </NeumorphicButton>
-                </div>
+            <NeumorphicCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">
+                  Ricetta: {ricettaTab === 'farina_semola' ? 'Farina + Semola' : 'Solo Farina'}
+                </h2>
+                <NeumorphicButton
+                  onClick={() => setShowIngredientForm(true)}
+                  variant="primary"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Aggiungi
+                </NeumorphicButton>
               </div>
-            )}
 
-            {sortedIngredienti.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">Nessun ingrediente configurato</p>
-            ) : (
-              <div className="space-y-2">
-                {sortedIngredienti.map(ing => (
-                  <div key={ing.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+              {showIngredientForm && (
+                <div className="neumorphic-pressed p-4 rounded-xl mb-4">
+                  <h3 className="font-bold text-slate-700 mb-3">
+                    {editingIngredient ? 'Modifica Ingrediente' : 'Nuovo Ingrediente'}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <p className="font-medium text-slate-800">{ing.nome_ingrediente}</p>
-                      <p className="text-sm text-slate-500">{ing.quantita_per_pallina} {ing.unita_misura}</p>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Nome</label>
+                      <input
+                        type="text"
+                        value={ingredientForm.nome_ingrediente}
+                        onChange={(e) => setIngredientForm({ ...ingredientForm, nome_ingrediente: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                        placeholder="es. Farina"
+                      />
                     </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleEditIngredient(ing)}
-                        className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Quantità</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={ingredientForm.quantita_per_pallina}
+                        onChange={(e) => setIngredientForm({ ...ingredientForm, quantita_per_pallina: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                        placeholder="es. 150"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Unità</label>
+                      <select
+                        value={ingredientForm.unita_misura}
+                        onChange={(e) => setIngredientForm({ ...ingredientForm, unita_misura: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
                       >
-                        <Edit className="w-4 h-4 text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Eliminare questo ingrediente?')) {
-                            deleteIngredientMutation.mutate(ing.id);
-                          }
-                        }}
-                        className="nav-button p-2 rounded-lg hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
+                        <option value="g">grammi (g)</option>
+                        <option value="kg">kg</option>
+                        <option value="ml">ml</option>
+                        <option value="litri">litri</option>
+                        <option value="unità">unità</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-1 block">Ordine</label>
+                      <input
+                        type="number"
+                        value={ingredientForm.ordine}
+                        onChange={(e) => setIngredientForm({ ...ingredientForm, ordine: e.target.value })}
+                        className="w-full neumorphic-flat px-3 py-2 rounded-lg outline-none"
+                      />
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </NeumorphicCard>
+                  <div className="flex gap-2 mt-3">
+                    <NeumorphicButton onClick={resetIngredientForm}>Annulla</NeumorphicButton>
+                    <NeumorphicButton onClick={handleSaveIngredient} variant="primary">
+                      <Save className="w-4 h-4 inline mr-1" /> Salva
+                    </NeumorphicButton>
+                  </div>
+                </div>
+              )}
+
+              {(() => {
+                const ingredientiTab = [...ricettaIngredienti]
+                  .filter(i => i.attivo !== false && (i.tipo_ricetta || 'farina_semola') === ricettaTab)
+                  .sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+                return ingredientiTab.length === 0 ? (
+                  <p className="text-slate-500 text-center py-8">Nessun ingrediente configurato per questa ricetta</p>
+                ) : (
+                  <div className="space-y-2">
+                    {ingredientiTab.map(ing => (
+                      <div key={ing.id} className="neumorphic-pressed p-3 rounded-xl flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-slate-800">{ing.nome_ingrediente}</p>
+                          <p className="text-sm text-slate-500">{ing.quantita_per_pallina} {ing.unita_misura}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleEditIngredient(ing)}
+                            className="nav-button p-2 rounded-lg hover:bg-blue-50"
+                          >
+                            <Edit className="w-4 h-4 text-blue-600" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm('Eliminare questo ingrediente?')) {
+                                deleteIngredientMutation.mutate(ing.id);
+                              }
+                            }}
+                            className="nav-button p-2 rounded-lg hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </NeumorphicCard>
+          </>
         )}
 
         {/* Tab Calcolo */}
