@@ -39,7 +39,7 @@ export default function Impasto() {
     queryFn: () => base44.entities.Store.list(),
   });
 
-  const { data: impasti = [] } = useQuery({
+  const { data: impasti = [], isLoading: loadingImpasti } = useQuery({
     queryKey: ['gestione-impasti'],
     queryFn: () => base44.entities.GestioneImpasti.list(),
   });
@@ -49,7 +49,7 @@ export default function Impasto() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: ricettaIngredienti = [] } = useQuery({
+  const { data: ricettaIngredienti = [], isLoading: loadingRicetta } = useQuery({
     queryKey: ['ricetta-impasto'],
     queryFn: () => base44.entities.RicettaImpasto.list(),
   });
@@ -178,7 +178,7 @@ export default function Impasto() {
     },
   });
 
-  const dataReady = !loadingExtras && !loadingConfig;
+  const dataReady = !loadingExtras && !loadingConfig && !loadingImpasti && !loadingRicetta;
 
   const risultato = useMemo(() => {
     if (!selectedStore || !barelleInFrigo || !dataReady) return null;
