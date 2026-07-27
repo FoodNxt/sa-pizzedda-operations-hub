@@ -4,39 +4,37 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    // Data di ieri in timezone Italia
+    // Data di OGGI in timezone Italia (la funzione gira alle 23:59 dello stesso giorno)
     const now = new Date();
     const italyOffset = getItalyOffset(now);
     const italyNow = new Date(now.getTime() + italyOffset * 60000);
-    const yesterday = new Date(italyNow);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const todayStr = italyNow.toISOString().split('T')[0];
 
     // Carica store attivi
     const stores = await base44.asServiceRole.entities.Store.filter({ status: 'active' });
 
-    // Carica sprechi di ieri
-    const startOfDay = yesterdayStr + 'T00:00:00.000Z';
-    const endOfDay = yesterdayStr + 'T23:59:59.999Z';
+    // Carica sprechi di oggi
+    const startOfDay = todayStr + 'T00:00:00.000Z';
+    const endOfDay = todayStr + 'T23:59:59.999Z';
     const sprechi = await base44.asServiceRole.entities.Spreco.filter({
       data_rilevazione: { $gte: startOfDay, $lte: endOfDay }
     });
 
-    // Trova store con almeno uno spreco registrato ieri
+    // Trova store con almeno uno spreco registrato oggi
     const storeIdsConSprechi = new Set(sprechi.map(s => s.store_id));
 
     // Store mancanti
     const storeMancanti = stores.filter(s => !storeIdsConSprechi.has(s.id));
 
     if (storeMancanti.length === 0) {
-      return Response.json({ success: true, message: 'Tutti gli store hanno compilato il form sprechi', date: yesterdayStr });
+      return Response.json({ success: true, message: 'Tutti gli store hanno compilato il form sprechi', date: todayStr });
     }
 
     // Invia email di notifica
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
 
     const storeCompletati = stores.filter(s => storeIdsConSprechi.has(s.id));
-    const dataFormattata = new Date(yesterdayStr).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const dataFormattata = new Date(todayStr).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
     const subject = `⚠️ Form Sprechi non compilato - ${storeMancanti.length} store mancanti (${dataFormattata})`;
     const body = `
@@ -104,7 +102,7 @@ Deno.serve(async (req) => {
 
     return Response.json({
       success: true,
-      date: yesterdayStr,
+      date: todayStr,
       store_mancanti: storeMancanti.map(s => s.name),
       store_completati: storeCompletati.map(s => s.name),
       email_inviata_a: uniqueRecipients
