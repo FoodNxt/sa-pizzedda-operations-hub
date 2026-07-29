@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Shirt, Plus, Send, Eye, Trash2, CheckCircle, Edit, X, Loader2, Search
+  Shirt, Plus, Send, Eye, Trash2, CheckCircle, Edit, X, Loader2, Search, Download
 } from "lucide-react";
+import { downloadComodatoPDF } from "./downloadComodatoPDF";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import NeumorphicButton from "../neumorphic/NeumorphicButton";
 
@@ -374,6 +375,17 @@ function CreaComodatoModal({ users, employees, contratti, divisaConfig, onClose,
 export default function ComodatoDivisaAdmin() {
   const [showForm, setShowForm] = useState(false);
   const [previewDoc, setPreviewDoc] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  const handleDownloadPDF = async (c) => {
+    setDownloadingId(c.id);
+    try {
+      await downloadComodatoPDF(c);
+    } catch (e) {
+      alert('Errore durante il download del PDF: ' + (e.response?.data?.error || e.message));
+    }
+    setDownloadingId(null);
+  };
   const queryClient = useQueryClient();
 
   const { data: comodati = [], isLoading } = useQuery({
@@ -543,6 +555,18 @@ export default function ComodatoDivisaAdmin() {
                         {getStatusBadge(c.status)}
                         <button onClick={() => setPreviewDoc(c)} className="nav-button p-2 rounded-lg">
                           <Eye className="w-4 h-4 text-purple-600" />
+                        </button>
+                        <button
+                          onClick={() => handleDownloadPDF(c)}
+                          disabled={downloadingId === c.id}
+                          className="nav-button p-2 rounded-lg"
+                          title="Scarica PDF firmato"
+                        >
+                          {downloadingId === c.id ? (
+                            <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                          ) : (
+                            <Download className="w-4 h-4 text-blue-600" />
+                          )}
                         </button>
                       </div>
                     </div>

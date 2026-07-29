@@ -2,13 +2,25 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Shirt, CheckCircle, Edit, Eye, X, Loader2
+  Shirt, CheckCircle, Edit, Eye, X, Loader2, Download
 } from "lucide-react";
+import { downloadComodatoPDF } from "./downloadComodatoPDF";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 
 export default function ComodatoDivisaDipendente({ currentUser }) {
   const [viewingDoc, setViewingDoc] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [signatureName, setSignatureName] = useState(currentUser?.nome_cognome || currentUser?.full_name || '');
+
+  const handleDownloadPDF = async (c) => {
+    setDownloadingId(c.id);
+    try {
+      await downloadComodatoPDF(c);
+    } catch (e) {
+      alert('Errore durante il download del PDF: ' + (e.response?.data?.error || e.message));
+    }
+    setDownloadingId(null);
+  };
   const queryClient = useQueryClient();
 
   const { data: comodati = [], isLoading } = useQuery({
@@ -109,9 +121,23 @@ export default function ComodatoDivisaDipendente({ currentUser }) {
                       Firmato: {c.data_firma ? new Date(c.data_firma).toLocaleDateString('it-IT') : 'N/A'}
                     </p>
                   </div>
-                  <button onClick={() => setViewingDoc(c)} className="nav-button p-2 rounded-lg flex-shrink-0">
-                    <Eye className="w-4 h-4 text-blue-600" />
-                  </button>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button onClick={() => setViewingDoc(c)} className="nav-button p-2 rounded-lg">
+                      <Eye className="w-4 h-4 text-blue-600" />
+                    </button>
+                    <button
+                      onClick={() => handleDownloadPDF(c)}
+                      disabled={downloadingId === c.id}
+                      className="nav-button p-2 rounded-lg"
+                      title="Scarica PDF firmato"
+                    >
+                      {downloadingId === c.id ? (
+                        <Loader2 className="w-4 h-4 text-green-600 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4 text-green-600" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </NeumorphicCard>
             ))}
