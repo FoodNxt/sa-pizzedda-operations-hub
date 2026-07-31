@@ -20,8 +20,21 @@ Deno.serve(async (req) => {
       data_rilevazione: { $gte: startOfDay, $lte: endOfDay }
     });
 
-    // Trova store con almeno uno spreco registrato oggi
+    // Carica teglie buttate di oggi
+    const teglieButtate = await base44.asServiceRole.entities.TeglieButtate.filter({
+      data_rilevazione: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    // Trova store con almeno uno spreco O una rilevazione teglie buttate oggi
     const storeIdsConSprechi = new Set(sprechi.map(s => s.store_id));
+    for (const t of teglieButtate) {
+      if (t.store_id) {
+        storeIdsConSprechi.add(t.store_id);
+      } else if (t.store_name) {
+        const match = stores.find(s => s.name === t.store_name);
+        if (match) storeIdsConSprechi.add(match.id);
+      }
+    }
 
     // Store mancanti
     const storeMancanti = stores.filter(s => !storeIdsConSprechi.has(s.id));
@@ -40,7 +53,7 @@ Deno.serve(async (req) => {
     const body = `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
         <h2 style="color: #dc2626;">⚠️ Form Sprechi Non Compilato</h2>
-        <p style="color: #374151;">Il form sprechi non è stato compilato in <strong>${storeMancanti.length}</strong> store per il giorno <strong>${dataFormattata}</strong>.</p>
+        <p style="color: #374151;">In <strong>${storeMancanti.length}</strong> store non sono stati registrati né sprechi né teglie buttate per il giorno <strong>${dataFormattata}</strong>.</p>
         
         <h3 style="color: #dc2626; margin-top: 20px;">❌ Store mancanti (${storeMancanti.length})</h3>
         <ul style="color: #374151;">
