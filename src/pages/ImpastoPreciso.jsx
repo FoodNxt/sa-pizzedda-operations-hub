@@ -16,16 +16,17 @@ export default function ImpastoPreciso() {
   const [numeroPalline, setNumeroPalline] = useState("");
   const [tipoRicetta, setTipoRicetta] = useState(null);
 
-  const { data: ricettaIngredienti = [] } = useQuery({
+  const { data: ricettaIngredienti = [], isLoading: loadingRicetta } = useQuery({
     queryKey: ["ricetta-impasto"],
     queryFn: () => base44.entities.RicettaImpasto.list(),
   });
 
-  const { data: impastiConfig = [] } = useQuery({
+  const { data: impastiConfig = [], isLoading: loadingConfig } = useQuery({
     queryKey: ["impasti-config"],
     queryFn: () => base44.entities.ImpastiConfig.list(),
   });
 
+  const dataReady = !loadingRicetta && !loadingConfig;
   const globalConfig = impastiConfig.find(c => c.is_active && !c.store_id);
   const ricettaDefault = globalConfig?.ricetta_default || 'farina_semola';
   const selectedRicetta = tipoRicetta || ricettaDefault;
@@ -35,6 +36,7 @@ export default function ImpastoPreciso() {
     .sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
 
   const ingredientiCalcolati = useMemo(() => {
+    if (!dataReady) return null;
     const n = parseInt(numeroPalline);
     if (!n || n <= 0 || sortedIngredienti.length === 0) return null;
 
@@ -68,7 +70,7 @@ export default function ImpastoPreciso() {
         displayUnit,
       };
     });
-  }, [numeroPalline, sortedIngredienti]);
+  }, [numeroPalline, sortedIngredienti, dataReady]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -87,6 +89,12 @@ export default function ImpastoPreciso() {
         </div>
       </div>
 
+      {!dataReady ? (
+        <NeumorphicCard className="p-8 flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
+        </NeumorphicCard>
+      ) : (
+      <>
       <NeumorphicCard className="p-6 space-y-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -165,6 +173,8 @@ export default function ImpastoPreciso() {
             di configurare la ricetta impasto.
           </p>
         </NeumorphicCard>
+      )}
+      </>
       )}
     </div>
   );
