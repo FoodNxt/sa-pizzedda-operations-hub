@@ -294,6 +294,13 @@ export default function TurniDipendente() {
     staleTime: 300000
   });
 
+  const { data: impastiConfigTurni = [], isLoading: loadingImpastiConfigTurni } = useQuery({
+    queryKey: ['impasti-config'],
+    queryFn: () => base44.entities.ImpastiConfig.list(),
+    staleTime: 300000
+  });
+  const ricettaDefaultTurni = impastiConfigTurni.find((c) => c.is_active && !c.store_id)?.ricetta_default || 'farina_semola';
+
   const { data: mieDisponibilita = [] } = useQuery({
     queryKey: ['disponibilita', currentUser?.id],
     queryFn: () => base44.entities.Disponibilita.filter({ dipendente_id: currentUser.id }),
@@ -1693,9 +1700,10 @@ export default function TurniDipendente() {
                               sort((a, b) => new Date(b.data_calcolo) - new Date(a.data_calcolo))[0];
 
                               if (!calcoloRecente || !calcoloRecente.impasto_suggerito) return null;
+                              if (loadingImpastiConfigTurni) return null;
 
                               const ingredientiRicetta = ricettaImpasto.
-                              filter((i) => i.attivo !== false).
+                              filter((i) => i.attivo !== false && (i.tipo_ricetta || 'farina_semola') === ricettaDefaultTurni).
                               sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
 
                               const ingredientiNecessari = ingredientiRicetta.map((ing) => {
