@@ -1,9 +1,10 @@
 import React, { useState, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, FileText, Send, Eye, Trash2, X, Edit, Loader2, User, FileEdit } from "lucide-react";
+import { Plus, FileText, Send, Eye, Trash2, X, Edit, Loader2, User, FileEdit, Download } from "lucide-react";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import NeumorphicButton from "../neumorphic/NeumorphicButton";
+import { downloadAltroDocumentoPDF } from "./downloadAltroDocumentoPDF";
 
 const AVAILABLE_VARIABLES = [
   'nome_cognome', 'phone', 'email', 'data_nascita', 'citta_nascita',
@@ -56,7 +57,18 @@ export default function AltriDocumentiSection() {
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [viewingDoc, setViewingDoc] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
   const templateTextareaRef = useRef(null);
+
+  const handleDownloadPDF = async (doc) => {
+    setDownloadingId(doc.id);
+    try {
+      await downloadAltroDocumentoPDF(doc.id);
+    } catch (error) {
+      alert(error?.response?.data?.error || 'Errore durante il download del PDF');
+    }
+    setDownloadingId(null);
+  };
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
@@ -287,6 +299,11 @@ export default function AltriDocumentiSection() {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {getStatusBadge(doc)}
+                    {doc.status === "firmato" && (
+                      <button onClick={() => handleDownloadPDF(doc)} disabled={downloadingId === doc.id} className="nav-button p-2 rounded-lg" title="Scarica PDF firmato">
+                        {downloadingId === doc.id ? <Loader2 className="w-4 h-4 text-green-600 animate-spin" /> : <Download className="w-4 h-4 text-green-600" />}
+                      </button>
+                    )}
                     <button onClick={() => setViewingDoc(doc)} className="nav-button p-2 rounded-lg">
                       <Eye className="w-4 h-4 text-blue-600" />
                     </button>
@@ -430,6 +447,12 @@ export default function AltriDocumentiSection() {
               </span>
               {viewingDoc.firma_digitale && (
                 <span className="text-sm text-green-600">Firma: {viewingDoc.firma_digitale}</span>
+              )}
+              {viewingDoc.status === "firmato" && (
+                <NeumorphicButton onClick={() => handleDownloadPDF(viewingDoc)} disabled={downloadingId === viewingDoc.id} className="ml-auto flex items-center gap-2 text-sm">
+                  {downloadingId === viewingDoc.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  Scarica PDF
+                </NeumorphicButton>
               )}
             </div>
           </NeumorphicCard>
