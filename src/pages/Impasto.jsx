@@ -220,7 +220,7 @@ export default function Impasto() {
     let impastoNecessario = totaleProssimi3Giorni - pallinePresenti;
     
     // Applica limiti min/max dalla configurazione
-    const minImpasto = globalConfig?.impasto_minimo || 20;
+    const minImpasto = globalConfig?.impasto_minimo || 15;
     const maxImpasto = globalConfig?.impasto_massimo || 65;
     
     // SEMPRE rispetta il minimo (anche se il calcolo dice meno)
