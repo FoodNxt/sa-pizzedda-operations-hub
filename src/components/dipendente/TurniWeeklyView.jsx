@@ -82,6 +82,7 @@ export default function TurniWeeklyView({
                             <div className="flex items-center gap-2">
                               <Clock className="w-4 h-4" />
                               <span className="font-medium">{turno.ora_inizio} - {turno.ora_fine}</span>
+                              {turno.tipo_turno === 'Ferie' && <span className="px-2 py-0.5 bg-teal-500 text-white rounded-full text-[10px] font-bold">🏖️ FERIE</span>}
                               {turno.is_prova && <span className="px-2 py-0.5 bg-purple-500 text-white rounded-full text-[10px] font-bold">🧪 PROVA</span>}
                             </div>
                             <div className="flex items-center gap-2">
