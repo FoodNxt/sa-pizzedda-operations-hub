@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, User, X, Save, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, User, X, Save, Trash2, Copy } from "lucide-react";
 import moment from "moment";
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import NeumorphicButton from "../neumorphic/NeumorphicButton";
@@ -145,6 +145,26 @@ export default function PlandayEmployeeView({
       }, selectedTurno?.id);
     }
     setQuickPopup(null); setSelectedTurno(null);
+  };
+
+  const handleDuplicate = () => {
+    if (selectedTurno && onSaveTurno) {
+      onSaveTurno({
+        store_id: selectedTurno.store_id,
+        data: selectedTurno.data,
+        ruolo: selectedTurno.ruolo,
+        ora_inizio: selectedTurno.ora_inizio,
+        ora_fine: selectedTurno.ora_fine,
+        tipo_turno: selectedTurno.tipo_turno || 'Normale',
+        note: selectedTurno.note || '',
+        dipendente_id: '',
+        dipendente_nome: '',
+        is_prova: false,
+        candidato_id: ''
+      });
+      setQuickPopup(null);
+      setSelectedTurno(null);
+    }
   };
 
   const handleDelete = () => {
@@ -364,6 +384,7 @@ export default function PlandayEmployeeView({
 
             <div className="flex gap-2 mt-3">
               {selectedTurno && <button onClick={handleDelete} className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1"><Trash2 className="w-3 h-3" /> Elimina</button>}
+              {selectedTurno && <button onClick={handleDuplicate} className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-1" title="Duplica turno senza assegnazione"><Copy className="w-3 h-3" /> Duplica</button>}
               <div className="flex-1" />
               <button onClick={() => { setQuickPopup(null); setSelectedTurno(null); }} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Annulla</button>
               <button onClick={handleQuickSave} className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-1"><Save className="w-3 h-3" /> Salva</button>

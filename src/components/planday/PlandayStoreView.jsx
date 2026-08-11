@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, X, Save, Store as StoreIcon, Trash2, Palmtree } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, Save, Store as StoreIcon, Trash2, Palmtree, Copy } from "lucide-react";
 import moment from "moment";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
@@ -275,6 +275,26 @@ export default function PlandayStoreView({
     }
     setQuickAddPopup(null);
     setSelectedTurno(null);
+  };
+
+  const handleDuplicate = () => {
+    if (selectedTurno && onSaveTurno) {
+      onSaveTurno({
+        store_id: selectedTurno.store_id,
+        data: selectedTurno.data,
+        ruolo: selectedTurno.ruolo,
+        ora_inizio: selectedTurno.ora_inizio,
+        ora_fine: selectedTurno.ora_fine,
+        tipo_turno: selectedTurno.tipo_turno || 'Normale',
+        note: selectedTurno.note || '',
+        dipendente_id: '',
+        dipendente_nome: '',
+        is_prova: false,
+        candidato_id: ''
+      });
+      setQuickAddPopup(null);
+      setSelectedTurno(null);
+    }
   };
 
   const handleDelete = () => {
@@ -729,6 +749,11 @@ export default function PlandayStoreView({
               {selectedTurno && (
                 <button onClick={handleDelete} className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1">
                   <Trash2 className="w-3 h-3" /> Elimina
+                </button>
+              )}
+              {selectedTurno && (
+                <button onClick={handleDuplicate} className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-1" title="Duplica turno senza assegnazione">
+                  <Copy className="w-3 h-3" /> Duplica
                 </button>
               )}
               <div className="flex-1" />
