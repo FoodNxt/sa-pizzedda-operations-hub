@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
     // Carica tutti gli User dipendenti usando service role
     const allUsers = await base44.asServiceRole.entities.User.list();
     const dipendentiUsers = allUsers.filter(u => u.user_type === 'dipendente');
+    const adminUsers = allUsers.filter(u => u.user_type === 'admin');
 
     // Combina Employee e User usando User.id come source of truth
     const userMap = new Map();
@@ -65,6 +66,22 @@ Deno.serve(async (req) => {
       });
     });
     
+    // Aggiungi gli admin: assegnabili a qualsiasi ruolo/turno
+    const allRoles = ['Pizzaiolo', 'Cassiere', 'Store Manager'];
+    adminUsers.forEach(user => {
+      const key = (user.nome_cognome || user.full_name || user.email || '').toLowerCase().trim();
+      if (!key || userMap.has(key)) return;
+      userMap.set(key, {
+        id: user.id,
+        nome_cognome: user.nome_cognome || user.full_name || user.email,
+        full_name: user.full_name || user.nome_cognome || user.email,
+        email: user.email,
+        ruoli_dipendente: allRoles,
+        assigned_stores: user.assigned_stores || [],
+        source: 'user'
+      });
+    });
+
     // Se ci sono Employee senza User corrispondente, aggiungili (fallback)
     activeEmployees.forEach(emp => {
       const key = (emp.full_name || '').toLowerCase().trim();

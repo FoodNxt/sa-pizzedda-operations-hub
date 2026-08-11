@@ -31,7 +31,7 @@ export default function PlandayEmployeeView({
   const [selectedTurno, setSelectedTurno] = useState(null);
   const [quickForm, setQuickForm] = useState({ ruolo: 'Pizzaiolo', ora_inizio: '09:00', ora_fine: '17:00', tipo_turno: 'Normale', store_id: '', is_prova: false, candidato_id: '' });
 
-  const dipendenti = useMemo(() => users.filter(u => u.ruoli_dipendente?.length > 0), [users]);
+  const dipendenti = useMemo(() => users.filter(u => u.user_type === 'admin' || u.ruoli_dipendente?.length > 0), [users]);
   const weekDays = useMemo(() => {
     const start = currentDate.clone().startOf('isoWeek');
     return Array.from({ length: 7 }, (_, i) => start.clone().add(i, 'days'));

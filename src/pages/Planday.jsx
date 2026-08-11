@@ -990,11 +990,11 @@ export default function Planday() {
   const dipendentiPerStore = useMemo(() => {
     const baseFilter = turnoForm.store_id ?
     users.filter((u) => {
+      if (u.user_type === 'admin') return true;
       const assignedStores = u.assigned_stores || [];
-      if (assignedStores.length === 0) return u.ruoli_dipendente?.length > 0;
-      return assignedStores.includes(turnoForm.store_id) && u.ruoli_dipendente?.length > 0;
+      return assignedStores.length === 0 ? u.ruoli_dipendente?.length > 0 : (assignedStores.includes(turnoForm.store_id) && u.ruoli_dipendente?.length > 0);
     }) :
-    users.filter((u) => u.ruoli_dipendente?.length > 0);
+    users.filter((u) => u.user_type === 'admin' || u.ruoli_dipendente?.length > 0);
 
     // Escludi dipendenti con uscita registrata PRIMA o NELLA data del turno
     return baseFilter.filter((u) => {
@@ -1011,8 +1011,8 @@ export default function Planday() {
 
   // Verifica se un dipendente può essere assegnato al ruolo del turno
   const canAssignToRole = (user, role) => {
-    const ruoli = user.ruoli_dipendente || [];
-    return ruoli.includes(role);
+    if (user.user_type === 'admin') return true;
+    return (user.ruoli_dipendente || []).includes(role);
   };
 
   // Verifica disponibilità dipendente per il giorno/orario del turno

@@ -629,6 +629,7 @@ export default function PlandayStoreView({
               <option value="">Non assegnato</option>
               {activeUsers
                 .filter(u => {
+                  if (u.user_type === 'admin') return true;
                   const ruoli = u.ruoli_dipendente || [];
                   return ruoli.includes(quickForm.ruolo);
                 })
