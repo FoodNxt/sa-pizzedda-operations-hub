@@ -5,6 +5,7 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { Calendar, Thermometer, Check, X, Clock, FileText, User, AlertCircle, Copy, Loader2, Users, ArrowRightLeft, CheckCircle, MapPin, Edit, ChevronDown, ChevronRight } from "lucide-react";
 import moment from "moment";
+import ModificaPeriodoFerieModal from "../components/assenze/ModificaPeriodoFerieModal";
 
 // Componente per mostrare il turno dell'altro dipendente
 function TurnoAltroDisplay({ turnoId, richiestoANome, getStoreName }) {
@@ -103,6 +104,7 @@ export default function Assenze() {
     malattia_rifiutate: false
   });
   const [selectedDipendente, setSelectedDipendente] = useState('all');
+  const [editingFerie, setEditingFerie] = useState(null);
   const queryClient = useQueryClient();
 
   // Richieste turni liberi
@@ -667,6 +669,14 @@ export default function Assenze() {
                                   {request.turni_resi_liberi && <p className="text-xs text-green-600">✓ Turni resi disponibili</p>}
                                 </div>
                               </div>
+
+                              {!isStoreManager && (
+                                <button
+                                  onClick={() => setEditingFerie(request)}
+                                  className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center gap-1">
+                                  <Edit className="w-3 h-3" /> Modifica Periodo
+                                </button>
+                              )}
                             </div>
                           </div>
               )}
@@ -1334,6 +1344,18 @@ export default function Assenze() {
               </NeumorphicCard>
             </div>
           </>
+      }
+
+        {/* Modal Modifica Periodo Ferie */}
+        {editingFerie &&
+      <ModificaPeriodoFerieModal
+        request={editingFerie}
+        onClose={() => setEditingFerie(null)}
+        isSaving={updateFerieMutation.isPending}
+        onSave={async (dates) => {
+          await updateFerieMutation.mutateAsync({ id: editingFerie.id, data: dates });
+          setEditingFerie(null);
+        }} />
       }
 
         {/* Modal Cambio Tipo Turno */}
