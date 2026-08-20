@@ -852,7 +852,7 @@ export default function ContrattiDipendente() {
       }
 
       {viewingContract &&
-      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[120] p-0">
           <div className="w-full h-full flex flex-col bg-white">
             {/* Header */}
             <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
@@ -958,7 +958,7 @@ export default function ContrattiDipendente() {
 
       {/* Letter Viewing Modal */}
       {viewingLetter &&
-      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[120] p-0">
           <div className="w-full h-full flex flex-col bg-white">
             <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
               <h2 className="text-lg lg:text-xl font-bold text-slate-800">
@@ -985,7 +985,7 @@ export default function ContrattiDipendente() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl">
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-2xl" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
               <div className="max-w-4xl mx-auto">
                 {viewingLetter.status === 'inviata' || viewingLetter.status === 'visualizzata' ?
               <div className="space-y-3">
@@ -1052,7 +1052,7 @@ export default function ContrattiDipendente() {
 
       {/* Regolamento Viewing Modal */}
       {viewingRegolamento &&
-      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] p-0">
+      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[120] p-0">
           <div className="w-full h-full flex flex-col bg-white">
             <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 shadow-lg flex items-center justify-between">
               <h2 className="text-lg lg:text-xl font-bold text-slate-800">
