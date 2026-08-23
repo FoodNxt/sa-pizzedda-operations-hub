@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ProtectedPage from '../components/ProtectedPage';
 import NeumorphicCard from '../components/neumorphic/NeumorphicCard';
-import { Settings, Package, AlertTriangle, ChefHat, TrendingUp, BarChart3, Truck, Link as LinkIcon, MapPin, Calculator } from 'lucide-react';
+import { Settings, Package, AlertTriangle, ChefHat, TrendingUp, BarChart3, Truck, Link as LinkIcon, MapPin, Calculator, ClipboardList } from 'lucide-react';
 
 const sectionAdminPages = [
   { title: 'Analisi Sprechi', page: 'AnalisiSprechi', icon: AlertTriangle, description: 'Configura e monitora sprechi' },
@@ -32,6 +32,21 @@ export default function AdminInventory() {
             <p className="text-slate-500">Configura e gestisci le impostazioni inventario</p>
           </div>
         </div>
+
+        <NeumorphicCard
+          className="p-6 cursor-pointer hover:shadow-xl transition-all border-2 border-green-300 bg-green-50"
+          onClick={() => navigate(createPageUrl('FormInventario'))}
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl">
+              <ClipboardList className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-slate-800 mb-1">Compila Inventario</h3>
+              <p className="text-sm text-slate-600">Compila il form inventario scegliendo il locale</p>
+            </div>
+          </div>
+        </NeumorphicCard>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sectionAdminPages.map((page) => {
