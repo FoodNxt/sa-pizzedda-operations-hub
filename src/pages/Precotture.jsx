@@ -161,9 +161,9 @@ export default function Precotture() {
     let turno;
     if (oraDecimale >= 9.5 && oraDecimale <= 13) {
       turno = 'pranzo';
-    } else if (oraDecimale > 13 && oraDecimale <= 16.5) {
+    } else if (oraDecimale > 13 && oraDecimale < 16) {
       turno = 'pomeriggio';
-    } else if (oraDecimale > 16.5 && oraDecimale <= 22) {
+    } else if (oraDecimale >= 16 && oraDecimale <= 22) {
       turno = 'cena';
     } else {
       return { error: 'Fuori orario (le precotture si calcolano dalle 9:30 alle 22:00)' };
@@ -231,8 +231,8 @@ export default function Precotture() {
 
   const getTurnoLabel = (turno) => {
     if (turno === 'pranzo') return 'Pranzo (9:30 - 13:00)';
-    if (turno === 'pomeriggio') return 'Pomeriggio (13:01 - 16:30)';
-    if (turno === 'cena') return 'Cena (16:31 - 22:00)';
+    if (turno === 'pomeriggio') return 'Pomeriggio (13:01 - 15:59)';
+    if (turno === 'cena') return 'Cena (16:00 - 22:00)';
     return '';
   };
 
@@ -359,8 +359,8 @@ export default function Precotture() {
               <p className="font-medium mb-1">⏰ Orari Turni</p>
               <ul className="text-xs space-y-1">
                 <li>• Pranzo: 9:30 - 13:00</li>
-                <li>• Pomeriggio: 13:01 - 16:30</li>
-                <li>• Cena: 16:31 - 22:00</li>
+                <li>• Pomeriggio: 13:01 - 15:59</li>
+                <li>• Cena: dalle 16:00 alle 22:00</li>
               </ul>
             </div>
           </div>
