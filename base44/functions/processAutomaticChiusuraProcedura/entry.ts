@@ -61,11 +61,11 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Check if enough time has passed
-        const dataVisualizzazione = new Date(letteraRichiamo.data_visualizzazione);
-        const giorniPassati = Math.floor((oggi - dataVisualizzazione) / (1000 * 60 * 60 * 24));
+        // Check if enough time has passed (dalla firma, se presente)
+        const dataRiferimento = new Date(letteraRichiamo.data_firma || letteraRichiamo.data_visualizzazione);
+        const giorniPassati = Math.floor((oggi - dataRiferimento) / (1000 * 60 * 60 * 24));
 
-        console.log(`User ${letteraRichiamo.user_email}: ${giorniPassati} days since visualization (need ${giorniAttesa})`);
+        console.log(`User ${letteraRichiamo.user_email}: ${giorniPassati} days since firma/visualizzazione (need ${giorniAttesa})`);
 
         if (giorniPassati < giorniAttesa) {
           continue;
