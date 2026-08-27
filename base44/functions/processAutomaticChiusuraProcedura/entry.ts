@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.26';
+import { buildChiusuraContenuto } from '../../shared/chiusuraContenuto.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -83,22 +84,7 @@ Deno.serve(async (req) => {
         }
 
         // Generate content
-        let contenuto = template.contenuto;
-        contenuto = contenuto.replace(/{{nome_dipendente}}/g, dipendente.nome_cognome || dipendente.full_name || dipendente.email);
-        contenuto = contenuto.replace(/{{data_oggi}}/g, new Date().toLocaleDateString('it-IT'));
-        
-        if (letteraRichiamo.data_invio) {
-          contenuto = contenuto.replace(/{{data_invio_richiamo}}/g, new Date(letteraRichiamo.data_invio).toLocaleDateString('it-IT'));
-        }
-        if (letteraRichiamo.data_firma) {
-          const dataFirma = new Date(letteraRichiamo.data_firma);
-          contenuto = contenuto.replace(/{{data_firma_richiamo}}/g, dataFirma.toLocaleDateString('it-IT'));
-          const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
-          contenuto = contenuto.replace(/{{mese_firma_richiamo}}/g, mesi[dataFirma.getMonth()] + ' ' + dataFirma.getFullYear());
-        }
-        if (letteraRichiamo.contenuto_lettera) {
-          contenuto = contenuto.replace(/{{testo_lettera_richiamo}}/g, letteraRichiamo.contenuto_lettera);
-        }
+        const contenuto = buildChiusuraContenuto(template.contenuto, letteraRichiamo, dipendente);
 
         // Create chiusura procedura
         await base44.asServiceRole.entities.LetteraRichiamo.create({
