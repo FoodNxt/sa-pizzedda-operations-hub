@@ -159,14 +159,12 @@ export default function Precotture() {
     const oraDecimale = ora + minuti / 60;
     
     let turno;
-    if (oraDecimale >= 9.5 && oraDecimale <= 13) {
+    if (oraDecimale >= 8 && oraDecimale < 16) {
       turno = 'pranzo';
-    } else if (oraDecimale > 13 && oraDecimale < 16) {
-      turno = 'pomeriggio';
-    } else if (oraDecimale >= 16 && oraDecimale <= 22) {
+    } else if (oraDecimale >= 16 && oraDecimale <= 23) {
       turno = 'cena';
     } else {
-      return { error: 'Fuori orario (le precotture si calcolano dalle 9:30 alle 22:00)' };
+      return { error: 'Fuori orario (le precotture si calcolano dalle 8:00 alle 23:00)' };
     }
 
     const oggi = new Date().getDay();
@@ -185,12 +183,9 @@ export default function Precotture() {
     if (turno === 'pranzo') {
       rosseRichiesteBase = datiOggi.pranzo_rosse || 0;
       rosseTurnoPrecedente = 0; // Il pranzo non ha turno precedente
-    } else if (turno === 'pomeriggio') {
-      rosseRichiesteBase = datiOggi.pomeriggio_rosse || 0;
-      rosseTurnoPrecedente = datiOggi.pranzo_rosse || 0; // Confronta con pranzo
     } else if (turno === 'cena') {
       rosseRichiesteBase = datiOggi.cena_rosse || 0;
-      rosseTurnoPrecedente = datiOggi.pomeriggio_rosse || 0; // Confronta con pomeriggio
+      rosseTurnoPrecedente = datiOggi.pranzo_rosse || 0; // Confronta con pranzo
     }
 
     // Applica logica percentuali (solo per pomeriggio e cena)
@@ -230,9 +225,8 @@ export default function Precotture() {
   }, [selectedStore, rossePresenti, impasti, configTeglieData]);
 
   const getTurnoLabel = (turno) => {
-    if (turno === 'pranzo') return 'Pranzo (9:30 - 13:00)';
-    if (turno === 'pomeriggio') return 'Pomeriggio (13:01 - 15:59)';
-    if (turno === 'cena') return 'Cena (16:00 - 22:00)';
+    if (turno === 'pranzo') return 'Pranzo (8:00 - 16:00)';
+    if (turno === 'cena') return 'Cena (16:00 - 23:00)';
     return '';
   };
 
@@ -358,9 +352,8 @@ export default function Precotture() {
             <div className="text-sm text-blue-800">
               <p className="font-medium mb-1">⏰ Orari Turni</p>
               <ul className="text-xs space-y-1">
-                <li>• Pranzo: 9:30 - 13:00</li>
-                <li>• Pomeriggio: 13:01 - 15:59</li>
-                <li>• Cena: dalle 16:00 alle 22:00</li>
+                <li>• Pranzo: 8:00 - 16:00</li>
+                <li>• Cena: 16:00 - 23:00</li>
               </ul>
             </div>
           </div>
