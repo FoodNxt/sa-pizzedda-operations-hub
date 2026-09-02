@@ -36,6 +36,7 @@ import ProgressBar from "../components/neumorphic/ProgressBar";
 import RicetteContent from "../components/inventory/RicetteContent";
 import FornitoriContent from "../components/inventory/FornitoriContent";
 import NomiInterniTab from "../components/inventory/NomiInterniTab";
+import SemilavoratiInventarioTab from "../components/inventory/SemilavoratiInventarioTab";
 
 export default function MateriePrime() {
   const [activeTab, setActiveTab] = useState('materie_prime'); // materie_prime | ricette | fornitori | nomi_interni
@@ -678,8 +679,23 @@ export default function MateriePrime() {
               <Package className="w-4 h-4" />
               <span className="hidden sm:inline">Nomi Interni</span>
             </button>
+            <button
+              onClick={() => setActiveTab('semilavorati_inventario')}
+              className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'semilavorati_inventario'
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'bg-transparent text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <ChefHat className="w-4 h-4" />
+              <span className="hidden sm:inline">Semilavorati Inv.</span>
+            </button>
           </div>
         </NeumorphicCard>
+
+        {activeTab === 'semilavorati_inventario' && (
+          <SemilavoratiInventarioTab stores={stores} />
+        )}
 
         {activeTab === 'nomi_interni' && (
           <NomiInterniTab products={products} stores={stores} nomiInterniUnici={nomiInterniUnici} />

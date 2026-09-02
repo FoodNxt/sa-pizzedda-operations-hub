@@ -85,6 +85,11 @@ export default function FormInventario() {
     
     // First filter by store and in_uso status
     const filteredByStore = allProducts.filter(p => {
+      // I semilavorati sono visibili solo nei locali esplicitamente abilitati
+      if (p.is_semilavorato) {
+        return (p.assigned_stores || []).includes(selectedStore);
+      }
+
       // Check if product is "in uso" for this specific store
       if (p.in_uso_per_store && Object.keys(p.in_uso_per_store).length > 0) {
         // If in_uso_per_store is defined, only show if explicitly true for this store
