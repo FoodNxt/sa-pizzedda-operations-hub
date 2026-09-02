@@ -33,20 +33,22 @@ export default function AdminInventory() {
           </div>
         </div>
 
-        <NeumorphicCard
-          className="p-6 cursor-pointer hover:shadow-xl transition-all border-2 border-green-300 bg-green-50"
+        <button
+          type="button"
           onClick={() => navigate(createPageUrl('FormInventario'))}
+          className="w-full text-left rounded-xl p-6 transition-all hover:shadow-xl"
+          style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none' }}
         >
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl">
+            <div className="p-3 bg-white/20 rounded-xl">
               <ClipboardList className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-slate-800 mb-1">Compila Inventario</h3>
-              <p className="text-sm text-slate-600">Compila il form inventario scegliendo il locale</p>
+              <p className="font-bold text-white mb-1 text-lg">Compila Inventario</p>
+              <p className="text-sm text-white/90">Compila il form inventario scegliendo il locale</p>
             </div>
           </div>
-        </NeumorphicCard>
+        </button>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sectionAdminPages.map((page) => {
