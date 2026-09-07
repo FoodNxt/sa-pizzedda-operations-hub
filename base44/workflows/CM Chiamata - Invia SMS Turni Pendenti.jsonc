@@ -1,0 +1,44 @@
+{
+  "name": "CM Chiamata - Invia SMS Turni Pendenti",
+  "description": "Ogni 5 minuti invia gli SMS Twilio pendenti per i turni CM - Chiamata il cui orario pianificato \u00e8 stato raggiunto",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 5,
+      "interval_unit": "minutes",
+      "interval_anchor": "2026-03-10T14:44:54.548000",
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "cm_chiamata_invia_sms_turni_pendenti",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processCmShiftSms",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "processCmShiftSms"
+  }
+}
