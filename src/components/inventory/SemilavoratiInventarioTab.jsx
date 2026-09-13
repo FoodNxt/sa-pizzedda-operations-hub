@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { ChefHat, Check, X } from 'lucide-react';
 import NeumorphicCard from '../neumorphic/NeumorphicCard';
+import SemilavoratoSacchiConfig from './SemilavoratoSacchiConfig';
 
 export default function SemilavoratiInventarioTab({ stores = [] }) {
   const queryClient = useQueryClient();
@@ -38,6 +39,7 @@ export default function SemilavoratiInventarioTab({ stores = [] }) {
         </h2>
         <p className="text-sm text-slate-600 mt-1">
           Attiva o disattiva ogni semilavorato per singolo locale. Se nessun locale è attivo, il semilavorato non appare nell'inventario.
+          Con "A sacchi" si chiede solo il numero di sacchi di semilavorato: al raggiungimento del minimo viene suggerito l'ordine della materia prima collegata.
         </p>
       </div>
 
@@ -51,6 +53,9 @@ export default function SemilavoratiInventarioTab({ stores = [] }) {
                   {store.name}
                 </th>
               ))}
+              <th className="text-center p-3 text-slate-600 font-medium text-sm">A sacchi</th>
+              <th className="text-center p-3 text-slate-600 font-medium text-sm">Min. sacchi</th>
+              <th className="text-center p-3 text-slate-600 font-medium text-sm">Ordina</th>
             </tr>
           </thead>
           <tbody>
@@ -77,6 +82,7 @@ export default function SemilavoratiInventarioTab({ stores = [] }) {
                       </td>
                     );
                   })}
+                  <SemilavoratoSacchiConfig ricetta={ricetta} />
                 </tr>
               ))}
           </tbody>

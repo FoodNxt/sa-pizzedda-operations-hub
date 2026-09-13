@@ -55,10 +55,18 @@ export default function FormInventario() {
     queryKey: ['materie-prime-negozio'],
     queryFn: async () => {
       const materiePrime = await base44.entities.MateriePrime.filter({ attivo: true });
-      const materiePrimeFiltered = materiePrime.filter(p => !p.posizione || p.posizione === 'negozio');
       
       // Carica anche i semilavorati configurati per il form inventario
       const ricette = await base44.entities.Ricetta.filter({ is_semilavorato: true, mostra_in_form_inventario: true });
+
+      // Le materie prime gestite tramite semilavorato "a sacchi" non vengono più chieste nel form negozio
+      const materiePrimeGestiteDaSacchi = ricette
+        .filter(r => r.inventario_a_sacchi && r.somma_a_materia_prima_id)
+        .map(r => r.somma_a_materia_prima_id);
+
+      const materiePrimeFiltered = materiePrime.filter(p =>
+        (!p.posizione || p.posizione === 'negozio') && !materiePrimeGestiteDaSacchi.includes(p.id)
+      );
       
       // Converte i semilavorati in formato compatibile
       const semilavorati = ricette.map(r => ({
@@ -66,8 +74,8 @@ export default function FormInventario() {
         nome_prodotto: r.nome_prodotto,
         nome_interno: r.nome_prodotto,
         categoria: 'semilavorati',
-        unita_misura: r.unita_misura_form_inventario || 'grammi',
-        quantita_minima: 0,
+        unita_misura: r.inventario_a_sacchi ? 'sacchi' : (r.unita_misura_form_inventario || 'grammi'),
+        quantita_minima: r.inventario_a_sacchi ? (r.soglia_minima_sacchi || 0) : 0,
         attivo: true,
         posizione: 'negozio',
         assigned_stores: r.stores_form_inventario || [],

@@ -97,6 +97,15 @@
       "default": "grammi",
       "description": "Unit\u00e0 di misura con cui il semilavorato deve essere misurato nel form inventario"
     },
+    "inventario_a_sacchi": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se true, nell'inventario si chiede solo il numero di sacchi di semilavorato e la materia prima collegata non viene pi\u00f9 chiesta"
+    },
+    "soglia_minima_sacchi": {
+      "type": "number",
+      "description": "Numero minimo di sacchi di semilavorato: se raggiunto, viene suggerito l'ordine della materia prima collegata"
+    },
     "somma_a_materia_prima_id": {
       "type": "string",
       "description": "ID della materia prima a cui sommare la quantit\u00e0 del semilavorato nel calcolo ordini"
