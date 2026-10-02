@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
       })
       .filter(Boolean);
 
-    const allRecipients = [...new Set(['admin@sapizzedda.it', ...smEmails])];
+    const allRecipients = [...new Set(['admin@sapizzedda.it', 'info@sapizzedda.it', ...smEmails])];
 
     for (const email of allRecipients) {
       try {
