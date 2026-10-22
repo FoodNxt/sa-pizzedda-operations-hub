@@ -19,10 +19,6 @@ Deno.serve(async (req) => {
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
 
-    // Carica store per trovare gli store manager
-    const stores = await base44.asServiceRole.entities.Store.list();
-    const users = await base44.asServiceRole.entities.User.list();
-    
     let emailsSent = 0;
     const notified = [];
 
@@ -68,19 +64,7 @@ Deno.serve(async (req) => {
         </div>
       `;
 
-      // Trova email di TUTTI gli store manager (a prescindere dal locale)
-      const storeManagerEmails = stores
-        .filter(s => s.store_manager_id)
-        .map(s => {
-          const sm = users.find(u => u.id === s.store_manager_id);
-          return sm?.email;
-        })
-        .filter(Boolean);
-
-      // Invia a admin, info e tutti gli store manager
-      const recipients = ['admin@sapizzedda.it', 'info@sapizzedda.it', ...storeManagerEmails];
-      const uniqueRecipients = [...new Set(recipients)];
-      const to = uniqueRecipients.join(', ');
+      const to = 'admin@sapizzedda.it, info@sapizzedda.it';
 
       const mimeMessage = [
         `To: ${to}`,
