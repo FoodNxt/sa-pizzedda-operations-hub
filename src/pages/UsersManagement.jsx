@@ -260,6 +260,23 @@ export default function UsersManagement() {
     return baseValid && (formData.durata_contratto_mesi > 0 || formData.data_fine_contratto);
   };
 
+  const getMissingContractFields = () => {
+    const missing = [];
+    if (!formData.nome_cognome?.trim()) missing.push('Nome e cognome');
+    if (!formData.phone?.trim()) missing.push('Telefono');
+    if (!formData.data_nascita) missing.push('Data di nascita');
+    if (!formData.codice_fiscale?.trim()) missing.push('Codice fiscale');
+    if (!formData.indirizzo_residenza?.trim()) missing.push('Indirizzo di residenza');
+    if (!formData.citta_residenza?.trim()) missing.push('Città di residenza');
+    if (!formData.iban?.trim()) missing.push('IBAN');
+    if (!formData.employee_group) missing.push('Gruppo contrattuale');
+    else if (formData.employee_group !== 'CM' && !(formData.ore_settimanali > 0)) missing.push('Ore settimanali');
+    if (!formData.data_inizio_contratto) missing.push('Data inizio contratto');
+    if (formData.tipo_contratto !== 'indeterminato' && !(formData.durata_contratto_mesi > 0 || formData.data_fine_contratto)) missing.push('Durata o data fine contratto');
+    if (!selectedTemplate) missing.push('Template contratto');
+    return missing;
+  };
+
   const canSendContract = () => {
     return isFormComplete() && selectedTemplate;
   };
@@ -1347,6 +1364,12 @@ export default function UsersManagement() {
                   </NeumorphicButton>
               }
               </div>
+              {!canSendContract() &&
+              <div className="mt-4 p-3 rounded-xl bg-orange-50 border border-orange-200 text-sm text-orange-800">
+                  <p className="font-medium mb-1">Per mandare il contratto completa:</p>
+                  <p>{getMissingContractFields().join(', ')}</p>
+                </div>
+              }
             </NeumorphicCard>
           </div>
         </div>
