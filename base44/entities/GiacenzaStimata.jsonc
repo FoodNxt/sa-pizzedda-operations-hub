@@ -1,0 +1,153 @@
+{
+  "name": "GiacenzaStimata",
+  "type": "object",
+  "properties": {
+    "ubicazione_key": {
+      "type": "string",
+      "description": "ID store per un negozio, 'lab:' + ID store per il laboratorio"
+    },
+    "store_id": {
+      "type": "string"
+    },
+    "ubicazione_tipo": {
+      "type": "string",
+      "enum": [
+        "negozio",
+        "laboratorio"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ]
+    },
+    "item_tipo": {
+      "type": "string",
+      "enum": [
+        "materia_prima",
+        "semilavorato"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ]
+    },
+    "item_id": {
+      "type": "string"
+    },
+    "item_nome": {
+      "type": "string"
+    },
+    "unita": {
+      "type": "string"
+    },
+    "ultimo_conteggio_valore": {
+      "type": "number"
+    },
+    "ultimo_conteggio_data": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "giacenza_stimata": {
+      "type": "number"
+    },
+    "consumo_medio_giorno": {
+      "type": "number"
+    },
+    "uscite_registrate_giorno": {
+      "type": "number"
+    },
+    "giorni_copertura": {
+      "type": "number"
+    },
+    "affidabilita": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "da_verificare",
+        "nessun_dato"
+      ],
+      "enumColors": [
+        "green",
+        "yellow",
+        "gray"
+      ]
+    },
+    "scarto_ultimo_conteggio_pct": {
+      "type": "number"
+    },
+    "prossimo_conteggio_data": {
+      "type": "string",
+      "format": "date"
+    },
+    "prossimo_conteggio_motivo": {
+      "type": "string"
+    },
+    "priorita": {
+      "type": "number"
+    },
+    "aggiornato_il": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "ubicazione_key",
+    "item_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

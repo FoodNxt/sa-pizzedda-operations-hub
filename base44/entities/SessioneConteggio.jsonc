@@ -1,0 +1,109 @@
+{
+  "name": "SessioneConteggio",
+  "type": "object",
+  "properties": {
+    "ubicazione_key": {
+      "type": "string",
+      "description": "ID store per un negozio, 'lab:' + ID store per il laboratorio"
+    },
+    "store_id": {
+      "type": "string"
+    },
+    "ubicazione_tipo": {
+      "type": "string",
+      "enum": [
+        "negozio",
+        "laboratorio"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ]
+    },
+    "data": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "operatore_email": {
+      "type": "string"
+    },
+    "operatore_nome": {
+      "type": "string"
+    },
+    "turno_id": {
+      "type": "string"
+    },
+    "prodotti_previsti": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "item_id dei prodotti da contare"
+    },
+    "prodotti_contati": {
+      "type": "number",
+      "default": 0
+    },
+    "completata": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "ubicazione_key"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

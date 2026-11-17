@@ -1,0 +1,103 @@
+{
+  "name": "ConfigInventario2",
+  "type": "object",
+  "properties": {
+    "modalita_per_store": {
+      "type": "object",
+      "default": {},
+      "description": "Modalit\u00e0 Inventario 2.0 per store {store_id: 'spento' | 'affiancamento' | 'attivo'}. Store assente = spento"
+    },
+    "lab_store_id": {
+      "type": "string",
+      "default": "6908b4f284cb01bc8402b4ee",
+      "description": "ID dello store che ospita il laboratorio (default Lanino)"
+    },
+    "basi_ricetta_id": {
+      "type": "string",
+      "description": "ID della ricetta semilavorato 'Basi'"
+    },
+    "limite_voci_sera": {
+      "type": "number",
+      "default": 15,
+      "description": "Numero massimo di voci da contare per sera"
+    },
+    "intervallo_max_giorni_per_categoria": {
+      "type": "object",
+      "default": {
+        "Ingredienti pronti": 7,
+        "Ortofrutta": 7,
+        "Ingredienti base": 14,
+        "Bevande": 14,
+        "Dolci": 14,
+        "Angolo di Sardegna": 14,
+        "Packaging": 30,
+        "Consumabili": 30,
+        "Pulizia": 30,
+        "semilavorato": 7
+      },
+      "description": "Intervallo massimo in giorni tra due conteggi, per categoria"
+    },
+    "soglia_affidabilita": {
+      "type": "number",
+      "default": 0.3,
+      "description": "Soglia di scarto oltre la quale la giacenza stimata \u00e8 da verificare"
+    }
+  },
+  "required": [],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

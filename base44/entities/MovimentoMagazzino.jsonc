@@ -1,0 +1,173 @@
+{
+  "name": "MovimentoMagazzino",
+  "type": "object",
+  "properties": {
+    "ubicazione_key": {
+      "type": "string",
+      "description": "ID store per un negozio, 'lab:' + ID store per il laboratorio"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store"
+    },
+    "ubicazione_tipo": {
+      "type": "string",
+      "enum": [
+        "negozio",
+        "laboratorio"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ]
+    },
+    "item_tipo": {
+      "type": "string",
+      "enum": [
+        "materia_prima",
+        "semilavorato"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ]
+    },
+    "item_id": {
+      "type": "string"
+    },
+    "item_nome": {
+      "type": "string"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "conteggio",
+        "ricevimento",
+        "produzione_carico",
+        "produzione_scarico",
+        "trasporto_uscita",
+        "trasporto_entrata",
+        "spreco",
+        "rettifica"
+      ],
+      "enumColors": [
+        "blue",
+        "green",
+        "green",
+        "yellow",
+        "yellow",
+        "green",
+        "red",
+        "gray"
+      ],
+      "description": "Tipo di movimento"
+    },
+    "quantita": {
+      "type": "number",
+      "description": "Per 'conteggio' \u00e8 il valore contato; per gli altri tipi \u00e8 positiva e il segno lo d\u00e0 il tipo"
+    },
+    "unita": {
+      "type": "string"
+    },
+    "data_movimento": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "utente_email": {
+      "type": "string"
+    },
+    "utente_nome": {
+      "type": "string"
+    },
+    "fonte": {
+      "type": "string",
+      "enum": [
+        "inventario_v2",
+        "form_inventario_v1",
+        "form_cantina_v1",
+        "ordine_fornitore",
+        "produzione_lab",
+        "trasporto",
+        "manuale"
+      ],
+      "enumColors": [
+        "green",
+        "gray",
+        "gray",
+        "blue",
+        "purple",
+        "yellow",
+        "pink"
+      ]
+    },
+    "riferimento_id": {
+      "type": "string"
+    },
+    "sessione_id": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "ubicazione_key",
+    "item_id",
+    "tipo",
+    "quantita"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "name": "ProduzioneLab",
+  "type": "object",
+  "properties": {
+    "data_produzione": {
+      "type": "string",
+      "format": "date"
+    },
+    "item_id": {
+      "type": "string",
+      "description": "ID della ricetta semilavorato"
+    },
+    "item_nome": {
+      "type": "string",
+      "description": "Nome della ricetta semilavorato"
+    },
+    "is_basi": {
+      "type": "boolean",
+      "default": false
+    },
+    "quantita": {
+      "type": "number"
+    },
+    "unita": {
+      "type": "string"
+    },
+    "operatore_email": {
+      "type": "string"
+    },
+    "operatore_nome": {
+      "type": "string"
+    },
+    "ubicazione_destinazione_key": {
+      "type": "string",
+      "default": "6908b4f284cb01bc8402b4ee",
+      "description": "Ubicazione di destinazione (default ID store di Lanino)"
+    },
+    "scarichi": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "item_nome": {
+            "type": "string"
+          },
+          "quantita": {
+            "type": "number"
+          },
+          "unita": {
+            "type": "string"
+          },
+          "ubicazione_key": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Materie prime scaricate dalla produzione"
+    },
+    "annullata": {
+      "type": "boolean",
+      "default": false
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "item_id",
+    "quantita"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

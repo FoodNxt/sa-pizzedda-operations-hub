@@ -1,0 +1,173 @@
+{
+  "name": "ImpostazioneInventario2",
+  "type": "object",
+  "properties": {
+    "item_tipo": {
+      "type": "string",
+      "enum": [
+        "materia_prima",
+        "semilavorato"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "description": "Tipo di prodotto"
+    },
+    "item_id": {
+      "type": "string",
+      "description": "ID della materia prima o della ricetta semilavorato"
+    },
+    "item_nome": {
+      "type": "string",
+      "description": "Nome del prodotto (denormalizzato)"
+    },
+    "incluso": {
+      "type": "boolean",
+      "default": false,
+      "description": "Il prodotto fa parte del nuovo inventario"
+    },
+    "laboratorio": {
+      "type": "boolean",
+      "default": false,
+      "description": "Prodotto del magazzino del laboratorio"
+    },
+    "consumabile": {
+      "type": "boolean",
+      "default": false,
+      "description": "Prodotto consumabile"
+    },
+    "producibile_lab": {
+      "type": "boolean",
+      "default": false,
+      "description": "Solo semilavorati prodotti in laboratorio"
+    },
+    "unita_conteggio": {
+      "type": "string",
+      "description": "Unit\u00e0 con cui si conta il prodotto"
+    },
+    "fattore_unita_ordine": {
+      "type": "number",
+      "default": 1,
+      "description": "Quante unit\u00e0 di conteggio ci sono in 1 unit\u00e0 d'ordine"
+    },
+    "peso_unita_conteggio_kg": {
+      "type": "number",
+      "description": "Peso di 1 unit\u00e0 di conteggio, per i trasporti a peso"
+    },
+    "min_per_ubicazione": {
+      "type": "object",
+      "description": "Minimo per ubicazione {ubicazione_key: number}"
+    },
+    "max_per_ubicazione": {
+      "type": "object",
+      "description": "Massimo per ubicazione {ubicazione_key: number}"
+    },
+    "conteggio_fisso": {
+      "type": "object",
+      "description": "Giorno fisso di conteggio",
+      "properties": {
+        "attivo": {
+          "type": "boolean"
+        },
+        "ricorrenza": {
+          "type": "string",
+          "enum": [
+            "giornaliera",
+            "due_volte_settimana",
+            "settimanale",
+            "ogni_due_settimane",
+            "mensile"
+          ]
+        },
+        "giorni_settimana": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "Giorni 0-6 (0 = domenica)"
+        },
+        "data_partenza": {
+          "type": "string",
+          "format": "date"
+        },
+        "giorno_mese": {
+          "type": "number",
+          "description": "Giorno del mese 1-28"
+        }
+      }
+    },
+    "frequenza_suggerita": {
+      "type": "string",
+      "description": "Frequenza di conteggio suggerita"
+    },
+    "frequenza_suggerita_motivo": {
+      "type": "string",
+      "description": "Motivo della frequenza suggerita"
+    },
+    "note": {
+      "type": "string",
+      "description": "Note"
+    }
+  },
+  "required": [
+    "item_tipo",
+    "item_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

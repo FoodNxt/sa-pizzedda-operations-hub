@@ -88,6 +88,14 @@
       "type": "boolean",
       "default": false,
       "description": "Se true, le differenze quantit\u00e0 sono state verificate con il fornitore"
+    },
+    "origine": {
+      "type": "string",
+      "description": "Origine dell'ordine (vuoto = sistema attuale)"
+    },
+    "ubicazione_key": {
+      "type": "string",
+      "description": "Ubicazione Inventario 2.0 a cui \u00e8 destinato l'ordine"
     }
   },
   "required": [

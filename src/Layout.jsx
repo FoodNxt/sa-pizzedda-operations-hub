@@ -245,6 +245,21 @@ const navigationStructure = [
     ]
   },
   {
+    title: "Inventario 2.0",
+    icon: ClipboardList,
+    type: "section",
+    requiredUserType: ["admin"],
+    items: [
+      {
+        title: "Impostazioni",
+        page: "Inventario2Impostazioni",
+        url: createPageUrl("Inventario2Impostazioni"),
+        icon: Settings,
+        requiredUserType: ["admin"]
+      }
+    ]
+  },
+  {
     title: "HR",
     icon: Users,
     type: "section",

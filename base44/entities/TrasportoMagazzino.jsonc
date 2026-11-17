@@ -1,0 +1,113 @@
+{
+  "name": "TrasportoMagazzino",
+  "type": "object",
+  "properties": {
+    "item_tipo": {
+      "type": "string",
+      "enum": [
+        "materia_prima",
+        "semilavorato"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ]
+    },
+    "item_id": {
+      "type": "string"
+    },
+    "item_nome": {
+      "type": "string"
+    },
+    "da_ubicazione_key": {
+      "type": "string"
+    },
+    "a_ubicazione_key": {
+      "type": "string"
+    },
+    "peso_kg": {
+      "type": "number"
+    },
+    "pezzi": {
+      "type": "number"
+    },
+    "quantita_convertita": {
+      "type": "number"
+    },
+    "unita": {
+      "type": "string"
+    },
+    "operatore_email": {
+      "type": "string"
+    },
+    "operatore_nome": {
+      "type": "string"
+    },
+    "data_trasporto": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "item_id",
+    "da_ubicazione_key",
+    "a_ubicazione_key"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
