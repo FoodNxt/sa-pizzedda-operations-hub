@@ -20,6 +20,7 @@ export default function ConsumabiliTab() {
     setApplicando(p.id);
     await base44.entities.ImpostazioneInventario2.update(p.id, {
       conteggio_fisso: p.conteggio_fisso,
+      conteggio_fisso_per_ubicazione: {},
       frequenza_suggerita: p.frequenza,
       frequenza_suggerita_motivo: p.motivo
     });

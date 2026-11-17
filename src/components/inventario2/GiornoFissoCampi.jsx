@@ -6,15 +6,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CON_GIORNI, GIORNI, ORDINE_GIORNI, RICORRENZE } from './inv2Utils';
 
 // Campi del giorno fisso di conteggio: f = { attivo, ricorrenza, giorni, data_partenza, giorno_mese }
-export default function GiornoFissoCampi({ f, onChange }) {
+export default function GiornoFissoCampi({ id, titolo, f, onChange }) {
   const set = (patch) => onChange({ ...f, ...patch });
   const toggleGiorno = (g) => set({ giorni: f.giorni.includes(g) ? f.giorni.filter((x) => x !== g) : [...f.giorni, g] });
 
   return (
     <>
       <div className="flex items-center justify-between">
-        <Label htmlFor="inv2-fisso">Giorno fisso di conteggio</Label>
-        <Switch id="inv2-fisso" checked={f.attivo} onCheckedChange={(v) => set({ attivo: v })} />
+        <Label htmlFor={`inv2-fisso-${id}`} className="text-sm font-semibold">{titolo}</Label>
+        <Switch id={`inv2-fisso-${id}`} checked={f.attivo} onCheckedChange={(v) => set({ attivo: v })} />
       </div>
       {f.attivo && (
         <>
@@ -47,14 +47,14 @@ export default function GiornoFissoCampi({ f, onChange }) {
           )}
           {f.ricorrenza === 'ogni_due_settimane' && (
             <div className="space-y-2">
-              <Label htmlFor="inv2-partenza">Data di partenza</Label>
-              <Input id="inv2-partenza" type="date" value={f.data_partenza} onChange={(e) => set({ data_partenza: e.target.value })} />
+              <Label htmlFor={`inv2-partenza-${id}`}>Data di partenza</Label>
+              <Input id={`inv2-partenza-${id}`} type="date" value={f.data_partenza} onChange={(e) => set({ data_partenza: e.target.value })} />
             </div>
           )}
           {f.ricorrenza === 'mensile' && (
             <div className="space-y-2">
-              <Label htmlFor="inv2-giorno-mese">Giorno del mese (1-28)</Label>
-              <Input id="inv2-giorno-mese" type="number" min="1" max="28" value={f.giorno_mese} onChange={(e) => set({ giorno_mese: e.target.value })} />
+              <Label htmlFor={`inv2-giorno-mese-${id}`}>Giorno del mese (1-28)</Label>
+              <Input id={`inv2-giorno-mese-${id}`} type="number" min="1" max="28" value={f.giorno_mese} onChange={(e) => set({ giorno_mese: e.target.value })} />
             </div>
           )}
         </>

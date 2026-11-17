@@ -152,9 +152,12 @@ export function giornoFissoACf(f) {
   return cf;
 }
 
-export function riassuntoGiornoFisso(cf, perUbicazione) {
-  const diversi = Object.keys(perUbicazione || {}).length;
-  if (diversi) return `${riassuntoGiornoFisso(cf)} · diverso in ${diversi} ${diversi === 1 ? 'locale' : 'locali'}`;
+export function riassuntoGiornoFisso(cf, perUbicazione, ubicazioni) {
+  if (ubicazioni && Object.keys(perUbicazione || {}).length) {
+    const righe = ubicazioni.map((u) => [u.label, riassuntoGiornoFisso(perUbicazione[u.key] ?? cf)]);
+    if (righe.every(([, r]) => r === righe[0][1])) return righe[0][1];
+    return righe.filter(([, r]) => r !== '—').map(([l, r]) => `${l}: ${r}`).join(' | ');
+  }
   if (!cf?.attivo) return '—';
   const label = RICORRENZE.find((r) => r.value === cf.ricorrenza)?.label || 'Settimanale';
   if (cf.ricorrenza === 'giornaliera') return label;

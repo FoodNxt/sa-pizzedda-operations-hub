@@ -99,7 +99,7 @@ export default function ProdottiTable({ rows, imp, ubicazioni, loading, onSave, 
       return [r.nome, TIPO_LABEL[r.tipo], r.categoria, r.fornitore, i.unita_conteggio, si(i.incluso), si(i.laboratorio), si(i.consumabile),
         r.tipo === 'semilavorato' ? si(i.producibile_lab) : '',
         ...ubicazioni.flatMap((u) => [i.min_per_ubicazione?.[u.key] ?? '', i.max_per_ubicazione?.[u.key] ?? '']),
-        riassuntoGiornoFisso(i.conteggio_fisso, i.conteggio_fisso_per_ubicazione)].map(csvCell).join(';');
+        riassuntoGiornoFisso(i.conteggio_fisso, i.conteggio_fisso_per_ubicazione, ubicazioni)].map(csvCell).join(';');
     });
     const blob = new Blob(['\uFEFF' + [head.map(csvCell).join(';'), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');

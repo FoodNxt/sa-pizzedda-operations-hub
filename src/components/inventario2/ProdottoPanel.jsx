@@ -7,42 +7,32 @@ import { Button } from '@/components/ui/button';
 import GiornoFissoCampi from './GiornoFissoCampi';
 import { TIPO_LABEL, giornoFissoACf, giornoFissoDaCf } from './inv2Utils';
 
-const TUTTI = 'tutti';
-
 export default function ProdottoPanel({ row, imp, ubicazioni, onClose, onSave }) {
   const [d, setD] = useState(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!row) return;
-    const perLocale = Object.entries(imp.conteggio_fisso_per_ubicazione || {}).map(([k, cf]) => [k, giornoFissoDaCf(cf)]);
+    const salvati = imp.conteggio_fisso_per_ubicazione || {};
     setD({
       unita_conteggio: imp.unita_conteggio || '',
       fattore: imp.fattore_unita_ordine ?? 1,
       peso: imp.peso_unita_conteggio_kg ?? '',
-      // Giorno fisso: 'tutti' vale per ogni locale, le altre chiavi sono i locali con un giorno diverso
-      fisso: { [TUTTI]: giornoFissoDaCf(imp.conteggio_fisso), ...Object.fromEntries(perLocale) },
-      locale: TUTTI,
+      // Giorni fissi di ogni locale; chi non ne ha di propri parte da quelli comuni
+      fisso: Object.fromEntries(ubicazioni.map((u) => [u.key, giornoFissoDaCf(salvati[u.key] ?? imp.conteggio_fisso)])),
       note: imp.note || ''
     });
   }, [row?.key]);
 
   const set = (patch) => setD((prev) => ({ ...prev, ...patch }));
-  const diverso = d && d.locale !== TUTTI && !!d.fisso[d.locale];
-
-  const usaTutti = () => {
-    const { [d.locale]: _, ...resto } = d.fisso;
-    set({ fisso: resto });
-  };
+  const setFisso = (key, f) => setD((prev) => ({ ...prev, fisso: { ...prev.fisso, [key]: f } }));
 
   const salva = async () => {
     setSaving(true);
-    const { [TUTTI]: tutti, ...perLocale } = d.fisso;
     const patch = {
       unita_conteggio: d.unita_conteggio,
       fattore_unita_ordine: Number(d.fattore) || 1,
-      conteggio_fisso: giornoFissoACf(tutti),
-      conteggio_fisso_per_ubicazione: Object.fromEntries(Object.entries(perLocale).map(([k, f]) => [k, giornoFissoACf(f)])),
+      conteggio_fisso_per_ubicazione: Object.fromEntries(Object.entries(d.fisso).map(([k, f]) => [k, giornoFissoACf(f)])),
       note: d.note
     };
     if (d.peso !== '') patch.peso_unita_conteggio_kg = Number(d.peso);
@@ -77,34 +67,13 @@ export default function ProdottoPanel({ row, imp, ubicazioni, onClose, onSave })
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 p-4 space-y-4">
-              <div className="space-y-2">
-                <Label>Locale</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {[{ key: TUTTI, label: 'Tutti i locali' }, ...ubicazioni].map((u) => (
-                    <button
-                      key={u.key}
-                      type="button"
-                      aria-pressed={d.locale === u.key}
-                      onClick={() => set({ locale: u.key })}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border ${d.locale === u.key ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'}`}
-                    >
-                      {u.label}{d.fisso[u.key] && u.key !== TUTTI ? ' •' : ''}
-                    </button>
-                  ))}
+            <div className="space-y-3">
+              <Label>Giorni fissi di conteggio per locale</Label>
+              {ubicazioni.map((u) => (
+                <div key={u.key} className="rounded-xl border border-slate-200 p-4 space-y-4">
+                  <GiornoFissoCampi id={u.key} titolo={u.label} f={d.fisso[u.key]} onChange={(f) => setFisso(u.key, f)} />
                 </div>
-                {d.locale !== TUTTI && (
-                  <p className="text-xs text-slate-500">
-                    {diverso ? (
-                      <>Giorno diverso solo per questo locale. <button type="button" className="text-blue-600 underline" onClick={usaTutti}>Usa quello di tutti i locali</button></>
-                    ) : 'Vale il giorno di tutti i locali. Modificalo qui sotto per cambiarlo solo in questo locale.'}
-                  </p>
-                )}
-              </div>
-              <GiornoFissoCampi
-                f={d.fisso[d.locale] || d.fisso[TUTTI]}
-                onChange={(f) => set({ fisso: { ...d.fisso, [d.locale]: f } })}
-              />
+              ))}
             </div>
 
             <div className="space-y-2">
