@@ -291,6 +291,13 @@ const navigationStructure = [
         url: createPageUrl("Inventario2Confronto"),
         icon: BarChart3,
         requiredUserType: ["admin"]
+      },
+      {
+        title: "Ordini",
+        page: "Ordini2",
+        url: createPageUrl("Ordini2"),
+        icon: ShoppingCart,
+        requiredUserType: ["admin"]
       }
     ]
   },

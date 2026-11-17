@@ -22,6 +22,7 @@ import TrasportiAdmin from './pages/TrasportiAdmin';
 import FormInventario2 from './pages/FormInventario2';
 import Inventario2Pianificazione from './pages/Inventario2Pianificazione';
 import Inventario2Confronto from './pages/Inventario2Confronto';
+import Ordini2 from './pages/Ordini2';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -76,6 +77,7 @@ const AuthenticatedApp = () => {
         <Route path="/FormInventario2" element={<FormInventario2 />} />
         <Route path="/Inventario2Pianificazione" element={<Inventario2Pianificazione />} />
         <Route path="/Inventario2Confronto" element={<Inventario2Confronto />} />
+        <Route path="/Ordini2" element={<Ordini2 />} />
         <Route path="/GestioneStore" element={<LayoutWrapper currentPageName="GestioneStore"><GestioneStore /></LayoutWrapper>} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
