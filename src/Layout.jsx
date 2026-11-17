@@ -248,7 +248,7 @@ const navigationStructure = [
     title: "Inventario 2.0",
     icon: ClipboardList,
     type: "section",
-    requiredUserType: ["admin"],
+    requiredUserType: ["admin", "manager"],
     items: [
       {
         title: "Impostazioni",

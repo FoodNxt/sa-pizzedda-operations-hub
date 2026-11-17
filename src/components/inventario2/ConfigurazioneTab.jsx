@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
 import { DEFAULT_CONFIG, MODALITA } from './inv2Utils';
+import ChecklistAttivo from './ChecklistAttivo';
+import { oggiLocale } from '@/components/laboratorio/labUtils';
 
 export default function ConfigurazioneTab() {
   const [loading, setLoading] = useState(true);
@@ -16,8 +18,15 @@ export default function ConfigurazioneTab() {
   const [ricette, setRicette] = useState([]);
   const [configId, setConfigId] = useState(null);
   const [cfg, setCfg] = useState(DEFAULT_CONFIG);
+  const [confronto, setConfronto] = useState({});
+
+  // Valori della checklist: gli stessi della pagina Confronto, per gli store in affiancamento
+  const caricaConfronto = () => base44.functions.invoke('inv2Analisi', { azione: 'confronto' })
+    .then((r) => setConfronto(Object.fromEntries(r.data.stores.map((s) => [s.store_id, s]))))
+    .catch(() => setConfronto({}));
 
   useEffect(() => {
+    caricaConfronto();
     (async () => {
       const [s, r, configs] = await Promise.all([
         base44.entities.Store.list(),
@@ -48,8 +57,14 @@ export default function ConfigurazioneTab() {
     stores.forEach((s) => { modalita[s.id] = cfg.modalita_per_store[s.id] || 'spento'; });
     const intervalli = {};
     Object.entries(cfg.intervallo_max_giorni_per_categoria).forEach(([k, v]) => { intervalli[k] = Number(v) || 0; });
+    // L'affiancamento parte dal giorno in cui viene salvato
+    const inizio = {};
+    stores.forEach((s) => {
+      if (modalita[s.id] === 'affiancamento') inizio[s.id] = cfg.affiancamento_dal_per_store?.[s.id] || oggiLocale();
+    });
     const data = {
       modalita_per_store: modalita,
+      affiancamento_dal_per_store: inizio,
       lab_store_id: cfg.lab_store_id,
       basi_ricetta_id: cfg.basi_ricetta_id || '',
       limite_voci_sera: Number(cfg.limite_voci_sera) || 0,
@@ -58,6 +73,8 @@ export default function ConfigurazioneTab() {
     };
     if (configId) await base44.entities.ConfigInventario2.update(configId, data);
     else setConfigId((await base44.entities.ConfigInventario2.create(data)).id);
+    set({ affiancamento_dal_per_store: inizio });
+    await caricaConfronto();
     setSaving(false);
     toast({ title: 'Configurazione salvata' });
   };
@@ -75,7 +92,8 @@ export default function ConfigurazioneTab() {
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           {stores.map((s) => (
-            <div key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
+            <div key={s.id} className="rounded-xl border border-slate-200 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium text-slate-700">
                 {s.name}{s.status !== 'active' ? ' (non attivo)' : ''}
               </span>
@@ -88,6 +106,13 @@ export default function ConfigurazioneTab() {
                   {MODALITA.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+              {confronto[s.id] && (
+                <div>
+                  <p className="text-xs uppercase text-slate-500 mb-1">Per passare ad attivo</p>
+                  <ChecklistAttivo dati={confronto[s.id]} />
+                </div>
+              )}
             </div>
           ))}
         </div>

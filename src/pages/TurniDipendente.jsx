@@ -260,7 +260,7 @@ export default function TurniDipendente() {
     queryKey: ['all-form-data-dipendente'],
     queryFn: async () => {
       const ultimiTreGiorni = moment().subtract(3, 'days').format('YYYY-MM-DD');
-      const [inventario, cantina, cassa, teglie, prep, impasti, calcoliImpasto, cleaningInspections, gestioneImpasti] = await Promise.all([
+      const [inventario, cantina, cassa, teglie, prep, impasti, calcoliImpasto, cleaningInspections, gestioneImpasti, sessioniInv2, produzioniLab, trasporti] = await Promise.all([
       base44.entities.RilevazioneInventario.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
       base44.entities.RilevazioneInventarioCantina.filter({ data_rilevazione: { $gte: ultimiTreGiorni } }),
       base44.entities.ConteggioCassa.filter({ data_conteggio: { $gte: ultimiTreGiorni } }),
@@ -269,10 +269,16 @@ export default function TurniDipendente() {
       base44.entities.CalcoloImpastoLog.filter({ data_calcolo: { $gte: ultimiTreGiorni } }),
       base44.entities.CalcoloImpastoLog.filter({ data_calcolo: { $gte: ultimiTreGiorni } }),
       base44.entities.CleaningInspection.filter({ inspection_date: { $gte: ultimiTreGiorni } }),
-      base44.entities.GestioneImpasti.filter({ data_creazione: { $gte: ultimiTreGiorni } })]
+      base44.entities.GestioneImpasti.filter({ data_creazione: { $gte: ultimiTreGiorni } }),
+      base44.entities.SessioneConteggio.filter({ data: { $gte: ultimiTreGiorni } }),
+      base44.entities.ProduzioneLab.filter({ data_produzione: { $gte: ultimiTreGiorni } }),
+      base44.entities.TrasportoMagazzino.filter({ data_trasporto: { $gte: ultimiTreGiorni } })]
       );
       return {
         FormInventario: inventario,
+        FormInventario2: sessioniInv2,
+        LaboratorioProduzioni: produzioniLab,
+        TrasportiMagazzino: trasporti,
         FormCantina: cantina,
         ConteggioCassa: cassa,
         FormTeglieButtate: teglie,
@@ -1639,7 +1645,7 @@ export default function TurniDipendente() {
                               }
                                 {isFormActivity &&
                               <Link
-                                to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id + (att.ora_inizio ? '&ora_attivita=' + att.ora_inizio : '') + (att.posizione_turno ? '&posizione_turno=' + att.posizione_turno : '')}
+                                to={createPageUrl(att.form_page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(att.nome) + '&store_id=' + prossimoTurno.store_id + (att.form_page === 'FormInventario2' ? '&ubicazione=negozio' : '') + (att.ora_inizio ? '&ora_attivita=' + att.ora_inizio : '') + (att.posizione_turno ? '&posizione_turno=' + att.posizione_turno : '')}
                                 className="flex-1 px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm">
 
                                     <FileText className="w-4 h-4" /> Compila Form
@@ -1835,7 +1841,7 @@ export default function TurniDipendente() {
                               </span> :
                         prossimoTurno.timbratura_entrata ?
                         <Link
-                          to={createPageUrl(form.page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(form.nome) + '&store_id=' + prossimoTurno.store_id + '&ora_attivita=manual'}
+                          to={createPageUrl(form.page) + '?redirect=TurniDipendente&turno_id=' + prossimoTurno.id + '&attivita=' + encodeURIComponent(form.nome) + '&store_id=' + prossimoTurno.store_id + (form.page === 'FormInventario2' ? '&ubicazione=negozio' : '') + '&ora_attivita=manual'}
                           className="px-4 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-blue-600 shadow-sm">
 
                                <FileText className="w-4 h-4" /> Compila Form

@@ -246,7 +246,14 @@ export default function GestioneAccessoPagine() {
   { value: 'FunzionamentoApp', label: 'Funzionamento App', category: 'Sistema' },
   { value: 'NotificheMail', label: 'Notifiche Mail', category: 'Sistema' },
   { value: 'FormSpostamenti', label: 'Spostamenti tra Negozi', category: 'Inventory' },
-  { value: 'SpostamentiAdmin', label: 'Spostamenti Admin', category: 'Inventory' }];
+  { value: 'SpostamentiAdmin', label: 'Spostamenti Admin', category: 'Inventory' },
+  { value: 'Inventario2Impostazioni', label: 'Inventario 2.0 › Impostazioni', category: 'Inventory' },
+  { value: 'Inventario2Registro', label: 'Inventario 2.0 › Registro', category: 'Inventory' },
+  { value: 'Inventario2Pianificazione', label: 'Inventario 2.0 › Pianificazione', category: 'Inventory' },
+  { value: 'Inventario2Confronto', label: 'Inventario 2.0 › Confronto', category: 'Inventory' },
+  { value: 'Ordini2', label: 'Inventario 2.0 › Ordini', category: 'Inventory' },
+  { value: 'LaboratorioAdmin', label: 'Inventario 2.0 › Laboratorio', category: 'Inventory' },
+  { value: 'TrasportiAdmin', label: 'Inventario 2.0 › Trasporti', category: 'Inventory' }];
 
 
   const availableDipendentiPages = [

@@ -19,14 +19,22 @@ export async function confronto(sr) {
     fetchAll(E.GiacenzaStimata, { ...ubicazioni, ultimo_conteggio_data: { $gte: dal.toISOString() } })
   ]);
 
+  const oggi = giornoRoma(new Date());
+  const inizio = config.affiancamento_dal_per_store || {};
+  const listaDel = Object.fromEntries(liste.map((l) => [`${l.ubicazione_key}|${l.data}`, new Set(l.item_ids || [])]));
+
   const stores = storeIds.map((id) => {
     const contati = conteggi.filter((m) => m.ubicazione_key === id);
     const perSera = {};
     const zeri = {};
+    const nonSegnalati = [];
     contati.forEach((m) => {
       const giorno = giornoRoma(new Date(m.data_movimento));
       perSera[giorno] = (perSera[giorno] || 0) + 1;
       if (m.quantita === 0) {
+        // A zero senza che la lista di quella sera chiedesse di contarlo (solo sere con una lista salvata)
+        const lista = listaDel[`${id}|${giorno}`];
+        if (lista && !lista.has(m.item_id)) nonSegnalati.push({ item_id: m.item_id, nome: m.item_nome, giorno });
         const z = (zeri[m.item_id] ||= { item_id: m.item_id, nome: m.item_nome, volte: 0, ultima: giorno });
         z.volte++;
         z.ultima = giorno;
@@ -42,7 +50,9 @@ export async function confronto(sr) {
       sere_previste: previste.length,
       voci_contate_media: media(Object.values(perSera)),
       sere_contate: Object.keys(perSera).length,
-      a_zero: Object.values(zeri).sort((a, b) => b.volte - a.volte)
+      a_zero: Object.values(zeri).sort((a, b) => b.volte - a.volte),
+      a_zero_non_segnalati: nonSegnalati,
+      giorni_affiancamento: inizio[id] ? Math.floor((Date.parse(oggi) - Date.parse(inizio[id])) / GIORNO) : null
     };
   });
   return { giorni: GIORNI, stores };

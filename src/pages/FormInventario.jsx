@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import BannerInventario2 from "@/components/inventario2/BannerInventario2";
 
 export default function FormInventario() {
   const navigate = useNavigate();
@@ -303,6 +304,8 @@ export default function FormInventario() {
         </h1>
         <p className="text-sm text-slate-500">Compila il questionario per registrare le giacenze</p>
       </div>
+
+      <BannerInventario2 storeId={selectedStore} pagina="FormInventario2" pulsante="Apri Inventario 2.0" />
 
       <NeumorphicCard className="p-4 bg-blue-50 border-2 border-blue-400">
         <p className="text-sm text-blue-800 font-medium">

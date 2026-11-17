@@ -32,6 +32,10 @@ export function isFormSubmittedForTurno(formPage, storeId, turnoDate, allFormDat
     case 'ControlloPuliziaCassiere': return checkRecordsPerEmployee(allFormData.ControlloPuliziaCassiere, 'inspection_date');
     case 'ControlloPuliziaPizzaiolo': return checkRecordsPerEmployee(allFormData.ControlloPuliziaPizzaiolo, 'inspection_date');
     case 'ControlloPuliziaStoreManager': return checkRecordsPerEmployee(allFormData.ControlloPuliziaStoreManager, 'inspection_date');
+    // Inventario 2.0: sessione di conteggio completata oggi nel negozio (non nel laboratorio)
+    case 'FormInventario2': return (allFormData.FormInventario2 || []).some(s => s.completata && s.ubicazione_key === storeId && s.data?.startsWith(turnoDate));
+    case 'LaboratorioProduzioni': return (allFormData.LaboratorioProduzioni || []).some(p => !p.annullata && p.data_produzione === turnoDate);
+    case 'TrasportiMagazzino': return (allFormData.TrasportiMagazzino || []).some(t => t.data_trasporto?.startsWith(turnoDate));
     default: return false;
   }
 }

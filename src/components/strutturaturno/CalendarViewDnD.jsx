@@ -37,6 +37,9 @@ const getColoreClass = (colore) => {
 const getFormLabel = (formPage) => {
   const AVAILABLE_FORMS = [
     { value: 'FormInventario', label: 'Inventario' },
+    { value: 'FormInventario2', label: 'Inventario 2.0' },
+    { value: 'LaboratorioProduzioni', label: 'Laboratorio' },
+    { value: 'TrasportiMagazzino', label: 'Trasporto tra negozi' },
     { value: 'FormCantina', label: 'Cantina' },
     { value: 'FormTeglieButtate', label: 'Teglie Buttate' },
     { value: 'FormPreparazioni', label: 'Preparazioni' },

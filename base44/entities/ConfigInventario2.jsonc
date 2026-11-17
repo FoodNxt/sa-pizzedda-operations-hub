@@ -7,6 +7,11 @@
       "default": {},
       "description": "Modalit\u00e0 Inventario 2.0 per store {store_id: 'spento' | 'affiancamento' | 'attivo'}. Store assente = spento"
     },
+    "affiancamento_dal_per_store": {
+      "type": "object",
+      "default": {},
+      "description": "Data di inizio dell'affiancamento per store {store_id: 'YYYY-MM-DD'}"
+    },
     "lab_store_id": {
       "type": "string",
       "default": "6908b4f284cb01bc8402b4ee",
