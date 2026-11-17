@@ -57,7 +57,7 @@ export async function ricalcola(sr, chiavi) {
   const coppie = [];
   ubicazioni.forEach((u) => prodotti.forEach((p) => {
     const delLab = !!p.imp.laboratorio;
-    const daCalcolare = u.ubicazione_tipo === 'laboratorio' ? delLab : p.inUso(u.store_id) && !(delLab && u.store_id === labStoreId);
+    const daCalcolare = u.ubicazione_tipo === 'laboratorio' ? delLab : p.inUso(u.store_id) && !(delLab && (p.imp.solo_laboratorio || u.store_id === labStoreId));
     if (daCalcolare) coppie.push({ u, p, k: `${u.ubicazione_key}|${p.imp.item_id}` });
   }));
 

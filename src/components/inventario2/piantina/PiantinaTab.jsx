@@ -43,7 +43,7 @@ export default function PiantinaTab() {
   const prodotti = useMemo(() => {
     const labId = ubicazioni?.find((u) => u.key.startsWith('lab:'))?.key.slice(4);
     if (key.startsWith('lab:')) return impostazioni.filter((i) => i.laboratorio);
-    return impostazioni.filter((i) => !(i.laboratorio && key === labId));
+    return impostazioni.filter((i) => !(i.laboratorio && (i.solo_laboratorio || key === labId)));
   }, [impostazioni, ubicazioni, key]);
 
   const pin = piantina?.pin || {};

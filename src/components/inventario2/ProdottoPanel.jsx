@@ -18,6 +18,7 @@ export default function ProdottoPanel({ row, imp, ubicazioni, onClose, onSave })
       unita_conteggio: imp.unita_conteggio || '',
       fattore: imp.fattore_unita_ordine ?? 1,
       peso: imp.peso_unita_conteggio_kg ?? '',
+      solo_lab: !!imp.solo_laboratorio,
       // Giorni fissi di ogni locale; chi non ne ha di propri parte da quelli comuni
       fisso: Object.fromEntries(ubicazioni.map((u) => [u.key, giornoFissoDaCf(salvati[u.key] ?? imp.conteggio_fisso)])),
       note: imp.note || ''
@@ -32,6 +33,7 @@ export default function ProdottoPanel({ row, imp, ubicazioni, onClose, onSave })
     const patch = {
       unita_conteggio: d.unita_conteggio,
       fattore_unita_ordine: Number(d.fattore) || 1,
+      solo_laboratorio: d.solo_lab,
       conteggio_fisso_per_ubicazione: Object.fromEntries(Object.entries(d.fisso).map(([k, f]) => [k, giornoFissoACf(f)])),
       note: d.note
     };
@@ -66,6 +68,13 @@ export default function ProdottoPanel({ row, imp, ubicazioni, onClose, onSave })
                 <Input id="inv2-peso" type="number" min="0" step="any" value={d.peso} onChange={(e) => set({ peso: e.target.value })} />
               </div>
             </div>
+
+            {imp.laboratorio && (
+              <label className="flex items-center gap-2 text-sm text-slate-800">
+                <input type="checkbox" checked={d.solo_lab} onChange={(e) => set({ solo_lab: e.target.checked })} />
+                Si conta solo nel laboratorio, non nei negozi
+              </label>
+            )}
 
             <div className="space-y-3">
               <Label>Giorni fissi di conteggio per locale</Label>

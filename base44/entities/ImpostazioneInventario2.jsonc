@@ -32,6 +32,11 @@
       "default": false,
       "description": "Prodotto del magazzino del laboratorio"
     },
+    "solo_laboratorio": {
+      "type": "boolean",
+      "default": false,
+      "description": "Il prodotto del laboratorio non si conta in nessun negozio"
+    },
     "consumabile": {
       "type": "boolean",
       "default": false,

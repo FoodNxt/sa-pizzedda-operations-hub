@@ -4,6 +4,9 @@ import { aBlocchi, fetchAll, loadConfig, soloAdmin, ubicazionePer } from '../../
 const FONTI = { RilevazioneInventario: 'form_inventario_v1', RilevazioneInventarioCantina: 'form_cantina_v1' };
 const GIORNI_STORICO = 28;
 
+// Un conteggio del vecchio modulo vale solo se è nella stessa unità di Inventario 2.0
+const stessaUnita = (r, imp) => !imp?.unita_conteggio || !r.unita_misura || imp.unita_conteggio === r.unita_misura;
+
 function movimento(r, fonte, isMateriaPrima, laboratorio, labStoreId) {
   return {
     ...ubicazionePer(r.store_id, laboratorio, labStoreId),
@@ -30,6 +33,7 @@ async function importaUna(sr, config, labStoreId, entita, id) {
     sr.entities.ImpostazioneInventario2.filter({ item_id: r.prodotto_id })
   ]);
   if (gia.length) return { creati: 0, saltato: 'già importata' };
+  if (!stessaUnita(r, impostazioni[0])) return { creati: 0, saltato: 'unità diversa da Inventario 2.0' };
   await sr.entities.MovimentoMagazzino.create(movimento(r, FONTI[entita], materie.length > 0, impostazioni[0]?.laboratorio, labStoreId));
   return { creati: 1 };
 }
@@ -41,17 +45,18 @@ async function importaStorico(sr, config, labStoreId) {
   const E = sr.entities;
   const [materie, impostazioni, gia] = await Promise.all([
     fetchAll(E.MateriePrime),
-    fetchAll(E.ImpostazioneInventario2, { laboratorio: true }),
+    fetchAll(E.ImpostazioneInventario2),
     fetchAll(E.MovimentoMagazzino, { fonte: { $in: Object.values(FONTI) }, data_movimento: { $gte: dal } })
   ]);
   const materieIds = new Set(materie.map((m) => m.id));
-  const delLab = new Set(impostazioni.map((i) => i.item_id));
+  const impById = Object.fromEntries(impostazioni.map((i) => [i.item_id, i]));
   const importate = new Set(gia.map((m) => m.riferimento_id));
   const nuovi = [];
   for (const [entita, fonte] of Object.entries(FONTI)) {
     const rilevazioni = await fetchAll(E[entita], { store_id: { $in: storeIds }, data_rilevazione: { $gte: dal } }, 'data_rilevazione');
     rilevazioni.forEach((r) => {
-      if (!importate.has(r.id)) nuovi.push(movimento(r, fonte, materieIds.has(r.prodotto_id), delLab.has(r.prodotto_id), labStoreId));
+      const imp = impById[r.prodotto_id];
+      if (!importate.has(r.id) && stessaUnita(r, imp)) nuovi.push(movimento(r, fonte, materieIds.has(r.prodotto_id), imp?.laboratorio, labStoreId));
     });
   }
   for (const blocco of aBlocchi(nuovi, 500)) await E.MovimentoMagazzino.bulkCreate(blocco);
