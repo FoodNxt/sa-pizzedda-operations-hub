@@ -1,0 +1,61 @@
+{
+  "name": "ListaConteggioLog",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "string",
+      "format": "date",
+      "description": "Sera a cui si riferisce la lista"
+    },
+    "ubicazione_key": {
+      "type": "string",
+      "description": "ID store per un negozio, 'lab:' + ID store per il laboratorio"
+    },
+    "numero_voci": {
+      "type": "number",
+      "description": "Numero di voci previste per la sera"
+    },
+    "item_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "item_id dei prodotti previsti"
+    }
+  },
+  "required": [
+    "data",
+    "ubicazione_key"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

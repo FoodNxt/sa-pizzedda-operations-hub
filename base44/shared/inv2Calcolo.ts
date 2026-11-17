@@ -67,7 +67,7 @@ export function calcolaGiacenza(moves, now, soglia) {
   return { ...base, ultimo, giacenza, giorniCopertura: perGiorno > 0 ? giacenza / perGiorno : null, affidabilita, scarto };
 }
 
-function prossimaRicorrenza(cf, start) {
+export function prossimaRicorrenza(cf, start) {
   const giorni = cf.giorni_settimana || [];
   const lunedi = (s) => {
     const ms = Date.parse(`${s}T00:00:00Z`);

@@ -87,6 +87,13 @@ export default function FormsDipendente() {
     color: "from-orange-500 to-amber-600"
   },
   {
+    title: "Inventario 2.0",
+    description: "Conta i prodotti della lista di stasera",
+    icon: ClipboardList,
+    url: "FormInventario2",
+    color: "from-green-500 to-teal-600"
+  },
+  {
     title: "Inventario Store Manager",
     description: "Gestione completa inventario",
     icon: ClipboardList,

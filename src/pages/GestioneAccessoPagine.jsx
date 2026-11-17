@@ -263,6 +263,7 @@ export default function GestioneAccessoPagine() {
   { value: 'FormInventario', label: '✅ Form Inventario', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
   { value: 'LaboratorioProduzioni', label: 'Laboratorio (produzioni)', icon: CheckSquare, category: 'Area Dipendente' },
   { value: 'TrasportiMagazzino', label: 'Trasporto tra negozi', icon: CheckSquare, category: 'Area Dipendente' },
+  { value: 'FormInventario2', label: 'Inventario 2.0 (conteggio)', icon: CheckSquare, category: 'Area Dipendente' },
   { value: 'ConteggioCassa', label: '✅ Conteggio Cassa', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
   { value: 'FormTeglieButtate', label: '✅ Teglie Buttate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
   { value: 'Preparazioni', label: '✅ Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },

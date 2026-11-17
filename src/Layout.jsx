@@ -277,6 +277,20 @@ const navigationStructure = [
         url: createPageUrl("TrasportiAdmin"),
         icon: Truck,
         requiredUserType: ["admin"]
+      },
+      {
+        title: "Pianificazione",
+        page: "Inventario2Pianificazione",
+        url: createPageUrl("Inventario2Pianificazione"),
+        icon: Calendar,
+        requiredUserType: ["admin"]
+      },
+      {
+        title: "Confronto",
+        page: "Inventario2Confronto",
+        url: createPageUrl("Inventario2Confronto"),
+        icon: BarChart3,
+        requiredUserType: ["admin"]
       }
     ]
   },
@@ -1094,6 +1108,7 @@ export default function Layout({ children, currentPageName }) {
       'FormSpostamenti': 'Spostamenti',
       'LaboratorioProduzioni': 'Laboratorio',
       'TrasportiMagazzino': 'Trasporti',
+      'FormInventario2': 'Inventario 2.0',
       'PagamentoStraordinari': 'Pagamento Straordinari',
       'Presenze': 'Presenze',
       'DiviseStoreManager': 'Divise'
@@ -1121,6 +1136,7 @@ export default function Layout({ children, currentPageName }) {
         'FormSpostamenti': Truck,
         'LaboratorioProduzioni': ChefHat,
         'TrasportiMagazzino': Truck,
+        'FormInventario2': ClipboardList,
         'Preparazioni': ChefHat,
         'FeedbackP2P': Users,
         'InventarioStoreManager': Package,
