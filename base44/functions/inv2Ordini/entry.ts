@@ -36,8 +36,9 @@ export default async function (req) {
     const fornByNome = Object.fromEntries(fornitori.map((f) => [norm(f.ragione_sociale), f]));
     const modalita = (storeId) => config.modalita_per_store?.[storeId] || 'spento';
 
-    const attivi = stores.filter((s) => s.status === 'active');
-    const lab = stores.find((s) => s.id === labStoreId);
+    // Solo gli store in affiancamento o attivi; il laboratorio solo se il suo store non è spento
+    const attivi = stores.filter((s) => s.status === 'active' && modalita(s.id) !== 'spento');
+    const lab = stores.find((s) => s.id === labStoreId && modalita(s.id) !== 'spento');
     const ubicazioni = [
       ...attivi.map((s) => ({ key: s.id, nome: s.name, store_id: s.id, store_name: s.name, laboratorio: false, modalita: modalita(s.id) })),
       ...(lab ? [{ key: `lab:${lab.id}`, nome: `Laboratorio (${lab.name})`, store_id: lab.id, store_name: lab.name, laboratorio: true, modalita: modalita(lab.id) }] : [])

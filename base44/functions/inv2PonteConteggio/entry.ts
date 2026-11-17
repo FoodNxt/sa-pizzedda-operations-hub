@@ -61,10 +61,14 @@ async function importaStorico(sr, config, labStoreId) {
 export default async function (req) {
   try {
     const base44 = createClientFromRequest(req);
-    const { errore } = await soloAdmin(base44);
-    if (errore) return errore;
     const sr = base44.asServiceRole;
     const { entita, rilevazione_id, importa_storico } = await req.json().catch(() => ({}));
+
+    // La chiamata singola arriva dal workflow (anche come dipendente): legge solo quel record ed è idempotente
+    if (importa_storico) {
+      const { errore } = await soloAdmin(base44);
+      if (errore) return errore;
+    }
     const { config, labStoreId } = await loadConfig(sr);
 
     if (importa_storico) return Response.json(await importaStorico(sr, config, labStoreId));

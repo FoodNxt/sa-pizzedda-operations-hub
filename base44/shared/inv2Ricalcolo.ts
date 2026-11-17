@@ -45,10 +45,13 @@ export async function ricalcola(sr, chiavi) {
     };
   }).filter(Boolean);
 
+  // Solo gli store in affiancamento o attivi; il laboratorio segue lo store che lo ospita.
+  // Le giacenze degli store esclusi vengono eliminate più sotto, perché non sono più previste.
+  const acceso = (storeId) => ['affiancamento', 'attivo'].includes(config.modalita_per_store?.[storeId]);
   const ubicazioni = [
     ...stores.map((s) => ({ ubicazione_key: s.id, store_id: s.id, ubicazione_tipo: 'negozio' })),
     { ubicazione_key: `lab:${labStoreId}`, store_id: labStoreId, ubicazione_tipo: 'laboratorio' }
-  ].filter((u) => !chiavi?.length || chiavi.includes(u.ubicazione_key));
+  ].filter((u) => acceso(u.store_id) && (!chiavi?.length || chiavi.includes(u.ubicazione_key)));
 
   // I prodotti del laboratorio hanno la giacenza nel laboratorio e non nel negozio dello stesso store
   const coppie = [];

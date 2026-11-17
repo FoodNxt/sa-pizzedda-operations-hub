@@ -1,11 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.62';
-import { loadConfig, soloAdmin, ubicazioneDaKey, ubicazionePer } from '../../shared/inv2.ts';
+import { loadConfig, ubicazioneDaKey, ubicazionePer } from '../../shared/inv2.ts';
 
 export default async function (req) {
   try {
+    // Chiamata dal workflow (anche come dipendente): legge solo l'ordine indicato ed è idempotente
     const base44 = createClientFromRequest(req);
-    const { errore } = await soloAdmin(base44);
-    if (errore) return errore;
     const sr = base44.asServiceRole;
     const E = sr.entities;
     const { ordine_id } = await req.json().catch(() => ({}));
