@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ChevronDown, Inbox } from 'lucide-react';
+import { ChevronDown, Inbox, Plus } from 'lucide-react';
+import RegistraProduzioneDialog from './RegistraProduzioneDialog';
 import { toast } from '@/components/ui/use-toast';
 import '@/components/inventario2/prodottiTable.css';
 import { erroreFunzione, giorno, numero } from './labUtils';
@@ -27,6 +28,7 @@ export default function ProduzioniAdmin({ semilavorati, onCambio }) {
   const [loading, setLoading] = useState(true);
   const [aperta, setAperta] = useState(null);
   const [annullando, setAnnullando] = useState(null);
+  const [registra, setRegistra] = useState(false);
 
   const carica = async (cursor) => {
     const q = buildQuery(filtri);
@@ -74,6 +76,10 @@ export default function ProduzioniAdmin({ semilavorati, onCambio }) {
               </select>
               <input type="date" className="dt1-select" value={filtri.dal} onChange={set('dal')} aria-label="Dal giorno" />
               <input type="date" className="dt1-select" value={filtri.al} onChange={set('al')} aria-label="Al giorno" />
+              <button type="button" className="dt1-btn" onClick={() => setRegistra(true)}>
+                <Plus />
+                Registra produzione
+              </button>
             </div>
           </div>
 
@@ -165,6 +171,13 @@ export default function ProduzioniAdmin({ semilavorati, onCambio }) {
           </div>
         </div>
       </div>
+      {registra && (
+        <RegistraProduzioneDialog
+          semilavorati={semilavorati}
+          onClose={() => setRegistra(false)}
+          onSalvato={() => { setRegistra(false); carica(null); onCambio(); }}
+        />
+      )}
     </section>
   );
 }
