@@ -26,6 +26,7 @@ const AVAILABLE_FORMS = [
 { value: 'FormInventario', label: 'Inventario' },
 { value: 'FormCantina', label: 'Cantina' },
 { value: 'LaboratorioProduzioni', label: 'Laboratorio' },
+{ value: 'TrasportiMagazzino', label: 'Trasporto tra negozi' },
 { value: 'FormTeglieButtate', label: 'Teglie Buttate' },
 { value: 'FormPreparazioni', label: 'Preparazioni' },
 { value: 'ConteggioCassa', label: 'Conteggio Cassa' },

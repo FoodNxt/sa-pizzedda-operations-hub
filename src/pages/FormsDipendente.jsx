@@ -80,6 +80,13 @@ export default function FormsDipendente() {
     color: "from-blue-500 to-blue-600"
   },
   {
+    title: "Trasporto tra negozi",
+    description: "Registra i prodotti portati da un negozio all'altro",
+    icon: Truck,
+    url: "TrasportiMagazzino",
+    color: "from-orange-500 to-amber-600"
+  },
+  {
     title: "Inventario Store Manager",
     description: "Gestione completa inventario",
     icon: ClipboardList,

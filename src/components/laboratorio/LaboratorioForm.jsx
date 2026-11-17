@@ -6,6 +6,7 @@ import { ChefHat } from 'lucide-react';
 import NeumorphicCard from '@/components/neumorphic/NeumorphicCard';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { segnaAttivitaTurno } from '@/lib/segnaAttivitaTurno';
 import ProduzioneCard from './ProduzioneCard';
 import DaProdurreCard from './DaProdurreCard';
 import ProduzioniOggi from './ProduzioniOggi';
@@ -68,20 +69,7 @@ export default function LaboratorioForm() {
   const segnaAttivita = async () => {
     if (!turnoId || !attivitaNome || attivitaSegnata.current) return;
     attivitaSegnata.current = true;
-    const oraAttivita = urlParams.get('ora_attivita');
-    const filtro = { turno_id: turnoId, attivita_nome: decodeURIComponent(attivitaNome) };
-    if (oraAttivita) filtro.ora_attivita = oraAttivita;
-    const esistente = await base44.entities.AttivitaCompletata.filter(filtro);
-    if (esistente.length) return;
-    await base44.entities.AttivitaCompletata.create({
-      ...filtro,
-      dipendente_id: user.id,
-      dipendente_nome: user.nome_cognome || user.full_name || 'Dipendente',
-      turno_data: new Date().toISOString().split('T')[0],
-      store_id: dati.config.lab_store_id || LAB_STORE_DEFAULT,
-      form_page: 'LaboratorioProduzioni',
-      completato_at: new Date().toISOString()
-    });
+    await segnaAttivitaTurno({ user, storeId: dati.config.lab_store_id || LAB_STORE_DEFAULT, formPage: 'LaboratorioProduzioni' });
   };
 
   const registra = async (ricetta, unita, { data, quantita }) => {

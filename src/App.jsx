@@ -17,6 +17,8 @@ import Inventario2Impostazioni from './pages/Inventario2Impostazioni';
 import Inventario2Registro from './pages/Inventario2Registro';
 import LaboratorioProduzioni from './pages/LaboratorioProduzioni';
 import LaboratorioAdmin from './pages/LaboratorioAdmin';
+import TrasportiMagazzino from './pages/TrasportiMagazzino';
+import TrasportiAdmin from './pages/TrasportiAdmin';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -66,6 +68,8 @@ const AuthenticatedApp = () => {
         <Route path="/Inventario2Registro" element={<Inventario2Registro />} />
         <Route path="/LaboratorioProduzioni" element={<LaboratorioProduzioni />} />
         <Route path="/LaboratorioAdmin" element={<LaboratorioAdmin />} />
+        <Route path="/TrasportiMagazzino" element={<TrasportiMagazzino />} />
+        <Route path="/TrasportiAdmin" element={<TrasportiAdmin />} />
         <Route path="/GestioneStore" element={<LayoutWrapper currentPageName="GestioneStore"><GestioneStore /></LayoutWrapper>} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>

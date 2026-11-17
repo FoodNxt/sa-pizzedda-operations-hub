@@ -270,6 +270,13 @@ const navigationStructure = [
         url: createPageUrl("LaboratorioAdmin"),
         icon: ChefHat,
         requiredUserType: ["admin"]
+      },
+      {
+        title: "Trasporti",
+        page: "TrasportiAdmin",
+        url: createPageUrl("TrasportiAdmin"),
+        icon: Truck,
+        requiredUserType: ["admin"]
       }
     ]
   },
@@ -1086,6 +1093,7 @@ export default function Layout({ children, currentPageName }) {
       'FormSprechi': 'Sprechi',
       'FormSpostamenti': 'Spostamenti',
       'LaboratorioProduzioni': 'Laboratorio',
+      'TrasportiMagazzino': 'Trasporti',
       'PagamentoStraordinari': 'Pagamento Straordinari',
       'Presenze': 'Presenze',
       'DiviseStoreManager': 'Divise'
@@ -1112,6 +1120,7 @@ export default function Layout({ children, currentPageName }) {
         'FormTeglieButtate': AlertTriangle,
         'FormSpostamenti': Truck,
         'LaboratorioProduzioni': ChefHat,
+        'TrasportiMagazzino': Truck,
         'Preparazioni': ChefHat,
         'FeedbackP2P': Users,
         'InventarioStoreManager': Package,

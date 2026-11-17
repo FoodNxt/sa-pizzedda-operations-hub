@@ -262,6 +262,7 @@ export default function GestioneAccessoPagine() {
   { value: 'ControlloPuliziaStoreManager', label: '✅ Controllo Pulizia Store Manager', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
   { value: 'FormInventario', label: '✅ Form Inventario', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
   { value: 'LaboratorioProduzioni', label: 'Laboratorio (produzioni)', icon: CheckSquare, category: 'Area Dipendente' },
+  { value: 'TrasportiMagazzino', label: 'Trasporto tra negozi', icon: CheckSquare, category: 'Area Dipendente' },
   { value: 'ConteggioCassa', label: '✅ Conteggio Cassa', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
   { value: 'FormTeglieButtate', label: '✅ Teglie Buttate', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
   { value: 'Preparazioni', label: '✅ Preparazioni', icon: CheckSquare, category: 'Area Dipendente', recommended: true },
