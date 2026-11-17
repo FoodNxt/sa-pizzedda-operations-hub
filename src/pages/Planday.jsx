@@ -177,17 +177,17 @@ export default function Planday() {
   const { data: allFormData = {} } = useQuery({
     queryKey: ['all-form-data'],
     queryFn: async () => {
-      const [inventario, cantina, cassa, teglie, prep, impasti, precotture] = await Promise.all([
+      const [inventario, cantina, cassa, teglie, prep, impasti, precotture, sessioniInv2, produzioniLab, trasporti] = await Promise.all([
       base44.entities.RilevazioneInventario.list('-data_rilevazione'),
       base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione'),
       base44.entities.ConteggioCassa.list('-data_conteggio'),
       base44.entities.TeglieButtate.list('-data_rilevazione'),
       base44.entities.Preparazioni.list('-data_rilevazione'),
       base44.entities.GestioneImpasti.list('-data_creazione'),
-      base44.entities.CalcoloImpastoLog.list('-data_calcolo')]
+      base44.entities.CalcoloImpastoLog.list('-data_calcolo'), base44.entities.SessioneConteggio.list('-data'), base44.entities.ProduzioneLab.list('-data_produzione'), base44.entities.TrasportoMagazzino.list('-data_trasporto')]
       );
       return {
-        FormInventario: inventario,
+        FormInventario: inventario, FormInventario2: sessioniInv2, LaboratorioProduzioni: produzioniLab, TrasportiMagazzino: trasporti,
         FormCantina: cantina,
         ConteggioCassa: cassa,
         FormTeglieButtate: teglie,

@@ -10,7 +10,7 @@ import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import { format, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
-import ProtectedPage from "../components/ProtectedPage";
+import ProtectedPage from "../components/ProtectedPage"; import BannerInventario2 from "@/components/inventario2/BannerInventario2";
 
 export default function OrdiniAdmin() {
   const [activeTab, setActiveTab] = useState('suggeriti');
@@ -662,7 +662,7 @@ Sa Pizzedda`,
                     </button>
                     
                     {isExpanded &&
-                <div className="p-6 pt-0 space-y-4">
+                <div className="p-6 pt-0 space-y-4"><BannerInventario2 storeId={storeId} pagina="Ordini2" pulsante="Apri Ordini 2.0" />
                         {Object.entries(storeData.suppliers).map(([supplier, orders]) => {
                     const fornitore = getFornitoreByName(supplier);
                     const emailKey = `${storeData.store.name}-${supplier}`;
@@ -1117,7 +1117,7 @@ Sa Pizzedda`,
                         const isArrivatiCollapsed = collapsedArrivati[collapseKey] !== false;
 
                         return (
-                          <div key={storeId} className="neumorphic-pressed p-4 rounded-xl">
+                          <div key={storeId} className="neumorphic-pressed p-4 rounded-xl"><div className="mb-3 empty:hidden"><BannerInventario2 storeId={storeId} pagina="Ordini2" pulsante="Apri Ordini 2.0" /></div>
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
                                 <Building2 className="w-5 h-5 text-blue-600" />
