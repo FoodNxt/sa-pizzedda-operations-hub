@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { History, Plus, RefreshCw } from 'lucide-react';
+import { ClipboardCheck, History, Plus, RefreshCw } from 'lucide-react';
+import InventarioCompletoDialog from './InventarioCompletoDialog';
 import { toast } from '@/components/ui/use-toast';
 import RegistroTable from './RegistroTable';
 import MovimentoManualeDialog from './MovimentoManualeDialog';
@@ -34,6 +35,7 @@ export default function RegistroMovimenti() {
   const [prodotti, setProdotti] = useState([]);
   const [busy, setBusy] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [completoOpen, setCompletoOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -103,6 +105,10 @@ export default function RegistroMovimenti() {
         <RefreshCw />
         {busy === 'ricalcola' ? 'Ricalcolo…' : 'Ricalcola ora'}
       </button>
+      <button type="button" className="dt1-btn dt1-btn--plain" onClick={() => setCompletoOpen(true)}>
+        <ClipboardCheck />
+        Inventario completo
+      </button>
       <button type="button" className="dt1-btn" onClick={() => setDialogOpen(true)}>
         <Plus />
         Aggiungi movimento
@@ -129,6 +135,12 @@ export default function RegistroMovimenti() {
         onClose={() => setDialogOpen(false)}
         ubicazioni={ubicazioni}
         prodotti={prodotti}
+        onSaved={() => carica(null)}
+      />
+      <InventarioCompletoDialog
+        open={completoOpen}
+        onClose={() => setCompletoOpen(false)}
+        ubicazioni={ubicazioni}
         onSaved={() => carica(null)}
       />
     </>

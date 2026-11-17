@@ -58,19 +58,24 @@ export default async function (req) {
       });
     }
 
-    if (body.azione !== 'salva') return Response.json({ error: 'azione non valida' }, { status: 400 });
+    // Inventario completo: solo admin, tutti i prodotti dell'ubicazione, senza toccare la lista della sera
+    const completo = body.azione === 'lista_completa' || body.azione === 'salva_completo';
+    if (completo && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+    if (body.azione === 'lista_completa') return Response.json({ ubicazione_key: key, righe: await righe(E, giacenze, storeId) });
+
+    if (body.azione !== 'salva' && !completo) return Response.json({ error: 'azione non valida' }, { status: 400 });
     const perId = Object.fromEntries(giacenze.map((g) => [g.item_id, g]));
     const conteggi = [...new Map((Array.isArray(body.conteggi) ? body.conteggi : []).map((c) => [c.item_id, c])).values()];
     const validi = conteggi.every((c) => perId[c.item_id] && Number.isFinite(c.quantita) && c.quantita >= 0);
     if (!conteggi.length || !validi) return Response.json({ error: 'Ogni prodotto deve avere una quantità, anche 0' }, { status: 400 });
-    const previsti = sessioneOggi ? [] : (Array.isArray(body.previsti) ? body.previsti : []).filter((id) => perId[id]);
+    const previsti = sessioneOggi || completo ? [] : (Array.isArray(body.previsti) ? body.previsti : []).filter((id) => perId[id]);
     const contati = new Set(conteggi.map((c) => c.item_id));
     const mancanti = previsti.filter((id) => !contati.has(id)).length;
     if (mancanti) return Response.json({ error: `Mancano ${mancanti} prodotti della lista di stasera` }, { status: 400 });
 
     const ora = new Date().toISOString();
     const operatoreNome = user.nome_cognome || user.full_name;
-    const sessione = sessioneOggi || await E.SessioneConteggio.create({
+    const sessione = completo ? null : sessioneOggi || await E.SessioneConteggio.create({
       ...ubicazioneDaKey(key),
       data: ora,
       operatore_email: user.email,
@@ -93,13 +98,13 @@ export default async function (req) {
         utente_email: user.email,
         utente_nome: operatoreNome,
         fonte: 'inventario_v2',
-        sessione_id: sessione.id
+        ...(sessione ? { sessione_id: sessione.id } : { note: 'Inventario completo' })
       })));
     } catch (e) {
-      if (!sessioneOggi) await E.SessioneConteggio.delete(sessione.id);
+      if (sessione && !sessioneOggi) await E.SessioneConteggio.delete(sessione.id);
       throw e;
     }
-    if (sessioneOggi) {
+    if (sessione && sessioneOggi) {
       await E.SessioneConteggio.update(sessione.id, { prodotti_contati: (sessione.prodotti_contati || 0) + conteggi.length });
     }
 
@@ -111,7 +116,7 @@ export default async function (req) {
       ricalcolato = false;
       console.error('Ricalcolo non riuscito dopo il conteggio', e.message);
     }
-    return Response.json({ sessione_id: sessione.id, conteggi: conteggi.length, ricalcolato });
+    return Response.json({ sessione_id: sessione?.id, conteggi: conteggi.length, ricalcolato });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
