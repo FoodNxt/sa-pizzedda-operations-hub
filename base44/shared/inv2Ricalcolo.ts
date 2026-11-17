@@ -104,7 +104,7 @@ export async function ricalcola(sr, chiavi) {
     const r = calcolaGiacenza(moves, now, soglia);
     if (r.scartati) intervalliScartati.push({ ubicazione_key: u.ubicazione_key, item_nome: p.nome, intervalli: r.scartati });
     const prossimo = prossimoConteggio({
-      fisso: p.imp.conteggio_fisso,
+      fisso: p.imp.conteggio_fisso_per_ubicazione?.[u.ubicazione_key] ?? p.imp.conteggio_fisso,
       r,
       oggi,
       min: p.imp.min_per_ubicazione?.[u.ubicazione_key],

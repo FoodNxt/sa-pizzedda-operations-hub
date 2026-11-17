@@ -133,7 +133,28 @@ export function setUbicazione(obj, key, value) {
   return next;
 }
 
-export function riassuntoGiornoFisso(cf) {
+export const GIORNI_MAX = { due_volte_settimana: 2, settimanale: 1, ogni_due_settimane: 1 };
+
+// Giorno fisso: dal formato salvato a quello dei campi e ritorno
+export const giornoFissoDaCf = (cf) => ({
+  attivo: !!cf?.attivo,
+  ricorrenza: cf?.ricorrenza || 'settimanale',
+  giorni: cf?.giorni_settimana || [],
+  data_partenza: cf?.data_partenza || '',
+  giorno_mese: cf?.giorno_mese || 1
+});
+
+export function giornoFissoACf(f) {
+  const max = GIORNI_MAX[f.ricorrenza];
+  const cf = { attivo: f.attivo, ricorrenza: f.ricorrenza, giorni_settimana: max ? f.giorni.slice(-max) : [] };
+  if (f.ricorrenza === 'ogni_due_settimane' && f.data_partenza) cf.data_partenza = f.data_partenza;
+  if (f.ricorrenza === 'mensile') cf.giorno_mese = Math.min(28, Math.max(1, Number(f.giorno_mese) || 1));
+  return cf;
+}
+
+export function riassuntoGiornoFisso(cf, perUbicazione) {
+  const diversi = Object.keys(perUbicazione || {}).length;
+  if (diversi) return `${riassuntoGiornoFisso(cf)} · diverso in ${diversi} ${diversi === 1 ? 'locale' : 'locali'}`;
   if (!cf?.attivo) return '—';
   const label = RICORRENZE.find((r) => r.value === cf.ricorrenza)?.label || 'Settimanale';
   if (cf.ricorrenza === 'giornaliera') return label;

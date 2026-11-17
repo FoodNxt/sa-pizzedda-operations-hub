@@ -11,7 +11,7 @@ export async function calendario(sr) {
     fetchAll(E.GiacenzaStimata),
     fetchAll(E.ImpostazioneInventario2, { incluso: true })
   ]);
-  const fisso = Object.fromEntries(impostazioni.map((i) => [i.item_id, i.conteggio_fisso]));
+  const fisso = Object.fromEntries(impostazioni.map((i) => [i.item_id, i]));
   const oggi = giornoRoma(new Date());
   const giorni = Array.from({ length: 14 }, (_, i) => addGiorni(oggi, i));
   const perUbicazione = {};
@@ -24,7 +24,8 @@ export async function calendario(sr) {
       const presi = new Set(lista.map((g) => g.item_id));
       coda = coda.flatMap((g) => {
         if (!presi.has(g.item_id)) return [g];
-        const cf = fisso[g.item_id];
+        const imp = fisso[g.item_id];
+        const cf = imp?.conteggio_fisso_per_ubicazione?.[key] ?? imp?.conteggio_fisso;
         return g.priorita === 1 && cf?.attivo ? [{ ...g, prossimo_conteggio_data: prossimaRicorrenza(cf, addGiorni(giorno, 1)) }] : [];
       });
       return lista.map((g) => ({ item_id: g.item_id, nome: g.item_nome, motivo: g.prossimo_conteggio_motivo }));

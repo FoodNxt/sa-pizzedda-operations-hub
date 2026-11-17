@@ -65,7 +65,7 @@
     },
     "conteggio_fisso": {
       "type": "object",
-      "description": "Giorno fisso di conteggio",
+      "description": "Giorno fisso di conteggio, valido per tutte le ubicazioni senza un giorno proprio",
       "properties": {
         "attivo": {
           "type": "boolean"
@@ -96,6 +96,10 @@
           "description": "Giorno del mese 1-28"
         }
       }
+    },
+    "conteggio_fisso_per_ubicazione": {
+      "type": "object",
+      "description": "Giorno fisso di conteggio diverso per ubicazione {ubicazione_key: stessa forma di conteggio_fisso}. Se presente sostituisce conteggio_fisso in quella ubicazione"
     },
     "frequenza_suggerita": {
       "type": "string",

@@ -49,7 +49,7 @@ export default function ProdottoRow({ row, imp, ubicazioni, index, onSave, onEdi
       ))}
       <td className="dt1-cell">
         <button type="button" className="dt1-link" onClick={() => onEdit(row)}>
-          {riassuntoGiornoFisso(imp.conteggio_fisso)}
+          {riassuntoGiornoFisso(imp.conteggio_fisso, imp.conteggio_fisso_per_ubicazione)}
         </button>
       </td>
       <td className="dt1-cell dt1-cell--c">

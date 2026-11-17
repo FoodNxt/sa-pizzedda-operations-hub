@@ -102,6 +102,7 @@ export default function ProdottiTab() {
       <ProdottoPanel
         row={editing}
         imp={editing ? (imp[editing.key] || defaultImpostazione(editing)) : {}}
+        ubicazioni={ubicazioni}
         onClose={() => setEditing(null)}
         onSave={salva}
       />
