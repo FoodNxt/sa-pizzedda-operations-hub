@@ -73,6 +73,13 @@ export default function FormsDipendente() {
     color: "from-indigo-500 to-blue-600"
   },
   {
+    title: "Laboratorio",
+    description: "Registra le produzioni del laboratorio",
+    icon: ChefHat,
+    url: "LaboratorioProduzioni",
+    color: "from-blue-500 to-blue-600"
+  },
+  {
     title: "Inventario Store Manager",
     description: "Gestione completa inventario",
     icon: ClipboardList,

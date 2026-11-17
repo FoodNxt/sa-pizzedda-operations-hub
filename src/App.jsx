@@ -15,6 +15,8 @@ import GestioneStore from './pages/GestioneStore';
 import OAuthConsent from './pages/OAuthConsent';
 import Inventario2Impostazioni from './pages/Inventario2Impostazioni';
 import Inventario2Registro from './pages/Inventario2Registro';
+import LaboratorioProduzioni from './pages/LaboratorioProduzioni';
+import LaboratorioAdmin from './pages/LaboratorioAdmin';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -62,6 +64,8 @@ const AuthenticatedApp = () => {
         <Route path="/DiviseStoreManager" element={<DiviseStoreManager />} />
         <Route path="/Inventario2Impostazioni" element={<Inventario2Impostazioni />} />
         <Route path="/Inventario2Registro" element={<Inventario2Registro />} />
+        <Route path="/LaboratorioProduzioni" element={<LaboratorioProduzioni />} />
+        <Route path="/LaboratorioAdmin" element={<LaboratorioAdmin />} />
         <Route path="/GestioneStore" element={<LayoutWrapper currentPageName="GestioneStore"><GestioneStore /></LayoutWrapper>} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>

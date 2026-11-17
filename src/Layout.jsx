@@ -263,6 +263,13 @@ const navigationStructure = [
         url: createPageUrl("Inventario2Registro"),
         icon: ClipboardList,
         requiredUserType: ["admin"]
+      },
+      {
+        title: "Laboratorio",
+        page: "LaboratorioAdmin",
+        url: createPageUrl("LaboratorioAdmin"),
+        icon: ChefHat,
+        requiredUserType: ["admin"]
       }
     ]
   },
@@ -1078,6 +1085,7 @@ export default function Layout({ children, currentPageName }) {
       'PlandayStoreManager': 'Planday',
       'FormSprechi': 'Sprechi',
       'FormSpostamenti': 'Spostamenti',
+      'LaboratorioProduzioni': 'Laboratorio',
       'PagamentoStraordinari': 'Pagamento Straordinari',
       'Presenze': 'Presenze',
       'DiviseStoreManager': 'Divise'
@@ -1103,6 +1111,7 @@ export default function Layout({ children, currentPageName }) {
         'ConteggioCassa': Euro,
         'FormTeglieButtate': AlertTriangle,
         'FormSpostamenti': Truck,
+        'LaboratorioProduzioni': ChefHat,
         'Preparazioni': ChefHat,
         'FeedbackP2P': Users,
         'InventarioStoreManager': Package,
