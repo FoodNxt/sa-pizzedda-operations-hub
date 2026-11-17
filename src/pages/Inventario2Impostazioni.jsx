@@ -4,6 +4,7 @@ import ProtectedPage from '@/components/ProtectedPage';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProdottiTab from '@/components/inventario2/ProdottiTab';
 import ConfigurazioneTab from '@/components/inventario2/ConfigurazioneTab';
+import PiantinaTab from '@/components/inventario2/piantina/PiantinaTab';
 
 export default function Inventario2Impostazioni() {
   return (
@@ -23,7 +24,11 @@ export default function Inventario2Impostazioni() {
           <TabsList>
             <TabsTrigger value="prodotti">Prodotti</TabsTrigger>
             <TabsTrigger value="configurazione">Configurazione</TabsTrigger>
+            <TabsTrigger value="piantina">Piantina</TabsTrigger>
           </TabsList>
+          <TabsContent value="piantina" className="mt-4">
+            <PiantinaTab />
+          </TabsContent>
           <TabsContent value="prodotti" className="mt-4">
             <ProdottiTab />
           </TabsContent>

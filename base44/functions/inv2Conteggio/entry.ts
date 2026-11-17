@@ -3,6 +3,7 @@ import { fetchAll, loadConfig, ubicazioneDaKey } from '../../shared/inv2.ts';
 import { giornoRoma } from '../../shared/inv2Calcolo.ts';
 import { limiteSera, listaSera } from '../../shared/inv2Lista.ts';
 import { ricalcola } from '../../shared/inv2Ricalcolo.ts';
+import { ordinaPercorso } from '../../shared/inv2Percorso.ts';
 
 const ZONA_SEMILAVORATI = 'Semilavorati';
 const maiuscola = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -39,10 +40,13 @@ export default async function (req) {
     const key = lab ? `lab:${labStoreId}` : storeId;
     const oggi = giornoRoma(new Date());
 
-    const [giacenze, ultime] = await Promise.all([
+    const [giacenze, ultime, piantine] = await Promise.all([
       fetchAll(E.GiacenzaStimata, { ubicazione_key: key }),
-      E.SessioneConteggio.filter({ ubicazione_key: key, completata: true }, { sort: '-data', limit: 1 })
+      E.SessioneConteggio.filter({ ubicazione_key: key, completata: true }, { sort: '-data', limit: 1 }),
+      E.PiantinaInventario2.filter({ ubicazione_key: key })
     ]);
+    // Con la piantina i prodotti seguono il giro più corto nel locale
+    const piantina = piantine[0];
     const sessioneOggi = ultime.items.find((s) => s.data && giornoRoma(new Date(s.data)) === oggi) || null;
 
     if (body.azione === 'lista') {
@@ -53,7 +57,7 @@ export default async function (req) {
         ubicazione_key: key,
         store_id: storeId,
         gia_fatto: !!sessioneOggi,
-        righe: tutte.filter((r) => inLista.has(r.item_id)),
+        righe: ordinaPercorso(tutte.filter((r) => inLista.has(r.item_id)), piantina),
         altri: tutte.filter((r) => !inLista.has(r.item_id))
       });
     }
@@ -61,7 +65,7 @@ export default async function (req) {
     // Inventario completo: solo admin, tutti i prodotti dell'ubicazione, senza toccare la lista della sera
     const completo = body.azione === 'lista_completa' || body.azione === 'salva_completo';
     if (completo && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
-    if (body.azione === 'lista_completa') return Response.json({ ubicazione_key: key, righe: await righe(E, giacenze, storeId) });
+    if (body.azione === 'lista_completa') return Response.json({ ubicazione_key: key, righe: ordinaPercorso(await righe(E, giacenze, storeId), piantina) });
 
     if (body.azione !== 'salva' && !completo) return Response.json({ error: 'azione non valida' }, { status: 400 });
     const perId = Object.fromEntries(giacenze.map((g) => [g.item_id, g]));

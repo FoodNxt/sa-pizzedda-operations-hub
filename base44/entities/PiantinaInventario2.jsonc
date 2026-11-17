@@ -1,0 +1,59 @@
+{
+  "name": "PiantinaInventario2",
+  "type": "object",
+  "properties": {
+    "ubicazione_key": {
+      "type": "string",
+      "description": "ID store per un negozio, 'lab:' + ID store per il laboratorio"
+    },
+    "immagine_uri": {
+      "type": "string",
+      "description": "File privato con la piantina del locale"
+    },
+    "rapporto": {
+      "type": "number",
+      "description": "Larghezza / altezza dell'immagine, per misurare le distanze"
+    },
+    "partenza": {
+      "type": "object",
+      "description": "Punto da cui parte chi fa l'inventario, in percentuale dell'immagine",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      }
+    },
+    "pin": {
+      "type": "object",
+      "description": "Posizione di ogni prodotto {item_id: {x, y}} in percentuale dell'immagine"
+    }
+  },
+  "required": [
+    "ubicazione_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
