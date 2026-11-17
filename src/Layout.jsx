@@ -256,6 +256,13 @@ const navigationStructure = [
         url: createPageUrl("Inventario2Impostazioni"),
         icon: Settings,
         requiredUserType: ["admin"]
+      },
+      {
+        title: "Registro",
+        page: "Inventario2Registro",
+        url: createPageUrl("Inventario2Registro"),
+        icon: ClipboardList,
+        requiredUserType: ["admin"]
       }
     ]
   },

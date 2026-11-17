@@ -14,6 +14,7 @@ import DiviseStoreManager from './pages/DiviseStoreManager';
 import GestioneStore from './pages/GestioneStore';
 import OAuthConsent from './pages/OAuthConsent';
 import Inventario2Impostazioni from './pages/Inventario2Impostazioni';
+import Inventario2Registro from './pages/Inventario2Registro';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
         <Route path="/meteo" element={<Navigate to="/Meteo" replace />} />
         <Route path="/DiviseStoreManager" element={<DiviseStoreManager />} />
         <Route path="/Inventario2Impostazioni" element={<Inventario2Impostazioni />} />
+        <Route path="/Inventario2Registro" element={<Inventario2Registro />} />
         <Route path="/GestioneStore" element={<LayoutWrapper currentPageName="GestioneStore"><GestioneStore /></LayoutWrapper>} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>

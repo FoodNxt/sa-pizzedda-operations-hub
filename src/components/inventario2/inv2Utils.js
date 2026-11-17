@@ -39,6 +39,28 @@ export const DEFAULT_CONFIG = {
 
 export const TIPO_LABEL = { materia_prima: 'Materia prima', semilavorato: 'Semilavorato' };
 
+// segno: come il movimento cambia la giacenza ('=' conteggio, '±' rettifica con segno nella quantità)
+export const TIPI_MOVIMENTO = {
+  conteggio: { label: 'Conteggio', colore: '#bfdbfe', segno: '=' },
+  ricevimento: { label: 'Ricevimento', colore: '#bbf7d0', segno: '+' },
+  produzione_carico: { label: 'Produzione (carico)', colore: '#bbf7d0', segno: '+' },
+  produzione_scarico: { label: 'Produzione (scarico)', colore: '#fde68a', segno: '−' },
+  trasporto_uscita: { label: 'Trasporto (uscita)', colore: '#fde68a', segno: '−' },
+  trasporto_entrata: { label: 'Trasporto (entrata)', colore: '#bbf7d0', segno: '+' },
+  spreco: { label: 'Spreco', colore: '#fecaca', segno: '−' },
+  rettifica: { label: 'Rettifica', colore: '#e2e8f0', segno: '±' }
+};
+
+export const FONTI_MOVIMENTO = {
+  inventario_v2: 'Inventario 2.0',
+  form_inventario_v1: 'Form inventario attuale',
+  form_cantina_v1: 'Form cantina attuale',
+  ordine_fornitore: 'Ordine fornitore',
+  produzione_lab: 'Produzione lab',
+  trasporto: 'Trasporto',
+  manuale: 'Manuale'
+};
+
 export function buildRows(materie, ricette) {
   const mp = materie.filter((m) => m.attivo !== false).map((m) => ({
     key: `materia_prima:${m.id}`,

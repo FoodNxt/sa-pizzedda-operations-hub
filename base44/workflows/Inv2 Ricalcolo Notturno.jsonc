@@ -1,0 +1,61 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "inv2_ricalcolo_notturno",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "recupera_conteggi": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "inv2PonteConteggio",
+            "args": {
+              "importa_storico": true
+            }
+          },
+          "then": "ricalcola",
+          "x-base44": {
+            "title": "Recupera i conteggi mancanti",
+            "description": "Ultimi 28 giorni"
+          }
+        }
+      },
+      {
+        "ricalcola": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "inv2Ricalcola",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Ricalcola le giacenze",
+            "description": "Tutte le ubicazioni"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Ogni notte alle 02:30 recupera i conteggi non ancora importati e ricalcola le giacenze stimate di Inventario 2.0",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "30 2 * * *",
+      "one_time_date": null,
+      "timezone": "Europe/Rome",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Inv2 Ricalcolo Notturno"
+}
