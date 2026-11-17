@@ -22,7 +22,7 @@ function buildQuery(f) {
   return q;
 }
 
-export default function TrasportiAdminTable({ stores, prodotti, onCambio }) {
+export default function TrasportiAdminTable({ stores, prodotti, versione, onCambio }) {
   const [filtri, setFiltri] = useState(FILTRI_VUOTI);
   const [trasporti, setTrasporti] = useState([]);
   const [next, setNext] = useState(null);
@@ -42,7 +42,7 @@ export default function TrasportiAdminTable({ stores, prodotti, onCambio }) {
   useEffect(() => {
     setLoading(true);
     carica(null);
-  }, [filtri]);
+  }, [filtri, versione]);
 
   const set = (campo) => (e) => setFiltri({ ...filtri, [campo]: e.target.value });
   const storeOptions = stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>);
@@ -96,7 +96,7 @@ export default function TrasportiAdminTable({ stores, prodotti, onCambio }) {
                       <th className="dt1-th" scope="col">A</th>
                       <th className="dt1-th" scope="col" style={{ textAlign: 'right' }}>Inserito</th>
                       <th className="dt1-th" scope="col" style={{ textAlign: 'right' }}>Quantità</th>
-                      <th className="dt1-th" scope="col">Operatore</th>
+                      <th className="dt1-th" scope="col">Registrato da</th>
                       <th className="dt1-th" scope="col"><span className="sr-only">Azioni</span></th>
                     </tr>
                   </thead>
@@ -113,7 +113,10 @@ export default function TrasportiAdminTable({ stores, prodotti, onCambio }) {
                         <td className="dt1-cell" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                           <span className="dt1-name">{numeroIt(t.quantita_convertita)}</span> <span className="dt1-muted">{unitaBreve(t.unita)}</span>
                         </td>
-                        <td className="dt1-cell"><span className="dt1-muted">{t.operatore_nome || t.operatore_email || '—'}</span></td>
+                        <td className="dt1-cell">
+                          <span className="dt1-muted">{t.operatore_nome || t.operatore_email || '—'}</span>
+                          {t.note?.includes('Registrato da admin') && <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">admin</span>}
+                        </td>
                         <td className="dt1-cell dt1-cell--c">
                           <button type="button" className="dt1-btn dt1-btn--plain" onClick={() => setInModifica(t)}>Correggi</button>
                         </td>
@@ -139,9 +142,8 @@ export default function TrasportiAdminTable({ stores, prodotti, onCambio }) {
           trasporto={inModifica}
           stores={stores}
           onClose={() => setInModifica(null)}
-          onSalvato={async () => {
+          onSalvato={() => {
             setInModifica(null);
-            await carica(null);
             onCambio();
           }}
         />

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Truck } from 'lucide-react';
+import { Plus, Truck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import RegistraTrasportoDialog from '@/components/trasporti/RegistraTrasportoDialog';
 import { base44 } from '@/api/base44Client';
 import ProtectedPage from '@/components/ProtectedPage';
 import TrasportiAdminTable from '@/components/trasporti/TrasportiAdminTable';
@@ -9,6 +11,7 @@ export default function TrasportiAdmin() {
   const [stores, setStores] = useState(null);
   const [prodotti, setProdotti] = useState([]);
   const [versione, setVersione] = useState(0);
+  const [registra, setRegistra] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -35,8 +38,18 @@ export default function TrasportiAdmin() {
         </div>
         {stores && (
           <>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setRegistra(true)}>
+              <Plus className="w-4 h-4 mr-2" />Registra trasporto
+            </Button>
             <TotaliTrasporti stores={stores} versione={versione} />
-            <TrasportiAdminTable stores={stores} prodotti={prodotti} onCambio={() => setVersione((v) => v + 1)} />
+            <TrasportiAdminTable stores={stores} prodotti={prodotti} versione={versione} onCambio={() => setVersione((v) => v + 1)} />
+            {registra && (
+              <RegistraTrasportoDialog
+                stores={stores}
+                onClose={() => setRegistra(false)}
+                onSalvato={() => { setRegistra(false); setVersione((v) => v + 1); }}
+              />
+            )}
           </>
         )}
       </div>

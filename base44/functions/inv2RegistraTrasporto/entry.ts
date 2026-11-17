@@ -11,6 +11,19 @@ export default async function (req) {
     const E = sr.entities;
 
     const body = await req.json().catch(() => ({}));
+
+    // Solo per l'admin: data del trasporto e dipendente per conto del quale si registra
+    const admin = user.role === 'admin';
+    let data = new Date();
+    if (admin && body.data_trasporto) {
+      data = new Date(body.data_trasporto);
+      const adesso = Date.now();
+      if (isNaN(data.getTime())) return Response.json({ error: 'Data del trasporto non valida' }, { status: 400 });
+      if (data.getTime() > adesso + 60000) return Response.json({ error: 'La data del trasporto non può essere nel futuro' }, { status: 400 });
+      if (data.getTime() < adesso - 14 * 86400000) return Response.json({ error: 'La data del trasporto non può essere più vecchia di 14 giorni' }, { status: 400 });
+    }
+    const perConto = admin && (body.per_conto_di_email || body.per_conto_di_nome);
+
     const { errore, campi } = await preparaTrasporto(sr, body, true);
     if (errore) return errore;
     // Solo il riepilogo, senza salvare
@@ -18,10 +31,10 @@ export default async function (req) {
 
     const trasporto = await E.TrasportoMagazzino.create({
       ...campi,
-      operatore_email: user.email,
-      operatore_nome: user.nome_cognome || user.full_name,
-      data_trasporto: new Date().toISOString(),
-      note: body.note || ''
+      operatore_email: perConto ? body.per_conto_di_email : user.email,
+      operatore_nome: perConto ? body.per_conto_di_nome : user.nome_cognome || user.full_name,
+      data_trasporto: data.toISOString(),
+      note: [body.note, perConto ? `Registrato da admin ${user.email}` : ''].filter(Boolean).join(' · ')
     });
     const movimenti = movimentiTrasporto(trasporto);
     try {
