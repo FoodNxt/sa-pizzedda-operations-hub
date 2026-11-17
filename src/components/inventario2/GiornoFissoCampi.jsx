@@ -3,17 +3,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GIORNI, GIORNI_MAX, ORDINE_GIORNI, RICORRENZE } from './inv2Utils';
+import { CON_GIORNI, GIORNI, ORDINE_GIORNI, RICORRENZE } from './inv2Utils';
 
 // Campi del giorno fisso di conteggio: f = { attivo, ricorrenza, giorni, data_partenza, giorno_mese }
 export default function GiornoFissoCampi({ f, onChange }) {
   const set = (patch) => onChange({ ...f, ...patch });
-  const maxGiorni = GIORNI_MAX[f.ricorrenza] || 0;
-
-  const toggleGiorno = (g) => {
-    if (f.giorni.includes(g)) set({ giorni: f.giorni.filter((x) => x !== g) });
-    else set({ giorni: [...f.giorni, g].slice(-maxGiorni) });
-  };
+  const toggleGiorno = (g) => set({ giorni: f.giorni.includes(g) ? f.giorni.filter((x) => x !== g) : [...f.giorni, g] });
 
   return (
     <>
@@ -25,16 +20,16 @@ export default function GiornoFissoCampi({ f, onChange }) {
         <>
           <div className="space-y-2">
             <Label>Ricorrenza</Label>
-            <Select value={f.ricorrenza} onValueChange={(v) => set({ ricorrenza: v, giorni: f.giorni.slice(-(GIORNI_MAX[v] || 0) || f.giorni.length) })}>
+            <Select value={f.ricorrenza} onValueChange={(v) => set({ ricorrenza: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {RICORRENZE.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          {maxGiorni > 0 && (
+          {CON_GIORNI.includes(f.ricorrenza) && (
             <div className="space-y-2">
-              <Label>{maxGiorni === 2 ? 'Giorni della settimana (2)' : 'Giorno della settimana'}</Label>
+              <Label>Giorni della settimana (uno o più)</Label>
               <div className="flex flex-wrap gap-1.5">
                 {ORDINE_GIORNI.map((g) => (
                   <button

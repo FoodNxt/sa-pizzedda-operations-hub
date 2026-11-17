@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GiornoFissoCampi from './GiornoFissoCampi';
 import { TIPO_LABEL, giornoFissoACf, giornoFissoDaCf } from './inv2Utils';
 
@@ -81,15 +80,19 @@ export default function ProdottoPanel({ row, imp, ubicazioni, onClose, onSave })
             <div className="rounded-xl border border-slate-200 p-4 space-y-4">
               <div className="space-y-2">
                 <Label>Locale</Label>
-                <Select value={d.locale} onValueChange={(v) => set({ locale: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={TUTTI}>Tutti i locali</SelectItem>
-                    {ubicazioni.map((u) => (
-                      <SelectItem key={u.key} value={u.key}>{u.label}{d.fisso[u.key] ? ' (diverso)' : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-wrap gap-1.5">
+                  {[{ key: TUTTI, label: 'Tutti i locali' }, ...ubicazioni].map((u) => (
+                    <button
+                      key={u.key}
+                      type="button"
+                      aria-pressed={d.locale === u.key}
+                      onClick={() => set({ locale: u.key })}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border ${d.locale === u.key ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'}`}
+                    >
+                      {u.label}{d.fisso[u.key] && u.key !== TUTTI ? ' •' : ''}
+                    </button>
+                  ))}
+                </div>
                 {d.locale !== TUTTI && (
                   <p className="text-xs text-slate-500">
                     {diverso ? (

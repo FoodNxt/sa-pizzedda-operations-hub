@@ -133,7 +133,8 @@ export function setUbicazione(obj, key, value) {
   return next;
 }
 
-export const GIORNI_MAX = { due_volte_settimana: 2, settimanale: 1, ogni_due_settimane: 1 };
+// Ricorrenze in cui si scelgono i giorni della settimana (uno o più)
+export const CON_GIORNI = ['due_volte_settimana', 'settimanale', 'ogni_due_settimane'];
 
 // Giorno fisso: dal formato salvato a quello dei campi e ritorno
 export const giornoFissoDaCf = (cf) => ({
@@ -145,8 +146,7 @@ export const giornoFissoDaCf = (cf) => ({
 });
 
 export function giornoFissoACf(f) {
-  const max = GIORNI_MAX[f.ricorrenza];
-  const cf = { attivo: f.attivo, ricorrenza: f.ricorrenza, giorni_settimana: max ? f.giorni.slice(-max) : [] };
+  const cf = { attivo: f.attivo, ricorrenza: f.ricorrenza, giorni_settimana: CON_GIORNI.includes(f.ricorrenza) ? f.giorni : [] };
   if (f.ricorrenza === 'ogni_due_settimane' && f.data_partenza) cf.data_partenza = f.data_partenza;
   if (f.ricorrenza === 'mensile') cf.giorno_mese = Math.min(28, Math.max(1, Number(f.giorno_mese) || 1));
   return cf;
