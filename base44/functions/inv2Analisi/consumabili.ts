@@ -37,10 +37,15 @@ function proposta(ricorrenza, oggi) {
 export async function consumabili(sr) {
   const E = sr.entities;
   const dal = new Date(Date.now() - 90 * GIORNO).toISOString();
-  const [impostazioni, ordini] = await Promise.all([
+  const [tutte, ordini, disattivate, ricetteDisattivate] = await Promise.all([
     fetchAll(E.ImpostazioneInventario2, { consumabile: true }),
-    fetchAll(E.OrdineFornitore, { status: 'completato', data_invio: { $gte: dal } }, 'data_invio')
+    fetchAll(E.OrdineFornitore, { status: 'completato', data_invio: { $gte: dal } }, 'data_invio'),
+    fetchAll(E.MateriePrime, { attivo: false }),
+    fetchAll(E.Ricetta, { attivo: false })
   ]);
+  // I prodotti disattivati non si propongono
+  const spenti = new Set([...disattivate, ...ricetteDisattivate].map((p) => p.id));
+  const impostazioni = tutte.filter((imp) => !spenti.has(imp.item_id));
 
   // Date degli ordini per prodotto e store, in ordine di tempo
   const date = {};
