@@ -4,8 +4,17 @@ import { giornoRoma } from '../../shared/inv2Calcolo.ts';
 import { limiteSera, listaSera } from '../../shared/inv2Lista.ts';
 import { ricalcola } from '../../shared/inv2Ricalcolo.ts';
 import { ordinaPercorso } from '../../shared/inv2Percorso.ts';
+import { simulaConteggi } from '../../shared/inv2Simula.ts';
 
 const ZONA_SEMILAVORATI = 'Semilavorati';
+// Dati in più per l'admin in modalità prova
+const dettagliAdmin = (g) => ({
+  motivo: g.prossimo_conteggio_motivo || null,
+  priorita: g.priorita ?? null,
+  giacenza: g.giacenza_stimata ?? null,
+  consumo: (g.consumo_medio_giorno || 0) + (g.uscite_registrate_giorno || 0),
+  copertura: g.giorni_copertura ?? null
+});
 const maiuscola = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Righe senza valore precedente né stima: al telefono arrivano solo foto, nome, unità e zona
@@ -39,6 +48,8 @@ export default async function (req) {
     if (!storeId) return Response.json({ error: 'store_id è obbligatorio' }, { status: 400 });
     const key = lab ? `lab:${labStoreId}` : storeId;
     const oggi = giornoRoma(new Date());
+    // Modalità prova: solo admin, non scrive niente. Per gli altri il parametro viene ignorato
+    const prova = body.prova === true && user.role === 'admin';
 
     const [giacenze, ultime, piantine] = await Promise.all([
       fetchAll(E.GiacenzaStimata, { ubicazione_key: key }),
@@ -49,16 +60,29 @@ export default async function (req) {
     const piantina = piantine[0];
     const sessioneOggi = ultime.items.find((s) => s.data && giornoRoma(new Date(s.data)) === oggi) || null;
 
+    const perId = Object.fromEntries(giacenze.map((g) => [g.item_id, g]));
+
     if (body.azione === 'lista') {
-      const lista = sessioneOggi ? [] : listaSera(giacenze, limiteSera(config), oggi);
+      // In prova la lista si vede sempre, anche per un altro giorno, con i dati per l'admin
+      const giorno = prova && /^\d{4}-\d{2}-\d{2}$/.test(body.giorno || '') ? body.giorno : oggi;
+      const lista = sessioneOggi && !prova ? [] : listaSera(giacenze, limiteSera(config), giorno);
       const inLista = new Set(lista.map((g) => g.item_id));
-      const tutte = await righe(E, giacenze, storeId);
+      const base = await righe(E, giacenze, storeId);
+      const tutte = prova ? base.map((r) => ({ ...r, ...dettagliAdmin(perId[r.item_id]) })) : base;
       return Response.json({
         ubicazione_key: key,
         store_id: storeId,
-        gia_fatto: !!sessioneOggi,
+        gia_fatto: !!sessioneOggi && !prova,
         righe: ordinaPercorso(tutte.filter((r) => inLista.has(r.item_id)), piantina),
-        altri: tutte.filter((r) => !inLista.has(r.item_id))
+        altri: tutte.filter((r) => !inLista.has(r.item_id)),
+        ...(prova ? {
+          giorno,
+          riepilogo: {
+            voci: lista.length,
+            fissi: lista.filter((g) => g.priorita === 1).length,
+            rinviate: listaSera(giacenze, Infinity, giorno).length - lista.length
+          }
+        } : {})
       });
     }
 
@@ -67,15 +91,18 @@ export default async function (req) {
     if (completo && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
     if (body.azione === 'lista_completa') return Response.json({ ubicazione_key: key, righe: ordinaPercorso(await righe(E, giacenze, storeId), piantina) });
 
-    if (body.azione !== 'salva' && !completo) return Response.json({ error: 'azione non valida' }, { status: 400 });
-    const perId = Object.fromEntries(giacenze.map((g) => [g.item_id, g]));
+    const simula = prova && body.azione === 'simula';
+    if (body.azione !== 'salva' && !completo && !simula) return Response.json({ error: 'azione non valida' }, { status: 400 });
     const conteggi = [...new Map((Array.isArray(body.conteggi) ? body.conteggi : []).map((c) => [c.item_id, c])).values()];
     const validi = conteggi.every((c) => perId[c.item_id] && Number.isFinite(c.quantita) && c.quantita >= 0);
     if (!conteggi.length || !validi) return Response.json({ error: 'Ogni prodotto deve avere una quantità, anche 0' }, { status: 400 });
-    const previsti = sessioneOggi || completo ? [] : (Array.isArray(body.previsti) ? body.previsti : []).filter((id) => perId[id]);
+    const previsti = (sessioneOggi && !simula) || completo ? [] : (Array.isArray(body.previsti) ? body.previsti : []).filter((id) => perId[id]);
     const contati = new Set(conteggi.map((c) => c.item_id));
     const mancanti = previsti.filter((id) => !contati.has(id)).length;
     if (mancanti) return Response.json({ error: `Mancano ${mancanti} prodotti della lista di stasera` }, { status: 400 });
+
+    // Simulazione: stessi controlli di salva, poi solo il calcolo. Da qui in giù si scrive
+    if (simula) return Response.json({ simulazione: await simulaConteggi(sr, key, conteggi, perId) });
 
     const ora = new Date().toISOString();
     const operatoreNome = user.nome_cognome || user.full_name;

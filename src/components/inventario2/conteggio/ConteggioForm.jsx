@@ -6,16 +6,24 @@ import { Save, Store } from 'lucide-react';
 import NeumorphicCard from '@/components/neumorphic/NeumorphicCard';
 import { toast } from '@/components/ui/use-toast';
 import { segnaAttivitaTurno } from '@/lib/segnaAttivitaTurno';
-import { erroreFunzione } from '@/components/laboratorio/labUtils';
+import { erroreFunzione, oggiLocale } from '@/components/laboratorio/labUtils';
 import ListaConteggio from './ListaConteggio';
+import BarraProva from './BarraProva';
+import RisultatoSimulazione from './RisultatoSimulazione';
 
 export default function ConteggioForm() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
-  const redirectTo = urlParams.get('redirect');
-  const lab = urlParams.get('ubicazione') === 'laboratorio';
+  const provaRichiesta = urlParams.get('prova') === '1';
 
   const [user, setUser] = useState(null);
+  const [lab, setLab] = useState(urlParams.get('ubicazione') === 'laboratorio');
+  const [giorno, setGiorno] = useState(urlParams.get('data') || oggiLocale());
+  const [dettagli, setDettagli] = useState(false);
+  const [simulazione, setSimulazione] = useState(null);
+  // Modalità prova: solo admin, non salva niente e non usa turno né redirect
+  const prova = provaRichiesta && user?.role === 'admin';
+  const redirectTo = prova ? null : urlParams.get('redirect');
   const [stores, setStores] = useState([]);
   const [storeId, setStoreId] = useState(urlParams.get('store_id') || '');
   const [dati, setDati] = useState(null);
@@ -24,11 +32,12 @@ export default function ConteggioForm() {
   const [saving, setSaving] = useState(false);
   const [salvato, setSalvato] = useState(false);
 
-  const richiesta = { store_id: storeId, ubicazione: lab ? 'laboratorio' : 'negozio' };
+  const richiesta = { store_id: storeId, ubicazione: lab ? 'laboratorio' : 'negozio', ...(prova ? { prova: true, giorno } : {}) };
   const pronto = lab || !!storeId;
 
   const caricaLista = async () => {
     setDati(null);
+    setSimulazione(null);
     setValori({});
     setExtra([]);
     try {
@@ -40,12 +49,13 @@ export default function ConteggioForm() {
 
   useEffect(() => {
     base44.auth.me().then(setUser);
-    if (!lab) base44.entities.Store.list().then(setStores);
+    if (!lab || provaRichiesta) base44.entities.Store.list().then(setStores);
   }, []);
 
+  // Con prova=1 si aspetta l'utente, per sapere se è admin
   useEffect(() => {
-    if (pronto) caricaLista();
-  }, [storeId]);
+    if (pronto && (!provaRichiesta || user)) caricaLista();
+  }, [storeId, lab, giorno, provaRichiesta && user]);
 
   const visibili = dati ? [...dati.righe, ...extra] : [];
   const vuoti = visibili.filter((r) => valori[r.item_id] == null || valori[r.item_id] === '').length;
@@ -55,8 +65,25 @@ export default function ConteggioForm() {
     if (redirectTo) navigate(createPageUrl(redirectTo));
   };
 
+  const simula = async () => {
+    setSaving(true);
+    try {
+      const res = await base44.functions.invoke('inv2Conteggio', {
+        azione: 'simula',
+        ...richiesta,
+        previsti: dati.righe.map((r) => r.item_id),
+        conteggi: visibili.map((r) => ({ item_id: r.item_id, quantita: Number(valori[r.item_id]) }))
+      });
+      setSimulazione(res.data.simulazione);
+    } catch (err) {
+      toast({ title: 'Simulazione non riuscita', description: erroreFunzione(err), variant: 'destructive' });
+    }
+    setSaving(false);
+  };
+
   const salva = async (e) => {
     e.preventDefault();
+    if (prova) return simula();
     setSaving(true);
     try {
       await base44.functions.invoke('inv2Conteggio', {
@@ -81,6 +108,22 @@ export default function ConteggioForm() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
+      {prova && (
+        <BarraProva
+          stores={stores}
+          ubicazione={lab ? 'laboratorio' : storeId}
+          onUbicazione={(v) => { setLab(v === 'laboratorio'); if (v !== 'laboratorio') setStoreId(v); }}
+          giorno={giorno}
+          onGiorno={setGiorno}
+          dettagli={dettagli}
+          onDettagli={setDettagli}
+        />
+      )}
+      {prova && dettagli && dati?.riepilogo && (
+        <div className="rounded-xl bg-purple-50 border border-purple-200 px-4 py-3 text-sm font-medium text-purple-900">
+          Voci stasera: {dati.riepilogo.voci} (di cui {dati.riepilogo.fissi} a giorno fisso, {dati.riepilogo.rinviate} rinviate a domani per il limite)
+        </div>
+      )}
       <div className="mb-4">
         <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 mb-1">Inventario</h1>
         <p className="text-sm text-slate-500">
@@ -134,6 +177,7 @@ export default function ConteggioForm() {
               onValore={(id, v) => setValori((prev) => ({ ...prev, [id]: v }))}
               onAggiungi={(p) => setExtra((prev) => [...prev, p])}
               onRimuovi={(id) => setExtra((prev) => prev.filter((r) => r.item_id !== id))}
+              dettagli={prova && dettagli}
             />
 
             {visibili.length > 0 ? (
@@ -149,7 +193,7 @@ export default function ConteggioForm() {
                   className="w-full py-3 lg:py-4 rounded-xl text-base lg:text-lg font-bold flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white disabled:opacity-50"
                 >
                   <Save className="w-5 h-5" />
-                  {saving ? 'Salvataggio…' : 'Salva inventario'}
+                  {prova ? (saving ? 'Simulazione…' : 'Simula salvataggio') : saving ? 'Salvataggio…' : 'Salva inventario'}
                 </button>
               </>
             ) : redirectTo && (
@@ -160,6 +204,8 @@ export default function ConteggioForm() {
           </>
         )}
       </form>
+
+      {simulazione && <RisultatoSimulazione righe={simulazione} />}
     </div>
   );
 }

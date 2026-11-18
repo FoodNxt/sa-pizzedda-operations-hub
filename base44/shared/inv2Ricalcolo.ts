@@ -8,8 +8,9 @@ const INTERVALLI_DEFAULT = {
 const r3 = (n) => (n == null ? null : Math.round(n * 1000) / 1000);
 const senzaNull = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null));
 
-// Aggiorna le GiacenzaStimata. chiavi = elenco di ubicazione_key da ricalcolare, vuoto = tutte.
-export async function ricalcola(sr, chiavi) {
+// Legge prodotti e movimenti che servono al calcolo, senza scrivere niente.
+// chiavi = elenco di ubicazione_key da considerare, vuoto = tutte.
+export async function preparaCalcolo(sr, chiavi) {
   const E = sr.entities;
   const now = Date.now();
   const dal = new Date(now - 28 * GIORNO).toISOString();
@@ -92,25 +93,44 @@ export async function ricalcola(sr, chiavi) {
     }
   });
 
-  const oggi = giornoRoma(new Date(now));
-  const soglia = config.soglia_affidabilita ?? 0.3;
   const intervalli = { ...INTERVALLI_DEFAULT, ...(config.intervallo_max_giorni_per_categoria || {}) };
+  return {
+    now,
+    oggi: giornoRoma(new Date(now)),
+    soglia: config.soglia_affidabilita ?? 0.3,
+    esistenti,
+    coppie: coppie.map(({ u, p, k }) => ({
+      u,
+      p,
+      k,
+      moves: (perCoppia[k] || []).sort((a, b) => a.t - b.t),
+      // Prossimo conteggio a partire dal risultato di calcolaGiacenza
+      prossimo: (r, oggi) => prossimoConteggio({
+        fisso: p.imp.conteggio_fisso_per_ubicazione?.[u.ubicazione_key] ?? p.imp.conteggio_fisso,
+        r,
+        oggi,
+        min: p.imp.min_per_ubicazione?.[u.ubicazione_key],
+        tempoConsegna: p.tempoConsegna,
+        intervallo: intervalli[p.categoria]
+      })
+    }))
+  };
+}
+
+// Aggiorna le GiacenzaStimata. chiavi = elenco di ubicazione_key da ricalcolare, vuoto = tutte.
+export async function ricalcola(sr, chiavi) {
+  const E = sr.entities;
+  const { now, oggi, soglia, esistenti, coppie } = await preparaCalcolo(sr, chiavi);
+  const chiave = (m) => `${m.ubicazione_key}|${m.item_id}`;
+  const esistentiByK = Object.fromEntries(esistenti.map((g) => [chiave(g), g]));
   const intervalliScartati = [];
   const nuovi = [];
   const aggiornati = [];
 
-  coppie.forEach(({ u, p, k }) => {
-    const moves = (perCoppia[k] || []).sort((a, b) => a.t - b.t);
+  coppie.forEach(({ u, p, k, moves, prossimo: prossimoPer }) => {
     const r = calcolaGiacenza(moves, now, soglia);
     if (r.scartati) intervalliScartati.push({ ubicazione_key: u.ubicazione_key, item_nome: p.nome, intervalli: r.scartati });
-    const prossimo = prossimoConteggio({
-      fisso: p.imp.conteggio_fisso_per_ubicazione?.[u.ubicazione_key] ?? p.imp.conteggio_fisso,
-      r,
-      oggi,
-      min: p.imp.min_per_ubicazione?.[u.ubicazione_key],
-      tempoConsegna: p.tempoConsegna,
-      intervallo: intervalli[p.categoria]
-    });
+    const prossimo = prossimoPer(r, oggi);
     const record = {
       ...u,
       item_tipo: p.imp.item_tipo,

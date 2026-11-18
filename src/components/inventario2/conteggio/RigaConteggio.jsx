@@ -1,9 +1,10 @@
 import React from 'react';
 import { Package, X } from 'lucide-react';
+import DettagliAdmin from './DettagliAdmin';
 
 const DECIMALI = ['kg', 'litri', 'grammi', 'g', 'ml'];
 
-export default function RigaConteggio({ riga, valore, onChange, onRimuovi }) {
+export default function RigaConteggio({ riga, valore, onChange, onRimuovi, dettagli }) {
   const decimale = DECIMALI.includes(riga.unita);
   return (
     <div className="neumorphic-pressed p-3 rounded-xl flex items-center gap-3">
@@ -17,6 +18,7 @@ export default function RigaConteggio({ riga, valore, onChange, onRimuovi }) {
       <div className="flex-1 min-w-0">
         <h3 className="font-bold text-slate-800 text-base">{riga.nome}</h3>
         <p className="text-sm text-slate-500">{riga.unita}</p>
+        {dettagli && <DettagliAdmin riga={riga} />}
       </div>
       <input
         type="number"

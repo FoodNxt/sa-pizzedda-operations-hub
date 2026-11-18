@@ -6,6 +6,7 @@ import { useUbicazioni } from '@/components/inventario2/useUbicazioni';
 import GiacenzeTab from '@/components/inventario2/pianificazione/GiacenzeTab';
 import CalendarioTab from '@/components/inventario2/pianificazione/CalendarioTab';
 import ConsumabiliTab from '@/components/inventario2/pianificazione/ConsumabiliTab';
+import ProvaDipendente from '@/components/inventario2/pianificazione/ProvaDipendente';
 
 export default function Inventario2Pianificazione() {
   const ubicazioni = useUbicazioni();
@@ -13,7 +14,7 @@ export default function Inventario2Pianificazione() {
   return (
     <ProtectedPage pageName="Inventario2Pianificazione">
       <div className="max-w-[1500px] mx-auto space-y-6">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
             <Calendar className="w-8 h-8 text-white" />
           </div>
@@ -21,6 +22,7 @@ export default function Inventario2Pianificazione() {
             <h1 className="text-3xl font-bold text-slate-900">Inventario 2.0 › Pianificazione</h1>
             <p className="text-slate-500">Giacenze stimate, prossimi conteggi e frequenza dei consumabili</p>
           </div>
+          {ubicazioni && <ProvaDipendente ubicazioni={ubicazioni} />}
         </div>
 
         {ubicazioni && (
