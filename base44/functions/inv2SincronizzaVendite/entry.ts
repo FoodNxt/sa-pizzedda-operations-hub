@@ -42,7 +42,8 @@ async function sincronizzaGiorno(E, url, segreto, negozi, giorno) {
       const locationId = String(s.location_id);
       const canale = s.canale || 'pos';
       const chiave = chiaveProdotto(s);
-      const r = (righe[`${data}|${locationId}|${canale}|${chiave}`] ||= {
+      const combo = !!s.combo_non_scomposto;
+      const r = (righe[`${data}|${locationId}|${canale}|${chiave}|${combo}`] ||= {
         data,
         pos_location_id: locationId,
         pos_location_name: s.location_name || '',
@@ -52,6 +53,7 @@ async function sincronizzaGiorno(E, url, segreto, negozi, giorno) {
         ...(s.internal_product_id != null && s.internal_product_id !== '' ? { internal_product_id: String(s.internal_product_id) } : {}),
         nome_prodotto: s.nome_prodotto || '',
         is_pizza: !!s.is_pizza,
+        combo_non_scomposto: combo,
         quantita: 0,
         fatturato: 0,
         is_free: false,
@@ -66,6 +68,10 @@ async function sincronizzaGiorno(E, url, segreto, negozi, giorno) {
     // Si cancella solo dopo aver letto il POS: se la lettura fallisce il giorno resta com'era
     await cancella(E.VenditaPOS, { data: giorno });
     for (const blocco of aBlocchi(Object.values(righe), 500)) await E.VenditaPOS.bulkCreate(blocco);
+    // I menu non scomposti non si collegano a una ricetta: si distribuiscono sui gusti
+    const scomposte = new Set(Object.values(righe).filter((r) => !r.combo_non_scomposto).map((r) => r.chiave_prodotto));
+    const soloCombo = [...new Set(Object.values(righe).filter((r) => r.combo_non_scomposto && !scomposte.has(r.chiave_prodotto)).map((r) => r.chiave_prodotto))];
+    if (soloCombo.length) await cancella(E.ProdottoPOSRicetta, { chiave_prodotto: { $in: soloCombo } });
     const combo = risposta.combo_non_scomposti;
     Object.assign(log, {
       righe: Object.keys(righe).length,
@@ -76,6 +82,8 @@ async function sincronizzaGiorno(E, url, segreto, negozi, giorno) {
     });
   } catch (e) {
     Object.assign(log, { esito: 'errore', errore: String(e.message).slice(0, 4000) });
+    // Le vendite del giorno sono rimaste com'erano: il log riuscito di prima resta valido
+    if (await E.SincronizzazioneVenditePOS.count({ data: giorno, esito: 'ok' })) return log;
   }
   await cancella(E.SincronizzazioneVenditePOS, { data: giorno });
   await E.SincronizzazioneVenditePOS.create(log);

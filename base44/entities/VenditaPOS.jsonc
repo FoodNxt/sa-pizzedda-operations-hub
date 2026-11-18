@@ -41,6 +41,11 @@
       "default": false,
       "description": "Il prodotto \u00e8 una pizza"
     },
+    "combo_non_scomposto": {
+      "type": "boolean",
+      "default": false,
+      "description": "Menu che il POS non ha scomposto nei gusti: la quantit\u00e0 si distribuisce sui gusti di pizza venduti"
+    },
     "quantita": {
       "type": "number",
       "description": "Pezzi venduti nel giorno"

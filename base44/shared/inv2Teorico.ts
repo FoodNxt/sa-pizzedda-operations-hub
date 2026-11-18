@@ -31,7 +31,7 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
     const pagine = await Promise.all(blocco.map(async (data) => {
       const { rows, truncated } = await E.VenditaPOS.aggregate({
         query: { data, store_id: { $in: storeIds } },
-        groupBy: ['store_id', 'chiave_prodotto'],
+        groupBy: ['store_id', 'chiave_prodotto', 'is_pizza', 'combo_non_scomposto'],
         sum: ['quantita']
       });
       if (truncated) throw new Error(`Troppe vendite da leggere per il ${data}`);
@@ -71,16 +71,38 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
   };
 
   const cache = {};
-  vendite.forEach((v) => {
-    const c = perChiave[v.chiave_prodotto];
-    if (!c) { esito.nonCollegate += v.sum_quantita || 0; return; }
-    if (c.tipo === 'ignora' || !c.item_id) return;
-    const consumo = (cache[v.chiave_prodotto] ||= perPezzo(c));
-    const store = (esito.perStore[v.store_id] ||= {});
+  const aggiungi = (storeId, data, chiave, pezzi) => {
+    const consumo = (cache[chiave] ||= perPezzo(perChiave[chiave]));
+    const store = (esito.perStore[storeId] ||= {});
     Object.entries(consumo).forEach(([itemId, quantita]) => {
       const giorni = (store[itemId] ||= {});
-      giorni[v.data] = (giorni[v.data] || 0) + quantita * (v.sum_quantita || 0);
+      giorni[data] = (giorni[data] || 0) + quantita * pezzi;
     });
+  };
+
+  // Pizze scomposte e collegate a una ricetta: { chiave: pezzi } per negozio e giorno, e per negozio su tutto il periodo
+  const gustiGiorno = {};
+  const gustiNegozio = {};
+  const menu = [];
+  vendite.forEach((v) => {
+    const pezzi = v.sum_quantita || 0;
+    if (v.combo_non_scomposto) { menu.push({ ...v, pezzi }); return; }
+    const c = perChiave[v.chiave_prodotto];
+    if (!c) { esito.nonCollegate += pezzi; return; }
+    if (c.tipo === 'ignora' || !c.item_id) return;
+    aggiungi(v.store_id, v.data, v.chiave_prodotto, pezzi);
+    if (!v.is_pizza || c.tipo !== 'ricetta') return;
+    [(gustiGiorno[`${v.store_id}|${v.data}`] ||= {}), (gustiNegozio[v.store_id] ||= {})].forEach((gusti) => {
+      gusti[v.chiave_prodotto] = (gusti[v.chiave_prodotto] || 0) + pezzi;
+    });
+  });
+
+  // Menu non scomposti: distribuiti sui gusti venduti quel giorno nel negozio, altrimenti su quelli del periodo
+  menu.forEach((m) => {
+    const gusti = gustiGiorno[`${m.store_id}|${m.data}`] || gustiNegozio[m.store_id] || {};
+    const totale = Object.values(gusti).reduce((s, q) => s + q, 0);
+    if (!(totale > 0)) { esito.nonCollegate += m.pezzi; return; }
+    Object.entries(gusti).forEach(([chiave, q]) => aggiungi(m.store_id, m.data, chiave, m.pezzi * (q / totale)));
   });
   esito.nonConvertiti = [...nonConvertiti];
   return esito;

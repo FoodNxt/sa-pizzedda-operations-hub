@@ -18,7 +18,7 @@ export default function VenditePOSTab() {
       const E = base44.entities;
       const query = { data: { $gte: format(subDays(new Date(), 59), 'yyyy-MM-dd') } };
       const [venduti, punti, combo, righe, ricette, materie, mapping, stores, configs] = await Promise.all([
-        E.VenditaPOS.aggregate({ query, groupBy: ['chiave_prodotto', 'nome_prodotto'], sum: ['quantita', 'fatturato'] }),
+        E.VenditaPOS.aggregate({ query, groupBy: ['chiave_prodotto', 'nome_prodotto', 'combo_non_scomposto'], sum: ['quantita', 'fatturato'] }),
         E.VenditaPOS.aggregate({ query, groupBy: ['pos_location_id', 'pos_location_name'] }),
         E.SincronizzazioneVenditePOS.filter({ ...query, combo_non_scomposti: { $gt: 0 } }, { sort: '-data', limit: 60 }),
         tutte(E.ProdottoPOSRicetta),
@@ -30,13 +30,17 @@ export default function VenditePOSTab() {
       ]);
       // Un prodotto che ha cambiato nome nel POS resta una sola voce
       const perChiave = {};
+      let menu = 0;
       venduti.rows.forEach((v) => {
+        // I menu non scomposti non si collegano: si distribuiscono sui gusti
+        if (v.combo_non_scomposto) { menu += v.sum_quantita || 0; return; }
         const p = (perChiave[v.chiave_prodotto] ||= { id: v.chiave_prodotto, nome: v.nome_prodotto, pezzi: 0, fatturato: 0 });
         p.pezzi += v.sum_quantita || 0;
         p.fatturato += v.sum_fatturato || 0;
       });
       setDati({
         prodotti: Object.values(perChiave),
+        menu,
         negozi: punti.rows.map((p) => ({ id: p.pos_location_id, nome: p.pos_location_name })),
         combo: combo.items,
         collegamenti: Object.fromEntries(righe.map((r) => [r.chiave_prodotto, r])),
@@ -65,7 +69,7 @@ export default function VenditePOSTab() {
   if (!dati) {
     return <NeumorphicCard className="p-8 text-center"><p className="text-slate-500">Caricamento vendite...</p></NeumorphicCard>;
   }
-  if (!dati.prodotti.length) {
+  if (!dati.prodotti.length && !dati.menu) {
     return (
       <NeumorphicCard className="p-8 text-center">
         <p className="text-slate-500">Nessuna vendita importata. Usa "Importa vendite ultimi 60 giorni" nella scheda Configurazione.</p>
@@ -86,6 +90,12 @@ export default function VenditePOSTab() {
         <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
           <span className="font-semibold">Giorni con combo non scomposti nei gusti:</span>
           {' '}{dati.combo.map((c) => `${giorno(c.data)} (${c.combo_non_scomposti})`).join(', ')}
+        </div>
+      )}
+
+      {dati.menu > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
+          Menu non scomposti dal POS: {numeroIt(dati.menu, 0)} pizzedde negli ultimi 60 giorni, distribuite in automatico sui gusti
         </div>
       )}
 
