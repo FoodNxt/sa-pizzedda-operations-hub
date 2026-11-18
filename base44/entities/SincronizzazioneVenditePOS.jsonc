@@ -1,0 +1,69 @@
+{
+  "name": "SincronizzazioneVenditePOS",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "string",
+      "format": "date",
+      "description": "Giorno di vendita sincronizzato (YYYY-MM-DD)"
+    },
+    "righe": {
+      "type": "number",
+      "description": "Righe di vendita salvate per il giorno"
+    },
+    "total_orders": {
+      "type": "number",
+      "description": "Ordini del giorno secondo il POS"
+    },
+    "combo_non_scomposti": {
+      "type": "number",
+      "description": "Combo che il POS non ha scomposto nei gusti"
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Versione dello schema della risposta del POS"
+    },
+    "esito": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "errore"
+      ],
+      "enumColors": [
+        "green",
+        "red"
+      ],
+      "description": "Esito della sincronizzazione"
+    },
+    "errore": {
+      "type": "string",
+      "description": "Errore o testo della risposta del POS"
+    }
+  },
+  "required": [
+    "data",
+    "esito"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

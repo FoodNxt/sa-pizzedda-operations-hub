@@ -21,15 +21,25 @@
     },
     "canale": {
       "type": "string",
+      "default": "pos",
       "description": "Canale di vendita"
     },
-    "pos_product_id": {
+    "chiave_prodotto": {
       "type": "string",
-      "description": "ID del prodotto nel POS"
+      "description": "internal_product_id se presente, altrimenti 'nome:' + nome del prodotto in minuscolo con spazi singoli"
+    },
+    "internal_product_id": {
+      "type": "string",
+      "description": "ID interno del prodotto nel POS, se presente"
     },
     "nome_prodotto": {
       "type": "string",
       "description": "Nome del prodotto nel POS"
+    },
+    "is_pizza": {
+      "type": "boolean",
+      "default": false,
+      "description": "Il prodotto \u00e8 una pizza"
     },
     "quantita": {
       "type": "number",
@@ -38,6 +48,11 @@
     "fatturato": {
       "type": "number",
       "description": "Fatturato del giorno in euro"
+    },
+    "is_free": {
+      "type": "boolean",
+      "default": false,
+      "description": "Prodotto dato in omaggio"
     },
     "is_b2b": {
       "type": "boolean",
@@ -48,7 +63,7 @@
   "required": [
     "data",
     "pos_location_id",
-    "pos_product_id"
+    "chiave_prodotto"
   ],
   "rls": {
     "read": {

@@ -2,9 +2,9 @@
   "name": "ProdottoPOSRicetta",
   "type": "object",
   "properties": {
-    "pos_product_id": {
+    "chiave_prodotto": {
       "type": "string",
-      "description": "ID del prodotto nel POS. Le combo hanno una riga per ogni componente"
+      "description": "Chiave del prodotto venduto, la stessa di VenditaPOS"
     },
     "nome_prodotto": {
       "type": "string",
@@ -35,7 +35,7 @@
     }
   },
   "required": [
-    "pos_product_id",
+    "chiave_prodotto",
     "tipo"
   ],
   "rls": {

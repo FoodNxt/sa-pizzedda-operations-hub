@@ -53,6 +53,28 @@
     "consumo_medio_giorno": {
       "type": "number"
     },
+    "consumo_teorico_giorno": {
+      "type": "number",
+      "description": "Consumo al giorno dalle vendite del POS per ricetta, media degli ultimi 28 giorni"
+    },
+    "fattore_correzione": {
+      "type": "number",
+      "description": "Consumo da conteggi diviso consumo teorico sugli stessi giorni, tra 0,7 e 1,5"
+    },
+    "fonte_consumo": {
+      "type": "string",
+      "enum": [
+        "vendite",
+        "conteggi",
+        "ricevimenti"
+      ],
+      "enumColors": [
+        "green",
+        "blue",
+        "gray"
+      ],
+      "description": "Da dove viene il consumo medio al giorno"
+    },
     "uscite_registrate_giorno": {
       "type": "number"
     },
