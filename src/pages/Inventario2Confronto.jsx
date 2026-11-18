@@ -4,17 +4,22 @@ import { base44 } from '@/api/base44Client';
 import ProtectedPage from '@/components/ProtectedPage';
 import NeumorphicCard from '@/components/neumorphic/NeumorphicCard';
 import ConfrontoStoreCard from '@/components/inventario2/ConfrontoStoreCard';
+import ConfrontoConsumi from '@/components/inventario2/ConfrontoConsumi';
 import { useUbicazioni } from '@/components/inventario2/useUbicazioni';
 import { erroreFunzione } from '@/components/laboratorio/labUtils';
 
 export default function Inventario2Confronto() {
   const ubicazioni = useUbicazioni();
   const [dati, setDati] = useState(null);
+  const [consumi, setConsumi] = useState(null);
   const [errore, setErrore] = useState(null);
 
   useEffect(() => {
     base44.functions.invoke('inv2Analisi', { azione: 'confronto' })
       .then((r) => setDati(r.data))
+      .catch((e) => setErrore(erroreFunzione(e)));
+    base44.functions.invoke('inv2Analisi', { azione: 'consumi' })
+      .then((r) => setConsumi(r.data))
       .catch((e) => setErrore(erroreFunzione(e)));
   }, []);
 
@@ -42,7 +47,12 @@ export default function Inventario2Confronto() {
             <p className="text-sm text-slate-500">Nessuno store è in affiancamento. La modalità si sceglie in Impostazioni, tab Configurazione.</p>
           </NeumorphicCard>
         ) : (
-          dati.stores.map((s) => <ConfrontoStoreCard key={s.store_id} nome={nome(s.store_id)} dati={s} />)
+          dati.stores.map((s) => (
+            <React.Fragment key={s.store_id}>
+              <ConfrontoStoreCard nome={nome(s.store_id)} dati={s} />
+              <ConfrontoConsumi righe={consumi?.stores[s.store_id] || (consumi ? [] : undefined)} />
+            </React.Fragment>
+          ))
         )}
       </div>
     </ProtectedPage>

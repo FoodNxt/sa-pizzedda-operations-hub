@@ -3,8 +3,9 @@ import { soloAdmin } from '../../shared/inv2.ts';
 import { calendario } from './calendario.ts';
 import { consumabili } from './consumabili.ts';
 import { confronto } from './confronto.ts';
+import { consumi } from './consumi.ts';
 
-const AZIONI = { calendario, consumabili, confronto };
+const AZIONI = { calendario, consumabili, confronto, consumi };
 
 export default async function (req) {
   try {

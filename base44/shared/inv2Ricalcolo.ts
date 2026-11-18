@@ -1,5 +1,6 @@
 import { aBlocchi, fetchAll, loadConfig, norm } from './inv2.ts';
 import { GIORNO, calcolaGiacenza, giornoRoma, prossimoConteggio } from './inv2Calcolo.ts';
+import { consumiTeorici } from './inv2Teorico.ts';
 
 const INTERVALLI_DEFAULT = {
   'Ingredienti pronti': 7, 'Ortofrutta': 7, 'Ingredienti base': 14, 'Bevande': 14, 'Dolci': 14,
@@ -20,7 +21,7 @@ export async function preparaCalcolo(sr, chiavi) {
     loadConfig(sr),
     E.Store.list(),
     fetchAll(E.MateriePrime),
-    fetchAll(E.Ricetta, { is_semilavorato: true }),
+    fetchAll(E.Ricetta),
     fetchAll(E.Fornitore)
   ]);
   const [impostazioni, esistenti, movimenti] = await Promise.all([
@@ -53,6 +54,15 @@ export async function preparaCalcolo(sr, chiavi) {
     ...stores.map((s) => ({ ubicazione_key: s.id, store_id: s.id, ubicazione_tipo: 'negozio' })),
     { ubicazione_key: `lab:${labStoreId}`, store_id: labStoreId, ubicazione_tipo: 'laboratorio' }
   ].filter((u) => acceso(u.store_id) && (!chiavi?.length || chiavi.includes(u.ubicazione_key)));
+
+  // Consumo teorico dalle vendite del POS, per store acceso
+  const teorici = await consumiTeorici(E, {
+    storeIds: [...new Set(ubicazioni.map((u) => u.store_id))],
+    now,
+    ricette,
+    materie,
+    impostazioni
+  });
 
   // I prodotti del laboratorio hanno la giacenza nel laboratorio e non nel negozio dello stesso store
   const coppie = [];
@@ -99,11 +109,15 @@ export async function preparaCalcolo(sr, chiavi) {
     oggi: giornoRoma(new Date(now)),
     soglia: config.soglia_affidabilita ?? 0.3,
     esistenti,
+    venditeNonCollegate: teorici.nonCollegate,
+    consumiNonConvertiti: teorici.nonConvertiti,
     coppie: coppie.map(({ u, p, k }) => ({
       u,
       p,
       k,
       moves: (perCoppia[k] || []).sort((a, b) => a.t - b.t),
+      // Consumo teorico del prodotto nello store, giorno per giorno
+      teorico: { giorni: teorici.giorni, perGiorno: teorici.perStore[u.store_id]?.[p.imp.item_id] || {} },
       // Prossimo conteggio a partire dal risultato di calcolaGiacenza
       prossimo: (r, oggi) => prossimoConteggio({
         fisso: p.imp.conteggio_fisso_per_ubicazione?.[u.ubicazione_key] ?? p.imp.conteggio_fisso,
@@ -120,15 +134,15 @@ export async function preparaCalcolo(sr, chiavi) {
 // Aggiorna le GiacenzaStimata. chiavi = elenco di ubicazione_key da ricalcolare, vuoto = tutte.
 export async function ricalcola(sr, chiavi) {
   const E = sr.entities;
-  const { now, oggi, soglia, esistenti, coppie } = await preparaCalcolo(sr, chiavi);
+  const { now, oggi, soglia, esistenti, coppie, venditeNonCollegate, consumiNonConvertiti } = await preparaCalcolo(sr, chiavi);
   const chiave = (m) => `${m.ubicazione_key}|${m.item_id}`;
   const esistentiByK = Object.fromEntries(esistenti.map((g) => [chiave(g), g]));
   const intervalliScartati = [];
   const nuovi = [];
   const aggiornati = [];
 
-  coppie.forEach(({ u, p, k, moves, prossimo: prossimoPer }) => {
-    const r = calcolaGiacenza(moves, now, soglia);
+  coppie.forEach(({ u, p, k, moves, teorico, prossimo: prossimoPer }) => {
+    const r = calcolaGiacenza(moves, now, soglia, teorico);
     if (r.scartati) intervalliScartati.push({ ubicazione_key: u.ubicazione_key, item_nome: p.nome, intervalli: r.scartati });
     const prossimo = prossimoPer(r, oggi);
     const record = {
@@ -141,6 +155,9 @@ export async function ricalcola(sr, chiavi) {
       ultimo_conteggio_data: r.ultimo ? new Date(r.ultimo.t).toISOString() : null,
       giacenza_stimata: r3(r.giacenza),
       consumo_medio_giorno: r3(r.consumo),
+      consumo_teorico_giorno: r3(r.teoricoGiorno),
+      fattore_correzione: r3(r.fattore),
+      fonte_consumo: r.fonte,
       uscite_registrate_giorno: r3(r.usciteGiorno),
       giorni_copertura: r3(r.giorniCopertura),
       affidabilita: r.affidabilita,
@@ -164,5 +181,13 @@ export async function ricalcola(sr, chiavi) {
   for (const blocco of aBlocchi(daEliminare, 200)) await E.GiacenzaStimata.deleteMany({ id: { $in: blocco } });
 
   if (intervalliScartati.length) console.warn('Intervalli scartati per residuo negativo', JSON.stringify(intervalliScartati));
-  return { create: nuovi.length, aggiornate: aggiornati.length, eliminate: daEliminare.length, intervalli_scartati: intervalliScartati };
+  if (consumiNonConvertiti.length) console.warn('Consumo teorico non convertibile nell\'unità di conteggio', JSON.stringify(consumiNonConvertiti));
+  return {
+    create: nuovi.length,
+    aggiornate: aggiornati.length,
+    eliminate: daEliminare.length,
+    intervalli_scartati: intervalliScartati,
+    vendite_non_collegate: venditeNonCollegate,
+    consumi_non_convertiti: consumiNonConvertiti
+  };
 }

@@ -27,8 +27,8 @@ export async function simulaConteggi(sr, key, conteggi, perId) {
     if (!coppia) return riga;
 
     // Stima di adesso, poi lo stesso calcolo come se il conteggio fosse appena stato fatto
-    const stima = calcolaGiacenza(coppia.moves, now, soglia).giacenza;
-    const dopo = calcolaGiacenza([...coppia.moves, { tipo: 'conteggio', quantita: c.quantita, t: now }], now, soglia);
+    const stima = calcolaGiacenza(coppia.moves, now, soglia, coppia.teorico).giacenza;
+    const dopo = calcolaGiacenza([...coppia.moves, { tipo: 'conteggio', quantita: c.quantita, t: now }], now, soglia, coppia.teorico);
     const prossimo = coppia.prossimo(dopo, oggi);
     const differenza = stima == null ? null : Math.abs(c.quantita - stima);
     return {

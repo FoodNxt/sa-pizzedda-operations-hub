@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Inbox } from 'lucide-react';
 import '@/components/inventario2/prodottiTable.css';
+import { FONTE_CONSUMO } from '@/components/inventario2/inv2Utils';
 import { giorno } from '@/components/laboratorio/labUtils';
 import { numeroIt } from '@/components/trasporti/trasportiUtils';
 
@@ -88,12 +89,15 @@ export default function GiacenzeTab({ ubicazioni }) {
                   <p className="dt1-empty-p">Non ci sono prodotti per questa ubicazione e questi filtri.</p>
                 </div>
               ) : (
-                <table className="dt1-table" style={{ minWidth: 980 }}>
+                <table className="dt1-table" style={{ minWidth: 1240 }}>
                   <thead>
                     <tr>
                       <th className="dt1-th" scope="col">Prodotto</th>
                       <th className="dt1-th" scope="col" style={{ textAlign: 'right' }}>Giacenza stimata</th>
                       <th className="dt1-th" scope="col" style={{ textAlign: 'right' }}>Consumo al giorno</th>
+                      <th className="dt1-th" scope="col" style={{ textAlign: 'right' }}>Consumo teorico</th>
+                      <th className="dt1-th" scope="col" style={{ textAlign: 'right' }}>Fattore</th>
+                      <th className="dt1-th" scope="col">Fonte del consumo</th>
                       <th className="dt1-th" scope="col" style={{ textAlign: 'right' }}>Giorni di copertura</th>
                       <th className="dt1-th" scope="col">Affidabilità</th>
                       <th className="dt1-th" scope="col">Ultimo conteggio</th>
@@ -113,6 +117,9 @@ export default function GiacenzeTab({ ubicazioni }) {
                           <td className="dt1-cell" style={{ textAlign: 'right' }}>
                             <span className="dt1-muted">{numeroIt((g.consumo_medio_giorno || 0) + (g.uscite_registrate_giorno || 0), 2)}</span>
                           </td>
+                          <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.consumo_teorico_giorno, 3)}</span></td>
+                          <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.fattore_correzione, 2)}</span></td>
+                          <td className="dt1-cell"><span className="dt1-muted">{FONTE_CONSUMO[g.fonte_consumo] || '—'}</span></td>
                           <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.giorni_copertura, 1)}</span></td>
                           <td className="dt1-cell"><span className="dt1-badge" style={{ background: colore }}>{etichetta}</span></td>
                           <td className="dt1-cell">

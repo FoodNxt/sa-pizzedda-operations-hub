@@ -1,4 +1,4 @@
-// Conversioni di unità per le produzioni del laboratorio
+// Conversioni di unità per produzioni del laboratorio e consumo teorico
 
 const PESO = { g: 1, grammi: 1, kg: 1000 };
 const VOLUME = { ml: 1, litri: 1000 };
@@ -20,9 +20,23 @@ export function convertiCarico(quantita, unita, imp) {
   return { quantita, unita };
 }
 
+// Porta una quantità di ricetta (g, ml, pezzi...) nell'unità di conteggio del prodotto. null = non convertibile
+export function inConteggio(quantita, unita, mp, imp) {
+  const destinazione = imp.unita_conteggio;
+  if (mp && destinazione === mp.unita_misura && unita !== destinazione) {
+    // Formato della materia prima, come in espandiIngredienti
+    const scala = [PESO, VOLUME].find((s) => s[unita] && s[mp.unita_misura_peso]);
+    if (scala && mp.peso_dimensione_unita > 0) return (quantita * scala[unita]) / scala[mp.unita_misura_peso] / mp.peso_dimensione_unita;
+    if (!PESO[unita] && !VOLUME[unita]) return mp.unita_per_confezione > 1 ? quantita / mp.unita_per_confezione : quantita;
+  }
+  const c = convertiCarico(quantita, unita, imp);
+  return c.unita === destinazione ? c.quantita : null;
+}
+
 // Stessa logica di espandiIngredienti in src/pages/ControlloConsumi.jsx:
 // espande i semilavorati nei loro ingredienti e converte nell'unità della materia prima.
-export function espandiIngredienti(ingredienti, moltiplicatore, ricette, materie, livello = 0) {
+// fermati(semilavorato) = true: il semilavorato non viene scomposto e resta come voce.
+export function espandiIngredienti(ingredienti, moltiplicatore, ricette, materie, livello = 0, fermati = null) {
   const risultato = {};
   if (!ingredienti || ingredienti.length === 0 || livello > 10) return risultato;
   const aggiungi = (key, voce) => {
@@ -32,6 +46,10 @@ export function espandiIngredienti(ingredienti, moltiplicatore, ricette, materie
 
   ingredienti.forEach((ing) => {
     const semilavorato = ricette.find((r) => (r.id === ing.materia_prima_id || r.nome_prodotto === ing.nome_prodotto) && r.is_semilavorato);
+    if (semilavorato && fermati?.(semilavorato)) {
+      aggiungi(semilavorato.id, { id: semilavorato.id, nome: semilavorato.nome_prodotto, quantita: ing.quantita * moltiplicatore, unita_misura: ing.unita_misura });
+      return;
+    }
     if (semilavorato && semilavorato.ingredienti) {
       let moltiplicatoreSemilavorato = moltiplicatore * ing.quantita;
       if (semilavorato.quantita_prodotta && semilavorato.unita_misura_prodotta) {
@@ -39,7 +57,7 @@ export function espandiIngredienti(ingredienti, moltiplicatore, ricette, materie
         if (semilavorato.unita_misura_prodotta === 'kg' || semilavorato.unita_misura_prodotta === 'litri') qtaProdotta *= 1000;
         moltiplicatoreSemilavorato = (ing.quantita / qtaProdotta) * moltiplicatore;
       }
-      const sub = espandiIngredienti(semilavorato.ingredienti, moltiplicatoreSemilavorato, ricette, materie, livello + 1);
+      const sub = espandiIngredienti(semilavorato.ingredienti, moltiplicatoreSemilavorato, ricette, materie, livello + 1, fermati);
       Object.entries(sub).forEach(([key, voce]) => aggiungi(key, voce));
       return;
     }

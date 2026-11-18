@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.62';
 import { fetchAll, loadConfig, ubicazioneDaKey } from '../../shared/inv2.ts';
 import { giornoRoma } from '../../shared/inv2Calcolo.ts';
 import { ricalcola } from '../../shared/inv2Ricalcolo.ts';
-import { convertiCarico, espandiIngredienti, inBase } from './conversioni.ts';
+import { convertiCarico, espandiIngredienti, inBase } from '../../shared/inv2Conversioni.ts';
 
 const r6 = (n) => Math.round(n * 1e6) / 1e6;
 

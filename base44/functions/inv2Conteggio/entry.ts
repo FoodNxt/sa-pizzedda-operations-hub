@@ -13,6 +13,9 @@ const dettagliAdmin = (g) => ({
   priorita: g.priorita ?? null,
   giacenza: g.giacenza_stimata ?? null,
   consumo: (g.consumo_medio_giorno || 0) + (g.uscite_registrate_giorno || 0),
+  teorico: g.consumo_teorico_giorno ?? null,
+  fattore: g.fattore_correzione ?? null,
+  fonte: g.fonte_consumo || null,
   copertura: g.giorni_copertura ?? null
 });
 const maiuscola = (s) => s.charAt(0).toUpperCase() + s.slice(1);
