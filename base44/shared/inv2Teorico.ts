@@ -1,7 +1,7 @@
 // Consumo teorico dalle vendite del POS: vendite × ricetta, per store, prodotto e giorno
 import { aBlocchi, fetchAll } from './inv2.ts';
 import { addGiorni, giornoRoma } from './inv2Calcolo.ts';
-import { espandiIngredienti, inConteggio } from './inv2Conversioni.ts';
+import { aPesoOVolume, espandiIngredienti, inConteggio } from './inv2Conversioni.ts';
 
 const GIORNI = 28;
 
@@ -65,7 +65,9 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
       const mp = mpById[key] || mpByNome[key];
       const imp = impById[voce.id || mp?.id];
       if (!imp) return;
-      const quantita = inConteggio(voce.quantita, voce.unita_misura, mp, imp);
+      let quantita = inConteggio(voce.quantita, voce.unita_misura, mp, imp);
+      // Materia prima contata a lattine, bottiglie e simili: un pezzo venduto è una unità di conteggio
+      if (quantita == null && c.tipo === 'materia_prima' && !aPesoOVolume(imp.unita_conteggio)) quantita = voce.quantita;
       if (quantita == null) nonConvertiti.add(imp.item_nome || voce.nome);
       else consumo[imp.item_id] = (consumo[imp.item_id] || 0) + quantita;
     });

@@ -3,6 +3,8 @@
 const PESO = { g: 1, grammi: 1, kg: 1000 };
 const VOLUME = { ml: 1, litri: 1000 };
 
+export const aPesoOVolume = (unita) => !!(PESO[unita] || VOLUME[unita]);
+
 // Quantità in grammi o ml (le altre unità restano come sono)
 export const inBase = (quantita, unita) => quantita * (PESO[unita] || VOLUME[unita] || 1);
 

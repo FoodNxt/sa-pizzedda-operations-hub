@@ -21,6 +21,9 @@ import {
 } from 'lucide-react';
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import NeumorphicButton from "../neumorphic/NeumorphicButton";
+import { format, subDays } from "date-fns";
+import { norm } from "@/components/inventario2/vendite/posUtils";
+import { opzioniProdotto } from "@/components/ricette/opzioniProdotto";
 
 export default function RicetteContent() {
   // Copy all logic from Ricette.js but WITHOUT ProtectedPage wrapper
@@ -87,9 +90,17 @@ export default function RicetteContent() {
     refetchOnWindowFocus: false
   });
 
-  const { data: prodottiVenduti = [] } = useQuery({
-    queryKey: ['prodotti-venduti'],
-    queryFn: () => base44.entities.ProdottiVenduti.list(),
+  const { data: flavorStorico = [] } = useQuery({
+    queryKey: ['prodotti-venduti-flavor'],
+    queryFn: async () => (await base44.entities.ProdottiVenduti.aggregate({ groupBy: ['flavor'] })).rows.map(r => r.flavor).filter(Boolean),
+  });
+
+  const { data: nomiPOS = [] } = useQuery({
+    queryKey: ['vendite-pos-nomi'],
+    queryFn: async () => (await base44.entities.VenditaPOS.aggregate({
+      query: { data: { $gte: format(subDays(new Date(), 59), 'yyyy-MM-dd') } },
+      groupBy: ['nome_prodotto']
+    })).rows.map(r => r.nome_prodotto).filter(Boolean),
   });
 
   const createMutation = useMutation({
@@ -125,10 +136,13 @@ export default function RicetteContent() {
     },
   });
 
-  const VALID_PRODUCT_NAMES = React.useMemo(() => {
-    const uniqueFlavors = [...new Set(prodottiVenduti.map(p => p.flavor).filter(Boolean))];
-    return uniqueFlavors.sort();
-  }, [prodottiVenduti]);
+  const VALID_PRODUCT_NAMES = React.useMemo(() => [...flavorStorico].sort(), [flavorStorico]);
+
+  // Nomi tra cui scegliere: POS, storico e ricette esistenti
+  const opzioniNome = React.useMemo(
+    () => opzioniProdotto({ pos: nomiPOS, storico: flavorStorico, ricette: ricette.map(r => r.nome_prodotto) }),
+    [nomiPOS, flavorStorico, ricette]
+  );
 
   const resetForm = () => {
     setFormData({
@@ -379,18 +393,8 @@ export default function RicetteContent() {
     let nomeProdotto = formData.nome_prodotto;
     
     if (!formData.is_semilavorato && addingNewProduct && customNomeProdotto.trim()) {
+      // Nome libero: viene salvato solo nella ricetta
       nomeProdotto = customNomeProdotto.trim();
-      
-      const esistente = await base44.entities.ProdottiVenduti.filter({ nome_prodotto: nomeProdotto });
-      
-      if (esistente.length === 0) {
-        await base44.entities.ProdottiVenduti.create({
-          nome_prodotto: nomeProdotto,
-          categoria: formData.categoria,
-          attivo: true
-        });
-        queryClient.invalidateQueries({ queryKey: ['prodotti-venduti'] });
-      }
     }
     
     if (!formData.is_semilavorato && !nomeProdotto) {
@@ -1024,7 +1028,7 @@ export default function RicetteContent() {
                         Nome Prodotto <span className="text-red-600">*</span>
                       </label>
                       <select
-                        value={formData.nome_prodotto}
+                        value={addingNewProduct ? '__new__' : (opzioniNome.find(o => norm(o.nome) === norm(formData.nome_prodotto))?.nome || '')}
                         onChange={(e) => {
                           if (e.target.value === '__new__') {
                             setAddingNewProduct(true);
@@ -1038,8 +1042,8 @@ export default function RicetteContent() {
                         required={!addingNewProduct}
                       >
                         <option value="">Seleziona prodotto...</option>
-                        {VALID_PRODUCT_NAMES.map(name => (
-                          <option key={name} value={name}>{name}</option>
+                        {opzioniNome.map(o => (
+                          <option key={o.nome} value={o.nome}>{o.etichetta}</option>
                         ))}
                         <option value="__new__">+ Aggiungi nuovo prodotto</option>
                       </select>
