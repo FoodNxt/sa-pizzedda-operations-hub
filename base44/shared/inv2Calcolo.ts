@@ -7,6 +7,18 @@ const USCITE = ['produzione_scarico', 'trasporto_uscita', 'spreco'];
 // La rettifica manuale ha il segno nella quantità: positiva aggiunge, negativa toglie
 const ENTRATE = ['ricevimento', 'produzione_carico', 'trasporto_entrata', 'rettifica'];
 
+export const DIECI_MINUTI = 600000;
+
+// Conteggi dello stesso prodotto con lo stesso valore a meno di 10 minuti di distanza valgono come uno solo: resta il più recente.
+// moves = movimenti di un prodotto in una ubicazione, ordinati per t crescente
+export function senzaConteggiDoppi(moves) {
+  return moves.filter((m, i) => {
+    if (m.tipo !== 'conteggio') return true;
+    const dopo = moves.slice(i + 1).find((x) => x.tipo === 'conteggio');
+    return !(dopo && dopo.quantita === m.quantita && dopo.t - m.t < DIECI_MINUTI);
+  });
+}
+
 export const giornoRoma = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(d);
 export const addGiorni = (s, n) => new Date(Date.parse(`${s}T00:00:00Z`) + n * GIORNO).toISOString().slice(0, 10);
 

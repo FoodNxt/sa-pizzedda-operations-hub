@@ -68,20 +68,33 @@ function righePerGiorno(sales, negozi, giornoUnico) {
   return perGiorno;
 }
 
+// Si cancella sempre e solo un giorno preciso: senza una data valida il filtro sarebbe vuoto e cancellerebbe tutto
+async function cancellaGiorno(entity, giorno) {
+  if (!DATA.test(giorno || '')) throw new Error(`Data non valida: ${giorno}`);
+  await cancella(entity, { data: giorno });
+}
+
 async function salvaLog(E, log) {
-  await cancella(E.SincronizzazioneVenditePOS, { data: log.data });
+  await cancellaGiorno(E.SincronizzazioneVenditePOS, log.data);
   await E.SincronizzazioneVenditePOS.create(log);
 }
 
-// Sostituisce le VenditaPOS di un giorno e lo registra come riuscito, anche con 0 righe
+// Sostituisce le VenditaPOS di un giorno, anche con 0 righe, e poi conta quelle salvate.
+// Restituisce false se sono diverse da quelle previste: il giorno va nel log come errore
 async function salvaGiorno(E, giorno, righe, extra) {
-  await cancella(E.VenditaPOS, { data: giorno });
+  await cancellaGiorno(E.VenditaPOS, giorno);
   for (const blocco of aBlocchi(righe, 500)) await E.VenditaPOS.bulkCreate(blocco);
   // I menu non scomposti non si collegano a una ricetta: si distribuiscono sui gusti
   const scomposte = new Set(righe.filter((r) => !r.combo_non_scomposto).map((r) => r.chiave_prodotto));
   const soloCombo = [...new Set(righe.filter((r) => r.combo_non_scomposto && !scomposte.has(r.chiave_prodotto)).map((r) => r.chiave_prodotto))];
   if (soloCombo.length) await cancella(E.ProdottoPOSRicetta, { chiave_prodotto: { $in: soloCombo } });
+  const salvate = await E.VenditaPOS.count({ data: giorno });
+  if (salvate !== righe.length) {
+    await salvaLog(E, { ...extra, data: giorno, righe: salvate, esito: 'errore', errore: `Salvate ${salvate} righe su ${righe.length} previste` });
+    return false;
+  }
   await salvaLog(E, { data: giorno, righe: righe.length, esito: 'ok', ...extra });
+  return true;
 }
 
 async function segnaNonImportato(E, giorno, errore) {
@@ -140,11 +153,8 @@ export default async function (req) {
     const segreto = secrets.get('POS_SYNC_SECRET');
     if (!url || !segreto) return Response.json({ error: 'Mancano POS_SYNC_URL o POS_SYNC_SECRET nei segreti dell\'app' }, { status: 500 });
 
-    if (body.reimporta) {
-      await cancella(E.VenditaPOS, {});
-      await cancella(E.SincronizzazioneVenditePOS, {});
-      await cancella(E.ProdottoPOSRicetta, SENZA_ITEM);
-    }
+    // Le vendite non si svuotano mai in blocco: ogni giorno viene sostituito solo dopo che il POS lo ha restituito
+    if (body.reimporta) await cancella(E.ProdottoPOSRicetta, SENZA_ITEM);
 
     const { config } = await loadConfig(sr);
     const negozi = config.negozi_pos || {};
@@ -164,20 +174,25 @@ export default async function (req) {
         const perGiorno = righePerGiorno(risposta.sales, negozi, unGiorno ? primo : null);
         const combo = risposta.combo_non_scomposti;
         let righe = 0;
+        const riusciti = [];
+        const diversi = [];
         for (const gruppo of aBlocchi(blocco, 5)) {
-          await Promise.all(gruppo.map((g) => {
+          await Promise.all(gruppo.map(async (g) => {
             const lista = Object.values(perGiorno[g] || {});
-            righe += lista.length;
-            return salvaGiorno(E, g, lista, {
+            const salvato = await salvaGiorno(E, g, lista, {
               combo_non_scomposti: unGiorno
                 ? (Array.isArray(combo) ? combo.length : Number(combo) || 0)
                 : lista.filter((r) => r.combo_non_scomposto).reduce((s, r) => s + r.quantita, 0),
               ...(unGiorno ? { total_orders: Number(risposta.total_orders) || 0 } : {}),
               ...(risposta.schema_version != null ? { schema_version: String(risposta.schema_version) } : {})
             });
+            if (!salvato) { diversi.push(g); return; }
+            riusciti.push(g);
+            righe += lista.length;
           }));
         }
-        importati.push(...blocco);
+        importati.push(...riusciti);
+        errori.push(...diversi.map((g) => ({ giorno: g, errore: 'Righe salvate diverse da quelle previste' })));
         righeTotali += righe;
         return null;
       } catch (e) {

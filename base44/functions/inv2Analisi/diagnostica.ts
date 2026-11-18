@@ -25,7 +25,23 @@ export async function diagnostica(sr) {
     ricette,
     materie,
     impostazioni,
-    escluse: ricetteEscluse(config, ricette)
+    escluse: ricetteEscluse(config, ricette),
+    inizi: config.inizio_storico_per_store || {}
+  });
+
+  // Righe scritte secondo il log contro righe davvero presenti, ultimi 60 giorni
+  const dal60 = addGiorni(oggi, -59);
+  const [logGiorni, presenti] = await Promise.all([
+    fetchAll(E.SincronizzazioneVenditePOS, { data: { $gte: dal60 } }, 'data'),
+    E.VenditaPOS.aggregate({ query: { data: { $gte: dal60 } }, groupBy: ['data'] })
+  ]);
+  if (presenti.truncated) throw new Error('Troppi giorni di vendita da leggere');
+  const logPer = Object.fromEntries(logGiorni.map((l) => [l.data, l]));
+  const presentiPer = Object.fromEntries(presenti.rows.map((r) => [r.data, r.count]));
+  const controllo = [...new Set([...Object.keys(logPer), ...Object.keys(presentiPer)])].sort().reverse().map((data) => {
+    const nelLog = logPer[data]?.righe ?? null;
+    const righe = presentiPer[data] || 0;
+    return { data, esito: logPer[data]?.esito || null, nel_log: nelLog, presenti: righe, diverso: (nelLog || 0) !== righe };
   });
 
   // Righe per giorno, punto vendita e store: servono per quelle rimaste senza store
@@ -103,6 +119,7 @@ export async function diagnostica(sr) {
 
   return {
     giorni: GIORNI,
+    controllo,
     negozi,
     non_convertiti: teorici.motivi,
     prodotti: impostazioni

@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.62';
 import { aBlocchi, fetchAll, loadConfig, soloAdmin, ubicazionePer } from '../../shared/inv2.ts';
+import { DIECI_MINUTI } from '../../shared/inv2Calcolo.ts';
 
 const FONTI = { RilevazioneInventario: 'form_inventario_v1', RilevazioneInventarioCantina: 'form_cantina_v1' };
 const GIORNI_STORICO = 28;
@@ -34,7 +35,18 @@ async function importaUna(sr, config, labStoreId, entita, id) {
   ]);
   if (gia.length) return { creati: 0, saltato: 'già importata' };
   if (!stessaUnita(r, impostazioni[0])) return { creati: 0, saltato: 'unità diversa da Inventario 2.0' };
-  await sr.entities.MovimentoMagazzino.create(movimento(r, FONTI[entita], materie.length > 0, impostazioni[0]?.laboratorio, labStoreId));
+  const nuovo = movimento(r, FONTI[entita], materie.length > 0, impostazioni[0]?.laboratorio, labStoreId);
+  // Stesso prodotto, stessa ubicazione e stesso valore a meno di 10 minuti: è lo stesso conteggio inviato due volte
+  const t = Date.parse(nuovo.data_movimento);
+  const doppi = await sr.entities.MovimentoMagazzino.filter({
+    ubicazione_key: nuovo.ubicazione_key,
+    item_id: nuovo.item_id,
+    tipo: 'conteggio',
+    quantita: nuovo.quantita,
+    data_movimento: { $gt: new Date(t - DIECI_MINUTI).toISOString(), $lt: new Date(t + DIECI_MINUTI).toISOString() }
+  });
+  if (doppi.length) return { creati: 0, saltato: 'conteggio doppio' };
+  await sr.entities.MovimentoMagazzino.create(nuovo);
   return { creati: 1 };
 }
 
@@ -46,17 +58,27 @@ async function importaStorico(sr, config, labStoreId) {
   const [materie, impostazioni, gia] = await Promise.all([
     fetchAll(E.MateriePrime),
     fetchAll(E.ImpostazioneInventario2),
-    fetchAll(E.MovimentoMagazzino, { fonte: { $in: Object.values(FONTI) }, data_movimento: { $gte: dal } })
+    fetchAll(E.MovimentoMagazzino, { tipo: 'conteggio', data_movimento: { $gte: new Date(Date.parse(dal) - DIECI_MINUTI).toISOString() } })
   ]);
   const materieIds = new Set(materie.map((m) => m.id));
   const impById = Object.fromEntries(impostazioni.map((i) => [i.item_id, i]));
   const importate = new Set(gia.map((m) => m.riferimento_id));
+  // Quando è stato contato ogni valore, per prodotto e ubicazione: serve a saltare i conteggi doppi
+  const chiave = (m) => `${m.ubicazione_key}|${m.item_id}|${m.quantita}`;
+  const tempi = {};
+  gia.forEach((m) => (tempi[chiave(m)] ||= []).push(Date.parse(m.data_movimento)));
   const nuovi = [];
   for (const [entita, fonte] of Object.entries(FONTI)) {
     const rilevazioni = await fetchAll(E[entita], { store_id: { $in: storeIds }, data_rilevazione: { $gte: dal } }, 'data_rilevazione');
     rilevazioni.forEach((r) => {
       const imp = impById[r.prodotto_id];
-      if (!importate.has(r.id) && stessaUnita(r, imp)) nuovi.push(movimento(r, fonte, materieIds.has(r.prodotto_id), imp?.laboratorio, labStoreId));
+      if (importate.has(r.id) || !stessaUnita(r, imp)) return;
+      const nuovo = movimento(r, fonte, materieIds.has(r.prodotto_id), imp?.laboratorio, labStoreId);
+      const t = Date.parse(nuovo.data_movimento);
+      const visti = (tempi[chiave(nuovo)] ||= []);
+      if (visti.some((x) => Math.abs(x - t) < DIECI_MINUTI)) return;
+      visti.push(t);
+      nuovi.push(nuovo);
     });
   }
   for (const blocco of aBlocchi(nuovi, 500)) await E.MovimentoMagazzino.bulkCreate(blocco);

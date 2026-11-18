@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ClipboardCheck, History, Plus, RefreshCw } from 'lucide-react';
+import { ClipboardCheck, History, PackageCheck, Plus, RefreshCw } from 'lucide-react';
 import InventarioCompletoDialog from './InventarioCompletoDialog';
 import { toast } from '@/components/ui/use-toast';
 import RegistroTable from './RegistroTable';
@@ -95,6 +95,15 @@ export default function RegistroMovimenti() {
       >
         <History />
         {busy === 'storico' ? 'Importazione…' : 'Importa storico conteggi'}
+      </button>
+      <button
+        type="button"
+        className="dt1-btn dt1-btn--plain"
+        disabled={!!busy}
+        onClick={() => esegui('ricevimenti', 'inv2RicevimentoOrdine', { importa_storico: true }, (d) => (d.ordini ? `Importati ${d.ordini} ordini e ${d.righe} righe di ricevimento` : 'Nessun ricevimento da importare'))}
+      >
+        <PackageCheck />
+        {busy === 'ricevimenti' ? 'Importazione…' : 'Importa ricevimenti storici'}
       </button>
       <button
         type="button"

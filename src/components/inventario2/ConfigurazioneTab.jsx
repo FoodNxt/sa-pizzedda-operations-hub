@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import { DEFAULT_CONFIG, MODALITA } from './inv2Utils';
 import ChecklistAttivo from './ChecklistAttivo';
 import ImportaVendite from './ImportaVendite';
+import InizioStorico from './InizioStorico';
 import RicetteEscluse from './RicetteEscluse';
 import { oggiLocale } from '@/components/laboratorio/labUtils';
 
@@ -69,6 +70,7 @@ export default function ConfigurazioneTab() {
     const data = {
       modalita_per_store: modalita,
       affiancamento_dal_per_store: inizio,
+      inizio_storico_per_store: Object.fromEntries(Object.entries(cfg.inizio_storico_per_store || {}).filter(([, giorno]) => giorno)),
       lab_store_id: cfg.lab_store_id,
       basi_ricetta_id: cfg.basi_ricetta_id || '',
       ricette_escluse_dal_consumo_negozio: cfg.ricette_escluse_dal_consumo_negozio || [],
@@ -175,6 +177,12 @@ export default function ConfigurazioneTab() {
           ))}
         </div>
       </NeumorphicCard>
+
+      <InizioStorico
+        stores={stores}
+        valori={cfg.inizio_storico_per_store || {}}
+        onChange={(valori) => set({ inizio_storico_per_store: valori })}
+      />
 
       <RicetteEscluse
         ricette={ricette}

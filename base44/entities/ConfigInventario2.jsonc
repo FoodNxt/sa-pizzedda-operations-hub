@@ -12,6 +12,11 @@
       "default": {},
       "description": "Data di inizio dell'affiancamento per store {store_id: 'YYYY-MM-DD'}"
     },
+    "inizio_storico_per_store": {
+      "type": "object",
+      "default": {},
+      "description": "Giorno da cui parte lo storico per store {store_id: 'YYYY-MM-DD'}: conteggi, movimenti e vendite precedenti non contano nel ricalcolo e nel confronto consumi"
+    },
     "lab_store_id": {
       "type": "string",
       "default": "6908b4f284cb01bc8402b4ee",

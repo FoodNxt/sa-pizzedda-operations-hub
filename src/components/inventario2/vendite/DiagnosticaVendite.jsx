@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import NeumorphicCard from '@/components/neumorphic/NeumorphicCard';
 import '@/components/inventario2/prodottiTable.css';
 import { numeroIt } from '@/components/trasporti/trasportiUtils';
+import ControlloRighe from './ControlloRighe';
 import DiagnosticaGiorni from './DiagnosticaGiorni';
 import DettaglioTeorico from './DettaglioTeorico';
 
@@ -23,7 +24,12 @@ export default function DiagnosticaVendite() {
   }
   const negozio = dati.negozi.find((n) => n.id === negozioId);
   if (!negozio) {
-    return <NeumorphicCard className="p-8 text-center"><p className="text-slate-500">Nessuna vendita negli ultimi {dati.giorni} giorni.</p></NeumorphicCard>;
+    return (
+      <div className="space-y-4">
+        <ControlloRighe giorni={dati.controllo} />
+        <NeumorphicCard className="p-8 text-center"><p className="text-slate-500">Nessuna vendita negli ultimi {dati.giorni} giorni.</p></NeumorphicCard>
+      </div>
+    );
   }
 
   const numeri = [
@@ -35,6 +41,7 @@ export default function DiagnosticaVendite() {
 
   return (
     <div className="space-y-4">
+      <ControlloRighe giorni={dati.controllo} />
       <NeumorphicCard className="p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

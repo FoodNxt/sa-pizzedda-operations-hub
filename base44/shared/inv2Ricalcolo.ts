@@ -1,6 +1,6 @@
 import { aBlocchi, fetchAll, loadConfig, norm } from './inv2.ts';
-import { GIORNO, calcolaGiacenza, giornoRoma, prossimoConteggio } from './inv2Calcolo.ts';
-import { consumiTeorici, ricetteEscluse } from './inv2Teorico.ts';
+import { GIORNO, calcolaGiacenza, giornoRoma, prossimoConteggio, senzaConteggiDoppi } from './inv2Calcolo.ts';
+import { consumiTeorici, mezzanotte, ricetteEscluse } from './inv2Teorico.ts';
 
 const INTERVALLI_DEFAULT = {
   'Ingredienti pronti': 7, 'Ortofrutta': 7, 'Ingredienti base': 14, 'Bevande': 14, 'Dolci': 14,
@@ -55,6 +55,10 @@ export async function preparaCalcolo(sr, chiavi) {
     { ubicazione_key: `lab:${labStoreId}`, store_id: labStoreId, ubicazione_tipo: 'laboratorio' }
   ].filter((u) => acceso(u.store_id) && (!chiavi?.length || chiavi.includes(u.ubicazione_key)));
 
+  // Inizio dello storico per store: quello che è successo prima non conta, il primo conteggio da lì in poi fa da partenza
+  const inizi = config.inizio_storico_per_store || {};
+  const daQuando = (storeId) => (inizi[storeId] ? mezzanotte(inizi[storeId]) : 0);
+
   // Consumo teorico dalle vendite del POS, per store acceso
   const teorici = await consumiTeorici(E, {
     storeIds: [...new Set(ubicazioni.map((u) => u.store_id))],
@@ -62,7 +66,8 @@ export async function preparaCalcolo(sr, chiavi) {
     ricette,
     materie,
     impostazioni,
-    escluse: ricetteEscluse(config, ricette)
+    escluse: ricetteEscluse(config, ricette),
+    inizi
   });
 
   // I prodotti del laboratorio hanno la giacenza nel laboratorio e non nel negozio dello stesso store
@@ -116,7 +121,7 @@ export async function preparaCalcolo(sr, chiavi) {
       u,
       p,
       k,
-      moves: (perCoppia[k] || []).sort((a, b) => a.t - b.t),
+      moves: senzaConteggiDoppi((perCoppia[k] || []).filter((m) => m.t >= daQuando(u.store_id)).sort((a, b) => a.t - b.t)),
       // Consumo teorico del prodotto nello store, giorno per giorno
       teorico: { giorni: teorici.giorniPerStore[u.store_id] || [], perGiorno: teorici.perStore[u.store_id]?.[p.imp.item_id] || {} },
       // Prossimo conteggio a partire dal risultato di calcolaGiacenza

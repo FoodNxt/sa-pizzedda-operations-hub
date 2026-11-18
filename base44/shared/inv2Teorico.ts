@@ -6,7 +6,7 @@ import { aPesoOVolume, espandiIngredienti, inConteggio } from './inv2Conversioni
 const GIORNI = 28;
 
 // Mezzanotte di Roma in millisecondi (ora legale o solare)
-const mezzanotte = (giorno) => {
+export const mezzanotte = (giorno) => {
   const utc = Date.parse(`${giorno}T00:00:00Z`);
   return [2, 1].map((ore) => utc - ore * 3600000).find((t) => giornoRoma(new Date(t)) === giorno);
 };
@@ -40,8 +40,9 @@ async function leggiVendite(E, giorni, storeIds) {
   return [...await leggiVendite(E, giorni.slice(0, meta), storeIds), ...await leggiVendite(E, giorni.slice(meta), storeIds)];
 }
 
-// impostazioni = solo i prodotti inclusi in Inventario 2.0, escluse = id delle ricette che non contano nel consumo dei negozi
-export async function consumiTeorici(E, { storeIds, now, ricette, materie, impostazioni, escluse = [] }) {
+// impostazioni = solo i prodotti inclusi in Inventario 2.0, escluse = id delle ricette che non contano nel consumo dei negozi,
+// inizi = { store_id: giorno } da cui parte lo storico dello store: le vendite precedenti non contano
+export async function consumiTeorici(E, { storeIds, now, ricette, materie, impostazioni, escluse = [], inizi = {} }) {
   // giorniPerStore: giorni che entrano nella media di ogni store. perPezzo e pezzi servono alla diagnostica
   const esito = { giorniPerStore: {}, perStore: {}, nonCollegate: 0, nonConvertiti: [], motivi: [], perPezzo: {}, pezzi: {}, vendite: [] };
   if (!storeIds.length) return esito;
@@ -69,7 +70,7 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
   const conVendite = new Set(vendite.map((v) => `${v.store_id}|${v.data}`));
   storeIds.forEach((id) => {
     esito.giorniPerStore[id] = date
-      .filter((g) => conVendite.has(`${id}|${g}`))
+      .filter((g) => g >= (inizi[id] || '') && conVendite.has(`${id}|${g}`))
       .map((g) => ({ giorno: g, inizio: mezzanotte(g), fine: mezzanotte(addGiorni(g, 1)) }));
   });
 
@@ -127,6 +128,7 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
   const gustiNegozio = {};
   const menu = [];
   vendite.forEach((v) => {
+    if (v.data < (inizi[v.store_id] || '')) return;
     const pezzi = v.sum_quantita || 0;
     if (v.combo_non_scomposto) { menu.push({ ...v, pezzi }); return; }
     const c = perChiave[v.chiave_prodotto];

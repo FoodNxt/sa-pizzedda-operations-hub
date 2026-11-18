@@ -9,7 +9,7 @@ export default function ImportaVendite() {
   const { busy, avanzamento, log, mancanti, importa, reimporta, riprova } = useImportaVendite();
 
   const confermaReimporta = () => {
-    const ok = window.confirm('Cancello tutte le vendite importate e i collegamenti senza prodotto (compresi quelli segnati "Ignora"), poi reimporto gli ultimi 60 giorni. Continuo?');
+    const ok = window.confirm('Rileggo dal POS gli ultimi 60 giorni e sostituisco le vendite un giorno alla volta, solo dopo averlo letto. Cancello anche i collegamenti senza prodotto (compresi quelli segnati "Ignora"). Continuo?');
     if (ok) reimporta();
   };
 
