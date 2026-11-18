@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/components/ui/use-toast';
 import { DEFAULT_CONFIG, MODALITA } from './inv2Utils';
 import ChecklistAttivo from './ChecklistAttivo';
+import ImportaVendite from './ImportaVendite';
 import { oggiLocale } from '@/components/laboratorio/labUtils';
 
 export default function ConfigurazioneTab() {
@@ -170,6 +171,8 @@ export default function ConfigurazioneTab() {
           ))}
         </div>
       </NeumorphicCard>
+
+      <ImportaVendite />
 
       <div className="flex justify-end">
         <Button onClick={salva} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">

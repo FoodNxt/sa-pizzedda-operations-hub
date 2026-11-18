@@ -1,0 +1,75 @@
+{
+  "name": "VenditaPOS",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "string",
+      "format": "date",
+      "description": "Giorno della vendita (YYYY-MM-DD)"
+    },
+    "pos_location_id": {
+      "type": "string",
+      "description": "ID del punto vendita nel POS"
+    },
+    "pos_location_name": {
+      "type": "string",
+      "description": "Nome del punto vendita nel POS"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store abbinato al punto vendita del POS"
+    },
+    "canale": {
+      "type": "string",
+      "description": "Canale di vendita"
+    },
+    "pos_product_id": {
+      "type": "string",
+      "description": "ID del prodotto nel POS"
+    },
+    "nome_prodotto": {
+      "type": "string",
+      "description": "Nome del prodotto nel POS"
+    },
+    "quantita": {
+      "type": "number",
+      "description": "Pezzi venduti nel giorno"
+    },
+    "fatturato": {
+      "type": "number",
+      "description": "Fatturato del giorno in euro"
+    },
+    "is_b2b": {
+      "type": "boolean",
+      "default": false,
+      "description": "Vendita B2B"
+    }
+  },
+  "required": [
+    "data",
+    "pos_location_id",
+    "pos_product_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

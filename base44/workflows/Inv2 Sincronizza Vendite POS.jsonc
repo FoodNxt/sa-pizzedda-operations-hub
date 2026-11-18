@@ -1,0 +1,45 @@
+{
+  "description": "Ogni notte alle 02:00 importa dal POS le vendite degli ultimi 3 giorni, prima del ricalcolo delle 02:30",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "inv2_sincronizza_vendite_pos",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sincronizza_vendite": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "inv2SincronizzaVendite",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Importa le vendite del POS",
+            "description": "Ultimi 3 giorni"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Inv2 Sincronizza Vendite POS",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 2 * * *",
+      "one_time_date": null,
+      "timezone": "Europe/Rome",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}

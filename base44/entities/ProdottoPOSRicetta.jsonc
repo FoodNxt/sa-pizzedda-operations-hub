@@ -1,0 +1,63 @@
+{
+  "name": "ProdottoPOSRicetta",
+  "type": "object",
+  "properties": {
+    "pos_product_id": {
+      "type": "string",
+      "description": "ID del prodotto nel POS. Le combo hanno una riga per ogni componente"
+    },
+    "nome_prodotto": {
+      "type": "string",
+      "description": "Nome del prodotto nel POS (denormalizzato)"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "ricetta",
+        "materia_prima",
+        "ignora"
+      ],
+      "enumColors": [
+        "blue",
+        "purple",
+        "gray"
+      ],
+      "description": "A cosa \u00e8 collegato il prodotto venduto"
+    },
+    "item_id": {
+      "type": "string",
+      "description": "ID della ricetta o della materia prima"
+    },
+    "quantita_per_pezzo": {
+      "type": "number",
+      "default": 1,
+      "description": "Quantit\u00e0 consumata per ogni pezzo venduto"
+    }
+  },
+  "required": [
+    "pos_product_id",
+    "tipo"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

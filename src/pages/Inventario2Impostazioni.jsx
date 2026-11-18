@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProdottiTab from '@/components/inventario2/ProdottiTab';
 import ConfigurazioneTab from '@/components/inventario2/ConfigurazioneTab';
 import PiantinaTab from '@/components/inventario2/piantina/PiantinaTab';
+import VenditePOSTab from '@/components/inventario2/vendite/VenditePOSTab';
 
 export default function Inventario2Impostazioni() {
   return (
@@ -25,7 +26,11 @@ export default function Inventario2Impostazioni() {
             <TabsTrigger value="prodotti">Prodotti</TabsTrigger>
             <TabsTrigger value="configurazione">Configurazione</TabsTrigger>
             <TabsTrigger value="piantina">Piantina</TabsTrigger>
+            <TabsTrigger value="vendite">Vendite POS</TabsTrigger>
           </TabsList>
+          <TabsContent value="vendite" className="mt-4">
+            <VenditePOSTab />
+          </TabsContent>
           <TabsContent value="piantina" className="mt-4">
             <PiantinaTab />
           </TabsContent>

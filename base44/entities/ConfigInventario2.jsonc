@@ -46,6 +46,11 @@
       "type": "number",
       "default": 0.3,
       "description": "Soglia di scarto oltre la quale la giacenza stimata \u00e8 da verificare"
+    },
+    "negozi_pos": {
+      "type": "object",
+      "default": {},
+      "description": "Abbinamento dei punti vendita del POS agli store {pos_location_id: store_id}"
     }
   },
   "required": [],
