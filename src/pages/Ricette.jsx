@@ -21,15 +21,30 @@ import {
 } from 'lucide-react';
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
+import { useNavigate } from "react-router-dom";
+import { format, subDays } from "date-fns";
+import { norm } from "@/components/inventario2/vendite/posUtils";
+import { opzioniProdotto } from "@/components/ricette/opzioniProdotto";
+
+const CATEGORIE = ['pizza', 'dolce', 'bevanda', 'altro'];
 
 export default function Ricette() {
-  const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
+  // Prodotto del POS da collegare alla ricetta appena viene salvata (arriva dalla tab Vendite POS)
+  const [posLink, setPosLink] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const chiave = urlParams.get('pos_chiave');
+    if (!chiave) return null;
+    const categoria = urlParams.get('categoria');
+    return { chiave, nome: urlParams.get('pos_nome') || '', categoria: CATEGORIE.includes(categoria) ? categoria : 'altro' };
+  });
+  const [showForm, setShowForm] = useState(!!posLink);
   const [editingRecipe, setEditingRecipe] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewingRecipe, setViewingRecipe] = useState(null);
   const [formData, setFormData] = useState({
     nome_prodotto: '',
-    categoria: 'pizza',
+    categoria: posLink?.categoria || 'pizza',
     tipo_teglia: 'nessuna',
     is_semilavorato: false,
     quantita_prodotta: '',
@@ -50,8 +65,8 @@ export default function Ricette() {
     attivo: true,
     trasportabile: false
   });
-  const [customNomeProdotto, setCustomNomeProdotto] = useState('');
-  const [addingNewProduct, setAddingNewProduct] = useState(false);
+  const [customNomeProdotto, setCustomNomeProdotto] = useState(posLink?.nome || '');
+  const [addingNewProduct, setAddingNewProduct] = useState(!!posLink);
   const [showProductsWithoutRecipe, setShowProductsWithoutRecipe] = useState(false);
   const [showFoodCostModal, setShowFoodCostModal] = useState(false);
   const [deliveryFeePercentage, setDeliveryFeePercentage] = useState(() => {
@@ -88,15 +103,40 @@ export default function Ricette() {
     refetchOnWindowFocus: false
   });
 
-  const { data: prodottiVenduti = [] } = useQuery({
-    queryKey: ['prodotti-venduti'],
-    queryFn: () => base44.entities.ProdottiVenduti.list(),
+  const { data: flavorStorico = [] } = useQuery({
+    queryKey: ['prodotti-venduti-flavor'],
+    queryFn: async () => (await base44.entities.ProdottiVenduti.aggregate({ groupBy: ['flavor'] })).rows.map(r => r.flavor).filter(Boolean),
+  });
+
+  const { data: nomiPOS = [] } = useQuery({
+    queryKey: ['vendite-pos-nomi'],
+    queryFn: async () => (await base44.entities.VenditaPOS.aggregate({
+      query: { data: { $gte: format(subDays(new Date(), 59), 'yyyy-MM-dd') } },
+      groupBy: ['nome_prodotto']
+    })).rows.map(r => r.nome_prodotto).filter(Boolean),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Ricetta.create(data),
+    mutationFn: async (data) => {
+      const ricetta = await base44.entities.Ricetta.create(data);
+      if (posLink) {
+        await base44.entities.ProdottoPOSRicetta.deleteMany({ chiave_prodotto: posLink.chiave });
+        await base44.entities.ProdottoPOSRicetta.create({
+          chiave_prodotto: posLink.chiave,
+          nome_prodotto: posLink.nome || ricetta.nome_prodotto,
+          tipo: 'ricetta',
+          item_id: ricetta.id,
+          quantita_per_pezzo: 1
+        });
+      }
+      return ricetta;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ricette'] });
+      if (posLink) {
+        navigate('/Inventario2Impostazioni?tab=vendite');
+        return;
+      }
       resetForm();
       alert('Ricetta creata con successo! ✅');
     },
@@ -127,10 +167,13 @@ export default function Ricette() {
   });
 
   // Get unique product names from ProdottiVenduti
-  const VALID_PRODUCT_NAMES = React.useMemo(() => {
-    const uniqueFlavors = [...new Set(prodottiVenduti.map(p => p.flavor).filter(Boolean))];
-    return uniqueFlavors.sort();
-  }, [prodottiVenduti]);
+  const VALID_PRODUCT_NAMES = React.useMemo(() => [...flavorStorico].sort(), [flavorStorico]);
+
+  // Nomi tra cui scegliere: POS, storico e ricette esistenti
+  const opzioniNome = React.useMemo(
+    () => opzioniProdotto({ pos: nomiPOS, storico: flavorStorico, ricette: ricette.map(r => r.nome_prodotto) }),
+    [nomiPOS, flavorStorico, ricette]
+  );
 
   const resetForm = () => {
     setFormData({
@@ -161,6 +204,7 @@ export default function Ricette() {
     setAddingNewProduct(false);
     setEditingRecipe(null);
     setShowForm(false);
+    setPosLink(null);
   };
 
   const handleEdit = (ricetta) => {
@@ -395,22 +439,9 @@ export default function Ricette() {
     
     let nomeProdotto = formData.nome_prodotto;
     
-    // If custom product name, add to ProdottiVenduti
+    // Nome libero: viene salvato solo nella ricetta
     if (!formData.is_semilavorato && addingNewProduct && customNomeProdotto.trim()) {
       nomeProdotto = customNomeProdotto.trim();
-      
-      // Check if already exists in ProdottiVenduti
-      const esistente = await base44.entities.ProdottiVenduti.filter({ nome_prodotto: nomeProdotto });
-      
-      if (esistente.length === 0) {
-        // Add to ProdottiVenduti
-        await base44.entities.ProdottiVenduti.create({
-          nome_prodotto: nomeProdotto,
-          categoria: formData.categoria,
-          attivo: true
-        });
-        queryClient.invalidateQueries({ queryKey: ['prodotti-venduti'] });
-      }
     }
     
     if (!formData.is_semilavorato && !nomeProdotto) {
@@ -731,14 +762,14 @@ export default function Ricette() {
                     ) : (
                       <div className="space-y-2">
                         <select
-                          value={formData.nome_prodotto}
+                          value={opzioniNome.find(o => norm(o.nome) === norm(formData.nome_prodotto))?.nome || ''}
                           onChange={(e) => setFormData({ ...formData, nome_prodotto: e.target.value })}
                           className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                           required={!addingNewProduct}
                         >
                           <option value="">Seleziona prodotto...</option>
-                          {VALID_PRODUCT_NAMES.map(name => (
-                            <option key={name} value={name}>{name}</option>
+                          {opzioniNome.map(o => (
+                            <option key={o.nome} value={o.nome}>{o.etichetta}</option>
                           ))}
                         </select>
                         <button
@@ -747,7 +778,7 @@ export default function Ricette() {
                           className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                         >
                           <Plus className="w-3 h-3" />
-                          Aggiungi nuovo prodotto alla lista
+                          Aggiungi nuovo prodotto
                         </button>
                       </div>
                     )}
@@ -761,9 +792,11 @@ export default function Ricette() {
                         ℹ️ Seleziona dalla lista o aggiungi un nuovo prodotto
                       </p>
                     )}
-                    {addingNewProduct && (
+                    {!formData.is_semilavorato && addingNewProduct && (
                       <p className="text-xs text-green-600 mt-1">
-                        ✓ Il nuovo prodotto verrà aggiunto automaticamente alla lista Prodotti Venduti
+                        {posLink
+                          ? '✓ Al salvataggio la ricetta viene collegata al prodotto del POS'
+                          : '✓ Il nome viene salvato solo nella ricetta'}
                       </p>
                     )}
                   </div>

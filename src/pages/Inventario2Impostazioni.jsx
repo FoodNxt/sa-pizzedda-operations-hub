@@ -21,7 +21,7 @@ export default function Inventario2Impostazioni() {
           </div>
         </div>
 
-        <Tabs defaultValue="prodotti">
+        <Tabs defaultValue={new URLSearchParams(window.location.search).get('tab') || 'prodotti'}>
           <TabsList>
             <TabsTrigger value="prodotti">Prodotti</TabsTrigger>
             <TabsTrigger value="configurazione">Configurazione</TabsTrigger>

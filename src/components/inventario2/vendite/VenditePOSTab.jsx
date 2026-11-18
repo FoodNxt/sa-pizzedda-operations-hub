@@ -6,7 +6,7 @@ import { giorno } from '@/components/laboratorio/labUtils';
 import { numeroIt } from '@/components/trasporti/trasportiUtils';
 import NegoziPOS from './NegoziPOS';
 import ProdottoPOSCard from './ProdottoPOSCard';
-import { proponi, tutte } from './posUtils';
+import { categoriaRicetta, proponi, tutte } from './posUtils';
 
 const perNome = (a, b) => a.nome_prodotto.localeCompare(b.nome_prodotto, 'it');
 
@@ -18,7 +18,7 @@ export default function VenditePOSTab() {
       const E = base44.entities;
       const query = { data: { $gte: format(subDays(new Date(), 59), 'yyyy-MM-dd') } };
       const [venduti, punti, combo, righe, ricette, materie, mapping, stores, configs] = await Promise.all([
-        E.VenditaPOS.aggregate({ query, groupBy: ['chiave_prodotto', 'nome_prodotto', 'combo_non_scomposto'], sum: ['quantita', 'fatturato'] }),
+        E.VenditaPOS.aggregate({ query, groupBy: ['chiave_prodotto', 'nome_prodotto', 'combo_non_scomposto', 'is_pizza'], sum: ['quantita', 'fatturato'] }),
         E.VenditaPOS.aggregate({ query, groupBy: ['pos_location_id', 'pos_location_name'] }),
         E.SincronizzazioneVenditePOS.filter({ ...query, combo_non_scomposti: { $gt: 0 } }, { sort: '-data', limit: 60 }),
         tutte(E.ProdottoPOSRicetta),
@@ -35,6 +35,7 @@ export default function VenditePOSTab() {
         // I menu non scomposti non si collegano: si distribuiscono sui gusti
         if (v.combo_non_scomposto) { menu += v.sum_quantita || 0; return; }
         const p = (perChiave[v.chiave_prodotto] ||= { id: v.chiave_prodotto, nome: v.nome_prodotto, pezzi: 0, fatturato: 0 });
+        p.isPizza ||= !!v.is_pizza;
         p.pezzi += v.sum_quantita || 0;
         p.fatturato += v.sum_fatturato || 0;
       });
@@ -131,6 +132,7 @@ export default function VenditePOSTab() {
               peso={peso(p.fatturato)}
               ricette={dati.ricette}
               materie={dati.materie}
+              creaRicettaUrl={`/Ricette?${new URLSearchParams({ pos_chiave: p.id, pos_nome: p.nome, categoria: categoriaRicetta(p, dati) })}`}
               onSalva={(riga) => salva(p, riga)}
             />
           ))}

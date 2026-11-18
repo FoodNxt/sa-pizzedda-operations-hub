@@ -57,9 +57,11 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
     else if (ricetta?.is_semilavorato && fermati(ricetta)) {
       ingredienti = [{ materia_prima_id: ricetta.id, quantita: ricetta.quantita_prodotta || 1, unita_misura: ricetta.unita_misura_prodotta || 'grammi' }];
     }
+    // Per una materia prima quantita_per_pezzo è la quota di confezione (1 lattina = 1/24): qui torna in pezzi
+    const perConfezione = c.tipo === 'materia_prima' && mpById[c.item_id]?.unita_per_confezione > 1 ? mpById[c.item_id].unita_per_confezione : 1;
     const consumo = {};
     // Senza elenco delle materie prime le quantità restano nell'unità della ricetta: le converte inConteggio
-    Object.entries(espandiIngredienti(ingredienti, c.quantita_per_pezzo || 1, ricette, [], 0, fermati)).forEach(([key, voce]) => {
+    Object.entries(espandiIngredienti(ingredienti, (c.quantita_per_pezzo || 1) * perConfezione, ricette, [], 0, fermati)).forEach(([key, voce]) => {
       const mp = mpById[key] || mpByNome[key];
       const imp = impById[voce.id || mp?.id];
       if (!imp) return;

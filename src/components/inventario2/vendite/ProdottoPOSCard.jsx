@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
-import { Check, Pencil } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Check, Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { numeroIt } from '@/components/trasporti/trasportiUtils';
 import RigaCollegamento, { TIPI } from './RigaCollegamento';
+import { frazione } from './posUtils';
 
-const VUOTA = { tipo: 'ricetta', item_id: '', quantita_per_pezzo: 1 };
 const blu = 'bg-blue-600 hover:bg-blue-700 text-white';
 
 // Un prodotto venduto dal POS con il suo collegamento: rosso finché non è confermato
-export default function ProdottoPOSCard({ prodotto, salvato, proposta, peso, ricette, materie, onSalva }) {
+export default function ProdottoPOSCard({ prodotto, salvato, proposta, peso, ricette, materie, creaRicettaUrl, onSalva }) {
   const [riga, setRiga] = useState(null);
   const [busy, setBusy] = useState(false);
   const elenchi = { ricetta: ricette, materia_prima: materie };
+  // Bevande e confezionati si collegano direttamente a una materia prima
+  const vuota = { tipo: prodotto.isPizza ? 'ricetta' : 'materia_prima', item_id: '', quantita_per_pezzo: 1 };
   const descrivi = (r) => (r.tipo === 'ignora'
     ? 'Ignorato'
-    : `${TIPI[r.tipo]}: ${elenchi[r.tipo].find((x) => x.id === r.item_id)?.nome_prodotto || '—'} × ${numeroIt(Number(r.quantita_per_pezzo))}`);
+    : `${TIPI[r.tipo]}: ${elenchi[r.tipo].find((x) => x.id === r.item_id)?.nome_prodotto || '—'} × ${r.tipo === 'materia_prima' ? frazione(r.quantita_per_pezzo) : numeroIt(Number(r.quantita_per_pezzo))}`);
   const valida = riga && (riga.tipo === 'ignora' || (riga.item_id && Number(riga.quantita_per_pezzo) > 0));
+  const ricettaEsistente = proposta?.tipo === 'ricetta';
 
   const salva = async (r) => {
     setBusy(true);
@@ -36,14 +40,22 @@ export default function ProdottoPOSCard({ prodotto, salvato, proposta, peso, ric
           {!salvato && proposta && <span className="block font-normal">Proposto: {descrivi(proposta)}</span>}
         </div>
         {!riga && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {!salvato && proposta && (
               <Button size="sm" className={blu} disabled={busy} onClick={() => salva(proposta)}>
                 <Check className="w-4 h-4 mr-1" />
-                Conferma
+                {ricettaEsistente ? 'Collega a ricetta esistente' : 'Conferma'}
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={() => setRiga({ ...VUOTA, ...(salvato || proposta) })}>
+            {!salvato && !ricettaEsistente && (
+              <Button asChild size="sm" variant="outline">
+                <Link to={creaRicettaUrl}>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Crea ricetta
+                </Link>
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => setRiga({ ...vuota, ...(salvato || proposta) })}>
               <Pencil className="w-4 h-4 mr-1" />
               {salvato ? 'Modifica' : 'Collega'}
             </Button>
