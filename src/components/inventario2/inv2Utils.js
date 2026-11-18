@@ -37,7 +37,9 @@ export const DEFAULT_CONFIG = {
   soglia_affidabilita: 0.3
 };
 
-export const FONTE_CONSUMO = { vendite: 'Vendite', conteggi: 'Conteggi', ricevimenti: 'Ricevimenti' };
+export const FONTE_CONSUMO = { vendite: 'Vendite', conteggi: 'Conteggi', ricevimenti: 'Ricevimenti', nessun_dato: 'Nessun dato' };
+
+export const CONTEGGI_INCOERENTI = 'Conteggi incoerenti (possibili consegne non registrate o unità sbagliata)';
 
 export const TIPO_LABEL = { materia_prima: 'Materia prima', semilavorato: 'Semilavorato' };
 

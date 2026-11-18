@@ -33,9 +33,21 @@ export default function NegoziPOS({ negozi, stores, config, onSalvato }) {
         altre = esito.has_more;
       }
     }
+    // I punti vendita rimasti senza store lo perdono anche sulle vendite già importate
+    for (const n of negozi.filter((x) => !negoziPos[x.id])) {
+      let altre = true;
+      while (altre) {
+        const esito = await base44.entities.VenditaPOS.updateMany(
+          { pos_location_id: n.id, store_id: { $exists: true } },
+          { $unset: { store_id: '' } }
+        );
+        altre = esito.has_more;
+      }
+    }
+    await base44.functions.invoke('inv2Ricalcola', {});
     onSalvato(negoziPos);
     setBusy(false);
-    toast({ title: 'Abbinamenti dei negozi confermati' });
+    toast({ title: 'Abbinamenti confermati e giacenze ricalcolate' });
   };
 
   return (

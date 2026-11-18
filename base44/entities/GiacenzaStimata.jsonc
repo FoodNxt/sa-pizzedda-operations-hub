@@ -59,24 +59,34 @@
     },
     "fattore_correzione": {
       "type": "number",
-      "description": "Consumo da conteggi diviso consumo teorico sugli stessi giorni, tra 0,7 e 1,5"
+      "description": "Consumo da conteggi diviso consumo teorico tra il primo e l'ultimo conteggio, tra 0,7 e 1,5"
     },
     "fonte_consumo": {
       "type": "string",
       "enum": [
         "vendite",
         "conteggi",
-        "ricevimenti"
+        "ricevimenti",
+        "nessun_dato"
       ],
       "enumColors": [
         "green",
         "blue",
-        "gray"
+        "gray",
+        "red"
       ],
       "description": "Da dove viene il consumo medio al giorno"
     },
     "uscite_registrate_giorno": {
       "type": "number"
+    },
+    "intervalli_negativi": {
+      "type": "number",
+      "description": "Intervalli tra due conteggi con residuo negativo (diagnostica)"
+    },
+    "intervalli_totali": {
+      "type": "number",
+      "description": "Intervalli tra due conteggi considerati (diagnostica)"
     },
     "giorni_copertura": {
       "type": "number"

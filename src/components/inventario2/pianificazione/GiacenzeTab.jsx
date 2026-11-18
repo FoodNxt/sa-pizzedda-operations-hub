@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Inbox } from 'lucide-react';
 import '@/components/inventario2/prodottiTable.css';
-import { FONTE_CONSUMO } from '@/components/inventario2/inv2Utils';
+import { CONTEGGI_INCOERENTI, FONTE_CONSUMO } from '@/components/inventario2/inv2Utils';
 import { giorno } from '@/components/laboratorio/labUtils';
 import { numeroIt } from '@/components/trasporti/trasportiUtils';
 
@@ -115,13 +115,20 @@ export default function GiacenzeTab({ ubicazioni }) {
                             <span className="dt1-name">{numeroIt(g.giacenza_stimata, 2)}</span> <span className="dt1-muted">{g.unita}</span>
                           </td>
                           <td className="dt1-cell" style={{ textAlign: 'right' }}>
-                            <span className="dt1-muted">{numeroIt((g.consumo_medio_giorno || 0) + (g.uscite_registrate_giorno || 0), 2)}</span>
+                            <span className="dt1-muted">{g.fonte_consumo === 'nessun_dato' ? '—' : numeroIt((g.consumo_medio_giorno || 0) + (g.uscite_registrate_giorno || 0), 2)}</span>
                           </td>
                           <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.consumo_teorico_giorno, 3)}</span></td>
                           <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.fattore_correzione, 2)}</span></td>
                           <td className="dt1-cell"><span className="dt1-muted">{FONTE_CONSUMO[g.fonte_consumo] || '—'}</span></td>
                           <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.giorni_copertura, 1)}</span></td>
-                          <td className="dt1-cell"><span className="dt1-badge" style={{ background: colore }}>{etichetta}</span></td>
+                          <td className="dt1-cell">
+                            <span className="dt1-badge" style={{ background: colore }}>{etichetta}</span>
+                            {g.intervalli_totali > 0 && g.intervalli_negativi / g.intervalli_totali > 0.3 && (
+                              <div className="dt1-muted" style={{ maxWidth: 240, whiteSpace: 'normal' }}>
+                                {CONTEGGI_INCOERENTI}: {g.intervalli_negativi} intervalli su {g.intervalli_totali}
+                              </div>
+                            )}
+                          </td>
                           <td className="dt1-cell">
                             <span className="dt1-muted">
                               {g.ultimo_conteggio_data ? `${new Date(g.ultimo_conteggio_data).toLocaleDateString('it-IT')} · ${numeroIt(g.ultimo_conteggio_valore, 2)}` : 'Mai'}

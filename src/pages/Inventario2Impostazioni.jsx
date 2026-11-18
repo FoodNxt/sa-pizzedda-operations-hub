@@ -6,6 +6,7 @@ import ProdottiTab from '@/components/inventario2/ProdottiTab';
 import ConfigurazioneTab from '@/components/inventario2/ConfigurazioneTab';
 import PiantinaTab from '@/components/inventario2/piantina/PiantinaTab';
 import VenditePOSTab from '@/components/inventario2/vendite/VenditePOSTab';
+import DiagnosticaVendite from '@/components/inventario2/vendite/DiagnosticaVendite';
 
 export default function Inventario2Impostazioni() {
   return (
@@ -29,7 +30,18 @@ export default function Inventario2Impostazioni() {
             <TabsTrigger value="vendite">Vendite POS</TabsTrigger>
           </TabsList>
           <TabsContent value="vendite" className="mt-4">
-            <VenditePOSTab />
+            <Tabs defaultValue="collegamenti">
+              <TabsList>
+                <TabsTrigger value="collegamenti">Collegamenti</TabsTrigger>
+                <TabsTrigger value="diagnostica">Diagnostica</TabsTrigger>
+              </TabsList>
+              <TabsContent value="collegamenti" className="mt-4">
+                <VenditePOSTab />
+              </TabsContent>
+              <TabsContent value="diagnostica" className="mt-4">
+                <DiagnosticaVendite />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
           <TabsContent value="piantina" className="mt-4">
             <PiantinaTab />

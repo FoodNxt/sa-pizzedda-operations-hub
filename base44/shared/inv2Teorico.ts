@@ -11,9 +11,39 @@ const mezzanotte = (giorno) => {
   return [2, 1].map((ore) => utc - ore * 3600000).find((t) => giornoRoma(new Date(t)) === giorno);
 };
 
-// impostazioni = solo i prodotti inclusi in Inventario 2.0
-export async function consumiTeorici(E, { storeIds, now, ricette, materie, impostazioni }) {
-  const esito = { giorni: [], perStore: {}, nonCollegate: 0, nonConvertiti: [] };
+// Ricette che non contano nel consumo dei negozi. Senza una scelta salvata vale la Pallina: le basi arrivano dal laboratorio
+export const ricetteEscluse = (config, ricette) =>
+  config.ricette_escluse_dal_consumo_negozio ?? ricette.filter((r) => r.nome_prodotto === 'Pallina').map((r) => r.id);
+
+// Perché una quantità di ricetta non si converte nell'unità di conteggio
+function motivoNonConvertito(unita, mp, imp) {
+  const destinazione = imp.unita_conteggio;
+  if (!destinazione) return 'manca l\'unità di conteggio';
+  if (mp && destinazione === mp.unita_misura && aPesoOVolume(unita)) {
+    if (!(mp.peso_dimensione_unita > 0)) return 'manca peso_dimensione_unita';
+    if (!mp.unita_misura_peso) return 'manca unita_misura_peso';
+  }
+  if (aPesoOVolume(unita) && !aPesoOVolume(destinazione) && !(imp.peso_unita_conteggio_kg > 0)) return 'manca il peso di una unità di conteggio';
+  return `${unita || 'unità mancante'} non si converte in ${destinazione}`;
+}
+
+// Vendite dei giorni indicati per giorno, store e prodotto. Se sono troppe per una sola lettura, i giorni si dividono a metà
+async function leggiVendite(E, giorni, storeIds) {
+  const { rows, truncated } = await E.VenditaPOS.aggregate({
+    query: { data: { $in: giorni }, store_id: { $in: storeIds } },
+    groupBy: ['data', 'store_id', 'chiave_prodotto', 'combo_non_scomposto'],
+    sum: ['quantita']
+  });
+  if (!truncated) return rows;
+  if (giorni.length === 1) throw new Error(`Troppe vendite da leggere per il ${giorni[0]}`);
+  const meta = Math.ceil(giorni.length / 2);
+  return [...await leggiVendite(E, giorni.slice(0, meta), storeIds), ...await leggiVendite(E, giorni.slice(meta), storeIds)];
+}
+
+// impostazioni = solo i prodotti inclusi in Inventario 2.0, escluse = id delle ricette che non contano nel consumo dei negozi
+export async function consumiTeorici(E, { storeIds, now, ricette, materie, impostazioni, escluse = [] }) {
+  // giorniPerStore: giorni che entrano nella media di ogni store. perPezzo e pezzi servono alla diagnostica
+  const esito = { giorniPerStore: {}, perStore: {}, nonCollegate: 0, nonConvertiti: [], motivi: [], perPezzo: {}, pezzi: {}, vendite: [] };
   if (!storeIds.length) return esito;
 
   // Giorni interi con le vendite sincronizzate: oggi è escluso perché è ancora in corso
@@ -24,30 +54,35 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
   ]);
   const date = [...new Set(log.map((l) => l.data))];
   if (!date.length) return esito;
-  esito.giorni = date.map((g) => ({ giorno: g, inizio: mezzanotte(g), fine: mezzanotte(addGiorni(g, 1)) }));
 
-  const vendite = [];
-  for (const blocco of aBlocchi(date, 6)) {
-    const pagine = await Promise.all(blocco.map(async (data) => {
-      const { rows, truncated } = await E.VenditaPOS.aggregate({
-        query: { data, store_id: { $in: storeIds } },
-        groupBy: ['store_id', 'chiave_prodotto', 'is_pizza', 'combo_non_scomposto'],
-        sum: ['quantita']
-      });
-      if (truncated) throw new Error(`Troppe vendite da leggere per il ${data}`);
-      return rows.map((r) => ({ ...r, data }));
-    }));
-    vendite.push(...pagine.flat());
-  }
+  // Poche letture a settimane intere: il raggruppamento accetta 4 campi, quindi le pizze si leggono a parte
+  const [pagine, pizze] = await Promise.all([
+    Promise.all(aBlocchi(date, 7).map((giorni) => leggiVendite(E, giorni, storeIds))),
+    E.VenditaPOS.aggregate({ query: { data: { $in: date }, is_pizza: true }, groupBy: ['chiave_prodotto'] })
+  ]);
+  if (pizze.truncated) throw new Error('Troppi prodotti venduti da leggere');
+  const sonoPizze = new Set(pizze.rows.map((r) => r.chiave_prodotto));
+  const vendite = pagine.flat().map((v) => ({ ...v, is_pizza: sonoPizze.has(v.chiave_prodotto) }));
+  esito.vendite = vendite;
+
+  // Un giorno è sincronizzato per uno store solo se, oltre al log, ha almeno una vendita di quello store
+  const conVendite = new Set(vendite.map((v) => `${v.store_id}|${v.data}`));
+  storeIds.forEach((id) => {
+    esito.giorniPerStore[id] = date
+      .filter((g) => conVendite.has(`${id}|${g}`))
+      .map((g) => ({ giorno: g, inizio: mezzanotte(g), fine: mezzanotte(addGiorni(g, 1)) }));
+  });
 
   const perChiave = Object.fromEntries(collegamenti.map((c) => [c.chiave_prodotto, c]));
   const ricById = Object.fromEntries(ricette.map((r) => [r.id, r]));
   const impById = Object.fromEntries(impostazioni.map((i) => [i.item_id, i]));
   const mpById = Object.fromEntries(materie.map((m) => [m.id, m]));
   const mpByNome = Object.fromEntries(materie.map((m) => [m.nome_prodotto, m]));
-  const nonConvertiti = new Set();
-  // Un semilavorato che si conta non viene scomposto: le sue materie prime scendono solo con la produzione
-  const fermati = (ricetta) => !!impById[ricetta.id];
+  const esclusa = new Set(escluse);
+  const nonConvertiti = new Map();
+  // Un semilavorato che si conta non viene scomposto: le sue materie prime scendono solo con la produzione.
+  // Anche le ricette escluse si fermano qui, e poi non contano.
+  const fermati = (ricetta) => !!impById[ricetta.id] || esclusa.has(ricetta.id);
 
   // Consumo di un pezzo venduto: { item_id: quantità nell'unità di conteggio }
   const perPezzo = (c) => {
@@ -62,21 +97,24 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
     const consumo = {};
     // Senza elenco delle materie prime le quantità restano nell'unità della ricetta: le converte inConteggio
     Object.entries(espandiIngredienti(ingredienti, (c.quantita_per_pezzo || 1) * perConfezione, ricette, [], 0, fermati)).forEach(([key, voce]) => {
+      if (esclusa.has(voce.id)) return;
       const mp = mpById[key] || mpByNome[key];
       const imp = impById[voce.id || mp?.id];
       if (!imp) return;
       let quantita = inConteggio(voce.quantita, voce.unita_misura, mp, imp);
       // Materia prima contata a lattine, bottiglie e simili: un pezzo venduto è una unità di conteggio
       if (quantita == null && c.tipo === 'materia_prima' && !aPesoOVolume(imp.unita_conteggio)) quantita = voce.quantita;
-      if (quantita == null) nonConvertiti.add(imp.item_nome || voce.nome);
+      if (quantita == null) nonConvertiti.set(imp.item_nome || voce.nome, motivoNonConvertito(voce.unita_misura, mp, imp));
       else consumo[imp.item_id] = (consumo[imp.item_id] || 0) + quantita;
     });
     return consumo;
   };
 
-  const cache = {};
+  const cache = esito.perPezzo;
   const aggiungi = (storeId, data, chiave, pezzi) => {
     const consumo = (cache[chiave] ||= perPezzo(perChiave[chiave]));
+    const venduti = (esito.pezzi[storeId] ||= {});
+    venduti[chiave] = (venduti[chiave] || 0) + pezzi;
     const store = (esito.perStore[storeId] ||= {});
     Object.entries(consumo).forEach(([itemId, quantita]) => {
       const giorni = (store[itemId] ||= {});
@@ -108,6 +146,7 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
     if (!(totale > 0)) { esito.nonCollegate += m.pezzi; return; }
     Object.entries(gusti).forEach(([chiave, q]) => aggiungi(m.store_id, m.data, chiave, m.pezzi * (q / totale)));
   });
-  esito.nonConvertiti = [...nonConvertiti];
+  esito.nonConvertiti = [...nonConvertiti.keys()];
+  esito.motivi = [...nonConvertiti].map(([nome, motivo]) => ({ nome, motivo }));
   return esito;
 }

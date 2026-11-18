@@ -10,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import { DEFAULT_CONFIG, MODALITA } from './inv2Utils';
 import ChecklistAttivo from './ChecklistAttivo';
 import ImportaVendite from './ImportaVendite';
+import RicetteEscluse from './RicetteEscluse';
 import { oggiLocale } from '@/components/laboratorio/labUtils';
 
 export default function ConfigurazioneTab() {
@@ -36,15 +37,17 @@ export default function ConfigurazioneTab() {
       ]);
       setStores(s);
       setRicette(r);
+      // Senza una scelta salvata vale la Pallina, come nel calcolo
+      set({ ricette_escluse_dal_consumo_negozio: r.filter((x) => x.nome_prodotto === 'Pallina').map((x) => x.id) });
       const rec = configs[0];
       if (rec) {
         setConfigId(rec.id);
-        setCfg({
-          ...DEFAULT_CONFIG,
+        setCfg((prev) => ({
+          ...prev,
           ...rec,
           modalita_per_store: rec.modalita_per_store || {},
           intervallo_max_giorni_per_categoria: { ...DEFAULT_CONFIG.intervallo_max_giorni_per_categoria, ...(rec.intervallo_max_giorni_per_categoria || {}) }
-        });
+        }));
       }
       setLoading(false);
     })();
@@ -68,6 +71,7 @@ export default function ConfigurazioneTab() {
       affiancamento_dal_per_store: inizio,
       lab_store_id: cfg.lab_store_id,
       basi_ricetta_id: cfg.basi_ricetta_id || '',
+      ricette_escluse_dal_consumo_negozio: cfg.ricette_escluse_dal_consumo_negozio || [],
       limite_voci_sera: Number(cfg.limite_voci_sera) || 0,
       intervallo_max_giorni_per_categoria: intervalli,
       soglia_affidabilita: Number(cfg.soglia_affidabilita) || 0
@@ -171,6 +175,12 @@ export default function ConfigurazioneTab() {
           ))}
         </div>
       </NeumorphicCard>
+
+      <RicetteEscluse
+        ricette={ricette}
+        escluse={cfg.ricette_escluse_dal_consumo_negozio || []}
+        onChange={(ids) => set({ ricette_escluse_dal_consumo_negozio: ids })}
+      />
 
       <ImportaVendite />
 
