@@ -137,6 +137,11 @@ export function setUbicazione(obj, key, value) {
   return next;
 }
 
+// Segna il minimo o il massimo di una ubicazione come messo a mano: il ricalcolo non lo sovrascrive. Svuotato, torna automatico
+export function setManuale(obj, key, campo, manuale) {
+  return { ...(obj || {}), [key]: { ...(obj?.[key] || {}), [campo]: manuale } };
+}
+
 // Ricorrenze in cui si scelgono i giorni della settimana (uno o più)
 export const CON_GIORNI = ['due_volte_settimana', 'settimanale', 'ogni_due_settimane'];
 

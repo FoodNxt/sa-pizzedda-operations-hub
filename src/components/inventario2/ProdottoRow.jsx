@@ -2,13 +2,17 @@ import React from 'react';
 import { Pencil } from 'lucide-react';
 import CheckCell from './CheckCell';
 import NumCell from './NumCell';
-import { TIPO_LABEL, riassuntoGiornoFisso, setUbicazione } from './inv2Utils';
+import { TIPO_LABEL, riassuntoGiornoFisso, setManuale, setUbicazione } from './inv2Utils';
 
 export default function ProdottoRow({ row, imp, ubicazioni, index, onSave, onEdit, pocoConsumo }) {
   const flag = (campo, label) => (
     <td className="dt1-cell dt1-cell--c">
       <CheckCell checked={imp[campo]} onChange={(v) => onSave(row, { [campo]: v })} label={`${label}: ${row.nome}`} />
     </td>
+  );
+  // Solo i semilavorati hanno le soglie aggiornate dal ricalcolo
+  const manuale = (key, campo) => row.tipo === 'semilavorato' && imp.soglie_manuali_per_ubicazione?.[key]?.[campo] && (
+    <div className="dt1-muted">manuale</div>
   );
 
   return (
@@ -42,15 +46,23 @@ export default function ProdottoRow({ row, imp, ubicazioni, index, onSave, onEdi
             <NumCell
               value={imp.min_per_ubicazione?.[u.key]}
               label={`Minimo ${u.label}: ${row.nome}`}
-              onCommit={(v) => onSave(row, (cur) => ({ min_per_ubicazione: setUbicazione(cur.min_per_ubicazione, u.key, v) }))}
+              onCommit={(v) => onSave(row, (cur) => ({
+                min_per_ubicazione: setUbicazione(cur.min_per_ubicazione, u.key, v),
+                soglie_manuali_per_ubicazione: setManuale(cur.soglie_manuali_per_ubicazione, u.key, 'min', v !== undefined)
+              }))}
             />
+            {manuale(u.key, 'min')}
           </td>
           <td className="dt1-cell dt1-cell--c">
             <NumCell
               value={imp.max_per_ubicazione?.[u.key]}
               label={`Massimo ${u.label}: ${row.nome}`}
-              onCommit={(v) => onSave(row, (cur) => ({ max_per_ubicazione: setUbicazione(cur.max_per_ubicazione, u.key, v) }))}
+              onCommit={(v) => onSave(row, (cur) => ({
+                max_per_ubicazione: setUbicazione(cur.max_per_ubicazione, u.key, v),
+                soglie_manuali_per_ubicazione: setManuale(cur.soglie_manuali_per_ubicazione, u.key, 'max', v !== undefined)
+              }))}
             />
+            {manuale(u.key, 'max')}
           </td>
         </React.Fragment>
       ))}

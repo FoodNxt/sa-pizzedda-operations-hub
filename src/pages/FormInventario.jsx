@@ -347,6 +347,7 @@ export default function FormInventario() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {stores
+                  .filter(store => store.status === 'active')
                   .filter(store => {
                     if (currentUser?.user_type === 'admin' || currentUser?.user_type === 'manager') return true;
                     // I dipendenti possono sempre vedere tutti i locali

@@ -6,6 +6,7 @@ import { useUbicazioni } from '@/components/inventario2/useUbicazioni';
 import GiacenzeTab from '@/components/inventario2/pianificazione/GiacenzeTab';
 import CalendarioTab from '@/components/inventario2/pianificazione/CalendarioTab';
 import ConsumabiliTab from '@/components/inventario2/pianificazione/ConsumabiliTab';
+import SoglieTab from '@/components/inventario2/pianificazione/SoglieTab';
 import ProvaDipendente from '@/components/inventario2/pianificazione/ProvaDipendente';
 
 export default function Inventario2Pianificazione() {
@@ -31,7 +32,11 @@ export default function Inventario2Pianificazione() {
               <TabsTrigger value="giacenze">Giacenze</TabsTrigger>
               <TabsTrigger value="calendario">Calendario</TabsTrigger>
               <TabsTrigger value="consumabili">Consumabili</TabsTrigger>
+              <TabsTrigger value="soglie">Minimo e massimo</TabsTrigger>
             </TabsList>
+            <TabsContent value="soglie" className="mt-4">
+              <SoglieTab ubicazioni={ubicazioni} />
+            </TabsContent>
             <TabsContent value="giacenze" className="mt-4">
               <GiacenzeTab ubicazioni={ubicazioni} />
             </TabsContent>

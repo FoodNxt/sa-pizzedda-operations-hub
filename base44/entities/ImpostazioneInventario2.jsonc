@@ -56,6 +56,10 @@
       "format": "date",
       "description": "Giorno da cui il prodotto si conta in grammi: il consumo dai conteggi non guarda prima"
     },
+    "conteggio_sospetto_da": {
+      "type": "number",
+      "description": "I conteggi pari o superiori a questo valore sono in unit\u00e0 sospetta (es. bustine sfuse contate al posto delle confezioni) e restano fuori da consumo e giacenza"
+    },
     "fattore_unita_ordine": {
       "type": "number",
       "default": 1,
@@ -72,6 +76,10 @@
     "max_per_ubicazione": {
       "type": "object",
       "description": "Massimo per ubicazione {ubicazione_key: number}"
+    },
+    "soglie_manuali_per_ubicazione": {
+      "type": "object",
+      "description": "Minimi e massimi messi a mano {ubicazione_key: {min: boolean, max: boolean}}: il ricalcolo non li sovrascrive"
     },
     "conteggio_fisso": {
       "type": "object",

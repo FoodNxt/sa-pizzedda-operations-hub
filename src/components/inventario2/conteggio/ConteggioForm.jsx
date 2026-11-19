@@ -52,7 +52,7 @@ export default function ConteggioForm() {
 
   useEffect(() => {
     base44.auth.me().then(setUser);
-    if (!lab || provaRichiesta) base44.entities.Store.list().then(setStores);
+    if (!lab || provaRichiesta) base44.entities.Store.list().then((s) => setStores(s.filter((x) => x.status === 'active')));
   }, []);
 
   // Con prova=1 si aspetta l'utente, per sapere se è admin

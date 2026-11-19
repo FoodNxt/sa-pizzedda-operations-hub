@@ -145,7 +145,7 @@ export async function preparaCalcolo(sr, chiavi) {
       const precedente = (m) => cambio > 0 && m.tipo === 'conteggio' && m.t < cambio && !!m.unita && !!unita && m.unita !== unita;
       // L'unità sospetta si giudica su tutti i conteggi letti, anche quelli prima dell'inizio dello storico
       const letti = senzaConteggiDoppi(grezzi.filter((m) => !precedente(m)));
-      const fuori = unitaSospette(letti, unita);
+      const fuori = unitaSospette(letti, unita, p.imp.conteggio_sospetto_da);
       const avvio = u.ubicazione_tipo === 'negozio' ? avvii[p.imp.item_id] : null;
       return {
       u,
@@ -202,6 +202,7 @@ export async function ricalcola(sr, chiavi) {
   const nuovi = [];
   const aggiornati = [];
   const etichette = [];
+  const soglie = new Set();
 
   coppie.forEach(({ u, p, k, moves, primaStorico, unitaSospette: fuori, unitaPrecedenti: precedenti, rete, minimo, teorico, prossimo: prossimoPer }) => {
     const r = calcolaGiacenza(moves, now, soglia, teorico, rete, minimo);
@@ -223,6 +224,17 @@ export async function ricalcola(sr, chiavi) {
     });
     const ultimoFuori = fuori[fuori.length - 1];
     if (r.incoerenti) conteggiIncoerenti.push({ ubicazione_key: u.ubicazione_key, item_nome: p.nome, negativi: r.negativi, totali: r.totali });
+    // Soglie dei semilavorati contati in grammi nei negozi: 2 e 4 giorni di teorico a 100 g, salvo i valori messi a mano
+    if (p.imp.item_tipo === 'semilavorato' && u.ubicazione_tipo === 'negozio' && p.imp.unita_conteggio === 'grammi' && r.teoricoGiorno > 0) {
+      const manuali = p.imp.soglie_manuali_per_ubicazione?.[u.ubicazione_key] || {};
+      [['min', 2], ['max', 4]].forEach(([campo, giorni]) => {
+        const valore = Math.max(100, Math.round((giorni * r.teoricoGiorno) / 100) * 100);
+        const mappa = `${campo}_per_ubicazione`;
+        if (manuali[campo] || p.imp[mappa]?.[u.ubicazione_key] === valore) return;
+        p.imp[mappa] = { ...(p.imp[mappa] || {}), [u.ubicazione_key]: valore };
+        soglie.add(p.imp);
+      });
+    }
     const prossimo = prossimoPer(r, oggi);
     const record = {
       ...u,
@@ -269,6 +281,7 @@ export async function ricalcola(sr, chiavi) {
   for (const blocco of aBlocchi(aggiornati, 500)) await E.GiacenzaStimata.bulkUpdate(blocco);
   for (const blocco of aBlocchi(daEliminare, 200)) await E.GiacenzaStimata.deleteMany({ id: { $in: blocco } });
   for (const blocco of aBlocchi(etichette, 500)) await E.MovimentoMagazzino.bulkUpdate(blocco);
+  for (const imp of soglie) await E.ImpostazioneInventario2.update(imp.id, { min_per_ubicazione: imp.min_per_ubicazione, max_per_ubicazione: imp.max_per_ubicazione });
 
   if (conteggiIncoerenti.length) console.warn('Conteggi incoerenti', JSON.stringify(conteggiIncoerenti));
   if (consumiNonConvertiti.length) console.warn('Consumo teorico non convertibile nell\'unità di conteggio', JSON.stringify(consumiNonConvertiti));
@@ -276,6 +289,7 @@ export async function ricalcola(sr, chiavi) {
     create: nuovi.length,
     aggiornate: aggiornati.length,
     eliminate: daEliminare.length,
+    soglie_aggiornate: soglie.size,
     conteggi_incoerenti: conteggiIncoerenti,
     conteggi_sospetti: etichette.filter((e) => e.sospetto).length,
     unita_sospette: etichette.filter((e) => e.unita_sospetta).length,

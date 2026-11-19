@@ -6,8 +6,9 @@ import { confronto } from './confronto.ts';
 import { consumi } from './consumi.ts';
 import { diagnostica } from './diagnostica.ts';
 import { rete } from './rete.ts';
+import { soglie } from './soglie.ts';
 
-const AZIONI = { calendario, consumabili, confronto, consumi, diagnostica, rete };
+const AZIONI = { calendario, consumabili, confronto, consumi, diagnostica, rete, soglie };
 
 export default async function (req) {
   try {

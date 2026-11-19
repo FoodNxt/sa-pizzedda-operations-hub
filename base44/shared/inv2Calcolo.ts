@@ -60,9 +60,11 @@ const mediana = (valori) => {
 
 const UNITA_PICCOLE = ['grammi', 'g', 'ml'];
 
-// Conteggi scritti probabilmente in un'altra unità: tra 1 e 20 per i prodotti contati in grammi o ml
-export function unitaSospette(moves, unita) {
-  return new Set(UNITA_PICCOLE.includes(unita) ? moves.filter((m) => m.tipo === 'conteggio' && m.quantita > 0 && m.quantita <= 20) : []);
+// Conteggi scritti probabilmente in un'altra unità: tra 1 e 20 per i prodotti contati in grammi o ml,
+// e da `da` in su per i prodotti che hanno questo limite nelle impostazioni
+export function unitaSospette(moves, unita, da = 0) {
+  const piccola = UNITA_PICCOLE.includes(unita);
+  return new Set(moves.filter((m) => m.tipo === 'conteggio' && ((piccola && m.quantita > 0 && m.quantita <= 20) || (da > 0 && m.quantita >= da))));
 }
 
 // Finestra del consumo dai conteggi: la più corta tra 28, 56 e 90 giorni con almeno 4 conteggi su almeno 5 giorni,

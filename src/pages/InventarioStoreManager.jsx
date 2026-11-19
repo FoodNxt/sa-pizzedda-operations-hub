@@ -28,9 +28,10 @@ export default function InventarioStoreManager() {
     queryFn: () => base44.entities.MateriePrime.list(),
   });
 
+  const attivi = stores.filter(s => s.status === 'active');
   const filteredStores = currentUser?.assigned_stores?.length > 0
-    ? stores.filter(s => currentUser.assigned_stores.includes(s.id))
-    : stores;
+    ? attivi.filter(s => currentUser.assigned_stores.includes(s.id))
+    : attivi;
 
   const prodottiStore = materiePrime.filter(p => {
     if (!selectedStore) return false;

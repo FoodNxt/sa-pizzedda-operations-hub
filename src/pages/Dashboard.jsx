@@ -912,7 +912,7 @@ export default function Dashboard() {
       if (!product) return;
 
       const store = stores.find((s) => s.id === reading.store_id);
-      if (!store) return;
+      if (!store || store.status !== 'active') return;
 
       const isAssignedToStore = !product.assigned_stores ||
       product.assigned_stores.length === 0 ||

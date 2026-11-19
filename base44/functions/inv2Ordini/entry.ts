@@ -1,17 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.62';
 import { fetchAll, loadConfig, norm, soloAdmin, ubicazionePer } from '../../shared/inv2.ts';
-import { addGiorni, giornoRoma } from '../../shared/inv2Calcolo.ts';
-
-const GIORNI = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
-
-// Primo giorno di consegna utile dopo il tempo di consegna
-function prossimaConsegna(f, oggi) {
-  let d = addGiorni(oggi, f.tempo_consegna_giorni || 0);
-  const giorni = f.giorni_consegna || [];
-  if (!giorni.length) return d;
-  while (!giorni.includes(GIORNI[new Date(`${d}T00:00:00Z`).getUTCDay()])) d = addGiorni(d, 1);
-  return d;
-}
+import { giornoRoma } from '../../shared/inv2Calcolo.ts';
+import { prossimaConsegna } from '../../shared/inv2Consegne.ts';
 
 // Proposte d'ordine di Inventario 2.0 per ubicazione e fornitore (sola lettura)
 export default async function (req) {

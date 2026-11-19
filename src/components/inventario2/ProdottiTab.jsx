@@ -38,7 +38,7 @@ export default function ProdottiTab() {
         base44.entities.ImpostazioneInventario2.list(),
         base44.entities.ConfigInventario2.list()
       ]);
-      setStores(s);
+      setStores(s.filter((x) => x.status === 'active'));
       // Prodotti con un consumo teorico sotto 1 unità a settimana anche dove se ne vende di più
       setPocoConsumo(new Set(teorici.rows.filter((r) => r.max_consumo_teorico_giorno * 7 < 1).map((r) => r.item_id)));
       setRows(buildRows(materie, ricette));

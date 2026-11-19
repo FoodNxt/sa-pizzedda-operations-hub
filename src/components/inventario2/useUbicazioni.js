@@ -13,7 +13,7 @@ export function useUbicazioni() {
       const labId = configs[0]?.lab_store_id || LAB_STORE_DEFAULT;
       const lab = stores.find((s) => s.id === labId);
       setUbicazioni([
-        ...stores.map((s) => ({ key: s.id, nome: s.name })),
+        ...stores.filter((s) => s.status === 'active').map((s) => ({ key: s.id, nome: s.name })),
         { key: `lab:${labId}`, nome: `Laboratorio${lab ? ` (${lab.name})` : ''}` }
       ]);
     })();

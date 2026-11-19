@@ -33,6 +33,8 @@ const inMateriaPrima = (grammi, ricetta, materiaPrima) => {
 
 export function calcolaOrdiniSuggeriti({ inventory = [], inventoryCantina = [], products = [], stores = [], ricette = [] }) {
   const orders = [];
+  // I negozi non attivi non ricevono suggerimenti d'ordine
+  stores = stores.filter((s) => s.status === 'active');
   const allInventory = [...inventory, ...inventoryCantina];
   const latestByProduct = {};
 

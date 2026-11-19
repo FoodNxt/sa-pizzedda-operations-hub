@@ -330,7 +330,7 @@ export default function Inventory() {
       if (!product) return;
 
       const store = stores.find((s) => s.id === reading.store_id);
-      if (!store) return;
+      if (!store || store.status !== 'active') return;
 
       // Get aggregated quantity (including summed semilavorati)
       const key = `${reading.store_id}-${reading.prodotto_id}`;
