@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import NeumorphicCard from "../neumorphic/NeumorphicCard";
 import NeumorphicButton from "../neumorphic/NeumorphicButton";
+import CampiMancantiFornitore, { DaCompilare } from "./CampiMancantiFornitore";
 
 export default function FornitoriContent() {
   const [showForm, setShowForm] = useState(false);
@@ -31,6 +32,7 @@ export default function FornitoriContent() {
     tempo_consegna_giorni: '',
     metodologia_ricezione_ordine: 'Email',
     ordine_minimo: '',
+      frequenza_ordini_minima_giorni: 3,
     contatto_email: '',
     contatto_telefono: '',
     referente_nome: '',
@@ -78,6 +80,7 @@ export default function FornitoriContent() {
       tempo_consegna_giorni: '',
       metodologia_ricezione_ordine: 'Email',
       ordine_minimo: '',
+      frequenza_ordini_minima_giorni: 3,
       contatto_email: '',
       contatto_telefono: '',
       referente_nome: '',
@@ -97,9 +100,10 @@ export default function FornitoriContent() {
       sede_legale: supplier.sede_legale || '',
       categorie_fornitore: categorie,
       giorni_consegna: supplier.giorni_consegna || [],
-      tempo_consegna_giorni: supplier.tempo_consegna_giorni || '',
+      tempo_consegna_giorni: supplier.tempo_consegna_giorni ?? '',
       metodologia_ricezione_ordine: supplier.metodologia_ricezione_ordine || 'Email',
-      ordine_minimo: supplier.ordine_minimo || '',
+      ordine_minimo: supplier.ordine_minimo ?? '',
+      frequenza_ordini_minima_giorni: supplier.frequenza_ordini_minima_giorni ?? 3,
       contatto_email: supplier.contatto_email || '',
       contatto_telefono: supplier.contatto_telefono || '',
       referente_nome: supplier.referente_nome || '',
@@ -114,8 +118,9 @@ export default function FornitoriContent() {
     
     const data = {
       ...formData,
-      tempo_consegna_giorni: formData.tempo_consegna_giorni ? parseInt(formData.tempo_consegna_giorni) : null,
-      ordine_minimo: formData.ordine_minimo ? parseFloat(formData.ordine_minimo) : null,
+      tempo_consegna_giorni: formData.tempo_consegna_giorni !== '' ? parseInt(formData.tempo_consegna_giorni) : null,
+      ordine_minimo: formData.ordine_minimo !== '' ? parseFloat(formData.ordine_minimo) : null,
+      frequenza_ordini_minima_giorni: parseFloat(formData.frequenza_ordini_minima_giorni) || 3,
       tipo_fornitore: formData.categorie_fornitore.length > 0 ? formData.categorie_fornitore[0] : 'altro'
     };
 
@@ -345,6 +350,7 @@ export default function FornitoriContent() {
                   <div>
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
                       Giorni di Consegna
+                      {!formData.giorni_consegna.length && <DaCompilare />}
                     </label>
                     <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
                       {Object.entries(giornoLabels).map(([day, label]) => (
@@ -369,6 +375,7 @@ export default function FornitoriContent() {
                       <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
                         <Clock className="w-4 h-4" />
                         Tempo di Consegna (giorni)
+                        {formData.tempo_consegna_giorni === '' && <DaCompilare />}
                       </label>
                       <input
                         type="number"
@@ -401,6 +408,7 @@ export default function FornitoriContent() {
                     <label className="text-sm font-medium text-[#6b6b6b] mb-2 block flex items-center gap-2">
                       <Euro className="w-4 h-4" />
                       Ordine Minimo (€)
+                      {formData.ordine_minimo === '' && <DaCompilare />}
                     </label>
                     <input
                       type="number"
@@ -409,6 +417,19 @@ export default function FornitoriContent() {
                       value={formData.ordine_minimo}
                       onChange={(e) => setFormData({ ...formData, ordine_minimo: e.target.value })}
                       placeholder="es. 50.00"
+                      className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#6b6b6b] mb-2 block">
+                      Frequenza ordini minima (giorni)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.frequenza_ordini_minima_giorni}
+                      onChange={(e) => setFormData({ ...formData, frequenza_ordini_minima_giorni: e.target.value })}
                       className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-[#6b6b6b] outline-none"
                     />
                   </div>
@@ -591,6 +612,8 @@ export default function FornitoriContent() {
                       </div>
                     )}
                   </div>
+
+                  <CampiMancantiFornitore fornitore={supplier} />
 
                   {supplier.giorni_consegna && supplier.giorni_consegna.length > 0 && (
                     <div className="mb-3">

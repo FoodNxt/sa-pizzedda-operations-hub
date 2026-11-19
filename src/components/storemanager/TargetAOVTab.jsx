@@ -133,6 +133,12 @@ export default function TargetAOVTab({ stores, readOnly = false, filterStoreIds 
 
   const allActiveStores = (stores || []).filter(s => s.status === "active");
   const activeStores = filterStoreIds ? allActiveStores.filter(s => filterStoreIds.includes(s.id)) : allActiveStores;
+  // Mesi passati: anche i negozi non più attivi che hanno dati in quel mese
+  const mesePassato = selectedMonth < moment().format("YYYY-MM");
+  const monthStores = (stores || []).filter(s =>
+    (!filterStoreIds || filterStoreIds.includes(s.id)) &&
+    (s.status === "active" || (mesePassato && currentMonthAovByStore[s.id]?.orders > 0))
+  );
 
   return (
     <div className="space-y-4">
@@ -277,7 +283,7 @@ export default function TargetAOVTab({ stores, readOnly = false, filterStoreIds 
 
       {/* AOV Mese Corrente per Locale */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {activeStores.map(store => {
+        {monthStores.map(store => {
           const data = currentMonthAovByStore[store.id] || {};
           const target = targetMap[store.id];
           const deltaVsTarget = data.aov != null && target ? ((data.aov - target) / target) * 100 : null;
@@ -319,13 +325,13 @@ export default function TargetAOVTab({ stores, readOnly = false, filterStoreIds 
       </div>
 
       {/* Employee Monthly AOV */}
-      <EmployeeMonthlyAOV revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} selectedMonth={selectedMonth} filterStoreIds={filterStoreIds} />
+      <EmployeeMonthlyAOV revenueByHour={revenueByHour} stores={monthStores} loadingRevByHour={loadingRevByHour} selectedMonth={selectedMonth} filterStoreIds={filterStoreIds} />
 
       {/* Weekly Target Matrix */}
-      <EmployeeWeeklyTargetMatrix revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} selectedMonth={selectedMonth} filterStoreIds={filterStoreIds} />
+      <EmployeeWeeklyTargetMatrix revenueByHour={revenueByHour} stores={monthStores} loadingRevByHour={loadingRevByHour} selectedMonth={selectedMonth} filterStoreIds={filterStoreIds} />
 
       {/* Employee Daily AOV */}
-      <EmployeeDailyAOV revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} selectedMonth={selectedMonth} filterStoreIds={filterStoreIds} />
+      <EmployeeDailyAOV revenueByHour={revenueByHour} stores={monthStores} loadingRevByHour={loadingRevByHour} selectedMonth={selectedMonth} filterStoreIds={filterStoreIds} />
 
       {/* Employee Weekly AOV List */}
       <EmployeeAOVList revenueByHour={revenueByHour} stores={activeStores} loadingRevByHour={loadingRevByHour} allTargets={targets} filterStoreIds={filterStoreIds} />

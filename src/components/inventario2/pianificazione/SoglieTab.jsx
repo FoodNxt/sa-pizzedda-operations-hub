@@ -52,7 +52,7 @@ export default function SoglieTab({ ubicazioni }) {
           <div className="dt1-head">
             <div className="dt1-titles">
               <h3 className="dt1-title">Minimo e massimo suggeriti</h3>
-              <p className="dt1-meta">Materie prime: dal consumo al giorno e dai giorni di consegna del fornitore</p>
+              <p className="dt1-meta">Materie prime: dal consumo al giorno, dai giorni di attesa medi e dai giorni tra due ordini del fornitore</p>
             </div>
             <div className="dt1-selects">
               <select className="dt1-select" value={ubicazione} onChange={(e) => { setUbicazione(e.target.value); setSelezionate(new Set()); }} aria-label="Ubicazione">
@@ -77,7 +77,7 @@ export default function SoglieTab({ ubicazioni }) {
                       <th className="dt1-th" scope="col">Prodotto</th>
                       <th className="dt1-th" scope="col">Fornitore</th>
                       <th className="dt1-th" scope="col" style={{ textAlign: 'right' }}>Consumo al giorno</th>
-                      <th className="dt1-th" scope="col">Consegna</th>
+                      <th className="dt1-th" scope="col">Attesa e ordini</th>
                       <th className="dt1-th" scope="col" style={{ textAlign: 'right' }}>Minimo attuale → suggerito</th>
                       <th className="dt1-th" scope="col" style={{ textAlign: 'right' }}>Massimo attuale → suggerito</th>
                       <th className="dt1-th" scope="col" />

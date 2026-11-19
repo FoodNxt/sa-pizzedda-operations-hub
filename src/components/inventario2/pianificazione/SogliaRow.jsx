@@ -26,7 +26,12 @@ export default function SogliaRow({ riga, diversa, selezionata, onSeleziona, onA
       <td className="dt1-cell">
         {riga.motivo
           ? <span className="dt1-badge" style={{ background: '#fde68a' }}>{riga.motivo}</span>
-          : <span className="dt1-muted">tra {riga.giorni_consegna} giorni · ogni {numeroIt(riga.giorni_tra_consegne, 1)}</span>}
+          : (
+            <span className="dt1-muted">
+              attesa {numeroIt(riga.giorni_attesa, 1)} gg · ordini ogni {numeroIt(riga.giorni_tra_ordini, 1)} gg ({riga.fonte})
+              {riga.stima_da_storico && <span className="dt1-badge" style={{ background: '#fde68a', marginLeft: 6 }}>stima da storico</span>}
+            </span>
+          )}
       </td>
       {coppia(riga.min, riga.min_suggerito)}
       {coppia(riga.max, riga.max_suggerito)}

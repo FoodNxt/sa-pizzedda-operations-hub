@@ -67,6 +67,11 @@
       "type": "number",
       "description": "Numero di giorni tra ordine e consegna"
     },
+    "frequenza_ordini_minima_giorni": {
+      "type": "number",
+      "default": 3,
+      "description": "Giorni minimi tra due ordini allo stesso fornitore, usati per il massimo suggerito"
+    },
     "metodologia_ricezione_ordine": {
       "type": "string",
       "enum": [

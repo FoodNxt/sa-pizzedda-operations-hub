@@ -97,8 +97,7 @@ export default function EmployeeDailyAOV({
   useMemo(() => { setWeekOffset(0); }, [selectedMonth]);
 
   const activeStores = useMemo(() => {
-    const all = stores.filter(s => s.status === "active");
-    return filterStoreIds ? all.filter(s => filterStoreIds.includes(s.id)) : all;
+    return filterStoreIds ? stores.filter(s => filterStoreIds.includes(s.id)) : stores;
   }, [stores, filterStoreIds]);
 
   // Build daily AOV data + store aggregate
