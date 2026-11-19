@@ -136,19 +136,21 @@ export async function preparaCalcolo(sr, chiavi) {
     coppie: coppie.map(({ u, p, k }) => {
       const unita = p.imp.unita_conteggio;
       const grezzi = (perCoppia[k] || []).sort((a, b) => a.t - b.t);
-      // Conteggi fatti con l'unità di prima (sacchi, confezioni, pezzi): non si convertono e restano fuori
-      const precedente = (m) => m.tipo === 'conteggio' && !!m.unita && !!unita && m.unita !== unita;
+      const cambio = p.imp.data_cambio_unita_grammi ? mezzanotte(p.imp.data_cambio_unita_grammi) : 0;
+      // Solo per i prodotti passati ai grammi: i conteggi prima del cambio fatti con l'unità di prima non si convertono e restano fuori
+      const precedente = (m) => cambio > 0 && m.tipo === 'conteggio' && m.t < cambio && !!m.unita && !!unita && m.unita !== unita;
       // L'unità sospetta si giudica su tutti i conteggi letti, anche quelli prima dell'inizio dello storico
       const letti = senzaConteggiDoppi(grezzi.filter((m) => !precedente(m)));
       const fuori = unitaSospette(letti, unita);
       const avvio = u.ubicazione_tipo === 'negozio' ? avvii[p.imp.item_id] : null;
-      const cambio = p.imp.data_cambio_unita_grammi ? mezzanotte(p.imp.data_cambio_unita_grammi) : 0;
       return {
       u,
       p,
       k,
       // I conteggi in unità sospetta o precedente restano fuori da consumo e giacenza
       moves: letti.filter((m) => m.t >= daQuando(u.store_id) && !fuori.has(m)),
+      // Conteggi prima dell'inizio dello storico o doppi: non entrano nel calcolo ma perdono le etichette di unità
+      primaStorico: grezzi.filter((m) => m.tipo === 'conteggio' && !precedente(m) && !fuori.has(m) && (m.t < daQuando(u.store_id) || !letti.includes(m))),
       unitaSospette: [...fuori],
       unitaPrecedenti: grezzi.filter(precedente),
       // Di rete: i conteggi del singolo negozio non dicono il consumo. Senza produzioni registrate lo scarto di rete è solo indicativo
@@ -194,8 +196,11 @@ export async function ricalcola(sr, chiavi) {
   const aggiornati = [];
   const etichette = [];
 
-  coppie.forEach(({ u, p, k, moves, unitaSospette: fuori, unitaPrecedenti: precedenti, rete, minimo, teorico, prossimo: prossimoPer }) => {
+  coppie.forEach(({ u, p, k, moves, primaStorico, unitaSospette: fuori, unitaPrecedenti: precedenti, rete, minimo, teorico, prossimo: prossimoPer }) => {
     const r = calcolaGiacenza(moves, now, soglia, teorico, rete, minimo);
+    primaStorico.forEach((m) => {
+      if (m.id && (m.unita_sospetta || m.unita_precedente)) etichette.push({ id: m.id, sospetto: m.sospetto, unita_sospetta: false, unita_precedente: false });
+    });
     // Le etichette "sospetto", "unità sospetta" e "unità precedente" sui conteggi seguono il calcolo: si scrivono solo dove sono cambiate
     moves.forEach((m) => {
       if (m.tipo !== 'conteggio' || !m.id) return;

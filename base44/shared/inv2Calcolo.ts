@@ -59,15 +59,10 @@ const mediana = (valori) => {
 };
 
 const UNITA_PICCOLE = ['grammi', 'g', 'ml'];
-const UNITA_INTERE = ['sacchi', 'confezioni', 'pezzi'];
 
-// Conteggi scritti probabilmente in un'altra unità: tra 1 e 20 per i prodotti contati in grammi o ml,
-// sopra 50 per quelli contati a sacchi, confezioni o pezzi
+// Conteggi scritti probabilmente in un'altra unità: tra 1 e 20 per i prodotti contati in grammi o ml
 export function unitaSospette(moves, unita) {
-  const sospetta = UNITA_PICCOLE.includes(unita)
-    ? (q) => q > 0 && q <= 20
-    : UNITA_INTERE.includes(unita) ? (q) => q > 50 : null;
-  return new Set(sospetta ? moves.filter((m) => m.tipo === 'conteggio' && sospetta(m.quantita)) : []);
+  return new Set(UNITA_PICCOLE.includes(unita) ? moves.filter((m) => m.tipo === 'conteggio' && m.quantita > 0 && m.quantita <= 20) : []);
 }
 
 // Finestra del consumo dai conteggi: la più corta tra 28, 56 e 90 giorni con almeno 4 conteggi su almeno 5 giorni,

@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Store, TrendingUp, Users, DollarSign, Star, AlertTriangle, Filter, Calendar, X, RefreshCw, Package, Clock, FileText, UserX, Sparkles, ExternalLink, ArrowUp, ArrowDown } from "lucide-react";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
+import { inUnitaOrdine } from "@/lib/conteggioInUnitaOrdine";
 import NeumorphicButton from "../components/neumorphic/NeumorphicButton";
 import ProtectedPage from "../components/ProtectedPage";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -158,15 +159,19 @@ export default function Dashboard() {
     refetchOnWindowFocus: false
   });
 
-  const { data: inventario = [] } = useQuery({
+  const { data: inventarioGrezzo = [] } = useQuery({
     queryKey: ['inventario'],
     queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 100)
   });
 
-  const { data: inventarioCantina = [] } = useQuery({
+  const { data: inventarioCantinaGrezzo = [] } = useQuery({
     queryKey: ['inventario-cantina'],
     queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 100)
   });
+
+  // I conteggi in grammi dei prodotti ordinati a kg si leggono in kg
+  const inventario = useMemo(() => inUnitaOrdine(inventarioGrezzo, materiePrime), [inventarioGrezzo, materiePrime]);
+  const inventarioCantina = useMemo(() => inUnitaOrdine(inventarioCantinaGrezzo, materiePrime), [inventarioCantinaGrezzo, materiePrime]);
 
   const { data: uscite = [] } = useQuery({
     queryKey: ['uscite'],

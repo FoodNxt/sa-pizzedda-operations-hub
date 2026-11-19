@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Package, Calendar, ExternalLink, UserX, Users, FileText, Clock, TrendingUp } from "lucide-react";
 import NeumorphicCard from "../components/neumorphic/NeumorphicCard";
 import ProtectedPage from "../components/ProtectedPage";
+import { inUnitaOrdine } from "@/lib/conteggioInUnitaOrdine";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import moment from 'moment';
@@ -35,15 +36,19 @@ export default function ToDo() {
     refetchOnWindowFocus: false
   });
 
-  const { data: inventario = [] } = useQuery({
+  const { data: inventarioGrezzo = [] } = useQuery({
     queryKey: ['inventario'],
     queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 100)
   });
 
-  const { data: inventarioCantina = [] } = useQuery({
+  const { data: inventarioCantinaGrezzo = [] } = useQuery({
     queryKey: ['inventario-cantina'],
     queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 100)
   });
+
+  // I conteggi in grammi dei prodotti ordinati a kg si leggono in kg
+  const inventario = useMemo(() => inUnitaOrdine(inventarioGrezzo, materiePrime), [inventarioGrezzo, materiePrime]);
+  const inventarioCantina = useMemo(() => inUnitaOrdine(inventarioCantinaGrezzo, materiePrime), [inventarioCantinaGrezzo, materiePrime]);
 
   const { data: ordiniInviati = [] } = useQuery({
     queryKey: ['ordini-inviati'],

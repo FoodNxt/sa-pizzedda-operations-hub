@@ -23,10 +23,12 @@ const inMateriaPrima = (grammi, ricetta, materiaPrima) => {
   if (!ingrediente || !(ricetta.quantita_prodotta > 0)) return null;
   const crudi = grammi * toGrams(ingrediente.quantita, ingrediente.unita_misura) /
     toGrams(ricetta.quantita_prodotta, ricetta.unita_misura_prodotta);
-  if (materiaPrima.unita_misura === 'sacchi' && materiaPrima.peso_dimensione_unita) {
-    return crudi / (materiaPrima.peso_dimensione_unita * 1000);
-  }
-  return materiaPrima.unita_misura === 'kg' || materiaPrima.unita_misura === 'litri' ? crudi / 1000 : crudi;
+  if (materiaPrima.unita_misura === 'kg' || materiaPrima.unita_misura === 'litri') return crudi / 1000;
+  if (['grammi', 'ml'].includes(materiaPrima.unita_misura)) return crudi;
+  // Sacchi, pezzi, confezioni: serve il peso di una unità. Se manca non si converte
+  if (!(materiaPrima.peso_dimensione_unita > 0)) return null;
+  const grammiPerUnita = materiaPrima.peso_dimensione_unita * (['g', 'ml'].includes(materiaPrima.unita_misura_peso) ? 1 : 1000);
+  return crudi / grammiPerUnita;
 };
 
 export function calcolaOrdiniSuggeriti({ inventory = [], inventoryCantina = [], products = [], stores = [], ricette = [] }) {

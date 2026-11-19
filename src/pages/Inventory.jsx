@@ -30,6 +30,7 @@ import { format, subDays, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ProtectedPage from "../components/ProtectedPage";
+import { inUnitaOrdine } from "@/lib/conteggioInUnitaOrdine";
 import ResponsiveTable from "../components/ui/ResponsiveTable";
 
 export default function Inventory() {
@@ -70,7 +71,7 @@ export default function Inventory() {
     }
   });
 
-  const { data: inventory = [] } = useQuery({
+  const { data: inventoryGrezzo = [] } = useQuery({
     queryKey: ['rilevazione-inventario'],
     queryFn: () => base44.entities.RilevazioneInventario.list('-data_rilevazione', 5000)
   });
@@ -93,10 +94,14 @@ export default function Inventory() {
 
 
 
-  const { data: inventoryCantina = [] } = useQuery({
+  const { data: inventoryCantinaGrezzo = [] } = useQuery({
     queryKey: ['rilevazione-inventario-cantina'],
     queryFn: () => base44.entities.RilevazioneInventarioCantina.list('-data_rilevazione', 5000)
   });
+
+  // I conteggi in grammi dei prodotti ordinati a kg si leggono in kg
+  const inventory = useMemo(() => inUnitaOrdine(inventoryGrezzo, allProducts), [inventoryGrezzo, allProducts]);
+  const inventoryCantina = useMemo(() => inUnitaOrdine(inventoryCantinaGrezzo, allProducts), [inventoryCantinaGrezzo, allProducts]);
 
   // Filter inventory by store (combine negozio and cantina)
   const filteredInventoryNegozio = useMemo(() => {
