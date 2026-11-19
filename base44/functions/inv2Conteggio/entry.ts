@@ -96,9 +96,17 @@ export default async function (req) {
     const completo = verifica || body.azione === 'lista_completa' || body.azione === 'salva_completo';
     if (completo && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
     if (body.azione === 'lista_completa' || body.azione === 'lista_verifica') {
+      let elenco = await righe(E, giacenze, storeId);
+      if (verifica) {
+        // Tara del contenitore nell'unità di conteggio, solo per i prodotti contati a peso
+        const conTara = await fetchAll(E.ImpostazioneInventario2, { tara_contenitore_g: { $gt: 0 } });
+        const tara = Object.fromEntries(conTara.map((i) => [i.item_id, i.tara_contenitore_g]));
+        const divisore = { grammi: 1, g: 1, kg: 1000 };
+        elenco = elenco.map((r) => (tara[r.item_id] && divisore[r.unita] ? { ...r, tara: tara[r.item_id] / divisore[r.unita] } : r));
+      }
       return Response.json({
         ubicazione_key: key,
-        righe: ordinaPercorso(await righe(E, giacenze, storeId), piantina),
+        righe: ordinaPercorso(elenco, piantina),
         ...(verifica ? { predefiniti: (config.prodotti_verifica || []).filter((id) => perId[id]) } : {})
       });
     }
@@ -108,6 +116,12 @@ export default async function (req) {
     const conteggi = [...new Map((Array.isArray(body.conteggi) ? body.conteggi : []).map((c) => [c.item_id, c])).values()];
     const validi = conteggi.every((c) => perId[c.item_id] && Number.isFinite(c.quantita) && c.quantita >= 0);
     if (!conteggi.length || !validi) return Response.json({ error: 'Ogni prodotto deve avere una quantità, anche 0' }, { status: 400 });
+    // Verifica: ogni prodotto ha l'ora in cui l'admin lo ha confermato, nelle ultime 12 ore
+    if (verifica) {
+      const adesso = Date.now();
+      const oraValida = (c) => { const t = Date.parse(c.ora); return Number.isFinite(t) && t <= adesso + 60000 && t >= adesso - 12 * 3600000; };
+      if (!conteggi.every(oraValida)) return Response.json({ error: 'Ogni prodotto deve avere l\'ora di conferma, nelle ultime 12 ore' }, { status: 400 });
+    }
     const previsti = (sessioneOggi && !simula) || completo ? [] : (Array.isArray(body.previsti) ? body.previsti : []).filter((id) => perId[id]);
     const contati = new Set(conteggi.map((c) => c.item_id));
     const mancanti = previsti.filter((id) => !contati.has(id)).length;
@@ -152,7 +166,7 @@ export default async function (req) {
         tipo: 'conteggio',
         quantita: c.quantita,
         unita: perId[c.item_id].unita,
-        data_movimento: ora,
+        data_movimento: verifica ? new Date(c.ora).toISOString() : ora,
         utente_email: user.email,
         utente_nome: operatoreNome,
         fonte: verifica ? 'verifica_admin' : 'inventario_v2',

@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import InventarioCompletoLista from '@/components/inventario2/InventarioCompletoLista';
+import VerificaLista from './VerificaLista';
 import { erroreFunzione } from '@/components/laboratorio/labUtils';
 import VerificaRisultato from './VerificaRisultato';
 
@@ -15,7 +15,8 @@ export default function ConteggioVerificaDialog({ open, onClose, ubicazioni, onS
   const [ubicazione, setUbicazione] = useState('');
   const [lista, setLista] = useState(null);
   const [tutti, setTutti] = useState(false);
-  const [valori, setValori] = useState({});
+  // Prodotti confermati con "Salva" sulla riga: { item_id: { quantita, ora } }, l'ora è quella della conferma
+  const [confermati, setConfermati] = useState({});
   const [cerca, setCerca] = useState('');
   const [problema, setProblema] = useState('');
   const [saving, setSaving] = useState(false);
@@ -27,7 +28,7 @@ export default function ConteggioVerificaDialog({ open, onClose, ubicazioni, onS
 
   useEffect(() => {
     setLista(null);
-    setValori({});
+    setConfermati({});
     setProblema('');
     if (!ubicazione) return;
     base44.functions.invoke('inv2Conteggio', { azione: 'lista_verifica', ...dove(ubicazione) })
@@ -38,9 +39,11 @@ export default function ConteggioVerificaDialog({ open, onClose, ubicazioni, onS
   const righe = (lista?.righe || []).filter((r) => tutti || lista.predefiniti.includes(r.item_id));
   const visibili = righe.filter((r) => r.nome.toLowerCase().includes(cerca.trim().toLowerCase()));
   const inLista = new Set(righe.map((r) => r.item_id));
-  const conteggi = Object.entries(valori)
-    .filter(([id, v]) => inLista.has(id) && v !== '' && Number(v) >= 0)
-    .map(([item_id, v]) => ({ item_id, quantita: Number(v) }));
+  const conteggi = Object.entries(confermati)
+    .filter(([id]) => inLista.has(id))
+    .map(([item_id, c]) => ({ item_id, ...c }));
+  const conferma = (id, quantita) => setConfermati((prev) => ({ ...prev, [id]: { quantita, ora: new Date().toISOString() } }));
+  const modifica = (id) => setConfermati(({ [id]: _, ...resto }) => resto);
 
   const salva = async () => {
     setSaving(true);
@@ -63,7 +66,7 @@ export default function ConteggioVerificaDialog({ open, onClose, ubicazioni, onS
           <DialogDescription>
             {risultato
               ? 'Differenza = tuo conteggio meno il valore di confronto. In rosso le differenze oltre il 10%.'
-              : 'Conteggio reale fatto dall\'admin: vale sempre nel calcolo. Stima, ultimo conteggio e soglie si vedono solo dopo il salvataggio. I campi vuoti non vengono registrati.'}
+              : 'Conteggio reale fatto dall\'admin: vale sempre nel calcolo. Premi Salva sulla riga appena conti un prodotto: resta l\'ora di quel momento. Alla fine premi Salva verifica. Stima, ultimo conteggio e soglie si vedono solo dopo.'}
           </DialogDescription>
         </DialogHeader>
         {risultato ? (
@@ -88,12 +91,12 @@ export default function ConteggioVerificaDialog({ open, onClose, ubicazioni, onS
               <p className="text-sm text-slate-500">Nessun prodotto di verifica in questa ubicazione. La lista si sceglie in Impostazioni, tab Configurazione.</p>
             )}
             {righe.length > 0 && (
-              <InventarioCompletoLista righe={visibili} valori={valori} onChange={(id, v) => setValori((prev) => ({ ...prev, [id]: v }))} />
+              <VerificaLista righe={visibili} confermati={confermati} onConferma={conferma} onModifica={modifica} />
             )}
           </div>
         )}
         <DialogFooter className="items-center">
-          {!risultato && righe.length > 0 && <span className="text-sm text-slate-500 sm:mr-auto">{conteggi.length} di {righe.length} contati</span>}
+          {!risultato && righe.length > 0 && <span className="text-sm text-slate-500 sm:mr-auto">{conteggi.length} di {righe.length} confermati</span>}
           <Button variant="outline" onClick={onClose}>{risultato ? 'Chiudi' : 'Annulla'}</Button>
           {!risultato && (
             <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={salva} disabled={!conteggi.length || saving}>

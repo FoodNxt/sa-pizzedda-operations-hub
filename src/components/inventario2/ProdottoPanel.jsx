@@ -18,6 +18,7 @@ export default function ProdottoPanel({ row, imp, ubicazioni, onClose, onSave })
       unita_conteggio: imp.unita_conteggio || '',
       fattore: imp.fattore_unita_ordine ?? 1,
       peso: imp.peso_unita_conteggio_kg ?? '',
+      tara: imp.tara_contenitore_g ?? '',
       solo_lab: !!imp.solo_laboratorio,
       // Giorni fissi di ogni locale; chi non ne ha di propri parte da quelli comuni
       fisso: Object.fromEntries(ubicazioni.map((u) => [u.key, giornoFissoDaCf(salvati[u.key] ?? imp.conteggio_fisso)])),
@@ -39,6 +40,8 @@ export default function ProdottoPanel({ row, imp, ubicazioni, onClose, onSave })
     };
     if (d.peso !== '') patch.peso_unita_conteggio_kg = Number(d.peso);
     else if (imp.peso_unita_conteggio_kg != null) patch.peso_unita_conteggio_kg = null;
+    if (d.tara !== '') patch.tara_contenitore_g = Number(d.tara);
+    else if (imp.tara_contenitore_g != null) patch.tara_contenitore_g = null;
     await onSave(row, patch);
     setSaving(false);
     onClose();
@@ -67,6 +70,12 @@ export default function ProdottoPanel({ row, imp, ubicazioni, onClose, onSave })
                 <Label htmlFor="inv2-peso">Peso di 1 unità di conteggio (kg)</Label>
                 <Input id="inv2-peso" type="number" min="0" step="any" value={d.peso} onChange={(e) => set({ peso: e.target.value })} />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="inv2-tara">Tara contenitore (g)</Label>
+              <Input id="inv2-tara" type="number" min="0" step="any" value={d.tara} onChange={(e) => set({ tara: e.target.value })} />
+              <p className="text-xs text-slate-500">Peso di un contenitore vuoto. Nel conteggio di verifica si toglie dal peso lordo, per i prodotti contati in grammi o kg.</p>
             </div>
 
             {imp.laboratorio && (

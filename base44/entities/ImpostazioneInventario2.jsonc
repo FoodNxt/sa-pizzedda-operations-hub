@@ -69,6 +69,10 @@
       "type": "number",
       "description": "Peso di 1 unit\u00e0 di conteggio, per i trasporti a peso"
     },
+    "tara_contenitore_g": {
+      "type": "number",
+      "description": "Peso in grammi di un contenitore vuoto: nel conteggio di verifica si toglie dal peso lordo, per i prodotti contati in grammi o kg"
+    },
     "min_per_ubicazione": {
       "type": "object",
       "description": "Minimo per ubicazione {ubicazione_key: number}"

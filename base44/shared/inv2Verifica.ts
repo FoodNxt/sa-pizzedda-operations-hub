@@ -29,7 +29,8 @@ export async function risultatoVerifica(sr, key, conteggi, perId) {
   return conteggi.map((c) => {
     const g = perId[c.item_id];
     const coppia = perItem[c.item_id];
-    const stima = coppia ? calcolaGiacenza(coppia.moves, now, soglia, coppia.teorico, coppia.rete, coppia.minimo, coppia.ordineAperto).giacenza : null;
+    // La stima è quella dell'ora in cui il prodotto è stato confermato
+    const stima = coppia ? calcolaGiacenza(coppia.moves, c.ora ? Date.parse(c.ora) : now, soglia, coppia.teorico, coppia.rete, coppia.minimo, coppia.ordineAperto).giacenza : null;
     const ultimo = ultimi[c.item_id];
     const daStima = stima == null ? null : c.quantita - stima;
     const daUltimo = ultimo ? c.quantita - ultimo.quantita : null;
