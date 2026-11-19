@@ -72,7 +72,31 @@
     },
     "consumo_teorico_giorno": {
       "type": "number",
-      "description": "Consumo al giorno dalle vendite del POS per ricetta, media degli ultimi 28 giorni"
+      "description": "Consumo al giorno dalle vendite del POS per ricetta, media dal primo giorno di vendita negli ultimi 28 giorni"
+    },
+    "teorico_dal": {
+      "type": "string",
+      "format": "date",
+      "description": "Giorno da cui parte la media del consumo teorico"
+    },
+    "teorico_provvisorio": {
+      "type": "boolean",
+      "default": false,
+      "description": "La media del teorico \u00e8 su meno di 7 giorni"
+    },
+    "teorico_fonte": {
+      "type": "string",
+      "enum": [
+        "vendite",
+        "semilavorato",
+        "produzioni"
+      ],
+      "enumColors": [
+        "green",
+        "blue",
+        "purple"
+      ],
+      "description": "Da dove viene il teorico: vendite dirette, teorico del semilavorato che usa la materia prima, oppure produzioni registrate"
     },
     "fattore_correzione": {
       "type": "number",

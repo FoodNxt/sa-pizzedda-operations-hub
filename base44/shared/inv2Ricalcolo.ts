@@ -2,6 +2,7 @@ import { aBlocchi, fetchAll, loadConfig, norm } from './inv2.ts';
 import { GIORNO, calcolaGiacenza, giornoRoma, prossimoConteggio, senzaConteggiDoppi, unitaSospette } from './inv2Calcolo.ts';
 import { consumoRete } from './inv2Rete.ts';
 import { consumiTeorici, mezzanotte, ricetteEscluse } from './inv2Teorico.ts';
+import { componiTeorico, teoriciDaSemilavorati } from './inv2TeoricoDerivato.ts';
 
 const INTERVALLI_DEFAULT = {
   'Ingredienti pronti': 7, 'Ortofrutta': 7, 'Ingredienti base': 14, 'Bevande': 14, 'Dolci': 14,
@@ -94,6 +95,9 @@ export async function preparaCalcolo(sr, chiavi) {
     if (daCalcolare) coppie.push({ u, p, k: `${u.ubicazione_key}|${p.imp.item_id}` });
   }));
 
+  // Materie prime dei semilavorati che si contano: il loro teorico arriva da quello del semilavorato
+  const daSemilavorati = teoriciDaSemilavorati({ coppie, teorici, ricette, materie, impostazioni, labStoreId });
+
   // Movimenti degli ultimi 90 giorni per ubicazione e prodotto
   const perCoppia = {};
   const chiave = (m) => `${m.ubicazione_key}|${m.item_id}`;
@@ -158,8 +162,11 @@ export async function preparaCalcolo(sr, chiavi) {
       // La finestra del consumo non inizia prima dell'inizio dello storico, del cambio di unità e,
       // per i semilavorati tornati al calcolo per negozio, della data di partenza
       minimo: Math.max(daQuando(u.store_id), cambio, avvio?.perNegozio ? avvio.partenza : 0),
-      // Consumo teorico del prodotto nello store, giorno per giorno
-      teorico: { giorni: teorici.giorniPerStore[u.store_id] || [], perGiorno: teorici.perStore[u.store_id]?.[p.imp.item_id] || {} },
+      // Consumo teorico del prodotto nell'ubicazione, giorno per giorno, dal primo giorno di vendita
+      teorico: componiTeorico(
+        teorici.giorniPerStore, u.store_id, teorici.perStore[u.store_id]?.[p.imp.item_id], daSemilavorati[k] || [],
+        grezzi.some((m) => m.tipo === 'produzione_scarico' && m.t >= now - 28 * GIORNO)
+      ),
       // Prossimo conteggio a partire dal risultato di calcolaGiacenza
       prossimo: (r, oggi) => prossimoConteggio({
         fisso: p.imp.conteggio_fisso_per_ubicazione?.[u.ubicazione_key] ?? p.imp.conteggio_fisso,
@@ -233,6 +240,9 @@ export async function ricalcola(sr, chiavi) {
       giacenza_stimata: r3(r.giacenza),
       consumo_medio_giorno: r3(r.consumo),
       consumo_teorico_giorno: r3(r.teoricoGiorno),
+      teorico_dal: teorico.dal,
+      teorico_provvisorio: teorico.provvisorio,
+      teorico_fonte: teorico.fonte,
       fattore_correzione: r3(r.fattore),
       fonte_consumo: r.fonte,
       uscite_registrate_giorno: r3(r.usciteGiorno),

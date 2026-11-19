@@ -16,6 +16,7 @@ const ORDINAMENTI = [
   ['item_nome', 'Nome']
 ];
 const AFFIDABILITA = { ok: ['Ok', '#bbf7d0'], da_verificare: ['Da verificare', '#fde68a'], nessun_dato: ['Nessun dato', '#e2e8f0'] };
+const FONTE_TEORICO = { produzioni: 'da produzioni', semilavorato: 'da semilavorato' };
 const FISSO = { '': 'Giorno fisso: tutti', si: 'Giorno fisso: sì', no: 'Giorno fisso: no' };
 
 function buildQuery(f) {
@@ -126,7 +127,11 @@ export default function GiacenzeTab({ ubicazioni }) {
                           <td className="dt1-cell" style={{ textAlign: 'right' }}>
                             <span className="dt1-muted">{g.fonte_consumo === 'nessun_dato' ? '—' : numeroIt((g.consumo_medio_giorno || 0) + (g.uscite_registrate_giorno || 0), 2)}</span>
                           </td>
-                          <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.consumo_teorico_giorno, 3)}</span></td>
+                          <td className="dt1-cell" style={{ textAlign: 'right' }}>
+                            <span className="dt1-muted">{numeroIt(g.consumo_teorico_giorno, 3)}</span>
+                            {g.teorico_dal && <div className="dt1-muted" style={{ whiteSpace: 'nowrap' }}>dal {giorno(g.teorico_dal)}{g.teorico_provvisorio ? ' · provvisorio' : ''}</div>}
+                            {FONTE_TEORICO[g.teorico_fonte] && <div className="dt1-muted" style={{ whiteSpace: 'nowrap' }}>{FONTE_TEORICO[g.teorico_fonte]}</div>}
+                          </td>
                           <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.fattore_correzione, 2)}</span></td>
                           <td className="dt1-cell">
                             <span className="dt1-muted">{FONTE_CONSUMO[g.fonte_consumo] || '—'}</span>
