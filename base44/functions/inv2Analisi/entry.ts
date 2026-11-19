@@ -5,8 +5,9 @@ import { consumabili } from './consumabili.ts';
 import { confronto } from './confronto.ts';
 import { consumi } from './consumi.ts';
 import { diagnostica } from './diagnostica.ts';
+import { rete } from './rete.ts';
 
-const AZIONI = { calendario, consumabili, confronto, consumi, diagnostica };
+const AZIONI = { calendario, consumabili, confronto, consumi, diagnostica, rete };
 
 export default async function (req) {
   try {

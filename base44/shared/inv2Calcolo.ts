@@ -34,7 +34,7 @@ const somma = (moves, tipi, da, a) =>
 // Consumo teorico dalle vendite: media al giorno e consumo tra due istanti.
 // teorico = { giorni: [{ giorno, inizio, fine }] con le vendite sincronizzate, perGiorno: { giorno: quantità } }.
 // Per il tempo senza vendite sincronizzate (di solito oggi) vale la media.
-function consumoTeorico(teorico) {
+export function consumoTeorico(teorico) {
   const giorni = teorico?.giorni || [];
   const perGiorno = teorico?.perGiorno || {};
   const media = giorni.length ? giorni.reduce((s, g) => s + (perGiorno[g.giorno] || 0), 0) / giorni.length : 0;
@@ -58,6 +58,18 @@ const mediana = (valori) => {
   return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
 };
 
+const UNITA_PICCOLE = ['grammi', 'g', 'ml'];
+
+// Conteggi scritti in un'altra unità (chili o pezzi al posto dei grammi): maggiori di 0 e sotto 50,
+// quando la mediana degli altri conteggi del prodotto nella stessa ubicazione supera 500. Solo per i prodotti contati in grammi o ml
+export function unitaSospette(moves, unita) {
+  if (!UNITA_PICCOLE.includes(unita)) return new Set();
+  const conteggi = moves.filter((m) => m.tipo === 'conteggio');
+  const pieni = conteggi.filter((m) => m.quantita >= 50).map((m) => m.quantita);
+  if (!pieni.length || mediana(pieni) <= 500) return new Set();
+  return new Set(conteggi.filter((m) => m.quantita > 0 && m.quantita < 50));
+}
+
 // Pendenza al giorno con il metodo Theil–Sen: mediana delle pendenze tra tutte le coppie di punti distanti almeno 12 ore.
 // Un singolo punto sbagliato, anche il primo o l'ultimo, non la sposta. punti = [{ t, y }]
 function pendenza(punti) {
@@ -75,7 +87,7 @@ function pendenza(punti) {
 // registrati dall'inizio del periodo: contato + uscite cumulate − entrate cumulate. Il consumo è la pendenza cambiata di segno.
 // teoricoTra, se c'è, dà il teorico cumulato sugli stessi punti: la sua pendenza è il teorico al giorno sullo stesso periodo.
 // I singoli intervalli servono solo alla diagnostica: quanti hanno un residuo negativo.
-function consumoPeriodo(counts, moves, teoricoTra) {
+export function consumoPeriodo(counts, moves, teoricoTra) {
   const residuoTra = (a, b) => a.quantita + somma(moves, ENTRATE, a.t, b.t) - somma(moves, USCITE, a.t, b.t) - b.quantita;
   let negativi = 0;
   let totali = 0;
@@ -98,7 +110,14 @@ function consumoPeriodo(counts, moves, teoricoTra) {
 }
 
 // Consumo al giorno e consumo tra due istanti: dalle vendite se c'è un teorico, altrimenti da conteggi, poi da ricevimenti
-function stimaConsumo(counts, moves, fine, vendite) {
+// rete = semilavorato trasportabile senza produzioni e trasporti registrati: i conteggi del singolo negozio non dicono il consumo
+function stimaConsumo(counts, moves, fine, vendite, rete) {
+  if (rete) {
+    const periodo = { valido: false, negativi: 0, totali: 0, incoerenti: false };
+    return vendite.media > 0
+      ? { fonte: 'vendite', fattore: 1, consumo: vendite.media, tra: vendite.tra, periodo }
+      : { fonte: 'nessun_dato', fattore: null, consumo: null, tra: () => 0, periodo };
+  }
   if (vendite.media > 0) {
     const periodo = consumoPeriodo(counts, moves, vendite.tra);
     // Senza retta, con consumo negativo o con un prodotto non misurabile il teorico resta senza correzione
@@ -160,13 +179,13 @@ function esaminaConteggi(counts, moves, stima) {
   return { stato, sospetti };
 }
 
-export function calcolaGiacenza(moves, now, soglia, teorico) {
+export function calcolaGiacenza(moves, now, soglia, teorico, rete = false) {
   const tutti = moves.filter((m) => m.tipo === 'conteggio');
   const vendite = consumoTeorico(teorico);
   // I conteggi sospetti si trovano con il consumo di tutti i conteggi, poi il consumo si ricalcola senza quelli non confermati
-  const { stato, sospetti } = esaminaConteggi(tutti, moves, stimaConsumo(tutti, moves, now, vendite));
+  const { stato, sospetti } = esaminaConteggi(tutti, moves, stimaConsumo(tutti, moves, now, vendite, rete));
   const counts = tutti.filter((c) => !sospetti.has(c));
-  const stima = stimaConsumo(counts, moves, now, vendite);
+  const stima = stimaConsumo(counts, moves, now, vendite, rete);
   const consumo = stima.consumo;
   const usciteGiorno = somma(moves, USCITE, now - 28 * GIORNO, now) / 28;
   const { negativi, totali, incoerenti } = stima.periodo;
@@ -189,7 +208,7 @@ export function calcolaGiacenza(moves, now, soglia, teorico) {
   let scarto = null;
   const precedente = [...counts].reverse().find((c) => ultimo.t - c.t >= DODICI_ORE);
   if (precedente) {
-    const consumato = stimaConsumo(counts.filter((c) => c.t <= precedente.t), moves, ultimo.t, vendite).tra(precedente.t, ultimo.t);
+    const consumato = stimaConsumo(counts.filter((c) => c.t <= precedente.t), moves, ultimo.t, vendite, rete).tra(precedente.t, ultimo.t);
     scarto = Math.abs(stimaDa(precedente, moves, () => consumato, ultimo.t) - ultimo.quantita) / Math.max(consumato, 1);
     if (scarto > soglia) affidabilita = 'da_verificare';
   }

@@ -11,7 +11,7 @@ export async function conteggiSospetti(sr, key, conteggi) {
   return conteggi
     .filter((c) => {
       const coppia = perItem[c.item_id];
-      return coppia && calcolaGiacenza(coppia.moves, now, soglia, coppia.teorico).sospetto(c.quantita);
+      return coppia && calcolaGiacenza(coppia.moves, now, soglia, coppia.teorico, coppia.rete).sospetto(c.quantita);
     })
     .map((c) => c.item_id);
 }
@@ -39,8 +39,8 @@ export async function simulaConteggi(sr, key, conteggi, perId) {
     if (!coppia) return riga;
 
     // Stima di adesso, poi lo stesso calcolo come se il conteggio fosse appena stato fatto
-    const stima = calcolaGiacenza(coppia.moves, now, soglia, coppia.teorico).giacenza;
-    const dopo = calcolaGiacenza([...coppia.moves, { tipo: 'conteggio', quantita: c.quantita, t: now }], now, soglia, coppia.teorico);
+    const stima = calcolaGiacenza(coppia.moves, now, soglia, coppia.teorico, coppia.rete).giacenza;
+    const dopo = calcolaGiacenza([...coppia.moves, { tipo: 'conteggio', quantita: c.quantita, t: now }], now, soglia, coppia.teorico, coppia.rete);
     const prossimo = coppia.prossimo(dopo, oggi);
     const differenza = stima == null ? null : Math.abs(c.quantita - stima);
     return {

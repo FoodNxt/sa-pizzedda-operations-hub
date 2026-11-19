@@ -50,7 +50,7 @@ export default function ConfrontoConsumi({ righe }) {
                         <tr key={r.item_id} className="dt1-row">
                           <td className="dt1-cell dt1-cell--first"><span className="dt1-name">{r.nome}</span></td>
                           <td className="dt1-cell" style={destra}>
-                            <span className="dt1-name">{numeroIt(r.conteggi, 3)}</span> <span className="dt1-muted">{r.unita}</span>
+                            <span className="dt1-name">{numeroIt(r.conteggi, 3)}</span> {r.conteggi != null && <span className="dt1-muted">{r.unita}</span>}
                           </td>
                           <td className="dt1-cell" style={destra}>
                             <span className="dt1-name">{numeroIt(r.teorico, 3)}</span> <span className="dt1-muted">{r.unita}</span>
@@ -61,7 +61,9 @@ export default function ConfrontoConsumi({ righe }) {
                                 {r.scarto_pct > 0 ? '+' : ''}{numeroIt(r.scarto_pct, 1)}%
                               </span>
                             ) : (
-                              <span className="dt1-muted">non misurabile (consumo nel periodo &lt; 5 unità)</span>
+                              <span className="dt1-muted">
+                                {r.rete ? 'non misurabile – trasporti non registrati' : 'non misurabile (consumo nel periodo < 5 unità)'}
+                              </span>
                             )}
                           </td>
                           <td className="dt1-cell" style={destra}><span className="dt1-muted">{numeroIt(r.giorni, 1)}</span></td>

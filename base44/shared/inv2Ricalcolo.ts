@@ -1,5 +1,5 @@
 import { aBlocchi, fetchAll, loadConfig, norm } from './inv2.ts';
-import { GIORNO, calcolaGiacenza, giornoRoma, prossimoConteggio, senzaConteggiDoppi } from './inv2Calcolo.ts';
+import { GIORNO, calcolaGiacenza, giornoRoma, prossimoConteggio, senzaConteggiDoppi, unitaSospette } from './inv2Calcolo.ts';
 import { consumiTeorici, mezzanotte, ricetteEscluse } from './inv2Teorico.ts';
 
 const INTERVALLI_DEFAULT = {
@@ -29,6 +29,20 @@ export async function preparaCalcolo(sr, chiavi) {
     fetchAll(E.GiacenzaStimata, filtroUbic),
     fetchAll(E.MovimentoMagazzino, { ...filtroUbic, data_movimento: { $gte: dal } }, 'data_movimento')
   ]);
+
+  // Semilavorati trasportabili: finché produzioni e trasporti non sono registrati per tutta la finestra
+  // (almeno uno di ciascuno prima dell'inizio e almeno uno dentro) il consumo dai conteggi vale solo per la rete
+  const trasportabili = ricette.filter((r) => r.is_semilavorato && r.trasportabile).map((r) => r.id);
+  const registrati = async (data) => {
+    const { rows } = await E.MovimentoMagazzino.aggregate({
+      query: { item_id: { $in: trasportabili }, tipo: { $in: ['produzione_carico', 'trasporto_uscita', 'trasporto_entrata'] }, data_movimento: data },
+      groupBy: ['item_id', 'tipo']
+    });
+    const tipi = (id) => rows.filter((r) => r.item_id === id).map((r) => r.tipo);
+    return new Set(trasportabili.filter((id) => tipi(id).includes('produzione_carico') && tipi(id).some((t) => t.startsWith('trasporto'))));
+  };
+  const [prima, dentro] = trasportabili.length ? await Promise.all([registrati({ $lt: dal }), registrati({ $gte: dal })]) : [new Set(), new Set()];
+  const diRete = new Set(trasportabili.filter((id) => !(prima.has(id) && dentro.has(id))));
 
   // Prodotti inclusi, con i dati che servono al calcolo
   const mpById = Object.fromEntries(materie.map((m) => [m.id, m]));
@@ -81,7 +95,7 @@ export async function preparaCalcolo(sr, chiavi) {
   // Movimenti degli ultimi 28 giorni per ubicazione e prodotto
   const perCoppia = {};
   const chiave = (m) => `${m.ubicazione_key}|${m.item_id}`;
-  const mossa = (m) => ({ id: m.id, sospetto: !!m.sospetto, tipo: m.tipo, quantita: m.quantita || 0, t: Date.parse(m.data_movimento) });
+  const mossa = (m) => ({ id: m.id, sospetto: !!m.sospetto, unita_sospetta: !!m.unita_sospetta, tipo: m.tipo, quantita: m.quantita || 0, t: Date.parse(m.data_movimento) });
   movimenti.forEach((m) => (perCoppia[chiave(m)] ||= []).push(mossa(m)));
 
   // Ultimo conteggio prima della finestra
@@ -117,11 +131,20 @@ export async function preparaCalcolo(sr, chiavi) {
     esistenti,
     venditeNonCollegate: teorici.nonCollegate,
     consumiNonConvertiti: teorici.nonConvertiti,
-    coppie: coppie.map(({ u, p, k }) => ({
+    coppie: coppie.map(({ u, p, k }) => {
+      // L'unità sospetta si giudica su tutti i conteggi letti, anche quelli prima dell'inizio dello storico
+      const letti = senzaConteggiDoppi((perCoppia[k] || []).sort((a, b) => a.t - b.t));
+      const sospette = unitaSospette(letti, p.imp.unita_conteggio);
+      const tutti = letti.filter((m) => m.t >= daQuando(u.store_id));
+      const fuori = sospette;
+      return {
       u,
       p,
       k,
-      moves: senzaConteggiDoppi((perCoppia[k] || []).filter((m) => m.t >= daQuando(u.store_id)).sort((a, b) => a.t - b.t)),
+      // I conteggi in unità sospetta restano fuori da consumo e giacenza
+      moves: tutti.filter((m) => !fuori.has(m)),
+      unitaSospette: [...fuori],
+      rete: u.ubicazione_tipo === 'negozio' && diRete.has(p.imp.item_id),
       // Consumo teorico del prodotto nello store, giorno per giorno
       teorico: { giorni: teorici.giorniPerStore[u.store_id] || [], perGiorno: teorici.perStore[u.store_id]?.[p.imp.item_id] || {} },
       // Prossimo conteggio a partire dal risultato di calcolaGiacenza
@@ -133,7 +156,8 @@ export async function preparaCalcolo(sr, chiavi) {
         tempoConsegna: p.tempoConsegna,
         intervallo: intervalli[p.categoria]
       })
-    }))
+      };
+    })
   };
 }
 
@@ -148,12 +172,17 @@ export async function ricalcola(sr, chiavi) {
   const aggiornati = [];
   const etichette = [];
 
-  coppie.forEach(({ u, p, k, moves, teorico, prossimo: prossimoPer }) => {
-    const r = calcolaGiacenza(moves, now, soglia, teorico);
-    // L'etichetta "sospetto" sui conteggi segue il calcolo: si scrive solo dove è cambiata
+  coppie.forEach(({ u, p, k, moves, unitaSospette: fuori, rete, teorico, prossimo: prossimoPer }) => {
+    const r = calcolaGiacenza(moves, now, soglia, teorico, rete);
+    // Le etichette "sospetto" e "unità sospetta" sui conteggi seguono il calcolo: si scrivono solo dove sono cambiate
     moves.forEach((m) => {
-      if (m.tipo === 'conteggio' && m.id && r.sospetti.has(m) !== m.sospetto) etichette.push({ id: m.id, sospetto: r.sospetti.has(m) });
+      if (m.tipo !== 'conteggio' || !m.id) return;
+      if (r.sospetti.has(m) !== m.sospetto || m.unita_sospetta) etichette.push({ id: m.id, sospetto: r.sospetti.has(m), unita_sospetta: false });
     });
+    fuori.forEach((m) => {
+      if (m.id && (!m.unita_sospetta || m.sospetto)) etichette.push({ id: m.id, sospetto: false, unita_sospetta: true });
+    });
+    const ultimoFuori = fuori[fuori.length - 1];
     if (r.incoerenti) conteggiIncoerenti.push({ ubicazione_key: u.ubicazione_key, item_nome: p.nome, negativi: r.negativi, totali: r.totali });
     const prossimo = prossimoPer(r, oggi);
     const record = {
@@ -164,6 +193,9 @@ export async function ricalcola(sr, chiavi) {
       unita: p.imp.unita_conteggio,
       ultimo_conteggio_valore: r.ultimo ? r.ultimo.quantita : null,
       ultimo_conteggio_data: r.ultimo ? new Date(r.ultimo.t).toISOString() : null,
+      unita_sospetta_conteggi: fuori.length,
+      unita_sospetta_valore: ultimoFuori ? ultimoFuori.quantita : null,
+      unita_sospetta_data: ultimoFuori ? new Date(ultimoFuori.t).toISOString() : null,
       giacenza_stimata: r3(r.giacenza),
       consumo_medio_giorno: r3(r.consumo),
       consumo_teorico_giorno: r3(r.teoricoGiorno),
@@ -202,6 +234,7 @@ export async function ricalcola(sr, chiavi) {
     eliminate: daEliminare.length,
     conteggi_incoerenti: conteggiIncoerenti,
     conteggi_sospetti: etichette.filter((e) => e.sospetto).length,
+    unita_sospette: etichette.filter((e) => e.unita_sospetta).length,
     vendite_non_collegate: venditeNonCollegate,
     consumi_non_convertiti: consumiNonConvertiti
   };

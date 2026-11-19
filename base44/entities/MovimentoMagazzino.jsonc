@@ -111,6 +111,11 @@
       "default": false,
       "description": "Conteggio troppo lontano dalla giacenza stimata e non ancora confermato da un riconteggio: non conta nel calcolo del consumo. Lo aggiorna il ricalcolo"
     },
+    "unita_sospetta": {
+      "type": "boolean",
+      "default": false,
+      "description": "Conteggio in grammi o ml scritto probabilmente in un'altra unit\u00e0: resta fuori da consumo e giacenza. Lo aggiorna il ricalcolo"
+    },
     "note": {
       "type": "string"
     }

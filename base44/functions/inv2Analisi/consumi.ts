@@ -13,7 +13,7 @@ export async function consumi(sr) {
   if (!storeIds.length) return { giorni: GIORNI, stores };
 
   const { now, coppie } = await preparaCalcolo(sr, storeIds);
-  coppie.forEach(({ u, p, moves, teorico }) => {
+  coppie.forEach(({ u, p, moves, teorico, rete }) => {
     const c = confrontaConsumo(moves, teorico, now - GIORNI * GIORNO);
     if (!c || !(c.teorico > 0)) return;
     (stores[u.ubicazione_key] ||= []).push({
@@ -21,10 +21,12 @@ export async function consumi(sr) {
       nome: p.nome,
       unita: p.imp.unita_conteggio || '',
       giorni: arrotonda(c.giorni, 1),
-      conteggi: arrotonda(c.conteggi, 3),
+      // Semilavorato di rete: il consumo dai conteggi del singolo negozio non si calcola
+      conteggi: rete ? null : arrotonda(c.conteggi, 3),
       teorico: arrotonda(c.teorico, 3),
-      misurabile: c.misurabile,
-      scarto_pct: c.misurabile ? arrotonda(((c.conteggi - c.teorico) / c.teorico) * 100, 1) : null
+      rete,
+      misurabile: c.misurabile && !rete,
+      scarto_pct: c.misurabile && !rete ? arrotonda(((c.conteggi - c.teorico) / c.teorico) * 100, 1) : null
     });
   });
   // Prima i misurabili dallo scarto più grande, in fondo i non misurabili

@@ -5,6 +5,7 @@ import '@/components/inventario2/prodottiTable.css';
 import { CONTEGGI_INCOERENTI, FONTE_CONSUMO } from '@/components/inventario2/inv2Utils';
 import { giorno } from '@/components/laboratorio/labUtils';
 import { numeroIt } from '@/components/trasporti/trasportiUtils';
+import ReteRow from './ReteRow';
 
 const PER_PAGINA = 50;
 const ORDINAMENTI = [
@@ -31,6 +32,11 @@ export default function GiacenzeTab({ ubicazioni }) {
   const [next, setNext] = useState(null);
   const [totale, setTotale] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [rete, setRete] = useState([]);
+
+  useEffect(() => {
+    base44.functions.invoke('inv2Analisi', { azione: 'rete' }).then((r) => setRete(r.data.righe));
+  }, []);
 
   const carica = async (cursor) => {
     const q = buildQuery(filtri);
@@ -106,6 +112,9 @@ export default function GiacenzeTab({ ubicazioni }) {
                     </tr>
                   </thead>
                   <tbody>
+                    {rete
+                      .filter((r) => r.nome.toLowerCase().includes(filtri.cerca.trim().toLowerCase()))
+                      .map((r) => <ReteRow key={r.item_id} riga={r} />)}
                     {righe.map((g) => {
                       const [etichetta, colore] = AFFIDABILITA[g.affidabilita] || AFFIDABILITA.nessun_dato;
                       return (
@@ -133,6 +142,15 @@ export default function GiacenzeTab({ ubicazioni }) {
                             <span className="dt1-muted">
                               {g.ultimo_conteggio_data ? `${new Date(g.ultimo_conteggio_data).toLocaleDateString('it-IT')} · ${numeroIt(g.ultimo_conteggio_valore, 2)}` : 'Mai'}
                             </span>
+                            {g.unita_sospetta_data && (
+                              <div style={{ whiteSpace: 'nowrap' }}>
+                                <span className="dt1-badge" style={{ background: '#fecaca' }}>unità sospetta</span>{' '}
+                                <span className="dt1-muted">
+                                  {new Date(g.unita_sospetta_data).toLocaleDateString('it-IT')} · {numeroIt(g.unita_sospetta_valore, 2)}
+                                  {g.unita_sospetta_conteggi > 1 && ` (${g.unita_sospetta_conteggi} conteggi)`}
+                                </span>
+                              </div>
+                            )}
                           </td>
                           <td className="dt1-cell">
                             <span className="dt1-name">{giorno(g.prossimo_conteggio_data)}</span>
