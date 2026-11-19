@@ -21,6 +21,7 @@ export const DEFAULT_CONFIG = {
   modalita_per_store: {},
   lab_store_id: '6908b4f284cb01bc8402b4ee',
   basi_ricetta_id: '',
+  prodotti_verifica: [],
   limite_voci_sera: 15,
   giorni_sicurezza_per_categoria: {
     'Ortofrutta': 1,
@@ -74,8 +75,14 @@ export const FONTI_MOVIMENTO = {
   ordine_fornitore: 'Ordine fornitore',
   produzione_lab: 'Produzione lab',
   trasporto: 'Trasporto',
-  manuale: 'Manuale'
+  manuale: 'Manuale',
+  verifica_admin: 'Verifica admin'
 };
+
+// Da dove viene il fattore di correzione del teorico
+export const FONTE_FATTORE = { verifiche_admin: 'verifiche admin', conteggi: 'conteggi' };
+
+export const giornoOra = (iso) => new Date(iso).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 export function buildRows(materie, ricette) {
   const mp = materie.filter((m) => m.attivo !== false).map((m) => ({

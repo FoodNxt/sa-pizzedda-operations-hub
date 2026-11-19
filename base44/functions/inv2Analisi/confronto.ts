@@ -14,7 +14,7 @@ export async function confronto(sr) {
   const dal = new Date(Date.now() - GIORNI * GIORNO);
   const ubicazioni = { ubicazione_key: { $in: storeIds } };
   const [conteggi, liste, giacenze] = await Promise.all([
-    fetchAll(E.MovimentoMagazzino, { ...ubicazioni, tipo: 'conteggio', data_movimento: { $gte: dal.toISOString() } }, 'data_movimento'),
+    fetchAll(E.MovimentoMagazzino, { ...ubicazioni, tipo: 'conteggio', fonte: { $ne: 'verifica_admin' }, data_movimento: { $gte: dal.toISOString() } }, 'data_movimento'),
     fetchAll(E.ListaConteggioLog, { ...ubicazioni, data: { $gte: giornoRoma(dal) } }, 'data'),
     fetchAll(E.GiacenzaStimata, { ...ubicazioni, ultimo_conteggio_data: { $gte: dal.toISOString() } })
   ]);

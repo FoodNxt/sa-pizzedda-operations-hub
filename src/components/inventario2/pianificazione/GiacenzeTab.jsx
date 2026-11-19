@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Inbox } from 'lucide-react';
 import '@/components/inventario2/prodottiTable.css';
-import { CONTEGGI_INCOERENTI, FONTE_CONSUMO } from '@/components/inventario2/inv2Utils';
+import { CONTEGGI_INCOERENTI, FONTE_CONSUMO, FONTE_FATTORE } from '@/components/inventario2/inv2Utils';
 import { giorno } from '@/components/laboratorio/labUtils';
 import { numeroIt } from '@/components/trasporti/trasportiUtils';
 import ReteRow from './ReteRow';
@@ -132,7 +132,12 @@ export default function GiacenzeTab({ ubicazioni }) {
                             {g.teorico_dal && <div className="dt1-muted" style={{ whiteSpace: 'nowrap' }}>dal {giorno(g.teorico_dal)}{g.teorico_provvisorio ? ' · provvisorio' : ''}</div>}
                             {FONTE_TEORICO[g.teorico_fonte] && <div className="dt1-muted" style={{ whiteSpace: 'nowrap' }}>{FONTE_TEORICO[g.teorico_fonte]}</div>}
                           </td>
-                          <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.fattore_correzione, 2)}</span></td>
+                          <td className="dt1-cell" style={{ textAlign: 'right' }}>
+                            <span className="dt1-muted">{numeroIt(g.fattore_correzione, 2)}</span>
+                            {g.fattore_correzione != null && FONTE_FATTORE[g.fonte_fattore] && (
+                              <div className="dt1-muted" style={{ whiteSpace: 'nowrap' }}>da {FONTE_FATTORE[g.fonte_fattore]}</div>
+                            )}
+                          </td>
                           <td className="dt1-cell">
                             <span className="dt1-muted">{FONTE_CONSUMO[g.fonte_consumo] || '—'}</span>
                             {g.giorni_finestra_consumo && <div className="dt1-muted">Conteggi su {g.giorni_finestra_consumo} giorni</div>}

@@ -11,7 +11,7 @@ export async function rete(sr) {
   coppie.filter((c) => c.rete).forEach((c) => (perItem[c.p.imp.item_id] ||= []).push(c));
   const righe = Object.values(perItem).map((lista) => {
     const c = consumoRete(lista, now - 28 * GIORNO);
-    const giacenze = lista.map((x) => calcolaGiacenza(x.moves, now, soglia, x.teorico, x.rete, x.minimo).giacenza).filter((g) => g != null);
+    const giacenze = lista.map((x) => calcolaGiacenza(x.moves, now, soglia, x.teorico, x.rete, x.minimo, x.ordineAperto).giacenza).filter((g) => g != null);
     const confrontabile = c.valido && c.teorico > 0;
     return {
       // Senza produzioni registrate lo scarto è solo indicativo e non corregge il teorico

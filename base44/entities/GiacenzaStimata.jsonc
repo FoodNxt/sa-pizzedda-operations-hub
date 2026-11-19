@@ -102,6 +102,30 @@
       "type": "number",
       "description": "Consumo da conteggi diviso consumo teorico sullo stesso periodo, tra 0,7 e 1,5"
     },
+    "fonte_fattore": {
+      "type": "string",
+      "enum": [
+        "verifiche_admin",
+        "conteggi"
+      ],
+      "enumColors": [
+        "green",
+        "blue"
+      ],
+      "description": "Da dove viene il fattore di correzione: intervalli puliti tra verifiche admin, oppure conteggi dei dipendenti"
+    },
+    "consumo_misurato_giorno": {
+      "type": "number",
+      "description": "Consumo al giorno misurato sugli intervalli puliti tra due verifiche admin negli ultimi 56 giorni"
+    },
+    "consumo_misurato_giorni": {
+      "type": "number",
+      "description": "Giorni coperti dagli intervalli puliti del consumo misurato"
+    },
+    "intervalli_puliti": {
+      "type": "number",
+      "description": "Intervalli puliti tra due verifiche admin negli ultimi 56 giorni"
+    },
     "giorni_finestra_consumo": {
       "type": "number",
       "description": "Finestra usata per il consumo dai conteggi: 28, 56 o 90 giorni. Vuoto se i conteggi non bastano"

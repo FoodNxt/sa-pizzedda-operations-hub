@@ -5,6 +5,7 @@ import { limiteSera, listaSera } from '../../shared/inv2Lista.ts';
 import { ricalcola } from '../../shared/inv2Ricalcolo.ts';
 import { ordinaPercorso } from '../../shared/inv2Percorso.ts';
 import { conteggiSospetti, simulaConteggi } from '../../shared/inv2Simula.ts';
+import { risultatoVerifica } from '../../shared/inv2Verifica.ts';
 
 const ZONA_SEMILAVORATI = 'Semilavorati';
 // Dati in più per l'admin in modalità prova
@@ -90,9 +91,17 @@ export default async function (req) {
     }
 
     // Inventario completo: solo admin, tutti i prodotti dell'ubicazione, senza toccare la lista della sera
-    const completo = body.azione === 'lista_completa' || body.azione === 'salva_completo';
+    // Conteggio di verifica: solo admin, come l'inventario completo ma salvato con fonte verifica_admin. È un conteggio vero
+    const verifica = body.azione === 'lista_verifica' || body.azione === 'salva_verifica';
+    const completo = verifica || body.azione === 'lista_completa' || body.azione === 'salva_completo';
     if (completo && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
-    if (body.azione === 'lista_completa') return Response.json({ ubicazione_key: key, righe: ordinaPercorso(await righe(E, giacenze, storeId), piantina) });
+    if (body.azione === 'lista_completa' || body.azione === 'lista_verifica') {
+      return Response.json({
+        ubicazione_key: key,
+        righe: ordinaPercorso(await righe(E, giacenze, storeId), piantina),
+        ...(verifica ? { predefiniti: (config.prodotti_verifica || []).filter((id) => perId[id]) } : {})
+      });
+    }
 
     const simula = prova && body.azione === 'simula';
     if (body.azione !== 'salva' && !completo && !simula) return Response.json({ error: 'azione non valida' }, { status: 400 });
@@ -119,6 +128,9 @@ export default async function (req) {
       if (sospetti.length) return Response.json({ sospetti });
     }
 
+    // Stima e ultimo conteggio dei dipendenti si leggono prima di salvare la verifica
+    const risultato = verifica ? await risultatoVerifica(sr, key, conteggi, perId) : null;
+
     const ora = new Date().toISOString();
     const operatoreNome = user.nome_cognome || user.full_name;
     const sessione = completo ? null : sessioneOggi || await E.SessioneConteggio.create({
@@ -143,8 +155,8 @@ export default async function (req) {
         data_movimento: ora,
         utente_email: user.email,
         utente_nome: operatoreNome,
-        fonte: 'inventario_v2',
-        ...(sessione ? { sessione_id: sessione.id } : { note: 'Inventario completo' })
+        fonte: verifica ? 'verifica_admin' : 'inventario_v2',
+        ...(sessione ? { sessione_id: sessione.id } : { note: verifica ? 'Conteggio di verifica' : 'Inventario completo' })
       })));
     } catch (e) {
       if (sessione && !sessioneOggi) await E.SessioneConteggio.delete(sessione.id);
@@ -162,7 +174,7 @@ export default async function (req) {
       ricalcolato = false;
       console.error('Ricalcolo non riuscito dopo il conteggio', e.message);
     }
-    return Response.json({ sessione_id: sessione?.id, conteggi: conteggi.length, ricalcolato });
+    return Response.json({ sessione_id: sessione?.id, conteggi: conteggi.length, ricalcolato, ...(risultato ? { risultato } : {}) });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -36,6 +36,14 @@
       ],
       "description": "ID delle ricette che non contano nel consumo teorico dei negozi (default Pallina: le basi arrivano dal laboratorio)"
     },
+    "prodotti_verifica": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "item_id dei prodotti proposti nel conteggio di verifica dell'admin"
+    },
     "limite_voci_sera": {
       "type": "number",
       "default": 15,

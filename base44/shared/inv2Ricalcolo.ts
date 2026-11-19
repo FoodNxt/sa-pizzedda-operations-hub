@@ -1,4 +1,4 @@
-import { aBlocchi, fetchAll, loadConfig, norm } from './inv2.ts';
+import { aBlocchi, fetchAll, loadConfig, norm, ubicazionePer } from './inv2.ts';
 import { GIORNO, calcolaGiacenza, giornoRoma, prossimoConteggio, senzaConteggiDoppi, unitaSospette } from './inv2Calcolo.ts';
 import { consumoRete } from './inv2Rete.ts';
 import { consumiTeorici, mezzanotte, ricetteEscluse } from './inv2Teorico.ts';
@@ -27,11 +27,21 @@ export async function preparaCalcolo(sr, chiavi) {
     fetchAll(E.Ricetta),
     fetchAll(E.Fornitore)
   ]);
-  const [impostazioni, esistenti, movimenti] = await Promise.all([
+  const [impostazioni, esistenti, movimenti, ordiniAperti] = await Promise.all([
     fetchAll(E.ImpostazioneInventario2, { incluso: true }),
     fetchAll(E.GiacenzaStimata, filtroUbic),
-    fetchAll(E.MovimentoMagazzino, { ...filtroUbic, data_movimento: { $gte: dal } }, 'data_movimento')
+    fetchAll(E.MovimentoMagazzino, { ...filtroUbic, data_movimento: { $gte: dal } }, 'data_movimento'),
+    // Ordini degli ultimi 30 giorni non ancora confermati: finché restano aperti l'intervallo tra due verifiche admin non è pulito
+    fetchAll(E.OrdineFornitore, { status: 'inviato', created_date: { $gte: new Date(now - 30 * GIORNO).toISOString() } })
   ]);
+  // Per ubicazione e prodotto, l'invio del più vecchio ordine ancora aperto
+  const laboratorio = Object.fromEntries(impostazioni.map((i) => [i.item_id, i.laboratorio]));
+  const aperti = {};
+  ordiniAperti.forEach((o) => (o.prodotti || []).forEach((riga) => {
+    const key = o.ubicazione_key || ubicazionePer(o.store_id, laboratorio[riga.prodotto_id], labStoreId).ubicazione_key;
+    const k = `${key}|${riga.prodotto_id}`;
+    aperti[k] = Math.min(aperti[k] ?? Infinity, Date.parse(o.data_invio || o.created_date));
+  }));
 
   // Semilavorati trasportabili del laboratorio: il calcolo è di rete finché non passano 14 giorni dalla data di partenza,
   // la più recente tra la prima produzione e il primo trasporto registrati
@@ -101,7 +111,7 @@ export async function preparaCalcolo(sr, chiavi) {
   // Movimenti degli ultimi 90 giorni per ubicazione e prodotto
   const perCoppia = {};
   const chiave = (m) => `${m.ubicazione_key}|${m.item_id}`;
-  const mossa = (m) => ({ id: m.id, sospetto: !!m.sospetto, unita_sospetta: !!m.unita_sospetta, unita_precedente: !!m.unita_precedente, unita: m.unita, tipo: m.tipo, quantita: m.quantita || 0, t: Date.parse(m.data_movimento) });
+  const mossa = (m) => ({ id: m.id, sospetto: !!m.sospetto, unita_sospetta: !!m.unita_sospetta, unita_precedente: !!m.unita_precedente, unita: m.unita, tipo: m.tipo, verifica: m.fonte === 'verifica_admin', quantita: m.quantita || 0, t: Date.parse(m.data_movimento) });
   movimenti.forEach((m) => (perCoppia[chiave(m)] ||= []).push(mossa(m)));
 
   // Ultimo conteggio prima della finestra
@@ -151,6 +161,7 @@ export async function preparaCalcolo(sr, chiavi) {
       u,
       p,
       k,
+      ordineAperto: aperti[k] ?? null,
       // I conteggi in unità sospetta o precedente restano fuori da consumo e giacenza
       moves: letti.filter((m) => m.t >= daQuando(u.store_id) && !fuori.has(m)),
       // Conteggi prima dell'inizio dello storico o doppi: non entrano nel calcolo ma perdono le etichette di unità
@@ -204,8 +215,8 @@ export async function ricalcola(sr, chiavi) {
   const etichette = [];
   const soglie = new Set();
 
-  coppie.forEach(({ u, p, k, moves, primaStorico, unitaSospette: fuori, unitaPrecedenti: precedenti, rete, minimo, teorico, prossimo: prossimoPer }) => {
-    const r = calcolaGiacenza(moves, now, soglia, teorico, rete, minimo);
+  coppie.forEach(({ u, p, k, moves, primaStorico, unitaSospette: fuori, unitaPrecedenti: precedenti, rete, minimo, ordineAperto, teorico, prossimo: prossimoPer }) => {
+    const r = calcolaGiacenza(moves, now, soglia, teorico, rete, minimo, ordineAperto);
     primaStorico.forEach((m) => {
       if (m.id && (m.unita_sospetta || m.unita_precedente)) etichette.push({ id: m.id, sospetto: m.sospetto, unita_sospetta: false, unita_precedente: false });
     });
@@ -256,6 +267,10 @@ export async function ricalcola(sr, chiavi) {
       teorico_provvisorio: teorico.provvisorio,
       teorico_fonte: teorico.fonte,
       fattore_correzione: r3(r.fattore),
+      fonte_fattore: r.fonteFattore,
+      consumo_misurato_giorno: r3(r.misurato?.consumo),
+      consumo_misurato_giorni: r3(r.misurato?.giorni),
+      intervalli_puliti: r.misurato?.intervalli ?? 0,
       fonte_consumo: r.fonte,
       uscite_registrate_giorno: r3(r.usciteGiorno),
       intervalli_negativi: r.negativi,

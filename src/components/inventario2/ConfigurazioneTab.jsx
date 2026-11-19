@@ -13,6 +13,7 @@ import ImportaVendite from './ImportaVendite';
 import InizioStorico from './InizioStorico';
 import RicetteEscluse from './RicetteEscluse';
 import GiorniSicurezza from './GiorniSicurezza';
+import ProdottiVerifica from './ProdottiVerifica';
 import { oggiLocale } from '@/components/laboratorio/labUtils';
 
 export default function ConfigurazioneTab() {
@@ -76,6 +77,7 @@ export default function ConfigurazioneTab() {
       lab_store_id: cfg.lab_store_id,
       basi_ricetta_id: cfg.basi_ricetta_id || '',
       ricette_escluse_dal_consumo_negozio: cfg.ricette_escluse_dal_consumo_negozio || [],
+      prodotti_verifica: cfg.prodotti_verifica || [],
       limite_voci_sera: Number(cfg.limite_voci_sera) || 0,
       intervallo_max_giorni_per_categoria: intervalli,
       giorni_sicurezza_per_categoria: Object.fromEntries(Object.entries(cfg.giorni_sicurezza_per_categoria).map(([k, v]) => [k, Number(v) || 0])),
@@ -196,6 +198,11 @@ export default function ConfigurazioneTab() {
         ricette={ricette}
         escluse={cfg.ricette_escluse_dal_consumo_negozio || []}
         onChange={(ids) => set({ ricette_escluse_dal_consumo_negozio: ids })}
+      />
+
+      <ProdottiVerifica
+        scelti={cfg.prodotti_verifica || []}
+        onChange={(ids) => set({ prodotti_verifica: ids })}
       />
 
       <ImportaVendite />

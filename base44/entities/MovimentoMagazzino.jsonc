@@ -88,7 +88,8 @@
         "ordine_fornitore",
         "produzione_lab",
         "trasporto",
-        "manuale"
+        "manuale",
+        "verifica_admin"
       ],
       "enumColors": [
         "green",
@@ -97,8 +98,10 @@
         "blue",
         "purple",
         "yellow",
-        "pink"
-      ]
+        "pink",
+        "red"
+      ],
+      "description": "Da dove arriva il movimento. verifica_admin = conteggio di verifica fatto da un admin: \u00e8 sempre valido"
     },
     "riferimento_id": {
       "type": "string"

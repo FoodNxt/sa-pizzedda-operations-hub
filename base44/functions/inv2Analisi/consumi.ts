@@ -1,5 +1,5 @@
 import { loadConfig } from '../../shared/inv2.ts';
-import { GIORNO, confrontaConsumo } from '../../shared/inv2Calcolo.ts';
+import { GIORNO, confrontaConsumo, consumoMisurato, consumoTeorico } from '../../shared/inv2Calcolo.ts';
 import { preparaCalcolo } from '../../shared/inv2Ricalcolo.ts';
 
 const GIORNI = 21;
@@ -13,20 +13,27 @@ export async function consumi(sr) {
   if (!storeIds.length) return { giorni: GIORNI, stores };
 
   const { now, coppie } = await preparaCalcolo(sr, storeIds);
-  coppie.forEach(({ u, p, moves, teorico, rete }) => {
-    const c = confrontaConsumo(moves, teorico, now - GIORNI * GIORNO);
-    if (!c || !(c.teorico > 0)) return;
+  coppie.forEach(({ u, p, moves, teorico, rete, ordineAperto }) => {
+    const confronto = confrontaConsumo(moves, teorico, now - GIORNI * GIORNO);
+    const c = confronto?.teorico > 0 ? confronto : null;
+    const vendite = consumoTeorico(teorico);
+    // Consumo misurato sugli intervalli puliti tra due verifiche admin, ultimi 56 giorni
+    const misurato = rete ? null : consumoMisurato(moves, vendite.tra, now, 56, ordineAperto);
+    if (!c && !misurato) return;
     (stores[u.ubicazione_key] ||= []).push({
       item_id: p.imp.item_id,
       nome: p.nome,
       unita: p.imp.unita_conteggio || '',
-      giorni: arrotonda(c.giorni, 1),
+      giorni: c ? arrotonda(c.giorni, 1) : null,
       // Semilavorato di rete: il consumo dai conteggi del singolo negozio non si calcola
-      conteggi: rete ? null : arrotonda(c.conteggi, 3),
-      teorico: arrotonda(c.teorico, 3),
+      conteggi: c && !rete ? arrotonda(c.conteggi, 3) : null,
+      teorico: c ? arrotonda(c.teorico, 3) : vendite.media > 0 ? arrotonda(vendite.media, 3) : null,
+      misurato: misurato ? arrotonda(misurato.consumo, 3) : null,
+      intervalli_puliti: misurato?.intervalli ?? 0,
       rete: !!rete,
-      misurabile: c.misurabile && !rete,
-      scarto_pct: c.misurabile && !rete ? arrotonda(((c.conteggi - c.teorico) / c.teorico) * 100, 1) : null
+      senza_conteggi: !c,
+      misurabile: !!c && c.misurabile && !rete,
+      scarto_pct: c && c.misurabile && !rete ? arrotonda(((c.conteggi - c.teorico) / c.teorico) * 100, 1) : null
     });
   });
   // Prima i misurabili dallo scarto più grande, in fondo i non misurabili
