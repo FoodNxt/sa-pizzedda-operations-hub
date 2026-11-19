@@ -15,7 +15,7 @@ function Differenza({ unita, pct }) {
   );
 }
 
-// Dopo il salvataggio: il conteggio dell'admin accanto alla stima e all'ultimo conteggio dei dipendenti
+// Dopo il salvataggio: il conteggio dell'admin accanto alla stima e al valore atteso dall'ultimo conteggio dei dipendenti
 export default function VerificaRisultato({ righe }) {
   return (
     <div className="max-h-[60vh] overflow-auto rounded-lg border border-slate-200">
@@ -27,14 +27,19 @@ export default function VerificaRisultato({ righe }) {
             <th className="px-3 py-2 text-right">Stima del sistema</th>
             <th className="px-3 py-2 text-right">Differenza</th>
             <th className="px-3 py-2 text-left">Ultimo conteggio dipendente</th>
-            <th className="px-3 py-2 text-right">Differenza</th>
+            <th className="px-3 py-2 text-right">Teorico sottratto</th>
+            <th className="px-3 py-2 text-right">Atteso</th>
+            <th className="px-3 py-2 text-right">Scarto del dipendente</th>
           </tr>
         </thead>
         <tbody>
           {righe.map((r) => (
             <tr key={r.item_id} className="border-t border-slate-100">
               <td className="px-3 py-2 text-slate-800">{r.nome}</td>
-              <td className="px-3 py-2 text-right font-semibold text-slate-900">{numeroIt(r.quantita, 2)} <span className="font-normal text-slate-500">{r.unita}</span></td>
+              <td className="px-3 py-2 text-right font-semibold text-slate-900">
+                {numeroIt(r.quantita, 2)} <span className="font-normal text-slate-500">{r.unita}</span>
+                {r.ora && <div className="text-xs font-normal text-slate-500">{giornoOra(r.ora)}</div>}
+              </td>
               <td className="px-3 py-2 text-right text-slate-700">{numeroIt(r.stima, 2)}</td>
               <td className="px-3 py-2 text-right"><Differenza unita={r.differenza_stima} pct={r.differenza_stima_pct} /></td>
               <td className="px-3 py-2 text-slate-700">
@@ -45,6 +50,11 @@ export default function VerificaRisultato({ righe }) {
                   </>
                 ) : <span className="text-slate-400">Nessuno negli ultimi 60 giorni</span>}
               </td>
+              <td className="px-3 py-2 text-right text-slate-700">
+                {r.ultimo ? numeroIt(r.teorico_sottratto, 2) : '—'}
+                {r.orario_stimato && <div className="text-xs text-amber-600">orario stimato</div>}
+              </td>
+              <td className="px-3 py-2 text-right text-slate-700">{numeroIt(r.atteso, 2)}</td>
               <td className="px-3 py-2 text-right"><Differenza unita={r.differenza_ultimo} pct={r.differenza_ultimo_pct} /></td>
             </tr>
           ))}

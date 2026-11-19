@@ -7,9 +7,11 @@ import { numeroIt } from '@/components/trasporti/trasportiUtils';
 const ora = (iso) => new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 const campo = { type: 'number', min: '0', step: 'any', inputMode: 'decimal' };
 
-// Un prodotto del conteggio di verifica: "Salva" lo conferma con l'ora di quel momento.
-// Con una tara si può scrivere il peso lordo e il numero di contenitori. confermato = { quantita, ora }
-export default function VerificaRiga({ r, confermato, onConferma, onModifica }) {
+// Un prodotto del conteggio di verifica: "Salva" lo mette subito in bozza sul server con l'ora di quel momento.
+// Con una tara si può scrivere il peso lordo e il numero di contenitori. confermato = { quantita, ora }, bloccata = non si modifica
+export default function VerificaRiga({ r, confermato, bloccata, onConferma, onModifica }) {
+  const [busy, setBusy] = useState(false);
+  const esegui = async (azione) => { setBusy(true); await azione(); setBusy(false); };
   const [valore, setValore] = useState('');
   const [lordo, setLordo] = useState(false);
   const [contenitori, setContenitori] = useState('');
@@ -24,7 +26,7 @@ export default function VerificaRiga({ r, confermato, onConferma, onModifica }) 
         <span className="flex-1 text-sm text-slate-800">{r.nome}</span>
         <span className="text-sm font-semibold text-slate-900">{numeroIt(confermato.quantita, 3)} <span className="font-normal text-slate-500">{r.unita}</span></span>
         <span className="text-xs text-slate-500">alle {ora(confermato.ora)}</span>
-        <Button variant="outline" size="sm" onClick={onModifica}>Modifica</Button>
+        {!bloccata && <Button variant="outline" size="sm" disabled={busy} onClick={() => esegui(onModifica)}>Modifica</Button>}
       </div>
     );
   }
@@ -48,7 +50,7 @@ export default function VerificaRiga({ r, confermato, onConferma, onModifica }) 
           </span>
         </>
       )}
-      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={!valido} onClick={() => onConferma(netto)}>Salva</Button>
+      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={!valido || busy} onClick={() => esegui(() => onConferma(netto))}>{busy ? '…' : 'Salva'}</Button>
     </div>
   );
 }

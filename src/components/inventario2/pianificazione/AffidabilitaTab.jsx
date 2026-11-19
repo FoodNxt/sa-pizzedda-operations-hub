@@ -7,7 +7,7 @@ export default function AffidabilitaTab({ dati }) {
     <div className="space-y-6">
       <TabellaScarti
         titolo="Affidabilità per prodotto"
-        descrizione="Ultimi 56 giorni. Verifica admin salvata prima delle 11 contro il conteggio dei dipendenti della sera prima, senza vendite né movimenti tra i due. Oltre il 15% di scarto medio il prodotto va spiegato meglio allo staff."
+        descrizione="Ultimi 56 giorni. Verifica admin contro l'ultimo conteggio dei dipendenti delle 48 ore precedenti, tolto il teorico delle vendite tra i due orari. Oltre il 15% di scarto medio il prodotto va spiegato meglio allo staff."
         intestazione="Prodotto"
         righe={dati?.prodotti}
         evidenzia={15}

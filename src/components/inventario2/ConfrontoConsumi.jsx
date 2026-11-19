@@ -58,7 +58,7 @@ export default function ConfrontoConsumi({ righe }) {
                           </td>
                           <td className="dt1-cell" style={destra}>
                             <span className="dt1-name">{numeroIt(r.misurato, 3)}</span> {r.misurato != null && <span className="dt1-muted">{r.unita}</span>}
-                            {r.intervalli_puliti > 0 && <div className="dt1-muted">{r.intervalli_puliti} {r.intervalli_puliti === 1 ? 'intervallo pulito' : 'intervalli puliti'}</div>}
+                            {r.intervalli_puliti > 0 && <div className="dt1-muted">{r.intervalli_puliti} {r.intervalli_puliti === 1 ? 'intervallo pulito' : 'intervalli puliti'}{r.orario_stimato ? ' · orario stimato' : ''}</div>}
                           </td>
                           <td className="dt1-cell" style={destra}>
                             {r.misurabile ? (

@@ -27,14 +27,15 @@ export default function TabellaScarti({ titolo, descrizione, intestazione, righe
                 <div className="dt1-empty">
                   <span className="dt1-empty-ico"><Inbox /></span>
                   <span className="dt1-empty-t">Nessun confronto</span>
-                  <p className="dt1-empty-p">Serve una verifica admin salvata prima delle 11, con un conteggio dei dipendenti della sera prima sullo stesso prodotto.</p>
+                  <p className="dt1-empty-p">Serve una verifica admin con un conteggio dei dipendenti sullo stesso prodotto nelle 48 ore precedenti, senza movimenti registrati in mezzo.</p>
                 </div>
               ) : (
-                <table className="dt1-table" style={{ minWidth: 640 }}>
+                <table className="dt1-table" style={{ minWidth: 780 }}>
                   <thead>
                     <tr>
                       <th className="dt1-th" scope="col">{intestazione}</th>
                       <th className="dt1-th" scope="col" style={destra}>Confronti</th>
+                      <th className="dt1-th" scope="col" style={destra}>Teorico sottratto medio</th>
                       <th className="dt1-th" scope="col" style={destra}>Scarto medio</th>
                       <th className="dt1-th" scope="col" style={destra}>Scarto medio in unità</th>
                       <th className="dt1-th" scope="col" style={destra}>Volte oltre il 10%</th>
@@ -50,6 +51,10 @@ export default function TabellaScarti({ titolo, descrizione, intestazione, righe
                             {oltre && <div className="dt1-muted">Da spiegare meglio allo staff</div>}
                           </td>
                           <td className="dt1-cell" style={destra}><span className="dt1-muted">{r.confronti}</span></td>
+                          <td className="dt1-cell" style={destra}>
+                            <span className="dt1-muted">{numeroIt(r.teorico_sottratto_medio, 2)} {r.unita}</span>
+                            {r.orario_stimato > 0 && <div className="dt1-muted">orario stimato in {r.orario_stimato}</div>}
+                          </td>
                           <td className="dt1-cell" style={destra}>
                             <span className="dt1-badge" style={{ background: oltre ? '#fecaca' : '#e2e8f0' }}>{numeroIt(r.scarto_medio_pct, 1)}%</span>
                           </td>

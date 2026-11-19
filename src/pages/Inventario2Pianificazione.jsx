@@ -13,6 +13,7 @@ import AffidabilitaTab from '@/components/inventario2/pianificazione/Affidabilit
 import ProvaDipendente from '@/components/inventario2/pianificazione/ProvaDipendente';
 import ConteggioVerificaDialog from '@/components/inventario2/verifica/ConteggioVerificaDialog';
 import PromemoriaVerifiche from '@/components/inventario2/verifica/PromemoriaVerifiche';
+import AggiornaVenditeOggi from '@/components/inventario2/verifica/AggiornaVenditeOggi';
 
 export default function Inventario2Pianificazione() {
   const ubicazioni = useUbicazioni();
@@ -38,6 +39,7 @@ export default function Inventario2Pianificazione() {
             <p className="text-slate-500">Giacenze stimate, prossimi conteggi e frequenza dei consumabili</p>
           </div>
           {ubicazioni && <ProvaDipendente ubicazioni={ubicazioni} />}
+          {ubicazioni && <AggiornaVenditeOggi />}
           {ubicazioni && (
             <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => setVerifica(true)}>
               <ClipboardCheck className="w-4 h-4 mr-2" />
