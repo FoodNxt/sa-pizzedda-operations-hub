@@ -47,6 +47,45 @@
     "completata": {
       "type": "boolean",
       "default": false
+    },
+    "verifica": {
+      "type": "boolean",
+      "default": false,
+      "description": "Conteggio di verifica dell'admin: non vale come inventario della sera"
+    },
+    "stato": {
+      "type": "string",
+      "enum": [
+        "bozza",
+        "chiusa",
+        "scartata"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "gray"
+      ],
+      "description": "Solo per il conteggio di verifica. bozza = righe salvate ma non ancora movimenti, chiusa = verifica salvata, scartata = bozza buttata"
+    },
+    "righe_bozza": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "quantita": {
+            "type": "number"
+          },
+          "ora": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Quando la riga \u00e8 stata salvata"
+          }
+        }
+      },
+      "description": "Righe del conteggio di verifica: diventano movimenti solo con Salva verifica"
     }
   },
   "required": [

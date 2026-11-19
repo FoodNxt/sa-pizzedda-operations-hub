@@ -2,6 +2,7 @@
 import { aBlocchi, fetchAll } from './inv2.ts';
 import { addGiorni, giornoRoma } from './inv2Calcolo.ts';
 import { aPesoOVolume, espandiIngredienti, inConteggio } from './inv2Conversioni.ts';
+import { leggiVendite, pesiOrari } from './inv2VenditeOrarie.ts';
 
 const GIORNI = 28;
 
@@ -27,19 +28,6 @@ function motivoNonConvertito(unita, mp, imp) {
   return `${unita || 'unità mancante'} non si converte in ${destinazione}`;
 }
 
-// Vendite dei giorni indicati per giorno, store e prodotto. Se sono troppe per una sola lettura, i giorni si dividono a metà
-async function leggiVendite(E, giorni, storeIds) {
-  const { rows, truncated } = await E.VenditaPOS.aggregate({
-    query: { data: { $in: giorni }, store_id: { $in: storeIds } },
-    groupBy: ['data', 'store_id', 'chiave_prodotto', 'combo_non_scomposto'],
-    sum: ['quantita']
-  });
-  if (!truncated) return rows;
-  if (giorni.length === 1) throw new Error(`Troppe vendite da leggere per il ${giorni[0]}`);
-  const meta = Math.ceil(giorni.length / 2);
-  return [...await leggiVendite(E, giorni.slice(0, meta), storeIds), ...await leggiVendite(E, giorni.slice(meta), storeIds)];
-}
-
 // impostazioni = solo i prodotti inclusi in Inventario 2.0, escluse = id delle ricette che non contano nel consumo dei negozi,
 // inizi = { store_id: giorno } da cui parte lo storico dello store: le vendite precedenti non contano
 export async function consumiTeorici(E, { storeIds, now, ricette, materie, impostazioni, escluse = [], inizi = {} }) {
@@ -58,7 +46,7 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
 
   // Poche letture a settimane intere: il raggruppamento accetta 4 campi, quindi le pizze si leggono a parte
   const [pagine, pizze] = await Promise.all([
-    Promise.all(aBlocchi(date, 7).map((giorni) => leggiVendite(E, giorni, storeIds))),
+    Promise.all(aBlocchi(date, 7).map((giorni) => leggiVendite(E.VenditaPOS, ['data', 'store_id', 'chiave_prodotto', 'combo_non_scomposto'], giorni, storeIds))),
     E.VenditaPOS.aggregate({ query: { data: { $in: date }, is_pizza: true }, groupBy: ['chiave_prodotto'] })
   ]);
   if (pizze.truncated) throw new Error('Troppi prodotti venduti da leggere');
@@ -147,6 +135,19 @@ export async function consumiTeorici(E, { storeIds, now, ricette, materie, impos
     const totale = Object.values(gusti).reduce((s, q) => s + q, 0);
     if (!(totale > 0)) { esito.nonCollegate += m.pezzi; return; }
     Object.entries(gusti).forEach(([chiave, q]) => aggiungi(m.store_id, m.data, chiave, m.pezzi * (q / totale)));
+  });
+  // Vendite per ora: pesi per ripartire il teorico del giorno tra le ore, e consumo delle ore di oggi già lette
+  esito.orario = await pesiOrari(E, {
+    storeIds,
+    date,
+    oggi,
+    inizioOggi: mezzanotte(oggi),
+    consumoDi: (chiave) => {
+      const c = perChiave[chiave];
+      return c && c.tipo !== 'ignora' && c.item_id ? (cache[chiave] ||= perPezzo(c)) : null;
+    },
+    ricetta: (chiave) => perChiave[chiave]?.tipo === 'ricetta',
+    gustiNegozio
   });
   esito.nonConvertiti = [...nonConvertiti.keys()];
   esito.motivi = [...nonConvertiti].map(([nome, motivo]) => ({ nome, motivo }));

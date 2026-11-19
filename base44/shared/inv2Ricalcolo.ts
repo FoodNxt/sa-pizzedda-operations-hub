@@ -174,10 +174,16 @@ export async function preparaCalcolo(sr, chiavi) {
       // per i semilavorati tornati al calcolo per negozio, della data di partenza
       minimo: Math.max(daQuando(u.store_id), cambio, avvio?.perNegozio ? avvio.partenza : 0),
       // Consumo teorico del prodotto nell'ubicazione, giorno per giorno, dal primo giorno di vendita
-      teorico: componiTeorico(
-        teorici.giorniPerStore, u.store_id, teorici.perStore[u.store_id]?.[p.imp.item_id], daSemilavorati[k] || [],
-        grezzi.some((m) => m.tipo === 'produzione_scarico' && m.t >= now - 28 * GIORNO)
-      ),
+      teorico: {
+        ...componiTeorico(
+          teorici.giorniPerStore, u.store_id, teorici.perStore[u.store_id]?.[p.imp.item_id], daSemilavorati[k] || [],
+          grezzi.some((m) => m.tipo === 'produzione_scarico' && m.t >= now - 28 * GIORNO)
+        ),
+        // Per il teorico all'ora esatta: pesi orari dello store e se il prodotto ha vendite dirette
+        ore: teorici.orario?.[u.store_id],
+        itemId: p.imp.item_id,
+        diretto: !!teorici.perStore[u.store_id]?.[p.imp.item_id]
+      },
       // Prossimo conteggio a partire dal risultato di calcolaGiacenza
       prossimo: (r, oggi) => prossimoConteggio({
         fisso: p.imp.conteggio_fisso_per_ubicazione?.[u.ubicazione_key] ?? p.imp.conteggio_fisso,

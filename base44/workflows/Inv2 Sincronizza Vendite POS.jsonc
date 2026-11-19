@@ -1,30 +1,6 @@
 {
-  "description": "Ogni notte alle 02:00 importa dal POS le vendite degli ultimi 3 giorni, prima del ricalcolo delle 02:30",
-  "definition": {
-    "document": {
-      "dsl": "1.0.0",
-      "name": "inv2_sincronizza_vendite_pos",
-      "version": "1.0",
-      "namespace": "base44"
-    },
-    "do": [
-      {
-        "sincronizza_vendite": {
-          "call": "invoke_backend_function",
-          "with": {
-            "function_name": "inv2SincronizzaVendite",
-            "args": {}
-          },
-          "then": "end",
-          "x-base44": {
-            "title": "Importa le vendite del POS",
-            "description": "Ultimi 3 giorni"
-          }
-        }
-      }
-    ]
-  },
   "name": "Inv2 Sincronizza Vendite POS",
+  "description": "Ogni notte alle 02:00 importa dal POS le vendite degli ultimi 3 giorni, per giorno e per ora, prima del ricalcolo delle 02:30",
   "trigger": {
     "condition": null,
     "config": {
@@ -41,5 +17,45 @@
       "ends_on_date": null,
       "ends_after_count": null
     }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "inv2_sincronizza_vendite_pos",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sincronizza_vendite": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "inv2SincronizzaVendite",
+            "args": {}
+          },
+          "then": "sincronizza_vendite_orarie",
+          "x-base44": {
+            "title": "Importa le vendite del POS",
+            "description": "Ultimi 3 giorni"
+          }
+        }
+      },
+      {
+        "sincronizza_vendite_orarie": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "inv2SincronizzaVendite",
+            "args": {
+              "orarie": true
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Importa le vendite per ora",
+            "description": "Ultimi 3 giorni"
+          }
+        }
+      }
+    ]
   }
 }

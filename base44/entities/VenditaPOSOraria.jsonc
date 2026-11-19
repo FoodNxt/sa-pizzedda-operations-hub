@@ -1,0 +1,105 @@
+{
+  "name": "VenditaPOSOraria",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "string",
+      "format": "date",
+      "description": "Giorno della vendita (YYYY-MM-DD)"
+    },
+    "ora": {
+      "type": "number",
+      "description": "Ora della vendita, 0-23, ora di Roma"
+    },
+    "pos_location_id": {
+      "type": "string",
+      "description": "ID del punto vendita nel POS"
+    },
+    "pos_location_name": {
+      "type": "string",
+      "description": "Nome del punto vendita nel POS"
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID dello store abbinato al punto vendita del POS"
+    },
+    "canale": {
+      "type": "string",
+      "default": "pos",
+      "description": "Canale di vendita"
+    },
+    "chiave_prodotto": {
+      "type": "string",
+      "description": "Stessa chiave di VenditaPOS: internal_product_id se presente, altrimenti 'nome:' + nome del prodotto"
+    },
+    "internal_product_id": {
+      "type": "string",
+      "description": "ID interno del prodotto nel POS, se presente"
+    },
+    "nome_prodotto": {
+      "type": "string",
+      "description": "Nome del prodotto nel POS"
+    },
+    "is_pizza": {
+      "type": "boolean",
+      "default": false,
+      "description": "Il prodotto \u00e8 una pizza"
+    },
+    "combo_non_scomposto": {
+      "type": "boolean",
+      "default": false,
+      "description": "Menu che il POS non ha scomposto nei gusti"
+    },
+    "quantita": {
+      "type": "number",
+      "description": "Pezzi venduti nell'ora"
+    },
+    "fatturato": {
+      "type": "number",
+      "description": "Fatturato dell'ora in euro"
+    },
+    "is_free": {
+      "type": "boolean",
+      "default": false,
+      "description": "Prodotto dato in omaggio"
+    },
+    "is_b2b": {
+      "type": "boolean",
+      "default": false,
+      "description": "Vendita B2B"
+    },
+    "sincronizzato_il": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando il giorno \u00e8 stato letto dal POS: per il giorno in corso le vendite arrivano fino a qui"
+    }
+  },
+  "required": [
+    "data",
+    "ora",
+    "pos_location_id",
+    "chiave_prodotto"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

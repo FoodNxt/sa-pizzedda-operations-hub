@@ -2,22 +2,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.62';
 import { secrets } from 'base44:runtime';
 import { aBlocchi, loadConfig } from '../../shared/inv2.ts';
 import { addGiorni, giornoRoma } from '../../shared/inv2Calcolo.ts';
+import { DATA, cancella, cancellaGiorno, chiaveProdotto, importaOrarie } from '../../shared/inv2VenditeOrarie.ts';
 
-const DATA = /^\d{4}-\d{2}-\d{2}$/;
 const SENZA_ITEM = { item_id: { $in: [null, ''] } };
 const GIORNI_BLOCCO = 10;
 const TIMEOUT_MS = 120000;
 // Dopo 4 minuti non si iniziano altri blocchi; la richiesta viene chiusa a 5
 const LIMITE_MS = 240000;
 const FINE_MS = 285000;
-
-const chiaveProdotto = (s) => (s.internal_product_id != null && s.internal_product_id !== ''
-  ? String(s.internal_product_id)
-  : `nome:${String(s.nome_prodotto || '').toLowerCase().trim().replace(/\s+/g, ' ')}`);
-
-async function cancella(entity, query) {
-  while ((await entity.deleteMany(query)).deleted > 0);
-}
 
 // Una sola richiesta per tutto il blocco: il POS scorre gli ordini dal più recente fino a date_from
 async function leggiBlocco(url, segreto, da, a, timeout) {
@@ -66,12 +58,6 @@ function righePerGiorno(sales, negozi, giornoUnico) {
     r.is_b2b ||= !!s.is_b2b;
   });
   return perGiorno;
-}
-
-// Si cancella sempre e solo un giorno preciso: senza una data valida il filtro sarebbe vuoto e cancellerebbe tutto
-async function cancellaGiorno(entity, giorno) {
-  if (!DATA.test(giorno || '')) throw new Error(`Data non valida: ${giorno}`);
-  await cancella(entity, { data: giorno });
 }
 
 async function salvaLog(E, log) {
@@ -152,6 +138,16 @@ export default async function (req) {
     const url = secrets.get('POS_SYNC_URL');
     const segreto = secrets.get('POS_SYNC_SECRET');
     if (!url || !segreto) return Response.json({ error: 'Mancano POS_SYNC_URL o POS_SYNC_SECRET nei segreti dell\'app' }, { status: 500 });
+
+    // Vendite per ora: solo i negozi in affiancamento o attivi, al massimo 10 giorni per chiamata. solo_oggi = la giornata in corso
+    if (body.orarie) {
+      const lista = body.solo_oggi ? [oggi] : giorni;
+      if (lista.length > 10) return Response.json({ error: 'Le vendite per ora si importano al massimo 10 giorni alla volta' }, { status: 400 });
+      const { config: cfg } = await loadConfig(sr);
+      const modalita = cfg.modalita_per_store || {};
+      const storeIds = Object.keys(modalita).filter((id) => ['affiancamento', 'attivo'].includes(modalita[id]));
+      return Response.json(await importaOrarie(E, { url, segreto, negozi: cfg.negozi_pos || {}, storeIds, giorni: lista }));
+    }
 
     // Le vendite non si svuotano mai in blocco: ogni giorno viene sostituito solo dopo che il POS lo ha restituito
     if (body.reimporta) await cancella(E.ProdottoPOSRicetta, SENZA_ITEM);

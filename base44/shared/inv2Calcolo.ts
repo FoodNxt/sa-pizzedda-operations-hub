@@ -52,6 +52,65 @@ export function consumoTeorico(teorico) {
   return { media, tra };
 }
 
+const ORA = 3600000;
+
+// Somma dei valori orari di un giorno tra da e a, con la frazione di ora nella prima e nell'ultima. fine = fino a dove arrivano le ore
+function traOre(valori, inizio, da, a, fine = Infinity) {
+  let totale = 0;
+  valori.forEach((v, h) => {
+    const ms = Math.min(a, fine, inizio + (h + 1) * ORA) - Math.max(da, inizio + h * ORA);
+    if (ms > 0) totale += v * (ms / ORA);
+  });
+  return totale;
+}
+
+// Teorico tra due istanti all'ora esatta: { quantita, stimato }. Il teorico di ogni giorno si ripartisce tra le ore con le vendite
+// per ora del prodotto, o del negozio se il prodotto non ne ha. Se quel giorno non ha vendite per ora vale la distribuzione
+// media del negozio e l'orario è stimato. Per oggi valgono le ore già lette dal POS; il resto è la media al giorno (stimato oltre 1 ora)
+export function teoricoOrario(teorico) {
+  const base = consumoTeorico(teorico);
+  const giorni = teorico?.giorni || [];
+  const perGiorno = teorico?.perGiorno || {};
+  const ore = teorico?.ore;
+  const id = teorico?.itemId;
+  const quota = (pesi, g, da, a) => {
+    const totale = (pesi || []).reduce((s, x) => s + x, 0);
+    return totale > 0 ? traOre(pesi, g.inizio, da, a) / totale : null;
+  };
+  const tra = (da, a) => {
+    let quantita = 0;
+    let coperti = 0;
+    let stimato = false;
+    giorni.forEach((g) => {
+      const ms = Math.min(a, g.fine) - Math.max(da, g.inizio);
+      if (ms <= 0) return;
+      coperti += ms;
+      const q = perGiorno[g.giorno] || 0;
+      if (!q) return;
+      if (ms >= g.fine - g.inizio) { quantita += q; return; }
+      const delGiorno = ore?.giorni?.[g.giorno];
+      const reale = quota(delGiorno?.items?.[id], g, da, a) ?? quota(delGiorno?.store, g, da, a);
+      if (reale == null) stimato = true;
+      quantita += q * (reale ?? quota(ore?.media, g, da, a) ?? ms / (g.fine - g.inizio));
+    });
+    const oggi = teorico?.diretto ? ore?.oggi : null;
+    if (oggi) {
+      const ms = Math.min(a, oggi.fine) - Math.max(da, oggi.inizio);
+      if (ms > 0) {
+        coperti += ms;
+        quantita += traOre(oggi.items[id] || [], oggi.inizio, da, a, oggi.fine);
+      }
+    }
+    const resto = a - da - coperti;
+    if (resto > 0) {
+      quantita += base.media * (resto / GIORNO);
+      if (resto > ORA && base.media > 0) stimato = true;
+    }
+    return { quantita, stimato };
+  };
+  return { media: base.media, tra };
+}
+
 const mediana = (valori) => {
   const v = [...valori].sort((a, b) => a - b);
   const m = v.length >> 1;
@@ -122,7 +181,7 @@ export function consumoPeriodo(counts, moves, teoricoTra) {
 // Consumo misurato sugli intervalli puliti tra due conteggi di verifica dell'admin consecutivi, finiti negli ultimi `giorni`.
 // Un intervallo è pulito se alla sua fine non c'è un ordine con il prodotto ancora da confermare (ordineAperto = istante di invio
 // del più vecchio) e se il residuo non è negativo: un residuo negativo vuol dire entrate, trasporti o produzioni non registrate.
-// consumato = conteggio iniziale + entrate − uscite − conteggio finale. tra = teorico tra due istanti.
+// consumato = conteggio iniziale + entrate − uscite − conteggio finale. tra = teorico tra due istanti all'ora esatta { quantita, stimato }.
 // Con almeno 2 intervalli con teorico il fattore è la media dei rapporti consumato / teorico pesata per giorni, tra 0,7 e 1,5
 export function consumoMisurato(moves, tra, now, giorni, ordineAperto = null) {
   const verifiche = moves.filter((m) => m.tipo === 'conteggio' && m.verifica);
@@ -134,7 +193,8 @@ export function consumoMisurato(moves, tra, now, giorni, ordineAperto = null) {
     if (ordineAperto != null && ordineAperto < b.t) continue;
     const consumato = a.quantita + somma(moves, ENTRATE, a.t, b.t) - somma(moves, USCITE, a.t, b.t) - b.quantita;
     if (consumato < 0) continue;
-    intervalli.push({ giorni: (b.t - a.t) / GIORNO, consumato, teorico: tra(a.t, b.t) });
+    const t = tra(a.t, b.t);
+    intervalli.push({ giorni: (b.t - a.t) / GIORNO, consumato, teorico: t.quantita, stimato: t.stimato });
   }
   if (!intervalli.length) return null;
   const totale = (lista, campo) => lista.reduce((s, x) => s + x[campo], 0);
@@ -142,6 +202,7 @@ export function consumoMisurato(moves, tra, now, giorni, ordineAperto = null) {
   const media = conTeorico.reduce((s, x) => s + x.giorni * (x.consumato / x.teorico), 0) / totale(conTeorico, 'giorni');
   return {
     intervalli: intervalli.length,
+    stimato: intervalli.some((x) => x.stimato),
     giorni: totale(intervalli, 'giorni'),
     consumo: totale(intervalli, 'consumato') / totale(intervalli, 'giorni'),
     fattore: conTeorico.length >= 2 ? Math.min(1.5, Math.max(0.7, media)) : null
@@ -228,7 +289,7 @@ export function calcolaGiacenza(moves, now, soglia, teorico, rete = false, minim
   const tutti = moves.filter((m) => m.tipo === 'conteggio');
   const vendite = consumoTeorico(teorico);
   // Con almeno 2 intervalli puliti tra verifiche admin negli ultimi 56 giorni il fattore viene da quelli e non dai conteggi dei dipendenti
-  const misurato = rete ? null : consumoMisurato(moves, vendite.tra, now, 56, ordineAperto);
+  const misurato = rete ? null : consumoMisurato(moves, teoricoOrario(teorico).tra, now, 56, ordineAperto);
   const daVerifiche = !!misurato?.fattore && vendite.media > 0;
   const stimaCon = (conteggi) => {
     const s = stimaConsumo(conteggi, moves, now, vendite, rete);

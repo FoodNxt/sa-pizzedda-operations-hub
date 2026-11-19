@@ -1,5 +1,5 @@
 import { loadConfig } from '../../shared/inv2.ts';
-import { GIORNO, confrontaConsumo, consumoMisurato, consumoTeorico } from '../../shared/inv2Calcolo.ts';
+import { GIORNO, confrontaConsumo, consumoMisurato, consumoTeorico, teoricoOrario } from '../../shared/inv2Calcolo.ts';
 import { preparaCalcolo } from '../../shared/inv2Ricalcolo.ts';
 
 const GIORNI = 21;
@@ -18,7 +18,7 @@ export async function consumi(sr) {
     const c = confronto?.teorico > 0 ? confronto : null;
     const vendite = consumoTeorico(teorico);
     // Consumo misurato sugli intervalli puliti tra due verifiche admin, ultimi 56 giorni
-    const misurato = rete ? null : consumoMisurato(moves, vendite.tra, now, 56, ordineAperto);
+    const misurato = rete ? null : consumoMisurato(moves, teoricoOrario(teorico).tra, now, 56, ordineAperto);
     if (!c && !misurato) return;
     (stores[u.ubicazione_key] ||= []).push({
       item_id: p.imp.item_id,
@@ -30,6 +30,7 @@ export async function consumi(sr) {
       teorico: c ? arrotonda(c.teorico, 3) : vendite.media > 0 ? arrotonda(vendite.media, 3) : null,
       misurato: misurato ? arrotonda(misurato.consumo, 3) : null,
       intervalli_puliti: misurato?.intervalli ?? 0,
+      orario_stimato: !!misurato?.stimato,
       rete: !!rete,
       senza_conteggi: !c,
       misurabile: !!c && c.misurabile && !rete,

@@ -92,9 +92,42 @@ export default async function (req) {
 
     // Inventario completo: solo admin, tutti i prodotti dell'ubicazione, senza toccare la lista della sera
     // Conteggio di verifica: solo admin, come l'inventario completo ma salvato con fonte verifica_admin. È un conteggio vero
-    const verifica = body.azione === 'lista_verifica' || body.azione === 'salva_verifica';
+    const verifica = ['lista_verifica', 'salva_verifica', 'bozza_riga', 'scarta_bozza'].includes(body.azione);
     const completo = verifica || body.azione === 'lista_completa' || body.azione === 'salva_completo';
     if (completo && user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+
+    // Bozza della verifica: le righe restano sulla sessione finché "Salva verifica" non le trasforma in movimenti
+    const bozza = verifica ? (await E.SessioneConteggio.filter({ ubicazione_key: key, stato: 'bozza' }, { sort: '-data', limit: 1 })).items[0] || null : null;
+    const scaduta = !!bozza && Date.now() - Date.parse(bozza.data) > 12 * 3600000;
+    const vista = (b, righeBozza) => (b ? { righe: righeBozza, iniziata: b.data, scaduta: Date.now() - Date.parse(b.data) > 12 * 3600000 } : null);
+    if (body.azione === 'bozza_riga') {
+      const rimuovi = body.rimuovi === true;
+      if (!perId[body.item_id] || (!rimuovi && !(Number.isFinite(body.quantita) && body.quantita >= 0))) {
+        return Response.json({ error: 'Il prodotto deve avere una quantità, anche 0' }, { status: 400 });
+      }
+      if (scaduta) return Response.json({ error: 'La bozza è scaduta: salvala o scartala' }, { status: 400 });
+      const righeBozza = (bozza?.righe_bozza || []).filter((r) => r.item_id !== body.item_id);
+      if (!rimuovi) righeBozza.push({ item_id: body.item_id, quantita: body.quantita, ora: new Date().toISOString() });
+      if (bozza) {
+        await E.SessioneConteggio.update(bozza.id, { righe_bozza: righeBozza });
+        return Response.json({ bozza: vista(bozza, righeBozza) });
+      }
+      const nuova = await E.SessioneConteggio.create({
+        ...ubicazioneDaKey(key),
+        data: new Date().toISOString(),
+        operatore_email: user.email,
+        operatore_nome: user.nome_cognome || user.full_name,
+        verifica: true,
+        stato: 'bozza',
+        completata: false,
+        righe_bozza: righeBozza
+      });
+      return Response.json({ bozza: vista(nuova, righeBozza) });
+    }
+    if (body.azione === 'scarta_bozza') {
+      if (bozza) await E.SessioneConteggio.update(bozza.id, { stato: 'scartata' });
+      return Response.json({ bozza: null });
+    }
     if (body.azione === 'lista_completa' || body.azione === 'lista_verifica') {
       let elenco = await righe(E, giacenze, storeId);
       if (verifica) {
@@ -107,21 +140,21 @@ export default async function (req) {
       return Response.json({
         ubicazione_key: key,
         righe: ordinaPercorso(elenco, piantina),
-        ...(verifica ? { predefiniti: (config.prodotti_verifica || []).filter((id) => perId[id]) } : {})
+        ...(verifica ? {
+          predefiniti: (config.prodotti_verifica || []).filter((id) => perId[id]),
+          bozza: vista(bozza, bozza?.righe_bozza || [])
+        } : {})
       });
     }
 
     const simula = prova && body.azione === 'simula';
     if (body.azione !== 'salva' && !completo && !simula) return Response.json({ error: 'azione non valida' }, { status: 400 });
-    const conteggi = [...new Map((Array.isArray(body.conteggi) ? body.conteggi : []).map((c) => [c.item_id, c])).values()];
+    // La verifica salva le righe della bozza, ognuna con la sua ora; gli altri conteggi arrivano dalla richiesta
+    if (verifica && !bozza?.righe_bozza?.length) return Response.json({ error: 'Nessuna riga in bozza da salvare' }, { status: 400 });
+    const sorgente = verifica ? bozza.righe_bozza.filter((r) => perId[r.item_id]) : Array.isArray(body.conteggi) ? body.conteggi : [];
+    const conteggi = [...new Map(sorgente.map((c) => [c.item_id, c])).values()];
     const validi = conteggi.every((c) => perId[c.item_id] && Number.isFinite(c.quantita) && c.quantita >= 0);
     if (!conteggi.length || !validi) return Response.json({ error: 'Ogni prodotto deve avere una quantità, anche 0' }, { status: 400 });
-    // Verifica: ogni prodotto ha l'ora in cui l'admin lo ha confermato, nelle ultime 12 ore
-    if (verifica) {
-      const adesso = Date.now();
-      const oraValida = (c) => { const t = Date.parse(c.ora); return Number.isFinite(t) && t <= adesso + 60000 && t >= adesso - 12 * 3600000; };
-      if (!conteggi.every(oraValida)) return Response.json({ error: 'Ogni prodotto deve avere l\'ora di conferma, nelle ultime 12 ore' }, { status: 400 });
-    }
     const previsti = (sessioneOggi && !simula) || completo ? [] : (Array.isArray(body.previsti) ? body.previsti : []).filter((id) => perId[id]);
     const contati = new Set(conteggi.map((c) => c.item_id));
     const mancanti = previsti.filter((id) => !contati.has(id)).length;
@@ -176,6 +209,7 @@ export default async function (req) {
       if (sessione && !sessioneOggi) await E.SessioneConteggio.delete(sessione.id);
       throw e;
     }
+    if (verifica) await E.SessioneConteggio.update(bozza.id, { stato: 'chiusa', prodotti_contati: conteggi.length });
     if (sessione && sessioneOggi) {
       await E.SessioneConteggio.update(sessione.id, { prodotti_contati: (sessione.prodotti_contati || 0) + conteggi.length });
     }
