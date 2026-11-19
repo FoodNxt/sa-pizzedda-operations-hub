@@ -16,7 +16,7 @@ const SORTABLE = [
 
 const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
-export default function ProdottiTable({ rows, imp, ubicazioni, loading, onSave, onEdit, onPrecompila, precompilando, toast, onToast }) {
+export default function ProdottiTable({ rows, imp, ubicazioni, pocoConsumo, loading, onSave, onEdit, onPrecompila, precompilando, toast, onToast }) {
   const [stato, setStato] = useState('all');
   const [categoria, setCategoria] = useState('');
   const [fornitore, setFornitore] = useState('');
@@ -192,7 +192,7 @@ export default function ProdottiTable({ rows, imp, ubicazioni, loading, onSave, 
                   </thead>
                   <tbody onPointerOver={markerTo}>
                     {slice.map((r, i) => (
-                      <ProdottoRow key={r.key} row={r} imp={eff(r)} ubicazioni={ubicazioni} index={i} onSave={onSave} onEdit={onEdit} />
+                      <ProdottoRow key={r.key} row={r} imp={eff(r)} ubicazioni={ubicazioni} index={i} onSave={onSave} onEdit={onEdit} pocoConsumo={pocoConsumo.has(r.id)} />
                     ))}
                   </tbody>
                 </table>

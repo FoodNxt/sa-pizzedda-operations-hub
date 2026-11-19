@@ -4,7 +4,7 @@ import CheckCell from './CheckCell';
 import NumCell from './NumCell';
 import { TIPO_LABEL, riassuntoGiornoFisso, setUbicazione } from './inv2Utils';
 
-export default function ProdottoRow({ row, imp, ubicazioni, index, onSave, onEdit }) {
+export default function ProdottoRow({ row, imp, ubicazioni, index, onSave, onEdit, pocoConsumo }) {
   const flag = (campo, label) => (
     <td className="dt1-cell dt1-cell--c">
       <CheckCell checked={imp[campo]} onChange={(v) => onSave(row, { [campo]: v })} label={`${label}: ${row.nome}`} />
@@ -22,7 +22,14 @@ export default function ProdottoRow({ row, imp, ubicazioni, index, onSave, onEdi
       </td>
       <td className="dt1-cell"><span className="dt1-muted">{row.categoria || '—'}</span></td>
       <td className="dt1-cell"><span className="dt1-muted">{row.fornitore || '—'}</span></td>
-      <td className="dt1-cell"><span className="dt1-muted">{imp.unita_conteggio || '—'}</span></td>
+      <td className="dt1-cell">
+        <span className="dt1-muted">{imp.unita_conteggio || '—'}</span>
+        {pocoConsumo && (
+          <span className="dt1-badge" style={{ background: '#fde68a', display: 'block', marginTop: 4 }} title="Consumo teorico sotto 1 unità a settimana">
+            Valuta un'unità di conteggio più piccola
+          </span>
+        )}
+      </td>
       {flag('incluso', 'Incluso')}
       {flag('laboratorio', 'Laboratorio')}
       {flag('consumabile', 'Consumabile')}

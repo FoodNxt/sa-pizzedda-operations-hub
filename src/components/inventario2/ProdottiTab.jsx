@@ -12,6 +12,7 @@ export default function ProdottiTab() {
   const [stores, setStores] = useState([]);
   const [labStoreId, setLabStoreId] = useState(DEFAULT_CONFIG.lab_store_id);
   const [imp, setImp] = useState({});
+  const [pocoConsumo, setPocoConsumo] = useState(new Set());
   const [editing, setEditing] = useState(null);
   const [toast, setToast] = useState('');
   const [precompilando, setPrecompilando] = useState(false);
@@ -29,7 +30,8 @@ export default function ProdottiTab() {
 
   useEffect(() => {
     (async () => {
-      const [s, materie, ricette, impostazioni, configs] = await Promise.all([
+      const [teorici, s, materie, ricette, impostazioni, configs] = await Promise.all([
+        base44.entities.GiacenzaStimata.aggregate({ query: { consumo_teorico_giorno: { $gt: 0 } }, groupBy: 'item_id', max: ['consumo_teorico_giorno'] }),
         base44.entities.Store.list(),
         base44.entities.MateriePrime.list(),
         base44.entities.Ricetta.filter({ is_semilavorato: true }),
@@ -37,6 +39,8 @@ export default function ProdottiTab() {
         base44.entities.ConfigInventario2.list()
       ]);
       setStores(s);
+      // Prodotti con un consumo teorico sotto 1 unità a settimana anche dove se ne vende di più
+      setPocoConsumo(new Set(teorici.rows.filter((r) => r.max_consumo_teorico_giorno * 7 < 1).map((r) => r.item_id)));
       setRows(buildRows(materie, ricette));
       indexImpostazioni(impostazioni);
       if (configs[0]?.lab_store_id) setLabStoreId(configs[0].lab_store_id);
@@ -91,6 +95,7 @@ export default function ProdottiTab() {
         rows={rows}
         imp={imp}
         ubicazioni={ubicazioni}
+        pocoConsumo={pocoConsumo}
         loading={loading}
         onSave={salva}
         onEdit={setEditing}

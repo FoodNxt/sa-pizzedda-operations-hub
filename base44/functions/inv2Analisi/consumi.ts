@@ -23,9 +23,11 @@ export async function consumi(sr) {
       giorni: arrotonda(c.giorni, 1),
       conteggi: arrotonda(c.conteggi, 3),
       teorico: arrotonda(c.teorico, 3),
-      scarto_pct: arrotonda(((c.conteggi - c.teorico) / c.teorico) * 100, 1)
+      misurabile: c.misurabile,
+      scarto_pct: c.misurabile ? arrotonda(((c.conteggi - c.teorico) / c.teorico) * 100, 1) : null
     });
   });
-  Object.values(stores).forEach((righe) => righe.sort((a, b) => Math.abs(b.scarto_pct) - Math.abs(a.scarto_pct)));
+  // Prima i misurabili dallo scarto più grande, in fondo i non misurabili
+  Object.values(stores).forEach((righe) => righe.sort((a, b) => b.misurabile - a.misurabile || Math.abs(b.scarto_pct) - Math.abs(a.scarto_pct)));
   return { giorni: GIORNI, stores };
 }

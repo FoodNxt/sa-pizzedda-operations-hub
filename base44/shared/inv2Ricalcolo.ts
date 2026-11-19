@@ -81,7 +81,7 @@ export async function preparaCalcolo(sr, chiavi) {
   // Movimenti degli ultimi 28 giorni per ubicazione e prodotto
   const perCoppia = {};
   const chiave = (m) => `${m.ubicazione_key}|${m.item_id}`;
-  const mossa = (m) => ({ tipo: m.tipo, quantita: m.quantita || 0, t: Date.parse(m.data_movimento) });
+  const mossa = (m) => ({ id: m.id, sospetto: !!m.sospetto, tipo: m.tipo, quantita: m.quantita || 0, t: Date.parse(m.data_movimento) });
   movimenti.forEach((m) => (perCoppia[chiave(m)] ||= []).push(mossa(m)));
 
   // Ultimo conteggio prima della finestra
@@ -146,9 +146,14 @@ export async function ricalcola(sr, chiavi) {
   const conteggiIncoerenti = [];
   const nuovi = [];
   const aggiornati = [];
+  const etichette = [];
 
   coppie.forEach(({ u, p, k, moves, teorico, prossimo: prossimoPer }) => {
     const r = calcolaGiacenza(moves, now, soglia, teorico);
+    // L'etichetta "sospetto" sui conteggi segue il calcolo: si scrive solo dove è cambiata
+    moves.forEach((m) => {
+      if (m.tipo === 'conteggio' && m.id && r.sospetti.has(m) !== m.sospetto) etichette.push({ id: m.id, sospetto: r.sospetti.has(m) });
+    });
     if (r.incoerenti) conteggiIncoerenti.push({ ubicazione_key: u.ubicazione_key, item_nome: p.nome, negativi: r.negativi, totali: r.totali });
     const prossimo = prossimoPer(r, oggi);
     const record = {
@@ -187,6 +192,7 @@ export async function ricalcola(sr, chiavi) {
   for (const blocco of aBlocchi(nuovi, 500)) await E.GiacenzaStimata.bulkCreate(blocco);
   for (const blocco of aBlocchi(aggiornati, 500)) await E.GiacenzaStimata.bulkUpdate(blocco);
   for (const blocco of aBlocchi(daEliminare, 200)) await E.GiacenzaStimata.deleteMany({ id: { $in: blocco } });
+  for (const blocco of aBlocchi(etichette, 500)) await E.MovimentoMagazzino.bulkUpdate(blocco);
 
   if (conteggiIncoerenti.length) console.warn('Conteggi incoerenti', JSON.stringify(conteggiIncoerenti));
   if (consumiNonConvertiti.length) console.warn('Consumo teorico non convertibile nell\'unità di conteggio', JSON.stringify(consumiNonConvertiti));
@@ -195,6 +201,7 @@ export async function ricalcola(sr, chiavi) {
     aggiornate: aggiornati.length,
     eliminate: daEliminare.length,
     conteggi_incoerenti: conteggiIncoerenti,
+    conteggi_sospetti: etichette.filter((e) => e.sospetto).length,
     vendite_non_collegate: venditeNonCollegate,
     consumi_non_convertiti: consumiNonConvertiti
   };

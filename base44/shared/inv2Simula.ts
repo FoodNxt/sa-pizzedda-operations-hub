@@ -4,6 +4,18 @@ import { preparaCalcolo } from './inv2Ricalcolo.ts';
 
 const r3 = (n) => (n == null ? null : Math.round(n * 1000) / 1000);
 
+// item_id dei conteggi che, salvati adesso, sarebbero sospetti. conteggi = [{ item_id, quantita }]
+export async function conteggiSospetti(sr, key, conteggi) {
+  const { now, soglia, coppie } = await preparaCalcolo(sr, [key]);
+  const perItem = Object.fromEntries(coppie.map((c) => [c.p.imp.item_id, c]));
+  return conteggi
+    .filter((c) => {
+      const coppia = perItem[c.item_id];
+      return coppia && calcolaGiacenza(coppia.moves, now, soglia, coppia.teorico).sospetto(c.quantita);
+    })
+    .map((c) => c.item_id);
+}
+
 // conteggi = [{ item_id, quantita }], perId = giacenze dell'ubicazione per item_id
 export async function simulaConteggi(sr, key, conteggi, perId) {
   const { now, oggi, soglia, coppie } = await preparaCalcolo(sr, [key]);

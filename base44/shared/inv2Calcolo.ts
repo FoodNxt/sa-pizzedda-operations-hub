@@ -6,6 +6,11 @@ const DODICI_ORE = 12 * 3600000;
 const USCITE = ['produzione_scarico', 'trasporto_uscita', 'spreco'];
 // La rettifica manuale ha il segno nella quantità: positiva aggiunge, negativa toglie
 const ENTRATE = ['ricevimento', 'produzione_carico', 'trasporto_entrata', 'rettifica'];
+// La retta sui conteggi vale con almeno 4 conteggi su almeno 5 giorni
+const MIN_CONTEGGI = 4;
+const MIN_GIORNI = 5;
+// Sotto 5 unità di conteggio consumate nel periodo il prodotto non è misurabile
+const MIN_UNITA = 5;
 
 export const DIECI_MINUTI = 600000;
 
@@ -47,8 +52,28 @@ function consumoTeorico(teorico) {
   return { media, tra };
 }
 
-// Consumo non registrato sull'intero periodo tra il primo e l'ultimo conteggio:
-// gli errori dei conteggi intermedi si compensano. teoricoTra, se c'è, dà il consumo teorico sullo stesso periodo.
+const mediana = (valori) => {
+  const v = [...valori].sort((a, b) => a - b);
+  const m = v.length >> 1;
+  return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+};
+
+// Pendenza al giorno con il metodo Theil–Sen: mediana delle pendenze tra tutte le coppie di punti distanti almeno 12 ore.
+// Un singolo punto sbagliato, anche il primo o l'ultimo, non la sposta. punti = [{ t, y }]
+function pendenza(punti) {
+  const pendenze = [];
+  for (let i = 0; i < punti.length; i++) {
+    for (let j = i + 1; j < punti.length; j++) {
+      const dt = punti[j].t - punti[i].t;
+      if (dt >= DODICI_ORE) pendenze.push((punti[j].y - punti[i].y) / (dt / GIORNO));
+    }
+  }
+  return mediana(pendenze);
+}
+
+// Consumo non registrato al giorno, dalla retta sui conteggi del periodo. Ogni conteggio è corretto con i movimenti
+// registrati dall'inizio del periodo: contato + uscite cumulate − entrate cumulate. Il consumo è la pendenza cambiata di segno.
+// teoricoTra, se c'è, dà il teorico cumulato sugli stessi punti: la sua pendenza è il teorico al giorno sullo stesso periodo.
 // I singoli intervalli servono solo alla diagnostica: quanti hanno un residuo negativo.
 function consumoPeriodo(counts, moves, teoricoTra) {
   const residuoTra = (a, b) => a.quantita + somma(moves, ENTRATE, a.t, b.t) - somma(moves, USCITE, a.t, b.t) - b.quantita;
@@ -59,53 +84,105 @@ function consumoPeriodo(counts, moves, teoricoTra) {
     totali++;
     if (residuoTra(counts[i - 1], counts[i]) < 0) negativi++;
   }
-  const diagnostica = { negativi, totali, incoerenti: totali > 0 && negativi / totali > 0.3 };
   const primo = counts[0];
-  const ultimo = counts[counts.length - 1];
-  if (!primo || ultimo.t - primo.t < DODICI_ORE) return { valido: false, ...diagnostica };
-  const giorni = (ultimo.t - primo.t) / GIORNO;
-  const residuo = residuoTra(primo, ultimo);
-  return { valido: true, residuo, giorni, consumo: residuo / giorni, teorico: teoricoTra ? teoricoTra(primo.t, ultimo.t) : 0, ...diagnostica };
+  const giorni = primo ? (counts[counts.length - 1].t - primo.t) / GIORNO : 0;
+  const valido = counts.length >= MIN_CONTEGGI && giorni >= MIN_GIORNI;
+  const consumo = valido
+    ? -pendenza(counts.map((c) => ({ t: c.t, y: c.quantita + somma(moves, USCITE, primo.t, c.t) - somma(moves, ENTRATE, primo.t, c.t) })))
+    : null;
+  const teorico = valido && teoricoTra ? pendenza(counts.map((c) => ({ t: c.t, y: teoricoTra(primo.t, c.t) }))) : null;
+  // Misurabile: il consumo del periodo, teorico se c'è e altrimenti da conteggi, è almeno 5 unità di conteggio
+  const consumato = teoricoTra ? (primo ? teoricoTra(primo.t, primo.t + giorni * GIORNO) : 0) : valido ? consumo * giorni : 0;
+  const misurabile = consumato >= MIN_UNITA;
+  return { valido, giorni, consumo, teorico, misurabile, negativi, totali, incoerenti: misurabile && totali > 0 && negativi / totali > 0.3 };
 }
 
 // Consumo al giorno e consumo tra due istanti: dalle vendite se c'è un teorico, altrimenti da conteggi, poi da ricevimenti
 function stimaConsumo(counts, moves, fine, vendite) {
   if (vendite.media > 0) {
     const periodo = consumoPeriodo(counts, moves, vendite.tra);
-    // Con un residuo negativo sul periodo il teorico resta senza correzione
-    const correggibile = periodo.valido && periodo.teorico > 0 && periodo.residuo >= 0;
-    const fattore = correggibile ? Math.min(1.5, Math.max(0.7, periodo.residuo / periodo.teorico)) : 1;
+    // Senza retta, con consumo negativo o con un prodotto non misurabile il teorico resta senza correzione
+    const correggibile = periodo.valido && periodo.misurabile && periodo.teorico > 0 && periodo.consumo >= 0;
+    const fattore = correggibile ? Math.min(1.5, Math.max(0.7, periodo.consumo / periodo.teorico)) : 1;
     return { fonte: 'vendite', fattore, consumo: vendite.media * fattore, tra: (da, a) => vendite.tra(da, a) * fattore, periodo };
   }
   const periodo = consumoPeriodo(counts, moves);
-  // Residuo negativo sul periodo: nessun consumo, non si inventa un valore
-  if (periodo.valido && periodo.residuo < 0) return { fonte: 'nessun_dato', fattore: null, consumo: null, tra: () => 0, periodo };
+  // Consumo negativo sul periodo: nessun consumo, non si inventa un valore
+  if (periodo.valido && periodo.consumo < 0) return { fonte: 'nessun_dato', fattore: null, consumo: null, tra: () => 0, periodo };
   const consumo = periodo.valido ? periodo.consumo : somma(moves, ['ricevimento'], fine - 28 * GIORNO, fine) / 28;
   return { fonte: periodo.valido ? 'conteggi' : 'ricevimenti', fattore: null, consumo, tra: (da, a) => consumo * ((a - da) / GIORNO), periodo };
 }
 
-// Consumo al giorno da conteggi e teorico sullo stesso periodo, tra il primo e l'ultimo conteggio da `dal` in poi
+// Consumo al giorno da conteggi e teorico sullo stesso periodo, sui conteggi da `dal` in poi.
+// I conteggi segnati sospetti dall'ultimo ricalcolo non contano
 export function confrontaConsumo(moves, teorico, dal) {
-  const c = consumoPeriodo(moves.filter((m) => m.tipo === 'conteggio' && m.t >= dal), moves, consumoTeorico(teorico).tra);
-  return c.valido ? { giorni: c.giorni, conteggi: c.consumo, teorico: c.teorico / c.giorni } : null;
+  const c = consumoPeriodo(moves.filter((m) => m.tipo === 'conteggio' && !m.sospetto && m.t >= dal), moves, consumoTeorico(teorico).tra);
+  return c.valido ? { giorni: c.giorni, conteggi: c.consumo, teorico: c.teorico, misurabile: c.misurabile } : null;
+}
+
+// Giacenza stimata all'istante t partendo da un valore noto
+const stimaDa = (base, moves, tra, t) =>
+  Math.max(0, base.quantita + somma(moves, ENTRATE, base.t, t) - somma(moves, USCITE, base.t, t) - tra(base.t, t));
+
+// Un conteggio è sospetto quando si allontana dalla stima subito prima più di max(3 × consumo al giorno, 2 unità, 30% della stima)
+// e i movimenti registrati nelle 24 ore precedenti non bastano a spiegare la differenza.
+// stato = { base, pendente, consumo, tra }: base è il valore da cui riparte la stima, pendente il conteggio sospetto non ancora confermato
+function valuta(stato, moves, c) {
+  if (!stato.base || stato.consumo == null) return { sospetto: false };
+  const confronta = (da) => {
+    const stima = stimaDa(da, moves, stato.tra, c.t);
+    const differenza = Math.abs(c.quantita - stima);
+    return { stima, differenza, tolleranza: Math.max(3 * stato.consumo, 2, 0.3 * stima) };
+  };
+  // Il riconteggio conferma il valore del conteggio sospetto
+  if (stato.pendente) {
+    const v = confronta(stato.pendente);
+    if (v.differenza <= v.tolleranza) return { sospetto: false, conferma: true };
+  }
+  const v = confronta(stato.base);
+  if (v.differenza <= v.tolleranza) return { sospetto: false };
+  const vicini = moves.reduce((s, m) => (m.tipo !== 'conteggio' && m.t > c.t - GIORNO && m.t <= c.t ? s + Math.abs(m.quantita) : s), 0);
+  return { sospetto: vicini < v.differenza - v.tolleranza, stima: v.stima };
+}
+
+// Scorre i conteggi in ordine: dopo un conteggio sospetto la stima riparte dalla media tra stima e contato,
+// e il conteggio resta sospetto finché quello successivo non lo conferma
+function esaminaConteggi(counts, moves, stima) {
+  const stato = { base: null, pendente: null, consumo: stima.consumo, tra: stima.tra };
+  const sospetti = new Set();
+  counts.forEach((c) => {
+    const v = valuta(stato, moves, c);
+    if (v.conferma) sospetti.delete(stato.pendente);
+    if (v.sospetto) sospetti.add(c);
+    stato.base = v.sospetto ? { t: c.t, quantita: (v.stima + c.quantita) / 2 } : c;
+    stato.pendente = v.sospetto ? c : null;
+  });
+  return { stato, sospetti };
 }
 
 export function calcolaGiacenza(moves, now, soglia, teorico) {
-  const counts = moves.filter((m) => m.tipo === 'conteggio');
+  const tutti = moves.filter((m) => m.tipo === 'conteggio');
   const vendite = consumoTeorico(teorico);
+  // I conteggi sospetti si trovano con il consumo di tutti i conteggi, poi il consumo si ricalcola senza quelli non confermati
+  const { stato, sospetti } = esaminaConteggi(tutti, moves, stimaConsumo(tutti, moves, now, vendite));
+  const counts = tutti.filter((c) => !sospetti.has(c));
   const stima = stimaConsumo(counts, moves, now, vendite);
   const consumo = stima.consumo;
   const usciteGiorno = somma(moves, USCITE, now - 28 * GIORNO, now) / 28;
   const { negativi, totali, incoerenti } = stima.periodo;
-  const base = { consumo, usciteGiorno, negativi, totali, incoerenti, fonte: stima.fonte, fattore: stima.fattore, teoricoGiorno: vendite.media > 0 ? vendite.media : null };
+  const base = {
+    consumo, usciteGiorno, negativi, totali, incoerenti, fonte: stima.fonte, fattore: stima.fattore,
+    teoricoGiorno: vendite.media > 0 ? vendite.media : null,
+    sospetti,
+    ricontrollo: !!stato.pendente,
+    // Un conteggio fatto adesso con questa quantità sarebbe sospetto?
+    sospetto: (quantita) => valuta({ ...stato, consumo, tra: stima.tra }, moves, { quantita, t: now }).sospetto
+  };
 
-  const ultimo = counts[counts.length - 1];
+  const ultimo = tutti[tutti.length - 1];
   if (!ultimo) return { ...base, ultimo: null, giacenza: null, giorniCopertura: null, affidabilita: 'nessun_dato', scarto: null };
 
-  const giacenza = Math.max(
-    0,
-    ultimo.quantita + somma(moves, ENTRATE, ultimo.t, now) - somma(moves, USCITE, ultimo.t, now) - stima.tra(ultimo.t, now)
-  );
+  const giacenza = stimaDa(stato.base, moves, stima.tra, now);
 
   // Affidabilità: stima calcolata subito prima dell'ultimo conteggio, confrontata con il valore contato
   let affidabilita = 'ok';
@@ -113,14 +190,10 @@ export function calcolaGiacenza(moves, now, soglia, teorico) {
   const precedente = [...counts].reverse().find((c) => ultimo.t - c.t >= DODICI_ORE);
   if (precedente) {
     const consumato = stimaConsumo(counts.filter((c) => c.t <= precedente.t), moves, ultimo.t, vendite).tra(precedente.t, ultimo.t);
-    const stimaPrima = Math.max(
-      0,
-      precedente.quantita + somma(moves, ENTRATE, precedente.t, ultimo.t) - somma(moves, USCITE, precedente.t, ultimo.t) - consumato
-    );
-    scarto = Math.abs(stimaPrima - ultimo.quantita) / Math.max(consumato, 1);
+    scarto = Math.abs(stimaDa(precedente, moves, () => consumato, ultimo.t) - ultimo.quantita) / Math.max(consumato, 1);
     if (scarto > soglia) affidabilita = 'da_verificare';
   }
-  if (incoerenti) affidabilita = 'da_verificare';
+  if (incoerenti || stato.pendente) affidabilita = 'da_verificare';
 
   const perGiorno = (consumo || 0) + usciteGiorno;
   return { ...base, ultimo, giacenza, giorniCopertura: perGiorno > 0 ? giacenza / perGiorno : null, affidabilita, scarto };
@@ -152,11 +225,16 @@ export function prossimaRicorrenza(cf, start) {
 
 export function prossimoConteggio({ fisso, r, oggi, min, tempoConsegna, intervallo }) {
   const ultimoGiorno = r.ultimo ? giornoRoma(new Date(r.ultimo.t)) : null;
+  // Dopo un conteggio sospetto il prodotto torna in lista la sera dopo
+  const ricontrollo = r.ricontrollo
+    ? { data: addGiorni(ultimoGiorno, 1) < oggi ? oggi : addGiorni(ultimoGiorno, 1), motivo: 'Ricontrollo dopo un conteggio anomalo', priorita: 2 }
+    : null;
   if (fisso?.attivo) {
     const start = ultimoGiorno === oggi ? addGiorni(oggi, 1) : oggi;
-    return { data: prossimaRicorrenza(fisso, start), motivo: 'Giorno fisso', priorita: 1 };
+    const data = prossimaRicorrenza(fisso, start);
+    return ricontrollo && ricontrollo.data < data ? ricontrollo : { data, motivo: 'Giorno fisso', priorita: 1 };
   }
-  const candidati = [];
+  const candidati = ricontrollo ? [ricontrollo] : [];
   if (!ultimoGiorno) {
     candidati.push({ data: oggi, motivo: 'Mai contato', priorita: 2 });
   } else {

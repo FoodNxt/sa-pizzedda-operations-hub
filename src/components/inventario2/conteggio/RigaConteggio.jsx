@@ -4,10 +4,10 @@ import DettagliAdmin from './DettagliAdmin';
 
 const DECIMALI = ['kg', 'litri', 'grammi', 'g', 'ml'];
 
-export default function RigaConteggio({ riga, valore, onChange, onRimuovi, dettagli }) {
+export default function RigaConteggio({ riga, valore, onChange, onRimuovi, dettagli, ricontrolla }) {
   const decimale = DECIMALI.includes(riga.unita);
   return (
-    <div className="neumorphic-pressed p-3 rounded-xl flex items-center gap-3">
+    <div className={`neumorphic-pressed p-3 rounded-xl flex items-center gap-3 ${ricontrolla ? 'ring-2 ring-red-500' : ''}`}>
       {riga.foto ? (
         <img src={riga.foto} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
       ) : (
@@ -18,6 +18,7 @@ export default function RigaConteggio({ riga, valore, onChange, onRimuovi, detta
       <div className="flex-1 min-w-0">
         <h3 className="font-bold text-slate-800 text-base">{riga.nome}</h3>
         <p className="text-sm text-slate-500">{riga.unita}</p>
+        {ricontrolla && <span className="block text-sm font-bold text-red-600">Ricontrolla questo prodotto</span>}
         {dettagli && <DettagliAdmin riga={riga} />}
       </div>
       <input

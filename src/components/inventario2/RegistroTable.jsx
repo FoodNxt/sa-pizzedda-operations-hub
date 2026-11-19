@@ -84,6 +84,7 @@ export default function RegistroTable({ movimenti, loading, totale, filtri, onFi
                         <td className="dt1-cell"><span className="dt1-name">{m.item_nome || '—'}</span></td>
                         <td className="dt1-cell">
                           <span className="dt1-badge" style={{ background: TIPI_MOVIMENTO[m.tipo]?.colore }}>{TIPI_MOVIMENTO[m.tipo]?.label || m.tipo}</span>
+                          {m.sospetto && <span className="dt1-badge" style={{ background: '#fecaca', marginLeft: 6 }}>Sospetto</span>}
                         </td>
                         <td className="dt1-cell" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                           <span className="dt1-name">{quantita(m)}</span> <span className="dt1-muted">{m.unita || ''}</span>

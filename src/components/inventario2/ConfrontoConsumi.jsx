@@ -30,7 +30,7 @@ export default function ConfrontoConsumi({ righe }) {
                 <div className="dt1-empty">
                   <span className="dt1-empty-ico"><Inbox /></span>
                   <span className="dt1-empty-t">Nessun confronto</span>
-                  <p className="dt1-empty-p">Servono vendite collegate a una ricetta e almeno due conteggi del prodotto nelle ultime 3 settimane.</p>
+                  <p className="dt1-empty-p">Servono vendite collegate a una ricetta e almeno 4 conteggi del prodotto su almeno 5 giorni nelle ultime 3 settimane.</p>
                 </div>
               ) : (
                 <table className="dt1-table" style={{ minWidth: 720 }}>
@@ -56,9 +56,13 @@ export default function ConfrontoConsumi({ righe }) {
                             <span className="dt1-name">{numeroIt(r.teorico, 3)}</span> <span className="dt1-muted">{r.unita}</span>
                           </td>
                           <td className="dt1-cell" style={destra}>
-                            <span className="dt1-badge" style={{ background: oltre ? '#fecaca' : '#e2e8f0' }}>
-                              {r.scarto_pct > 0 ? '+' : ''}{numeroIt(r.scarto_pct, 1)}%
-                            </span>
+                            {r.misurabile ? (
+                              <span className="dt1-badge" style={{ background: oltre ? '#fecaca' : '#e2e8f0' }}>
+                                {r.scarto_pct > 0 ? '+' : ''}{numeroIt(r.scarto_pct, 1)}%
+                              </span>
+                            ) : (
+                              <span className="dt1-muted">non misurabile (consumo nel periodo &lt; 5 unità)</span>
+                            )}
                           </td>
                           <td className="dt1-cell" style={destra}><span className="dt1-muted">{numeroIt(r.giorni, 1)}</span></td>
                         </tr>

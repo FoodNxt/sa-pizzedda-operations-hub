@@ -4,7 +4,7 @@ import { giornoRoma } from '../../shared/inv2Calcolo.ts';
 import { limiteSera, listaSera } from '../../shared/inv2Lista.ts';
 import { ricalcola } from '../../shared/inv2Ricalcolo.ts';
 import { ordinaPercorso } from '../../shared/inv2Percorso.ts';
-import { simulaConteggi } from '../../shared/inv2Simula.ts';
+import { conteggiSospetti, simulaConteggi } from '../../shared/inv2Simula.ts';
 
 const ZONA_SEMILAVORATI = 'Semilavorati';
 // Dati in più per l'admin in modalità prova
@@ -106,6 +106,18 @@ export default async function (req) {
 
     // Simulazione: stessi controlli di salva, poi solo il calcolo. Da qui in giù si scrive
     if (simula) return Response.json({ simulazione: await simulaConteggi(sr, key, conteggi, perId) });
+
+    // Solo dal form della sera: i valori sospetti tornano indietro senza salvare e senza mostrare la stima.
+    // I prodotti già ricontrollati si salvano comunque
+    if (body.azione === 'salva') {
+      const ricontrollati = new Set(Array.isArray(body.ricontrollati) ? body.ricontrollati : []);
+      const daControllare = conteggi.filter((c) => !ricontrollati.has(c.item_id));
+      // Se il controllo non riesce l'inventario si salva lo stesso
+      const sospetti = daControllare.length
+        ? await conteggiSospetti(sr, key, daControllare).catch((e) => { console.error('Controllo dei conteggi non riuscito', e.message); return []; })
+        : [];
+      if (sospetti.length) return Response.json({ sospetti });
+    }
 
     const ora = new Date().toISOString();
     const operatoreNome = user.nome_cognome || user.full_name;

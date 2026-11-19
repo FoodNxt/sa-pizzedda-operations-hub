@@ -5,7 +5,7 @@ import RigaConteggio from './RigaConteggio';
 import ProdottoInPiu from './ProdottoInPiu';
 
 // Righe raggruppate per zona, poi i prodotti aggiunti a mano
-export default function ListaConteggio({ dati, extra, valori, onValore, onAggiungi, onRimuovi, dettagli }) {
+export default function ListaConteggio({ dati, extra, valori, onValore, onAggiungi, onRimuovi, dettagli, ricontrolla }) {
   const zone = [];
   dati.righe.forEach((r) => {
     const ultima = zone[zone.length - 1];
@@ -35,7 +35,7 @@ export default function ListaConteggio({ dati, extra, valori, onValore, onAggiun
           <h2 className="text-lg font-bold text-slate-800 mb-4">{z.nome}</h2>
           <div className="grid grid-cols-1 gap-3">
             {z.righe.map((r) => (
-              <RigaConteggio key={r.item_id} riga={r} valore={valori[r.item_id]} onChange={(v) => onValore(r.item_id, v)} dettagli={dettagli} />
+              <RigaConteggio key={r.item_id} riga={r} valore={valori[r.item_id]} onChange={(v) => onValore(r.item_id, v)} dettagli={dettagli} ricontrolla={ricontrolla.includes(r.item_id)} />
             ))}
           </div>
         </NeumorphicCard>
@@ -46,7 +46,7 @@ export default function ListaConteggio({ dati, extra, valori, onValore, onAggiun
           <h2 className="text-lg font-bold text-slate-800 mb-4">Prodotti in più</h2>
           <div className="grid grid-cols-1 gap-3">
             {extra.map((r) => (
-              <RigaConteggio key={r.item_id} riga={r} valore={valori[r.item_id]} onChange={(v) => onValore(r.item_id, v)} onRimuovi={() => onRimuovi(r.item_id)} dettagli={dettagli} />
+              <RigaConteggio key={r.item_id} riga={r} valore={valori[r.item_id]} onChange={(v) => onValore(r.item_id, v)} onRimuovi={() => onRimuovi(r.item_id)} dettagli={dettagli} ricontrolla={ricontrolla.includes(r.item_id)} />
             ))}
           </div>
         </NeumorphicCard>

@@ -29,6 +29,8 @@ export default function ConteggioForm() {
   const [dati, setDati] = useState(null);
   const [valori, setValori] = useState({});
   const [extra, setExtra] = useState([]);
+  // Prodotti con un valore anomalo, da contare di nuovo: il secondo valore si salva comunque
+  const [ricontrolla, setRicontrolla] = useState([]);
   const [saving, setSaving] = useState(false);
   const [salvato, setSalvato] = useState(false);
 
@@ -40,6 +42,7 @@ export default function ConteggioForm() {
     setSimulazione(null);
     setValori({});
     setExtra([]);
+    setRicontrolla([]);
     try {
       setDati((await base44.functions.invoke('inv2Conteggio', { azione: 'lista', ...richiesta })).data);
     } catch (e) {
@@ -86,20 +89,28 @@ export default function ConteggioForm() {
     if (prova) return simula();
     setSaving(true);
     try {
-      await base44.functions.invoke('inv2Conteggio', {
+      const { data } = await base44.functions.invoke('inv2Conteggio', {
         azione: 'salva',
         ...richiesta,
         turno_id: urlParams.get('turno_id'),
         previsti: dati.righe.map((r) => r.item_id),
+        ricontrollati: ricontrolla,
         conteggi: visibili.map((r) => ({ item_id: r.item_id, quantita: Number(valori[r.item_id]) }))
       });
-      setSalvato(true);
-      await segnaAttivitaTurno({ user, storeId: dati.store_id, formPage: 'FormInventario2' });
-      setTimeout(() => {
-        if (redirectTo) return navigate(createPageUrl(redirectTo));
-        setSalvato(false);
-        caricaLista();
-      }, 1500);
+      if (data.sospetti?.length) {
+        // Niente è stato salvato: i prodotti da ricontrollare si svuotano e vanno reinseriti
+        setRicontrolla((prev) => [...prev, ...data.sospetti]);
+        setValori((prev) => ({ ...prev, ...Object.fromEntries(data.sospetti.map((id) => [id, ''])) }));
+        toast({ title: 'Ricontrolla i prodotti evidenziati', description: 'Contali di nuovo, riscrivi la quantità e salva.', variant: 'destructive' });
+      } else {
+        setSalvato(true);
+        await segnaAttivitaTurno({ user, storeId: dati.store_id, formPage: 'FormInventario2' });
+        setTimeout(() => {
+          if (redirectTo) return navigate(createPageUrl(redirectTo));
+          setSalvato(false);
+          caricaLista();
+        }, 1500);
+      }
     } catch (err) {
       toast({ title: 'Inventario non salvato', description: erroreFunzione(err), variant: 'destructive' });
     }
@@ -178,6 +189,7 @@ export default function ConteggioForm() {
               onAggiungi={(p) => setExtra((prev) => [...prev, p])}
               onRimuovi={(id) => setExtra((prev) => prev.filter((r) => r.item_id !== id))}
               dettagli={prova && dettagli}
+              ricontrolla={ricontrolla}
             />
 
             {visibili.length > 0 ? (
