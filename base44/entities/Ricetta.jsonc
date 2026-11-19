@@ -104,7 +104,11 @@
     },
     "soglia_minima_sacchi": {
       "type": "number",
-      "description": "Numero minimo di sacchi di semilavorato: se raggiunto, viene suggerito l'ordine della materia prima collegata"
+      "description": "Numero minimo di sacchi di semilavorato: vale solo per i conteggi ancora fatti a sacchi"
+    },
+    "soglia_minima_grammi_per_store": {
+      "type": "object",
+      "description": "Soglia minima in grammi del semilavorato per negozio {store_id: grammi}: se raggiunta, viene suggerito l'ordine della materia prima collegata"
     },
     "somma_a_materia_prima_id": {
       "type": "string",

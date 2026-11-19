@@ -40,6 +40,7 @@ export default function SemilavoratiInventarioTab({ stores = [] }) {
         <p className="text-sm text-slate-600 mt-1">
           Attiva o disattiva ogni semilavorato per singolo locale. Se nessun locale è attivo, il semilavorato non appare nell'inventario.
           Con "A sacchi" si chiede solo il numero di sacchi di semilavorato: al raggiungimento del minimo viene suggerito l'ordine della materia prima collegata.
+          Per i semilavorati pesati in grammi il minimo è "Min. grammi", uno per locale.
         </p>
       </div>
 
@@ -55,6 +56,7 @@ export default function SemilavoratiInventarioTab({ stores = [] }) {
               ))}
               <th className="text-center p-3 text-slate-600 font-medium text-sm">A sacchi</th>
               <th className="text-center p-3 text-slate-600 font-medium text-sm">Min. sacchi</th>
+              <th className="text-right p-3 text-slate-600 font-medium text-sm">Min. grammi</th>
               <th className="text-center p-3 text-slate-600 font-medium text-sm">Ordina</th>
             </tr>
           </thead>
@@ -82,7 +84,7 @@ export default function SemilavoratiInventarioTab({ stores = [] }) {
                       </td>
                     );
                   })}
-                  <SemilavoratoSacchiConfig ricetta={ricetta} />
+                  <SemilavoratoSacchiConfig ricetta={ricetta} stores={stores} />
                 </tr>
               ))}
           </tbody>

@@ -59,15 +59,27 @@ const mediana = (valori) => {
 };
 
 const UNITA_PICCOLE = ['grammi', 'g', 'ml'];
+const UNITA_INTERE = ['sacchi', 'confezioni', 'pezzi'];
 
-// Conteggi scritti in un'altra unità (chili o pezzi al posto dei grammi): maggiori di 0 e sotto 50,
-// quando la mediana degli altri conteggi del prodotto nella stessa ubicazione supera 500. Solo per i prodotti contati in grammi o ml
+// Conteggi scritti probabilmente in un'altra unità: tra 1 e 20 per i prodotti contati in grammi o ml,
+// sopra 50 per quelli contati a sacchi, confezioni o pezzi
 export function unitaSospette(moves, unita) {
-  if (!UNITA_PICCOLE.includes(unita)) return new Set();
-  const conteggi = moves.filter((m) => m.tipo === 'conteggio');
-  const pieni = conteggi.filter((m) => m.quantita >= 50).map((m) => m.quantita);
-  if (!pieni.length || mediana(pieni) <= 500) return new Set();
-  return new Set(conteggi.filter((m) => m.quantita > 0 && m.quantita < 50));
+  const sospetta = UNITA_PICCOLE.includes(unita)
+    ? (q) => q > 0 && q <= 20
+    : UNITA_INTERE.includes(unita) ? (q) => q > 50 : null;
+  return new Set(sospetta ? moves.filter((m) => m.tipo === 'conteggio' && sospetta(m.quantita)) : []);
+}
+
+// Finestra del consumo dai conteggi: la più corta tra 28, 56 e 90 giorni con almeno 4 conteggi su almeno 5 giorni,
+// mai prima di `minimo`. Se nessuna basta, giorni è null e valgono gli ultimi 28 giorni
+export function finestraConsumo(counts, now, minimo = 0) {
+  for (const giorni of [28, 56, 90]) {
+    const dal = Math.max(now - giorni * GIORNO, minimo);
+    const dentro = counts.filter((c) => c.t >= dal);
+    if (dentro.length >= MIN_CONTEGGI && (dentro[dentro.length - 1].t - dentro[0].t) / GIORNO >= MIN_GIORNI) return { giorni, counts: dentro };
+  }
+  const dal = Math.max(now - 28 * GIORNO, minimo);
+  return { giorni: null, counts: counts.filter((c) => c.t >= dal) };
 }
 
 // Pendenza al giorno con il metodo Theil–Sen: mediana delle pendenze tra tutte le coppie di punti distanti almeno 12 ore.
@@ -114,8 +126,10 @@ export function consumoPeriodo(counts, moves, teoricoTra) {
 function stimaConsumo(counts, moves, fine, vendite, rete) {
   if (rete) {
     const periodo = { valido: false, negativi: 0, totali: 0, incoerenti: false };
+    // Il fattore di rete corregge il teorico solo quando le produzioni sono registrate, altrimenti vale 1
+    const fattore = rete.fattore ?? 1;
     return vendite.media > 0
-      ? { fonte: 'vendite', fattore: 1, consumo: vendite.media, tra: vendite.tra, periodo }
+      ? { fonte: 'vendite', fattore, consumo: vendite.media * fattore, tra: (da, a) => vendite.tra(da, a) * fattore, periodo }
       : { fonte: 'nessun_dato', fattore: null, consumo: null, tra: () => 0, periodo };
   }
   if (vendite.media > 0) {
@@ -179,19 +193,22 @@ function esaminaConteggi(counts, moves, stima) {
   return { stato, sospetti };
 }
 
-export function calcolaGiacenza(moves, now, soglia, teorico, rete = false) {
+// minimo = istante prima del quale la finestra del consumo non può iniziare
+export function calcolaGiacenza(moves, now, soglia, teorico, rete = false, minimo = 0) {
   const tutti = moves.filter((m) => m.tipo === 'conteggio');
   const vendite = consumoTeorico(teorico);
   // I conteggi sospetti si trovano con il consumo di tutti i conteggi, poi il consumo si ricalcola senza quelli non confermati
-  const { stato, sospetti } = esaminaConteggi(tutti, moves, stimaConsumo(tutti, moves, now, vendite, rete));
+  const { stato, sospetti } = esaminaConteggi(tutti, moves, stimaConsumo(finestraConsumo(tutti, now, minimo).counts, moves, now, vendite, rete));
   const counts = tutti.filter((c) => !sospetti.has(c));
-  const stima = stimaConsumo(counts, moves, now, vendite, rete);
+  const finestra = finestraConsumo(counts, now, minimo);
+  const stima = stimaConsumo(finestra.counts, moves, now, vendite, rete);
   const consumo = stima.consumo;
   const usciteGiorno = somma(moves, USCITE, now - 28 * GIORNO, now) / 28;
   const { negativi, totali, incoerenti } = stima.periodo;
   const base = {
     consumo, usciteGiorno, negativi, totali, incoerenti, fonte: stima.fonte, fattore: stima.fattore,
     teoricoGiorno: vendite.media > 0 ? vendite.media : null,
+    giorniFinestra: finestra.giorni,
     sospetti,
     ricontrollo: !!stato.pendente,
     // Un conteggio fatto adesso con questa quantità sarebbe sospetto?
@@ -208,7 +225,7 @@ export function calcolaGiacenza(moves, now, soglia, teorico, rete = false) {
   let scarto = null;
   const precedente = [...counts].reverse().find((c) => ultimo.t - c.t >= DODICI_ORE);
   if (precedente) {
-    const consumato = stimaConsumo(counts.filter((c) => c.t <= precedente.t), moves, ultimo.t, vendite, rete).tra(precedente.t, ultimo.t);
+    const consumato = stimaConsumo(finestra.counts.filter((c) => c.t <= precedente.t), moves, ultimo.t, vendite, rete).tra(precedente.t, ultimo.t);
     scarto = Math.abs(stimaDa(precedente, moves, () => consumato, ultimo.t) - ultimo.quantita) / Math.max(consumato, 1);
     if (scarto > soglia) affidabilita = 'da_verificare';
   }

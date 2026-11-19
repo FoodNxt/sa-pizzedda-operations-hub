@@ -24,7 +24,7 @@ export async function consumi(sr) {
       // Semilavorato di rete: il consumo dai conteggi del singolo negozio non si calcola
       conteggi: rete ? null : arrotonda(c.conteggi, 3),
       teorico: arrotonda(c.teorico, 3),
-      rete,
+      rete: !!rete,
       misurabile: c.misurabile && !rete,
       scarto_pct: c.misurabile && !rete ? arrotonda(((c.conteggi - c.teorico) / c.teorico) * 100, 1) : null
     });

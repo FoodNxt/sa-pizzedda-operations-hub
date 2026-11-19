@@ -49,7 +49,7 @@
     },
     "unita_sospetta_conteggi": {
       "type": "number",
-      "description": "Conteggi degli ultimi 28 giorni lasciati fuori perch\u00e9 in unit\u00e0 sospetta"
+      "description": "Conteggi lasciati fuori perch\u00e9 in unit\u00e0 sospetta"
     },
     "unita_sospetta_valore": {
       "type": "number",
@@ -59,6 +59,10 @@
       "type": "string",
       "format": "date-time",
       "description": "Data dell'ultimo conteggio in unit\u00e0 sospetta"
+    },
+    "unita_precedente_conteggi": {
+      "type": "number",
+      "description": "Conteggi lasciati fuori perch\u00e9 fatti con l'unit\u00e0 usata prima del cambio"
     },
     "giacenza_stimata": {
       "type": "number"
@@ -73,6 +77,10 @@
     "fattore_correzione": {
       "type": "number",
       "description": "Consumo da conteggi diviso consumo teorico sullo stesso periodo, tra 0,7 e 1,5"
+    },
+    "giorni_finestra_consumo": {
+      "type": "number",
+      "description": "Finestra usata per il consumo dai conteggi: 28, 56 o 90 giorni. Vuoto se i conteggi non bastano"
     },
     "fonte_consumo": {
       "type": "string",

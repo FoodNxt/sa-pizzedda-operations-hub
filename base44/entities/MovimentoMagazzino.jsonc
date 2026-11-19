@@ -114,7 +114,12 @@
     "unita_sospetta": {
       "type": "boolean",
       "default": false,
-      "description": "Conteggio in grammi o ml scritto probabilmente in un'altra unit\u00e0: resta fuori da consumo e giacenza. Lo aggiorna il ricalcolo"
+      "description": "Conteggio in grammi o ml tra 1 e 20, oppure a sacchi, confezioni o pezzi sopra 50: resta fuori da consumo e giacenza. Lo aggiorna il ricalcolo"
+    },
+    "unita_precedente": {
+      "type": "boolean",
+      "default": false,
+      "description": "Conteggio fatto con l'unit\u00e0 usata prima del cambio (sacchi, confezioni, pezzi): non si converte e resta fuori da consumo e giacenza. Lo aggiorna il ricalcolo"
     },
     "note": {
       "type": "string"

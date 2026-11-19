@@ -2,7 +2,8 @@ import React from 'react';
 import { Package, X } from 'lucide-react';
 import DettagliAdmin from './DettagliAdmin';
 
-const DECIMALI = ['kg', 'litri', 'grammi', 'g', 'ml'];
+// I grammi si pesano e si scrivono interi
+const DECIMALI = ['kg', 'litri', 'ml'];
 
 export default function RigaConteggio({ riga, valore, onChange, onRimuovi, dettagli, ricontrolla }) {
   const decimale = DECIMALI.includes(riga.unita);
@@ -18,6 +19,7 @@ export default function RigaConteggio({ riga, valore, onChange, onRimuovi, detta
       <div className="flex-1 min-w-0">
         <h3 className="font-bold text-slate-800 text-base">{riga.nome}</h3>
         <p className="text-sm text-slate-500">{riga.unita}</p>
+        {riga.unita === 'grammi' && <p className="text-sm font-medium text-blue-700">Pesa e scrivi i grammi (es. 1250)</p>}
         {ricontrolla && <span className="block text-sm font-bold text-red-600">Ricontrolla questo prodotto</span>}
         {dettagli && <DettagliAdmin riga={riga} />}
       </div>
@@ -28,7 +30,7 @@ export default function RigaConteggio({ riga, valore, onChange, onRimuovi, detta
         min="0"
         aria-label={`Quantità di ${riga.nome}`}
         value={valore ?? ''}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(riga.unita === 'grammi' && e.target.value !== '' ? String(Math.floor(Number(e.target.value) || 0)) : e.target.value)}
         className="w-28 neumorphic-pressed px-3 py-4 rounded-xl outline-none text-xl font-bold text-slate-700 text-center"
       />
       {onRimuovi && (

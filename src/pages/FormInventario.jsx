@@ -62,12 +62,13 @@ export default function FormInventario() {
 
       // Le materie prime gestite tramite semilavorato "a sacchi" non vengono più chieste nel form negozio
       const materiePrimeGestiteDaSacchi = ricette
-        .filter(r => r.inventario_a_sacchi && r.somma_a_materia_prima_id)
+        .filter(r => (r.inventario_a_sacchi || Object.keys(r.soglia_minima_grammi_per_store || {}).length > 0) && r.somma_a_materia_prima_id)
         .map(r => r.somma_a_materia_prima_id);
 
-      const materiePrimeFiltered = materiePrime.filter(p =>
-        (!p.posizione || p.posizione === 'negozio') && !materiePrimeGestiteDaSacchi.includes(p.id)
-      );
+      // Le materie prime ordinate a kg ma pesate in grammi si contano con la loro unità di conteggio
+      const materiePrimeFiltered = materiePrime
+        .filter(p => (!p.posizione || p.posizione === 'negozio') && !materiePrimeGestiteDaSacchi.includes(p.id))
+        .map(p => (p.unita_conteggio_inventario ? { ...p, unita_misura: p.unita_conteggio_inventario } : p));
       
       // Converte i semilavorati in formato compatibile
       const semilavorati = ricette.map(r => ({
@@ -77,6 +78,7 @@ export default function FormInventario() {
         categoria: 'semilavorati',
         unita_misura: r.inventario_a_sacchi ? 'sacchi' : (r.unita_misura_form_inventario || 'grammi'),
         quantita_minima: r.inventario_a_sacchi ? (r.soglia_minima_sacchi || 0) : 0,
+        soglie_grammi: r.soglia_minima_grammi_per_store,
         attivo: true,
         posizione: 'negozio',
         assigned_stores: r.stores_form_inventario || [],
@@ -156,6 +158,14 @@ export default function FormInventario() {
       return;
     }
 
+    // Pochi grammi sono quasi sempre un'altra unità: si salva solo dopo la conferma
+    const daCorreggere = products.find((p) => {
+      const grammi = parseFloat(quantities[p.id]);
+      return p.unita_misura === 'grammi' && grammi >= 1 && grammi <= 20
+        && !window.confirm(`${p.nome_prodotto}\nHai scritto ${grammi} grammi: è corretto? Se è vuoto scrivi 0`);
+    });
+    if (daCorreggere) return;
+
     setSaving(true);
     setSaveSuccess(false);
 
@@ -173,6 +183,7 @@ export default function FormInventario() {
         if (!product) continue;
         
         const quantitaRilevata = parseFloat(qty);
+        const minimo = product.soglie_grammi?.[store.id] ?? product.quantita_minima ?? 0;
         const rilevazione = {
           store_name: store.name,
           store_id: store.id,
@@ -182,8 +193,8 @@ export default function FormInventario() {
           nome_prodotto: product.nome_prodotto,
           quantita_rilevata: quantitaRilevata,
           unita_misura: product.unita_misura,
-          quantita_minima: product.quantita_minima || 0,
-          sotto_minimo: quantitaRilevata < (product.quantita_minima || 0)
+          quantita_minima: minimo,
+          sotto_minimo: quantitaRilevata < minimo
         };
 
         if (product.note) rilevazione.note = product.note;
@@ -405,6 +416,9 @@ export default function FormInventario() {
                             ? `${product.unita_misura} chiuse` 
                             : product.unita_misura}
                         </p>
+                        {product.unita_misura === 'grammi' && (
+                          <p className="text-sm font-medium text-blue-700">Pesa e scrivi i grammi (es. 1250)</p>
+                        )}
                       </div>
                       <button
                         type="button"
@@ -444,13 +458,13 @@ export default function FormInventario() {
                         </label>
                         <input
                           type="number"
-                          inputMode={['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) ? 'decimal' : 'numeric'}
-                          step={['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) ? '0.01' : '1'}
+                          inputMode={['kg', 'litri', 'ml'].includes(product.unita_misura) ? 'decimal' : 'numeric'}
+                          step={['kg', 'litri', 'ml'].includes(product.unita_misura) ? '0.01' : '1'}
                           min="0"
                           value={quantities[product.id] || ''}
                           onChange={(e) => {
                             let value = e.target.value;
-                            if (!['kg', 'litri', 'grammi', 'ml'].includes(product.unita_misura) && value !== '') {
+                            if (!['kg', 'litri', 'ml'].includes(product.unita_misura) && value !== '') {
                               value = Math.floor(parseFloat(value) || 0).toString();
                             }
                             handleQuantityChange(product.id, value);

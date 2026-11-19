@@ -51,6 +51,13 @@
       ],
       "description": "Unit\u00e0 di misura del prodotto"
     },
+    "unita_conteggio_inventario": {
+      "type": "string",
+      "enum": [
+        "grammi"
+      ],
+      "description": "Unit\u00e0 con cui il prodotto si conta nel form inventario, se diversa dall'unit\u00e0 d'ordine (es. grammi per un prodotto ordinato a kg)"
+    },
     "quantita_critica": {
       "type": "number",
       "description": "Quantit\u00e0 critica - sotto questa soglia \u00e8 necessario ordinare"

@@ -128,7 +128,10 @@ export default function GiacenzeTab({ ubicazioni }) {
                           </td>
                           <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.consumo_teorico_giorno, 3)}</span></td>
                           <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.fattore_correzione, 2)}</span></td>
-                          <td className="dt1-cell"><span className="dt1-muted">{FONTE_CONSUMO[g.fonte_consumo] || '—'}</span></td>
+                          <td className="dt1-cell">
+                            <span className="dt1-muted">{FONTE_CONSUMO[g.fonte_consumo] || '—'}</span>
+                            {g.giorni_finestra_consumo && <div className="dt1-muted">Conteggi su {g.giorni_finestra_consumo} giorni</div>}
+                          </td>
                           <td className="dt1-cell" style={{ textAlign: 'right' }}><span className="dt1-muted">{numeroIt(g.giorni_copertura, 1)}</span></td>
                           <td className="dt1-cell">
                             <span className="dt1-badge" style={{ background: colore }}>{etichetta}</span>
@@ -149,6 +152,12 @@ export default function GiacenzeTab({ ubicazioni }) {
                                   {new Date(g.unita_sospetta_data).toLocaleDateString('it-IT')} · {numeroIt(g.unita_sospetta_valore, 2)}
                                   {g.unita_sospetta_conteggi > 1 && ` (${g.unita_sospetta_conteggi} conteggi)`}
                                 </span>
+                              </div>
+                            )}
+                            {g.unita_precedente_conteggi > 0 && (
+                              <div style={{ whiteSpace: 'nowrap' }}>
+                                <span className="dt1-badge" style={{ background: '#e2e8f0' }}>unità precedente</span>{' '}
+                                <span className="dt1-muted">{g.unita_precedente_conteggi} conteggi non usati</span>
                               </div>
                             )}
                           </td>

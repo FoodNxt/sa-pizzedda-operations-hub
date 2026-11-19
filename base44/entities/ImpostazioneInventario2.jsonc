@@ -51,6 +51,11 @@
       "type": "string",
       "description": "Unit\u00e0 con cui si conta il prodotto"
     },
+    "data_cambio_unita_grammi": {
+      "type": "string",
+      "format": "date",
+      "description": "Giorno da cui il prodotto si conta in grammi: il consumo dai conteggi non guarda prima"
+    },
     "fattore_unita_ordine": {
       "type": "number",
       "default": 1,

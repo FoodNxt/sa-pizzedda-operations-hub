@@ -5,6 +5,30 @@
 const toGrams = (qty, unit) =>
   unit === 'kg' || unit === 'litri' ? (qty || 0) * 1000 : (qty || 0);
 
+const PESATO = ['grammi', 'g', 'kg'];
+const due = (n) => Math.round(n * 100) / 100;
+
+// Conteggio in grammi di un prodotto ordinato a kg: si porta in kg per confrontarlo con la quantità critica
+const inUnitaProdotto = (reading, product) =>
+  reading.unita_misura === 'grammi' && product?.unita_misura === 'kg'
+    ? (reading.quantita_rilevata || 0) / 1000
+    : reading.quantita_rilevata || 0;
+
+// Grammi di semilavorato → materia prima collegata: prima la resa della ricetta (ingrediente / quantità prodotta),
+// poi l'unità della materia prima. null = ricetta senza ingrediente o senza quantità prodotta
+const inMateriaPrima = (grammi, ricetta, materiaPrima) => {
+  const ingrediente = ricetta.somma_ingrediente_id?.startsWith('ing_')
+    ? ricetta.ingredienti?.[parseInt(ricetta.somma_ingrediente_id.replace('ing_', ''))]
+    : ricetta.ingredienti?.find((ing) => ing.materia_prima_id === ricetta.somma_ingrediente_id);
+  if (!ingrediente || !(ricetta.quantita_prodotta > 0)) return null;
+  const crudi = grammi * toGrams(ingrediente.quantita, ingrediente.unita_misura) /
+    toGrams(ricetta.quantita_prodotta, ricetta.unita_misura_prodotta);
+  if (materiaPrima.unita_misura === 'sacchi' && materiaPrima.peso_dimensione_unita) {
+    return crudi / (materiaPrima.peso_dimensione_unita * 1000);
+  }
+  return materiaPrima.unita_misura === 'kg' || materiaPrima.unita_misura === 'litri' ? crudi / 1000 : crudi;
+};
+
 export function calcolaOrdiniSuggeriti({ inventory = [], inventoryCantina = [], products = [], stores = [], ricette = [] }) {
   const orders = [];
   const allInventory = [...inventory, ...inventoryCantina];
@@ -34,36 +58,41 @@ export function calcolaOrdiniSuggeriti({ inventory = [], inventoryCantina = [], 
     quantitaOrdine: product.store_specific_quantita_ordine?.[storeId] || product.quantita_ordine || 0
   });
 
+  // Per ogni negozio e semilavorato vale solo il conteggio più recente, anche se fatto sul vecchio prodotto con lo stesso nome
+  const perSemilavorato = {};
+  Object.values(latestByProduct).forEach((reading) => {
+    const ricetta = findRicetta(reading);
+    if (!ricetta) return;
+    const key = `${reading.store_id}-${ricetta.id}`;
+    const attuale = perSemilavorato[key];
+    if (!attuale || new Date(reading.data_rilevazione) > new Date(attuale.reading.data_rilevazione)) perSemilavorato[key] = { reading, ricetta };
+  });
+  const semilavorati = Object.values(perSemilavorato).map(({ reading, ricetta }) => {
+    const pesato = PESATO.includes(reading.unita_misura);
+    return {
+      reading,
+      ricetta,
+      pesato,
+      // Soglia propria del semilavorato: in grammi per negozio, oppure a sacchi per i conteggi ancora fatti a sacchi
+      soglia: pesato
+        ? ricetta.soglia_minima_grammi_per_store?.[reading.store_id]
+        : ricetta.inventario_a_sacchi ? ricetta.soglia_minima_sacchi || 0 : ricetta.soglia_minima_sacchi
+    };
+  });
+
   // STEP 1: giacenze dirette
   const aggregatedQuantities = {};
   Object.values(latestByProduct).forEach((reading) => {
-    aggregatedQuantities[`${reading.store_id}-${reading.prodotto_id}`] = reading.quantita_rilevata || 0;
+    aggregatedQuantities[`${reading.store_id}-${reading.prodotto_id}`] = inUnitaProdotto(reading, products.find((p) => p.id === reading.prodotto_id));
   });
 
-  // STEP 2: somma proporzionale dei semilavorati alle materie prime
-  Object.values(latestByProduct).forEach((reading) => {
-    const ricetta = findRicetta(reading);
-    if (!ricetta || ricetta.inventario_a_sacchi || !ricetta.somma_ingrediente_id) return;
-
-    const ingrediente = ricetta.somma_ingrediente_id.startsWith('ing_')
-      ? ricetta.ingredienti?.[parseInt(ricetta.somma_ingrediente_id.replace('ing_', ''))]
-      : ricetta.ingredienti?.find((ing) => ing.materia_prima_id === ricetta.somma_ingrediente_id);
-
-    if (!ingrediente || !ricetta.quantita_prodotta || ricetta.quantita_prodotta <= 0) return;
-
+  // STEP 2: i semilavorati pesati e senza soglia propria si sommano alla materia prima collegata
+  semilavorati.forEach(({ reading, ricetta, pesato, soglia }) => {
+    if (!pesato || soglia != null) return;
     const materiaPrimaTarget = products.find((p) => p.id === ricetta.somma_a_materia_prima_id);
     if (!materiaPrimaTarget) return;
-
-    const ratio = toGrams(ingrediente.quantita, ingrediente.unita_misura) /
-      toGrams(ricetta.quantita_prodotta, ricetta.unita_misura_prodotta);
-    const rawMaterialNeededGrams = toGrams(reading.quantita_rilevata, reading.unita_misura) * ratio;
-
-    let qtyToAdd = rawMaterialNeededGrams;
-    if (materiaPrimaTarget.unita_misura === 'sacchi' && materiaPrimaTarget.peso_dimensione_unita) {
-      qtyToAdd = rawMaterialNeededGrams / (materiaPrimaTarget.peso_dimensione_unita * 1000);
-    } else if (materiaPrimaTarget.unita_misura === 'kg' || materiaPrimaTarget.unita_misura === 'litri') {
-      qtyToAdd = rawMaterialNeededGrams / 1000;
-    }
+    const qtyToAdd = inMateriaPrima(toGrams(reading.quantita_rilevata, reading.unita_misura), ricetta, materiaPrimaTarget);
+    if (qtyToAdd == null) return;
 
     const targetKey = `${reading.store_id}-${ricetta.somma_a_materia_prima_id}`;
     aggregatedQuantities[targetKey] = (aggregatedQuantities[targetKey] || 0) + qtyToAdd;
@@ -81,6 +110,7 @@ export function calcolaOrdiniSuggeriti({ inventory = [], inventoryCantina = [], 
     if (quantitaEffettiva <= quantitaCritica && quantitaOrdine > 0) {
       orders.push({
         ...reading,
+        unita_misura: product.unita_conteggio_inventario ? product.unita_misura : reading.unita_misura,
         quantita_rilevata: quantitaEffettiva,
         quantita_aggregata: quantitaEffettiva,
         product,
@@ -121,14 +151,11 @@ export function calcolaOrdiniSuggeriti({ inventory = [], inventoryCantina = [], 
     }
   });
 
-  // FASE 3: semilavorati contati a sacchi → soglia propria, ordina la materia prima collegata
-  Object.values(latestByProduct).forEach((reading) => {
-    const ricetta = findRicetta(reading);
-    if (!ricetta?.inventario_a_sacchi) return;
-
-    const sacchi = reading.quantita_rilevata || 0;
-    const soglia = ricetta.soglia_minima_sacchi || 0;
-    if (sacchi > soglia) return;
+  // FASE 3: semilavorati con soglia propria (grammi o sacchi) → ordina la materia prima collegata
+  semilavorati.forEach(({ reading, ricetta, pesato, soglia: sogliaPropria }) => {
+    if (sogliaPropria == null) return;
+    const contato = pesato ? toGrams(reading.quantita_rilevata, reading.unita_misura) : reading.quantita_rilevata || 0;
+    if (contato > sogliaPropria) return;
 
     const product = products.find((p) => p.id === ricetta.somma_a_materia_prima_id);
     const store = stores.find((s) => s.id === reading.store_id);
@@ -137,6 +164,11 @@ export function calcolaOrdiniSuggeriti({ inventory = [], inventoryCantina = [], 
 
     const { quantitaOrdine } = getSoglie(product, reading.store_id);
     if (quantitaOrdine <= 0) return;
+
+    // I grammi si mostrano nell'unità della materia prima, passando per la resa della ricetta
+    const mostra = (q) => (pesato ? due(inMateriaPrima(q, ricetta, product) ?? q) : q);
+    const sacchi = mostra(contato);
+    const soglia = mostra(sogliaPropria);
 
     orders.push({
       store_id: reading.store_id,

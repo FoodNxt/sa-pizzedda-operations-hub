@@ -86,6 +86,13 @@ export default function ConteggioForm() {
 
   const salva = async (e) => {
     e.preventDefault();
+    // Pochi grammi sono quasi sempre un'altra unità: si salva solo dopo la conferma
+    const daCorreggere = visibili.find((r) => {
+      const grammi = Number(valori[r.item_id]);
+      return r.unita === 'grammi' && grammi >= 1 && grammi <= 20
+        && !window.confirm(`${r.nome}\nHai scritto ${grammi} grammi: è corretto? Se è vuoto scrivi 0`);
+    });
+    if (daCorreggere) return;
     if (prova) return simula();
     setSaving(true);
     try {

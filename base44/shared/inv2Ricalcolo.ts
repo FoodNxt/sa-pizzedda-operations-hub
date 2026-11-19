@@ -1,5 +1,6 @@
 import { aBlocchi, fetchAll, loadConfig, norm } from './inv2.ts';
 import { GIORNO, calcolaGiacenza, giornoRoma, prossimoConteggio, senzaConteggiDoppi, unitaSospette } from './inv2Calcolo.ts';
+import { consumoRete } from './inv2Rete.ts';
 import { consumiTeorici, mezzanotte, ricetteEscluse } from './inv2Teorico.ts';
 
 const INTERVALLI_DEFAULT = {
@@ -14,7 +15,8 @@ const senzaNull = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => 
 export async function preparaCalcolo(sr, chiavi) {
   const E = sr.entities;
   const now = Date.now();
-  const dal = new Date(now - 28 * GIORNO).toISOString();
+  // 90 giorni: la finestra più lunga del consumo dai conteggi
+  const dal = new Date(now - 90 * GIORNO).toISOString();
   const filtroUbic = chiavi?.length ? { ubicazione_key: { $in: chiavi } } : {};
 
   const [{ config, labStoreId }, stores, materie, ricette, fornitori] = await Promise.all([
@@ -30,19 +32,19 @@ export async function preparaCalcolo(sr, chiavi) {
     fetchAll(E.MovimentoMagazzino, { ...filtroUbic, data_movimento: { $gte: dal } }, 'data_movimento')
   ]);
 
-  // Semilavorati trasportabili: finché produzioni e trasporti non sono registrati per tutta la finestra
-  // (almeno uno di ciascuno prima dell'inizio e almeno uno dentro) il consumo dai conteggi vale solo per la rete
-  const trasportabili = ricette.filter((r) => r.is_semilavorato && r.trasportabile).map((r) => r.id);
-  const registrati = async (data) => {
-    const { rows } = await E.MovimentoMagazzino.aggregate({
-      query: { item_id: { $in: trasportabili }, tipo: { $in: ['produzione_carico', 'trasporto_uscita', 'trasporto_entrata'] }, data_movimento: data },
-      groupBy: ['item_id', 'tipo']
-    });
-    const tipi = (id) => rows.filter((r) => r.item_id === id).map((r) => r.tipo);
-    return new Set(trasportabili.filter((id) => tipi(id).includes('produzione_carico') && tipi(id).some((t) => t.startsWith('trasporto'))));
+  // Semilavorati trasportabili del laboratorio: il calcolo è di rete finché non passano 14 giorni dalla data di partenza,
+  // la più recente tra la prima produzione e il primo trasporto registrati
+  const inclusi = new Set(impostazioni.map((i) => i.item_id));
+  const trasportabili = ricette.filter((r) => r.is_semilavorato && r.trasportabile && inclusi.has(r.id)).map((r) => r.id);
+  const primo = async (id, tipi) => {
+    const page = await E.MovimentoMagazzino.filter({ item_id: id, tipo: { $in: tipi } }, { sort: 'data_movimento', limit: 1 });
+    return page.items[0] ? Date.parse(page.items[0].data_movimento) : null;
   };
-  const [prima, dentro] = trasportabili.length ? await Promise.all([registrati({ $lt: dal }), registrati({ $gte: dal })]) : [new Set(), new Set()];
-  const diRete = new Set(trasportabili.filter((id) => !(prima.has(id) && dentro.has(id))));
+  const avvii = Object.fromEntries(await Promise.all(trasportabili.map(async (id) => {
+    const [produzione, trasporto] = await Promise.all([primo(id, ['produzione_carico']), primo(id, ['trasporto_uscita', 'trasporto_entrata'])]);
+    const partenza = produzione && trasporto ? Math.max(produzione, trasporto) : null;
+    return [id, { produzioni: !!produzione, partenza, perNegozio: !!partenza && now - partenza >= 14 * GIORNO }];
+  })));
 
   // Prodotti inclusi, con i dati che servono al calcolo
   const mpById = Object.fromEntries(materie.map((m) => [m.id, m]));
@@ -92,10 +94,10 @@ export async function preparaCalcolo(sr, chiavi) {
     if (daCalcolare) coppie.push({ u, p, k: `${u.ubicazione_key}|${p.imp.item_id}` });
   }));
 
-  // Movimenti degli ultimi 28 giorni per ubicazione e prodotto
+  // Movimenti degli ultimi 90 giorni per ubicazione e prodotto
   const perCoppia = {};
   const chiave = (m) => `${m.ubicazione_key}|${m.item_id}`;
-  const mossa = (m) => ({ id: m.id, sospetto: !!m.sospetto, unita_sospetta: !!m.unita_sospetta, tipo: m.tipo, quantita: m.quantita || 0, t: Date.parse(m.data_movimento) });
+  const mossa = (m) => ({ id: m.id, sospetto: !!m.sospetto, unita_sospetta: !!m.unita_sospetta, unita_precedente: !!m.unita_precedente, unita: m.unita, tipo: m.tipo, quantita: m.quantita || 0, t: Date.parse(m.data_movimento) });
   movimenti.forEach((m) => (perCoppia[chiave(m)] ||= []).push(mossa(m)));
 
   // Ultimo conteggio prima della finestra
@@ -124,7 +126,7 @@ export async function preparaCalcolo(sr, chiavi) {
   });
 
   const intervalli = { ...INTERVALLI_DEFAULT, ...(config.intervallo_max_giorni_per_categoria || {}) };
-  return {
+  const calcolo = {
     now,
     oggi: giornoRoma(new Date(now)),
     soglia: config.soglia_affidabilita ?? 0.3,
@@ -132,19 +134,28 @@ export async function preparaCalcolo(sr, chiavi) {
     venditeNonCollegate: teorici.nonCollegate,
     consumiNonConvertiti: teorici.nonConvertiti,
     coppie: coppie.map(({ u, p, k }) => {
+      const unita = p.imp.unita_conteggio;
+      const grezzi = (perCoppia[k] || []).sort((a, b) => a.t - b.t);
+      // Conteggi fatti con l'unità di prima (sacchi, confezioni, pezzi): non si convertono e restano fuori
+      const precedente = (m) => m.tipo === 'conteggio' && !!m.unita && !!unita && m.unita !== unita;
       // L'unità sospetta si giudica su tutti i conteggi letti, anche quelli prima dell'inizio dello storico
-      const letti = senzaConteggiDoppi((perCoppia[k] || []).sort((a, b) => a.t - b.t));
-      const sospette = unitaSospette(letti, p.imp.unita_conteggio);
-      const tutti = letti.filter((m) => m.t >= daQuando(u.store_id));
-      const fuori = sospette;
+      const letti = senzaConteggiDoppi(grezzi.filter((m) => !precedente(m)));
+      const fuori = unitaSospette(letti, unita);
+      const avvio = u.ubicazione_tipo === 'negozio' ? avvii[p.imp.item_id] : null;
+      const cambio = p.imp.data_cambio_unita_grammi ? mezzanotte(p.imp.data_cambio_unita_grammi) : 0;
       return {
       u,
       p,
       k,
-      // I conteggi in unità sospetta restano fuori da consumo e giacenza
-      moves: tutti.filter((m) => !fuori.has(m)),
+      // I conteggi in unità sospetta o precedente restano fuori da consumo e giacenza
+      moves: letti.filter((m) => m.t >= daQuando(u.store_id) && !fuori.has(m)),
       unitaSospette: [...fuori],
-      rete: u.ubicazione_tipo === 'negozio' && diRete.has(p.imp.item_id),
+      unitaPrecedenti: grezzi.filter(precedente),
+      // Di rete: i conteggi del singolo negozio non dicono il consumo. Senza produzioni registrate lo scarto di rete è solo indicativo
+      rete: avvio && !avvio.perNegozio ? { fattore: 1, produzioni: avvio.produzioni } : false,
+      // La finestra del consumo non inizia prima dell'inizio dello storico, del cambio di unità e,
+      // per i semilavorati tornati al calcolo per negozio, della data di partenza
+      minimo: Math.max(daQuando(u.store_id), cambio, avvio?.perNegozio ? avvio.partenza : 0),
       // Consumo teorico del prodotto nello store, giorno per giorno
       teorico: { giorni: teorici.giorniPerStore[u.store_id] || [], perGiorno: teorici.perStore[u.store_id]?.[p.imp.item_id] || {} },
       // Prossimo conteggio a partire dal risultato di calcolaGiacenza
@@ -159,6 +170,17 @@ export async function preparaCalcolo(sr, chiavi) {
       };
     })
   };
+
+  // Con le produzioni registrate il fattore di rete corregge il teorico di ogni negozio
+  const perItem = {};
+  calcolo.coppie.filter((c) => c.rete?.produzioni).forEach((c) => (perItem[c.p.imp.item_id] ||= []).push(c));
+  Object.values(perItem).forEach((lista) => {
+    const c = consumoRete(lista, now - 28 * GIORNO);
+    if (!(c.valido && c.misurabile && c.teorico > 0 && c.consumo >= 0)) return;
+    const fattore = Math.min(1.5, Math.max(0.7, c.consumo / c.teorico));
+    lista.forEach((x) => { x.rete.fattore = fattore; });
+  });
+  return calcolo;
 }
 
 // Aggiorna le GiacenzaStimata. chiavi = elenco di ubicazione_key da ricalcolare, vuoto = tutte.
@@ -172,15 +194,20 @@ export async function ricalcola(sr, chiavi) {
   const aggiornati = [];
   const etichette = [];
 
-  coppie.forEach(({ u, p, k, moves, unitaSospette: fuori, rete, teorico, prossimo: prossimoPer }) => {
-    const r = calcolaGiacenza(moves, now, soglia, teorico, rete);
-    // Le etichette "sospetto" e "unità sospetta" sui conteggi seguono il calcolo: si scrivono solo dove sono cambiate
+  coppie.forEach(({ u, p, k, moves, unitaSospette: fuori, unitaPrecedenti: precedenti, rete, minimo, teorico, prossimo: prossimoPer }) => {
+    const r = calcolaGiacenza(moves, now, soglia, teorico, rete, minimo);
+    // Le etichette "sospetto", "unità sospetta" e "unità precedente" sui conteggi seguono il calcolo: si scrivono solo dove sono cambiate
     moves.forEach((m) => {
       if (m.tipo !== 'conteggio' || !m.id) return;
-      if (r.sospetti.has(m) !== m.sospetto || m.unita_sospetta) etichette.push({ id: m.id, sospetto: r.sospetti.has(m), unita_sospetta: false });
+      if (r.sospetti.has(m) !== m.sospetto || m.unita_sospetta || m.unita_precedente) {
+        etichette.push({ id: m.id, sospetto: r.sospetti.has(m), unita_sospetta: false, unita_precedente: false });
+      }
     });
     fuori.forEach((m) => {
-      if (m.id && (!m.unita_sospetta || m.sospetto)) etichette.push({ id: m.id, sospetto: false, unita_sospetta: true });
+      if (m.id && (!m.unita_sospetta || m.sospetto || m.unita_precedente)) etichette.push({ id: m.id, sospetto: false, unita_sospetta: true, unita_precedente: false });
+    });
+    precedenti.forEach((m) => {
+      if (m.id && (!m.unita_precedente || m.sospetto || m.unita_sospetta)) etichette.push({ id: m.id, sospetto: false, unita_sospetta: false, unita_precedente: true });
     });
     const ultimoFuori = fuori[fuori.length - 1];
     if (r.incoerenti) conteggiIncoerenti.push({ ubicazione_key: u.ubicazione_key, item_nome: p.nome, negativi: r.negativi, totali: r.totali });
@@ -196,6 +223,8 @@ export async function ricalcola(sr, chiavi) {
       unita_sospetta_conteggi: fuori.length,
       unita_sospetta_valore: ultimoFuori ? ultimoFuori.quantita : null,
       unita_sospetta_data: ultimoFuori ? new Date(ultimoFuori.t).toISOString() : null,
+      unita_precedente_conteggi: precedenti.length,
+      giorni_finestra_consumo: r.giorniFinestra,
       giacenza_stimata: r3(r.giacenza),
       consumo_medio_giorno: r3(r.consumo),
       consumo_teorico_giorno: r3(r.teoricoGiorno),
@@ -235,6 +264,7 @@ export async function ricalcola(sr, chiavi) {
     conteggi_incoerenti: conteggiIncoerenti,
     conteggi_sospetti: etichette.filter((e) => e.sospetto).length,
     unita_sospette: etichette.filter((e) => e.unita_sospetta).length,
+    unita_precedenti: etichette.filter((e) => e.unita_precedente).length,
     vendite_non_collegate: venditeNonCollegate,
     consumi_non_convertiti: consumiNonConvertiti
   };

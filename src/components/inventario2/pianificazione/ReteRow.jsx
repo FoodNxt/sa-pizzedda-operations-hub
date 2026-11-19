@@ -16,13 +16,13 @@ export default function ReteRow({ riga }) {
       </td>
       <td className="dt1-cell" style={destra}><span className="dt1-muted">{numeroIt(riga.conteggi, 2)}</span></td>
       <td className="dt1-cell" style={destra}><span className="dt1-muted">{numeroIt(riga.teorico, 3)}</span></td>
-      <td className="dt1-cell" style={destra}><span className="dt1-muted">{numeroIt(riga.fattore, 2)}</span></td>
+      <td className="dt1-cell" style={destra}><span className="dt1-muted">{riga.indicativo ? '—' : numeroIt(riga.fattore, 2)}</span></td>
       <td className="dt1-cell">
         <span className="dt1-muted">{riga.conteggi == null ? 'Nessun dato' : 'Conteggi di rete'}</span>
         <div className="dt1-muted" style={{ maxWidth: 240, whiteSpace: 'normal' }}>
           {riga.conteggi == null
-            ? `Servono 4 giorni contati da tutti i negozi su almeno 5 giorni (ora ${riga.punti})`
-            : `${riga.punti} giorni contati da tutti i negozi su ${numeroIt(riga.giorni, 1)} giorni`}
+            ? `Servono 4 giorni validi su almeno 5 giorni (ora ${riga.punti}). Un giorno è valido se ogni negozio ha contato quel giorno o il giorno prima`
+            : `${riga.punti} giorni validi su ${numeroIt(riga.giorni, 1)} giorni`}
         </div>
       </td>
       <td className="dt1-cell" style={destra}><span className="dt1-muted">—</span></td>
@@ -32,6 +32,7 @@ export default function ReteRow({ riga }) {
             Scarto {riga.scarto_pct > 0 ? '+' : ''}{numeroIt(riga.scarto_pct, 1)}%
           </span>
         )}
+        {riga.indicativo && riga.scarto_pct != null && <div className="dt1-muted">indicativo – produzioni non registrate</div>}
       </td>
       <td className="dt1-cell" colSpan={3}>
         <span className="dt1-muted">Per negozio: non misurabile – trasporti non registrati</span>

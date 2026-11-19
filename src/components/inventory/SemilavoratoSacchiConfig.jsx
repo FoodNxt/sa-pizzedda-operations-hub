@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, X } from 'lucide-react';
+import SogliaGrammiCell from './SogliaGrammiCell';
 
-export default function SemilavoratoSacchiConfig({ ricetta }) {
+export default function SemilavoratoSacchiConfig({ ricetta, stores = [] }) {
   const queryClient = useQueryClient();
   const [soglia, setSoglia] = useState(ricetta.soglia_minima_sacchi ?? '');
 
@@ -42,6 +43,7 @@ export default function SemilavoratoSacchiConfig({ ricetta }) {
           placeholder="0"
         />
       </td>
+      <SogliaGrammiCell ricetta={ricetta} stores={stores} onSave={(data) => saveMutation.mutate(data)} />
       <td className="p-3 text-center text-xs text-slate-500">
         {ricetta.somma_a_materia_prima_nome || '—'}
       </td>
