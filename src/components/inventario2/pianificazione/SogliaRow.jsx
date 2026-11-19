@@ -28,7 +28,8 @@ export default function SogliaRow({ riga, diversa, selezionata, onSeleziona, onA
           ? <span className="dt1-badge" style={{ background: '#fde68a' }}>{riga.motivo}</span>
           : (
             <span className="dt1-muted">
-              attesa {numeroIt(riga.giorni_attesa, 1)} gg · ordini ogni {numeroIt(riga.giorni_tra_ordini, 1)} gg ({riga.fonte})
+              attesa {numeroIt(riga.giorni_attesa, 1)} gg + sicurezza {numeroIt(riga.giorni_sicurezza, 0)} gg · ordini ogni {numeroIt(riga.giorni_tra_ordini, 1)} gg ({riga.fonte})
+              {riga.storico_insufficiente && <span className="dt1-badge" style={{ background: '#e2e8f0', marginLeft: 6 }}>storico insufficiente</span>}
               {riga.stima_da_storico && <span className="dt1-badge" style={{ background: '#fde68a', marginLeft: 6 }}>stima da storico</span>}
             </span>
           )}

@@ -1,22 +1,25 @@
-import { fetchAll, norm, ubicazioneDaKey } from '../../shared/inv2.ts';
+import { fetchAll, loadConfig, norm, ubicazioneDaKey } from '../../shared/inv2.ts';
 import { GIORNO, giornoRoma } from '../../shared/inv2Calcolo.ts';
-import { attesaMedia, giorniTraOrdini, medianeOrdini } from '../../shared/inv2Consegne.ts';
+import { SICUREZZA_DEFAULT, arrotondaOrdine, attesaMedia, giorniTraOrdini, medianeOrdini } from '../../shared/inv2Consegne.ts';
 
 const r3 = (n) => Math.round(n * 1000) / 1000;
 
 // Minimo e massimo suggeriti per le materie prime, per ubicazione (sola lettura).
-// Minimo = consumo al giorno × (giorni di attesa medi + 1). Massimo = minimo + consumo × giorni tra ordini usati,
-// almeno minimo + quantità d'ordine e almeno minimo + 1 unità d'ordine. I valori sono nell'unità di conteggio
+// Minimo = consumo al giorno × (giorni di attesa medi + giorni di sicurezza della categoria).
+// Massimo = minimo + consumo × giorni tra ordini usati, almeno minimo + quantità d'ordine e almeno minimo + 1 unità d'ordine.
+// I valori sono nell'unità di conteggio
 export async function soglie(sr) {
   const E = sr.entities;
   const da = new Date(Date.now() - 90 * GIORNO).toISOString();
-  const [impostazioni, giacenze, materie, fornitori, ordini] = await Promise.all([
+  const [{ config }, impostazioni, giacenze, materie, fornitori, ordini] = await Promise.all([
+    loadConfig(sr),
     fetchAll(E.ImpostazioneInventario2, { incluso: true, item_tipo: 'materia_prima' }),
     fetchAll(E.GiacenzaStimata, { item_tipo: 'materia_prima' }),
     fetchAll(E.MateriePrime),
     fetchAll(E.Fornitore),
     fetchAll(E.OrdineFornitore, { data_invio: { $gte: da } })
   ]);
+  const sicurezze = { ...SICUREZZA_DEFAULT, ...(config.giorni_sicurezza_per_categoria || {}) };
   const impById = Object.fromEntries(impostazioni.map((i) => [i.item_id, i]));
   const mpById = Object.fromEntries(materie.map((m) => [m.id, m]));
   const fornByNome = Object.fromEntries(fornitori.map((f) => [norm(f.ragione_sociale), f]));
@@ -35,6 +38,7 @@ export async function soglie(sr) {
       item_id: g.item_id,
       ubicazione_key: g.ubicazione_key,
       nome: mp.nome_prodotto,
+      categoria: mp.categoria,
       fornitore: mp.fornitore || null,
       unita: imp.unita_conteggio || mp.unita_misura,
       unita_ordine: mp.unita_misura,
@@ -51,16 +55,19 @@ export async function soglie(sr) {
     if (!(consumo > 0)) return { ...riga, motivo: 'consumo mancante' };
 
     const attesa = attesaMedia(f, oggi);
+    const sicurezza = sicurezze[mp.categoria] ?? 1;
     const tra = giorniTraOrdini(f, mediana);
     const quantitaOrdine = (mp.store_specific_quantita_ordine?.[storeId] || mp.quantita_ordine || 0) * fattore;
-    const arrotonda = (q) => Math.max(1, Math.round(q / fattore)) * fattore;
-    const min = arrotonda(consumo * (attesa + 1));
+    const arrotonda = (q) => Math.max(1, arrotondaOrdine(q / fattore)) * fattore;
+    const min = arrotonda(consumo * (attesa + sicurezza));
     const max = Math.max(arrotonda(min + consumo * tra.giorni), min + quantitaOrdine, min + fattore);
     return {
       ...riga,
       giorni_attesa: r3(attesa),
+      giorni_sicurezza: sicurezza,
       giorni_tra_ordini: r3(tra.giorni),
       fonte: tra.fonte,
+      storico_insufficiente: tra.storico_insufficiente,
       mediana_storico: mediana,
       stima_da_storico: senzaGiorni,
       quantita_ordine: quantitaOrdine,

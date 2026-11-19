@@ -12,6 +12,7 @@ import ChecklistAttivo from './ChecklistAttivo';
 import ImportaVendite from './ImportaVendite';
 import InizioStorico from './InizioStorico';
 import RicetteEscluse from './RicetteEscluse';
+import GiorniSicurezza from './GiorniSicurezza';
 import { oggiLocale } from '@/components/laboratorio/labUtils';
 
 export default function ConfigurazioneTab() {
@@ -47,6 +48,7 @@ export default function ConfigurazioneTab() {
           ...prev,
           ...rec,
           modalita_per_store: rec.modalita_per_store || {},
+          giorni_sicurezza_per_categoria: { ...DEFAULT_CONFIG.giorni_sicurezza_per_categoria, ...(rec.giorni_sicurezza_per_categoria || {}) },
           intervallo_max_giorni_per_categoria: { ...DEFAULT_CONFIG.intervallo_max_giorni_per_categoria, ...(rec.intervallo_max_giorni_per_categoria || {}) }
         }));
       }
@@ -76,6 +78,7 @@ export default function ConfigurazioneTab() {
       ricette_escluse_dal_consumo_negozio: cfg.ricette_escluse_dal_consumo_negozio || [],
       limite_voci_sera: Number(cfg.limite_voci_sera) || 0,
       intervallo_max_giorni_per_categoria: intervalli,
+      giorni_sicurezza_per_categoria: Object.fromEntries(Object.entries(cfg.giorni_sicurezza_per_categoria).map(([k, v]) => [k, Number(v) || 0])),
       soglia_affidabilita: Number(cfg.soglia_affidabilita) || 0
     };
     if (configId) await base44.entities.ConfigInventario2.update(configId, data);
@@ -177,6 +180,11 @@ export default function ConfigurazioneTab() {
           ))}
         </div>
       </NeumorphicCard>
+
+      <GiorniSicurezza
+        valori={cfg.giorni_sicurezza_per_categoria}
+        onChange={(valori) => set({ giorni_sicurezza_per_categoria: valori })}
+      />
 
       <InizioStorico
         stores={stores}

@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.62';
 import { fetchAll, loadConfig, norm, soloAdmin, ubicazionePer } from '../../shared/inv2.ts';
 import { giornoRoma } from '../../shared/inv2Calcolo.ts';
-import { prossimaConsegna } from '../../shared/inv2Consegne.ts';
+import { arrotondaOrdine, prossimaConsegna } from '../../shared/inv2Consegne.ts';
 
 // Proposte d'ordine di Inventario 2.0 per ubicazione e fornitore (sola lettura)
 export default async function (req) {
@@ -95,7 +95,10 @@ export default async function (req) {
       const scatta = gruppo.prodotti.some((p) => p.sotto_min);
       const prodotti = gruppo.prodotti.map((p) => {
         const daOrdinare = scatta && p.max != null && p.giacenza != null && (p.sotto_min || p.giacenza < p.max);
-        const quantita = daOrdinare ? Math.ceil(Math.round(((p.max - p.giacenza - p.in_arrivo) / p.fattore) * 1e6) / 1e6) : 0;
+        // Per difetto fino a 0,25 di unità d'ordine, ma per eccesso se il prodotto resterebbe sotto il minimo
+        const serve = daOrdinare ? (p.max - p.giacenza - p.in_arrivo) / p.fattore : 0;
+        let quantita = arrotondaOrdine(serve);
+        if (quantita < serve && p.min != null && p.giacenza + p.in_arrivo + quantita * p.fattore <= p.min) quantita += 1;
         return quantita >= 1
           ? { ...p, quantita, etichetta: p.sotto_min ? 'Sotto min' : 'Completamento' }
           : { ...p, quantita: 0, etichetta: null };

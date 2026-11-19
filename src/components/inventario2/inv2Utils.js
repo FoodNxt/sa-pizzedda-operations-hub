@@ -22,6 +22,18 @@ export const DEFAULT_CONFIG = {
   lab_store_id: '6908b4f284cb01bc8402b4ee',
   basi_ricetta_id: '',
   limite_voci_sera: 15,
+  giorni_sicurezza_per_categoria: {
+    'Ortofrutta': 1,
+    'Ingredienti base': 1,
+    'semilavorato': 1,
+    'Ingredienti pronti': 3,
+    'Bevande': 3,
+    'Dolci': 3,
+    'Angolo di Sardegna': 3,
+    'Packaging': 3,
+    'Consumabili': 3,
+    'Pulizia': 3
+  },
   intervallo_max_giorni_per_categoria: {
     'Ingredienti pronti': 7,
     'Ortofrutta': 7,

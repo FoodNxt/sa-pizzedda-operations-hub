@@ -4,6 +4,29 @@ import { norm } from './inv2.ts';
 
 const GIORNI = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
 export const FREQUENZA_MINIMA = 3;
+export const ORDINI_PER_STORICO = 3;
+export const GIORNI_TRA_ORDINI_MAX = 30;
+
+// Giorni di sicurezza nel minimo suggerito, per categoria
+export const SICUREZZA_DEFAULT = {
+  'Ortofrutta': 1,
+  'Ingredienti base': 1,
+  'semilavorato': 1,
+  'Ingredienti pronti': 3,
+  'Bevande': 3,
+  'Dolci': 3,
+  'Angolo di Sardegna': 3,
+  'Packaging': 3,
+  'Consumabili': 3,
+  'Pulizia': 3
+};
+
+// Unità d'ordine intere: per eccesso solo se la parte decimale supera 0,25, altrimenti per difetto
+export function arrotondaOrdine(x) {
+  const v = Math.round(x * 1e6) / 1e6;
+  const giu = Math.floor(v);
+  return v - giu > 0.25 ? giu + 1 : giu;
+}
 
 // Primo giorno di consegna utile dopo il tempo di consegna
 export function prossimaConsegna(f, oggi) {
@@ -25,7 +48,7 @@ export function attesaMedia(f, oggi) {
 }
 
 // Mediana dei giorni tra due ordini consecutivi, per fornitore e store {fornitore|store_id: giorni}.
-// Più ordini nello stesso giorno contano una volta
+// Più ordini nello stesso giorno contano una volta; servono almeno 3 ordini
 export function medianeOrdini(ordini) {
   const giorni = {};
   ordini.forEach((o) => {
@@ -35,7 +58,7 @@ export function medianeOrdini(ordini) {
   const out = {};
   Object.entries(giorni).forEach(([k, set]) => {
     const date = [...set].sort();
-    if (date.length < 2) return;
+    if (date.length < ORDINI_PER_STORICO) return;
     const salti = date.slice(1).map((d, i) => (Date.parse(d) - Date.parse(date[i])) / GIORNO).sort((a, b) => a - b);
     const m = Math.floor(salti.length / 2);
     out[k] = salti.length % 2 ? salti[m] : (salti[m - 1] + salti[m]) / 2;
@@ -43,13 +66,14 @@ export function medianeOrdini(ordini) {
   return out;
 }
 
-// Giorni tra ordini usati: il maggiore tra storico, frequenza minima del fornitore e intervallo tra due consegne
+// Giorni tra ordini usati: il maggiore tra storico (se c'è), frequenza minima del fornitore e intervallo tra due consegne, mai oltre 30
 export function giorniTraOrdini(f, mediana) {
   const scelte = [
-    ['storico', mediana ?? 0],
+    ...(mediana != null ? [['storico', mediana]] : []),
     ['minima impostata', f.frequenza_ordini_minima_giorni ?? FREQUENZA_MINIMA],
     ['consegne', f.giorni_consegna?.length ? 7 / f.giorni_consegna.length : 0]
   ];
   const [fonte, giorni] = scelte.reduce((a, b) => (b[1] > a[1] ? b : a));
-  return { fonte, giorni };
+  const oltre = giorni > GIORNI_TRA_ORDINI_MAX;
+  return { fonte: oltre ? `${fonte}, limite ${GIORNI_TRA_ORDINI_MAX}` : fonte, giorni: oltre ? GIORNI_TRA_ORDINI_MAX : giorni, storico_insufficiente: mediana == null };
 }

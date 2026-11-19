@@ -57,6 +57,22 @@
       },
       "description": "Intervallo massimo in giorni tra due conteggi, per categoria"
     },
+    "giorni_sicurezza_per_categoria": {
+      "type": "object",
+      "default": {
+        "Ortofrutta": 1,
+        "Ingredienti base": 1,
+        "semilavorato": 1,
+        "Ingredienti pronti": 3,
+        "Bevande": 3,
+        "Dolci": 3,
+        "Angolo di Sardegna": 3,
+        "Packaging": 3,
+        "Consumabili": 3,
+        "Pulizia": 3
+      },
+      "description": "Giorni di sicurezza aggiunti ai giorni di attesa nel minimo suggerito, per categoria"
+    },
     "soglia_affidabilita": {
       "type": "number",
       "default": 0.3,
