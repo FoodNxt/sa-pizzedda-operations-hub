@@ -55,7 +55,8 @@ export async function soglie(sr) {
     if (!(consumo > 0)) return { ...riga, motivo: 'consumo mancante' };
 
     const attesa = attesaMedia(f, oggi);
-    const sicurezza = sicurezze[mp.categoria] ?? 1;
+    // Il valore sul prodotto sostituisce quello della categoria
+    const sicurezza = mp.giorni_sicurezza ?? sicurezze[mp.categoria] ?? 1;
     const tra = giorniTraOrdini(f, mediana);
     const quantitaOrdine = (mp.store_specific_quantita_ordine?.[storeId] || mp.quantita_ordine || 0) * fattore;
     const arrotonda = (q) => Math.max(1, arrotondaOrdine(q / fattore)) * fattore;

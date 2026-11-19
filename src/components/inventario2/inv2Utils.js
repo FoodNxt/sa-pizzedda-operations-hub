@@ -24,8 +24,8 @@ export const DEFAULT_CONFIG = {
   limite_voci_sera: 15,
   giorni_sicurezza_per_categoria: {
     'Ortofrutta': 1,
-    'Ingredienti base': 1,
     'semilavorato': 1,
+    'Ingredienti base': 3,
     'Ingredienti pronti': 3,
     'Bevande': 3,
     'Dolci': 3,

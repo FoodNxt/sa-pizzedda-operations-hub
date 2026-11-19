@@ -61,8 +61,8 @@
       "type": "object",
       "default": {
         "Ortofrutta": 1,
-        "Ingredienti base": 1,
         "semilavorato": 1,
+        "Ingredienti base": 3,
         "Ingredienti pronti": 3,
         "Bevande": 3,
         "Dolci": 3,
@@ -71,7 +71,7 @@
         "Consumabili": 3,
         "Pulizia": 3
       },
-      "description": "Giorni di sicurezza aggiunti ai giorni di attesa nel minimo suggerito, per categoria"
+      "description": "Giorni di sicurezza aggiunti ai giorni di attesa nel minimo suggerito, per categoria. Il valore sul prodotto, se presente, lo sostituisce"
     },
     "soglia_affidabilita": {
       "type": "number",

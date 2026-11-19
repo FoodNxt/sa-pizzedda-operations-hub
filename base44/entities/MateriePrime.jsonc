@@ -66,6 +66,10 @@
       "type": "number",
       "description": "Quantit\u00e0 da ordinare quando si raggiunge la soglia critica"
     },
+    "giorni_sicurezza": {
+      "type": "number",
+      "description": "Giorni di sicurezza nel minimo suggerito: sostituisce il valore della categoria. Vuoto = vale la categoria"
+    },
     "store_specific_quantita_critica": {
       "type": "object",
       "description": "Quantit\u00e0 critiche specifiche per locale {store_id: quantita}"

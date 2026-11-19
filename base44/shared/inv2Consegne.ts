@@ -10,8 +10,8 @@ export const GIORNI_TRA_ORDINI_MAX = 30;
 // Giorni di sicurezza nel minimo suggerito, per categoria
 export const SICUREZZA_DEFAULT = {
   'Ortofrutta': 1,
-  'Ingredienti base': 1,
   'semilavorato': 1,
+  'Ingredienti base': 3,
   'Ingredienti pronti': 3,
   'Bevande': 3,
   'Dolci': 3,

@@ -73,6 +73,7 @@ export default function MateriePrime() {
     unita_misura_interna: 'kg',
     quantita_critica: '',
     quantita_ordine: '',
+      giorni_sicurezza: '',
     prezzo_unitario: '',
     iva_percentuale: 22,
     fornitore: '',
@@ -183,6 +184,7 @@ export default function MateriePrime() {
       unita_misura_interna: 'kg',
       quantita_critica: '',
       quantita_ordine: '',
+      giorni_sicurezza: '',
       prezzo_unitario: '',
       iva_percentuale: 22,
       fornitore: '',
@@ -221,6 +223,7 @@ export default function MateriePrime() {
       unita_misura_interna: product.unita_misura_interna || 'kg',
       quantita_critica: product.quantita_critica || '',
       quantita_ordine: product.quantita_ordine || '',
+      giorni_sicurezza: product.giorni_sicurezza ?? '',
       prezzo_unitario: '',
       fornitore: '',
       categoria: product.categoria || 'Ingredienti base',
@@ -256,6 +259,7 @@ export default function MateriePrime() {
       unita_misura_interna: product.unita_misura_interna || 'kg',
       quantita_critica: product.quantita_critica || product.quantita_minima || '',
       quantita_ordine: product.quantita_ordine || '',
+      giorni_sicurezza: product.giorni_sicurezza ?? '',
       prezzo_unitario: product.prezzo_unitario || '',
       iva_percentuale: product.iva_percentuale || 22,
       fornitore: product.fornitore || '',
@@ -314,6 +318,7 @@ export default function MateriePrime() {
       ...formData,
       quantita_critica: parseFloat(parseFloat(formData.quantita_critica).toFixed(2)),
       quantita_ordine: parseFloat(parseFloat(formData.quantita_ordine).toFixed(2)),
+      giorni_sicurezza: formData.giorni_sicurezza !== '' ? parseFloat(formData.giorni_sicurezza) : null,
       prezzo_unitario: formData.prezzo_unitario ? parseFloat(parseFloat(formData.prezzo_unitario).toFixed(2)) : null,
       iva_percentuale: formData.iva_percentuale ? parseFloat(formData.iva_percentuale) : null,
       peso_dimensione_unita: formData.peso_dimensione_unita ? parseFloat(parseFloat(formData.peso_dimensione_unita).toFixed(2)) : null,
@@ -1470,6 +1475,24 @@ export default function MateriePrime() {
 
                       <p className="text-xs text-slate-500 mt-1">
                         💡 Quantità da ordinare
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">
+                        Giorni di sicurezza
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={formData.giorni_sicurezza}
+                        onChange={(e) => setFormData({ ...formData, giorni_sicurezza: e.target.value })}
+                        placeholder="Categoria"
+                        className="w-full neumorphic-pressed px-4 py-3 rounded-xl text-slate-700 outline-none text-sm" />
+
+                      <p className="text-xs text-slate-500 mt-1">
+                        💡 Vuoto = vale la categoria
                       </p>
                     </div>
 
