@@ -78,22 +78,7 @@ export async function verifiche(sr) {
     });
   }
 
-  const prova = coppie.filter((c) => c.teorico?.diretto && c.u.ubicazione_tipo === 'negozio').slice(0, 60).map((c) => {
-    const o = c.teorico.ore?.oggi;
-    const m = o ? o.inizio : 0;
-    const ieri = m - GIORNO;
-    return {
-      nome: c.p.nome, store: c.u.store_id.slice(-4), media: c.teorico.giorni.length,
-      ieri_giorno: c.teorico.perGiorno[new Date(ieri + 7200000).toISOString().slice(0, 10)],
-      ieri_intero: teorici[c.k].tra(ieri, m),
-      ieri_dalle_13: teorici[c.k].tra(ieri + 13 * 3600000, m),
-      ieri_23_oggi_adesso: teorici[c.k].tra(ieri + 23 * 3600000, now),
-      oggi_fine: o ? new Date(o.fine).toISOString() : null,
-      oggi_ore: o?.items[c.p.imp.item_id]?.map((x) => Math.round(x * 100) / 100).join(',')
-    };
-  }).filter((x) => x.ieri_giorno > 0).slice(0, 6);
   return {
-    prova,
     giorni: GIORNI,
     promemoria: Object.values(promemoria).map((p) => ({ ...p, ultima_verifica: p.ultima_verifica ? new Date(p.ultima_verifica).toISOString() : null })),
     prodotti: medie(prodotti),
