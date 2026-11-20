@@ -4,7 +4,8 @@ import { aBlocchi, loadConfig } from '../../shared/inv2.ts';
 import { addGiorni, giornoRoma } from '../../shared/inv2Calcolo.ts';
 import { DATA, cancella, cancellaGiorno, chiaveProdotto, importaOrarie } from '../../shared/inv2VenditeOrarie.ts';
 
-const SENZA_ITEM = { item_id: { $in: [null, ''] } };
+// I menu (tipo ignora) non hanno un item e restano
+const SENZA_ITEM = { item_id: { $in: [null, ''] }, tipo: { $ne: 'ignora' } };
 const GIORNI_BLOCCO = 10;
 const TIMEOUT_MS = 120000;
 // Dopo 4 minuti non si iniziano altri blocchi; la richiesta viene chiusa a 5

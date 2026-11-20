@@ -16,7 +16,7 @@ export default function ProdottoPOSCard({ prodotto, salvato, proposta, peso, ric
   // Bevande e confezionati si collegano direttamente a una materia prima
   const vuota = { tipo: prodotto.isPizza ? 'ricetta' : 'materia_prima', item_id: '', quantita_per_pezzo: 1 };
   const descrivi = (r) => (r.tipo === 'ignora'
-    ? 'Ignorato'
+    ? 'Menu: conta solo il suo contenuto'
     : `${TIPI[r.tipo]}: ${elenchi[r.tipo].find((x) => x.id === r.item_id)?.nome_prodotto || '—'} × ${r.tipo === 'materia_prima' ? frazione(r.quantita_per_pezzo) : numeroIt(Number(r.quantita_per_pezzo))}`);
   const valida = riga && (riga.tipo === 'ignora' || (riga.item_id && Number(riga.quantita_per_pezzo) > 0));
   const ricettaEsistente = proposta?.tipo === 'ricetta';
@@ -53,6 +53,11 @@ export default function ProdottoPOSCard({ prodotto, salvato, proposta, peso, ric
                   <Plus className="w-4 h-4 mr-1" />
                   Crea ricetta
                 </Link>
+              </Button>
+            )}
+            {!salvato && (
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => salva({ tipo: 'ignora', quantita_per_pezzo: 1 })}>
+                È un menu
               </Button>
             )}
             <Button size="sm" variant="outline" onClick={() => setRiga({ ...vuota, ...(salvato || proposta) })}>

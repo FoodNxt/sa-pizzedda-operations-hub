@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { frazione, quotaConfezione } from './posUtils';
 
-export const TIPI = { ricetta: 'Ricetta', materia_prima: 'Materia prima', ignora: 'Ignora' };
+export const TIPI = { ricetta: 'Ricetta', materia_prima: 'Materia prima', ignora: 'Menu' };
 
 // Il collegamento di un prodotto venduto: tipo, ricetta o materia prima, quantità per pezzo venduto
 export default function RigaCollegamento({ riga, opzioni, onChange }) {
